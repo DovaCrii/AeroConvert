@@ -5,6 +5,27 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Sin publicar]
 
+### Añadido
+
+- La documentación que `AGENTS.md` declaraba en su cadena de precedencia y todavía no
+  existía: `docs/ARCHITECTURE.md`, `docs/MVP.md`, `docs/MOTORES.md`, `docs/FORMATOS.md`,
+  `docs/REFERENCES.md`, `docs/DEPLOY.md` y las dos de integración con AeroBim y AeroControl.
+- Gate reproducible: `scripts/verify.ps1`, `scripts/run.ps1`, `scripts/sondear.ps1` y
+  `scripts/sondear.py`.
+- CI en GitHub Actions, **verde**, corriendo el gate completo en una máquina **sin GDAL**.
+  Un segundo flujo `oraculo.yml` instala GDAL y PDAL desde conda-forge para las pruebas
+  marcadas, semanalmente y sin bloquear ningún PR.
+
+### Corregido
+
+- El conteo de pirámides ya no incluye los IFD de la banda de máscara, que lo inflaban al
+  doble en cualquier archivo con alfa convertido a máscara.
+- `sondar_pdal()` ya no devuelve la fila de guiones del banner como número de versión.
+- `desde_wkt()` resuelve el `.prj` que escribe Metashape. pyproj no lo identifica ni con
+  confianza 20 — devuelve cero candidatos —, así que se lee el `AUTHORITY` que el propio WKT
+  declara **y se verifica** contra la definición canónica comparando los parámetros de
+  proyección. Leerlo sin verificar habría sido adivinar.
+
 ## [0.1.0] — 2026-09-08
 
 Primera versión. Andamiaje al estándar de la familia Aero y el núcleo de detección, que es
