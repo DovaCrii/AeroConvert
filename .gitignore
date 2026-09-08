@@ -1,0 +1,44 @@
+# Entorno
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.uv-cache/
+
+# Django
+db.sqlite3
+db.sqlite3-*
+/staticfiles/
+/media/
+.env
+
+# Herramientas
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+*.mo
+
+# Datos reales: NUNCA entran al repositorio.
+# Ortofotos, nubes de puntos, DEM, entregables de cliente y claves de SDK viven
+# fuera del arbol. Un GeoTIFF de obra son cientos de megabytes y ademas es del
+# cliente, no nuestro.
+/datos/
+/salidas/
+*.tif
+*.tiff
+*.ecw
+*.jp2
+*.j2k
+*.sid
+*.img
+*.las
+*.laz
+*.copc.laz
+*.e57
+!apps/formats/tests/fixtures/*.tif
+!apps/formats/tests/fixtures/*.asc
+
+# Windows
+Thumbs.db
+desktop.ini

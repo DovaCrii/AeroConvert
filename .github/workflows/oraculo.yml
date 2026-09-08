@@ -1,0 +1,53 @@
+name: Oraculo externo
+
+# Las pruebas que necesitan GDAL de verdad. Van aparte del gate y **pueden estar rojas sin
+# bloquear un PR**: su valor es avisar de una regresion contra la herramienta real, no
+# frenar el trabajo de nadie.
+#
+# Su resultado se anota, con fecha, en `docs/PRUEBAS_CON_ORACULO.md`.
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 6 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  oraculo:
+    runs-on: ubuntu-latest
+    env:
+      SECRET_KEY: clave-solo-para-ci-no-se-usa-en-ningun-despliegue
+      DEBUG: "True"
+      AEROCONVERT_MODO: taller
+      AEROCONVERT_RAICES_PERMITIDAS: /tmp
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: mamba-org/setup-micromamba@v2
+        with:
+          environment-name: geo
+          create-args: >-
+            python=3.12
+            gdal
+            pdal
+
+      - uses: astral-sh/setup-uv@v7
+        with:
+          python-version: "3.12"
+
+      - run: uv sync --all-groups --locked
+
+      - name: Donde quedo GDAL
+        shell: bash -el {0}
+        run: |
+          echo "AEROCONVERT_GDAL_BIN=$CONDA_PREFIX/bin" >> "$GITHUB_ENV"
+          echo "AEROCONVERT_PDAL_BIN=$CONDA_PREFIX/bin" >> "$GITHUB_ENV"
+          gdalinfo --version
+
+      - name: Sondeo
+        run: uv run python scripts/sondear.py
+
+      - name: pytest -m oraculo
+        run: uv run pytest -m oraculo -v

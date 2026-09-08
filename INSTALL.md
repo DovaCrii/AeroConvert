@@ -1,0 +1,135 @@
+# Instalación
+
+AeroConvert se instala en dos pasos separados a propósito: **la aplicación** y **las
+herramientas de conversión**. La aplicación funciona sin las segundas —diagnostica, muestra
+la matriz de capacidades y dice qué falta— y eso es lo que permite desarrollar y correr las
+pruebas en una máquina limpia.
+
+---
+
+## 1. La aplicación
+
+Requisitos: Python 3.12, PowerShell 7+, Git y [uv](https://docs.astral.sh/uv/).
+
+```powershell
+git clone https://github.com/DovaCrii/AeroConvert.git
+Set-Location AeroConvert
+uv sync --all-groups
+```
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Edita `.env`. Lo único obligatorio en modo taller es **`AEROCONVERT_RAICES_PERMITIDAS`**:
+las carpetas bajo las cuales se puede leer, separadas por `;`. Sin ella `manage.py check`
+falla, y falla a propósito — la ruta de origen la teclea una persona, así que sin lista
+blanca la aplicación sería un primitivo de lectura del disco entero.
+
+```powershell
+uv run python manage.py migrate
+uv run python manage.py createsuperuser
+pwsh scripts/run.ps1
+```
+
+---
+
+## 2. Las herramientas de conversión
+
+Ninguna es dependencia del paquete: se **sondean** en tiempo de ejecución. Lo que falte
+apaga su fila de la matriz con un motivo escrito, no rompe nada.
+
+Para ver qué encuentra esta máquina:
+
+```powershell
+pwsh scripts/sondear.ps1
+```
+
+### GDAL y PDAL — obligatorios para convertir
+
+**En Windows, la vía más simple es que ya los tengas.** QGIS los trae completos:
+
+```
+C:\Program Files\QGIS 4.0.2\bin
+```
+
+Ahí viven `gdalinfo.exe`, `gdal_translate.exe`, `gdalwarp.exe`, `gdaladdo.exe`,
+`ogr2ogr.exe` y `pdal.exe`. Apunta las variables a esa carpeta y listo:
+
+```
+AEROCONVERT_GDAL_BIN=C:\Program Files\QGIS 4.0.2\bin
+AEROCONVERT_PDAL_BIN=C:\Program Files\QGIS 4.0.2\bin
+```
+
+Se antepone al `PATH` **del proceso hijo**, nunca al del servidor: mezclar el GDAL de una
+instalación con el PROJ de otra no falla limpiamente — reproyecta con datos equivocados y
+entrega un archivo que parece bien.
+
+Alternativas, en orden de preferencia:
+
+| Vía | Cuándo |
+| --- | --- |
+| **QGIS** | Ya lo tienes instalado. Es la más simple |
+| **OSGeo4W** | Instalación de GDAL sin QGIS encima. Permite añadir paquetes sueltos |
+| **conda-forge** (`micromamba install gdal pdal`) | Servidores Linux y CI |
+| Rueda de PyPI | **No sirve**: no trae los controladores que hacen falta |
+
+Comprueba que PROJ encuentre su base de datos. Si `sondear.ps1` reporta
+`proj-descolocado`, define:
+
+```
+PROJ_DATA=C:\Program Files\QGIS 4.0.2\share\proj
+```
+
+### ECW — opcional y de pago
+
+Escribir ECW exige la **ERDAS ECW/JP2 SDK de Hexagon con clave OEM**, comercial. GDAL solo
+lee, y **la compilación que trae QGIS no incluye ECW ni para leer**.
+
+Con la clave:
+
+```
+AEROCONVERT_ECW_ENCODE_KEY=<la clave>
+AEROCONVERT_ECW_ENCODE_COMPANY=<la empresa, exactamente como figura en la clave>
+```
+
+O bien un ejecutable externo que comprima a ECW:
+
+```
+AEROCONVERT_ECW_BIN=C:\ruta\al\compresor.exe
+```
+
+Sin ninguna de las dos, el destino ECW aparece apagado con el motivo `sin-clave-ecw` y la
+aplicación propone COG o JPEG 2000.
+
+**Y para el caso corriente, JPEG 2000 basta y sobra.** Está medido sobre material real
+(`docs/PRUEBAS_CON_ORACULO.md`): 13 % del peso del original, error máximo de 4 niveles
+sobre 255, georreferencia dentro del archivo sin acompañantes, y Civil 3D con Raster Design
+lo lee. No necesita licencia de nadie.
+
+### ODA File Converter — opcional, para DWG y DGN
+
+Gratuito, de la Open Design Alliance, con su propia licencia. **No se distribuye con
+AeroConvert.** Se descarga de su web, se instala, y:
+
+```
+AEROCONVERT_ODA_CONVERTER=C:\Program Files\ODA\ODAFileConverter <versión>\ODAFileConverter.exe
+```
+
+La alternativa abierta para DWG, LibreDWG, es GPL-3 y **contagiaría la licencia del
+proyecto entero**, así que no se contempla.
+
+---
+
+## 3. Comprobar que quedó bien
+
+```powershell
+pwsh scripts/verify.ps1
+```
+
+```powershell
+pwsh scripts/sondear.ps1
+```
+
+El primero es la puerta de calidad y **tiene que ser verde aunque no haya GDAL**. El
+segundo dice qué motores ve la máquina y por qué faltan los que faltan.

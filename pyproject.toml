@@ -1,0 +1,75 @@
+[project]
+name = "aeroconvert"
+version = "0.1.0"
+description = "Local-first geospatial format converter for survey and engineering deliverables."
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "Django==6.1",
+    "django-crispy-forms==2.7",
+    "crispy-bootstrap5==2026.3",
+    "python-decouple==3.8",
+    "djangorestframework>=3.18,<4",
+    "django-axes>=7,<9",
+    "whitenoise>=6.9,<7",
+    # pyproj valida un EPSG declarado a mano y resuelve WKT <-> autoridad. Trae
+    # su propia base PROJ en la rueda, asi que **no** depende de que GDAL este
+    # instalado: la validacion del CRS tiene que funcionar en una maquina limpia,
+    # que es justo donde alguien teclea un EPSG equivocado.
+    "pyproj>=3.7,<4",
+]
+
+# GDAL, PDAL y el conversor de ECW **no van aca a proposito**. Son herramientas
+# externas que se sondean en tiempo de ejecucion (`apps/engines/sondas.py`), no
+# dependencias del paquete:
+#
+# 1. La rueda de GDAL en PyPI no trae los controladores que hacen falta, y en
+#    Windows la via real es OSGeo4W o conda-forge -- ninguna de las dos la puede
+#    instalar `uv`.
+# 2. Declararlas obligaria a tener GDAL para correr `pytest`, y el gate tiene que
+#    ser verde en una maquina limpia (ver `docs/PRUEBAS_CON_ORACULO.md`).
+# 3. El SDK de ECW tiene licencia comercial de Hexagon y no se puede redistribuir.
+#
+# Se apuntan con `AEROCONVERT_GDAL_BIN`, `AEROCONVERT_PDAL_BIN`,
+# `AEROCONVERT_ECW_BIN` y `AEROCONVERT_ODA_CONVERTER`. Ver `INSTALL.md`.
+
+[dependency-groups]
+dev = [
+    "bandit==1.9.4",
+    "pip>=26.2",
+    "pip-audit==2.10.1",
+    "pytest==9.1.1",
+    "pytest-cov==7.1.0",
+    "pytest-django==4.12.0",
+    "polib>=1.2,<2",
+    "ruff==0.15.22",
+]
+
+[tool.uv]
+package = false
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+exclude = [".venv", "migrations", ".pytest_cache", ".ruff_cache"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "DJ"]
+
+[tool.bandit]
+exclude_dirs = [".venv", "migrations", "tests.py", "test_"]
+# B101 y B105: igual que en AeroControl -- los `assert` de las pruebas y las cadenas
+#   literales que contienen "password" en los datos de prueba no son hallazgos.
+# B404 (importar `subprocess`): AeroConvert **es** un programa que lanza herramientas
+#   externas. Marcar el import cada vez no aporta nada; lo que importa es cada llamada, y
+#   B603 sigue activo para eso, con su justificacion escrita en el sitio.
+skips = ["B101", "B105", "B404"]
+
+[tool.coverage.run]
+source = ["apps"]
+omit = ["*/migrations/*"]
+
+[tool.coverage.report]
+# Mismo piso que AeroControl. Es un piso, no un objetivo: nunca se baja para que
+# pase una corrida roja.
+fail_under = 83
+show_missing = true

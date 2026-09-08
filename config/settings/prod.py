@@ -1,0 +1,21 @@
+"""Despliegue en VM propia, detras de nginx con TLS."""
+
+from decouple import Csv, config
+
+from .base import *  # noqa: F403
+
+DEBUG = False
+ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="", cast=Csv())
+CSRF_TRUSTED_ORIGINS = config("CSRF_TRUSTED_ORIGINS", default="", cast=Csv())
+
+SECURE_SSL_REDIRECT = True
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
+SECURE_HSTS_SECONDS = 31536000
+SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+SECURE_HSTS_PRELOAD = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
+X_FRAME_OPTIONS = "DENY"
+
+CONVERSION_DISPATCHER_ENABLED = True

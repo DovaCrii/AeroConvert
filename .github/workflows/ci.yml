@@ -1,0 +1,58 @@
+name: CI
+
+# El gate de siempre, en Ubuntu y **sin GDAL instalado**. Que pase sin GDAL no es un atajo:
+# es el requisito. La capa de motores describe en vez de ejecutar justo para poder probarse
+# asi, y si algun dia el CI necesitara GDAL seria senal de que algo se escribio mal.
+#
+# Las pruebas con oraculo externo van en `oraculo.yml`, aparte y sin bloquear.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    env:
+      SECRET_KEY: clave-solo-para-ci-no-se-usa-en-ningun-despliegue
+      DEBUG: "True"
+      AEROCONVERT_MODO: taller
+      # Obligatoria en modo taller: `manage.py check` falla sin ella, a proposito.
+      AEROCONVERT_RAICES_PERMITIDAS: /tmp
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: astral-sh/setup-uv@v7
+        with:
+          python-version: "3.12"
+          enable-cache: true
+
+      - name: Instalar dependencias
+        run: uv sync --all-groups --locked
+
+      - name: manage.py check
+        run: uv run python manage.py check
+
+      - name: makemigrations --check
+        run: uv run python manage.py makemigrations --check --dry-run
+
+      - name: pytest
+        run: uv run pytest --cov=apps --cov-report=term-missing
+
+      - name: ruff check
+        run: uv run ruff check .
+
+      # No es redundante con el anterior: `check` no mira el formato, y olvidarlo dejo el
+      # CI de AeroControl rojo durante dias.
+      - name: ruff format --check
+        run: uv run ruff format --check .
+
+      - name: bandit
+        run: uv run bandit -q -c pyproject.toml -r apps config
+
+      - name: pip-audit
+        run: uv run pip-audit

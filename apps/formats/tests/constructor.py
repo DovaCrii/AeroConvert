@@ -1,0 +1,212 @@
+"""Construye TIFF diminutos byte a byte, para probar el lector sin GDAL.
+
+## Por que a mano y no con una libreria
+
+Porque la libreria y el lector se equivocarian igual. Si el fichero de prueba lo escribe
+GDAL y lo lee nuestro codigo, lo unico que se comprueba es que los dos entienden lo mismo
+por TIFF -- y ademas hace falta GDAL instalado, que es justo lo que el gate no puede exigir.
+
+Escribiendolo aqui, el byte de version 43 esta puesto **a proposito y a la vista**: la
+prueba de BigTIFF falla si el lector deja de mirarlo, que es exactamente el defecto que
+haria que la aplicacion dejara de dar su diagnostico principal.
+
+Los archivos salen de unos 400 bytes.
+"""
+
+from __future__ import annotations
+
+import struct
+
+#: Codigos de tipo TIFF que usa el constructor.
+SHORT = 3
+LONG = 4
+DOUBLE = 12
+LONG8 = 16
+
+TAMANOS = {SHORT: 2, LONG: 4, DOUBLE: 8, LONG8: 8}
+EMPAQUE = {SHORT: "H", LONG: "I", DOUBLE: "d", LONG8: "Q"}
+
+
+#: Las geoclaves de un EPSG proyectado. La cabecera son cuatro enteros (version 1,
+#: revision 1, revision menor 0, y cuantas claves vienen) y luego cuatro por clave:
+#: identificador, donde vive el valor (0 = aqui mismo), cuantos, y el valor.
+def geoclaves_epsg(codigo: int) -> tuple[int, ...]:
+    return (
+        1,
+        1,
+        0,
+        2,  # cabecera: dos claves
+        1024,
+        0,
+        1,
+        1,  # GTModelType = 1 (proyectado)
+        3072,
+        0,
+        1,
+        codigo,  # ProjectedCSType = el EPSG
+    )
+
+
+class ConstructorTiff:
+    """Arma un TIFF clasico o un BigTIFF con los campos que se le pidan."""
+
+    def __init__(self, *, bigtiff: bool = False, little_endian: bool = True) -> None:
+        self.bigtiff = bigtiff
+        self.orden = "<" if little_endian else ">"
+        self.campos: dict[int, tuple[int, tuple]] = {}
+
+    def campo(self, etiqueta: int, tipo: int, valores) -> ConstructorTiff:
+        self.campos[etiqueta] = (tipo, tuple(valores))
+        return self
+
+    def raster(
+        self,
+        *,
+        ancho: int = 4,
+        alto: int = 4,
+        bandas: int = 1,
+        compresion: int = 1,
+        fotometria: int = 1,
+        epsg: int | None = None,
+        escala_m: float | None = None,
+        origen: tuple[float, float] | None = None,
+        alfa: bool = False,
+    ) -> ConstructorTiff:
+        """Los campos minimos de un raster que se pueda leer."""
+        self.campo(256, SHORT, [ancho])
+        self.campo(257, SHORT, [alto])
+        self.campo(258, SHORT, [8] * bandas)
+        self.campo(259, SHORT, [compresion])
+        self.campo(262, SHORT, [fotometria])
+        self.campo(277, SHORT, [bandas])
+        self.campo(278, SHORT, [alto])
+        if alfa:
+            self.campo(338, SHORT, [2])  # alfa sin premultiplicar
+        if escala_m is not None:
+            self.campo(33550, DOUBLE, [escala_m, escala_m, 0.0])
+        if origen is not None:
+            self.campo(33922, DOUBLE, [0.0, 0.0, 0.0, origen[0], origen[1], 0.0])
+        if epsg is not None:
+            self.campo(34735, SHORT, geoclaves_epsg(epsg))
+        self._pixeles = bytes(ancho * alto * bandas)
+        return self
+
+    def bytes(self) -> bytes:
+        orden = self.orden
+        pixeles = getattr(self, "_pixeles", b"\x00" * 16)
+
+        if self.bigtiff:
+            cabecera = struct.pack(f"{orden}2sHHH", b"II" if orden == "<" else b"MM", 43, 8, 0)
+            cabecera += struct.pack(f"{orden}Q", 16)
+            inicio_ifd = 16
+            tam_entrada, hueco = 20, 8
+            fmt_cuenta, fmt_desp = "Q", "Q"
+            cabecera_ifd = struct.pack(f"{orden}Q", len(self.campos) + 1)
+        else:
+            cabecera = struct.pack(f"{orden}2sHI", b"II" if orden == "<" else b"MM", 42, 8)
+            inicio_ifd = 8
+            tam_entrada, hueco = 12, 4
+            fmt_cuenta, fmt_desp = "I", "I"
+            cabecera_ifd = struct.pack(f"{orden}H", len(self.campos) + 1)
+
+        # +1 por StripOffsets (273), que se anade al final porque su valor depende de
+        # donde acabe todo lo demas.
+        etiquetas = sorted([*self.campos.keys(), 273])
+        tam_ifd = len(cabecera_ifd) + len(etiquetas) * tam_entrada + hueco
+        inicio_valores = inicio_ifd + tam_ifd
+
+        # Primera pasada: donde cae el valor de cada campo que no quepa en linea.
+        desplazamiento = inicio_valores
+        posiciones: dict[int, int] = {}
+        for etiqueta in etiquetas:
+            if etiqueta == 273:
+                continue
+            tipo, valores = self.campos[etiqueta]
+            total = TAMANOS[tipo] * len(valores)
+            if total > hueco:
+                posiciones[etiqueta] = desplazamiento
+                desplazamiento += total + (total % 2)  # los valores van a byte par
+
+        inicio_pixeles = desplazamiento
+
+        entradas = b""
+        area_valores = bytearray()
+        for etiqueta in etiquetas:
+            if etiqueta == 273:
+                tipo, valores = LONG, (inicio_pixeles,)
+            else:
+                tipo, valores = self.campos[etiqueta]
+            empaquetado = struct.pack(f"{orden}{len(valores)}{EMPAQUE[tipo]}", *valores)
+            entradas += struct.pack(f"{orden}HH", etiqueta, tipo)
+            entradas += struct.pack(f"{orden}{fmt_cuenta}", len(valores))
+            if len(empaquetado) <= hueco:
+                entradas += empaquetado.ljust(hueco, b"\x00")
+            else:
+                posicion = posiciones[etiqueta]
+                entradas += struct.pack(f"{orden}{fmt_desp}", posicion)
+                relleno = posicion - inicio_valores - len(area_valores)
+                area_valores += b"\x00" * relleno + empaquetado
+                if len(empaquetado) % 2:
+                    area_valores += b"\x00"
+
+        sin_siguiente = struct.pack(f"{orden}{fmt_desp}", 0)
+        salida = cabecera + cabecera_ifd + entradas + sin_siguiente + bytes(area_valores) + pixeles
+        return salida
+
+
+def geotiff_minimo(**kwargs) -> bytes:
+    """Un GeoTIFF clasico de 4x4 en EPSG:32719, con escala y origen. ~400 bytes."""
+    opciones = {
+        "ancho": 4,
+        "alto": 4,
+        "bandas": 1,
+        "epsg": 32719,
+        "escala_m": 0.025577,
+        "origen": (495003.2272575648, 7318841.801817955),
+    }
+    opciones.update(kwargs)
+    return ConstructorTiff(bigtiff=False).raster(**opciones).bytes()
+
+
+def bigtiff_minimo(**kwargs) -> bytes:
+    """El mismo archivo, pero BigTIFF. La unica diferencia semantica es el byte 2."""
+    opciones = {
+        "ancho": 4,
+        "alto": 4,
+        "bandas": 1,
+        "epsg": 32719,
+        "escala_m": 0.025577,
+        "origen": (495003.2272575648, 7318841.801817955),
+    }
+    opciones.update(kwargs)
+    return ConstructorTiff(bigtiff=True).raster(**opciones).bytes()
+
+
+#: Un Arc/Info ASCII Grid de doce lineas. Texto plano, sin firma: sirve para probar que la
+#: deteccion por extension existe y que su confianza se reporta mas baja.
+ASC_MINIMO = """\
+ncols 4
+nrows 4
+xllcorner 495003.227
+yllcorner 7318841.802
+cellsize 0.025577
+NODATA_value -9999
+3042.1 3042.2 3042.3 3042.4
+3043.1 3043.2 3043.3 3043.4
+3044.1 3044.2 3044.3 3044.4
+3045.1 3045.2 3045.3 3045.4
+"""
+
+#: El `.prj` que escribe Metashape. Se guarda literal porque su rareza es el caso de
+#: prueba: pyproj no lo identifica ni con confianza 20, y aun asi declara su EPSG.
+PRJ_METASHAPE = (
+    'PROJCS["WGS 84 / UTM zone 19S",GEOGCS["WGS 84",DATUM["World Geodetic System 1984 '
+    'ensemble",SPHEROID["WGS 84",6378137,298.257223563,AUTHORITY["EPSG","7030"]],'
+    'TOWGS84[0,0,0,0,0,0,0],AUTHORITY["EPSG","6326"]],PRIMEM["Greenwich",0,'
+    'AUTHORITY["EPSG","8901"]],UNIT["degree",0.01745329251994328,AUTHORITY["EPSG","9102"]],'
+    'AUTHORITY["EPSG","4326"]],PROJECTION["Transverse_Mercator",AUTHORITY["EPSG","9807"]],'
+    'PARAMETER["latitude_of_origin",0],PARAMETER["central_meridian",-69],'
+    'PARAMETER["scale_factor",0.9996],PARAMETER["false_easting",500000],'
+    'PARAMETER["false_northing",10000000],UNIT["metre",1,AUTHORITY["EPSG","9001"]],'
+    'AUTHORITY["EPSG","32719"]]'
+)
