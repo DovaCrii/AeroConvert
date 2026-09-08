@@ -44,7 +44,7 @@ class TestSinFirma:
         inspeccion = deteccion.inspeccionar(_crear(tmp_path, "terreno.asc", ASC_MINIMO))
         assert inspeccion.codigo_formato == "asc"
         assert inspeccion.confianza == deteccion.CONFIANZA_EXTENSION
-        assert inspeccion.etiqueta_confianza == "supuesto por la extension"
+        assert inspeccion.etiqueta_confianza == "supuesto por la extensión"
 
     def test_una_extension_desconocida_no_se_inventa(self, tmp_path):
         inspeccion = deteccion.inspeccionar(_crear(tmp_path, "cosa.zzz", b"\x01\x02\x03\x04"))

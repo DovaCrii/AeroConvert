@@ -265,7 +265,7 @@ class TestSondaOda:
         with override_settings(ODA_CONVERTER=r"C:\no\existe\ODAFileConverter.exe"):
             estado = sondas.sondar_oda()
         assert estado.codigo_motivo == "sin-conversor"
-        assert "no hay ningun archivo" in estado.mensaje
+        assert "no hay ningún archivo" in estado.mensaje
 
     def test_si_esta_en_el_path_no_hay_que_configurar_nada(self, monkeypatch, tmp_path):
         falso = tmp_path / "ODAFileConverter.exe"

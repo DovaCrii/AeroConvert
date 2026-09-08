@@ -5,6 +5,31 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Sin publicar]
 
+### Añadido — la interfaz
+
+- **La mesa.** Se suelta o se pega una ruta y aparece, sin abrir la imagen: la ficha de lo
+  que hay dentro, la tira de veredictos por programa de destino, y los botones de destino.
+  El selector primario es **un programa, no una extensión** — es la idea del producto.
+- La ficha del trabajo con progreso por *polling* de htmx y **el recibo**: tamaño antes y
+  después, dimensiones y CRS sin cambio, motor con su versión, y el `sha256` del original.
+- El historial y la pantalla de motores, con la matriz origen × destino en tres estados.
+- Identidad completa: tokens `--av-*` medidos, tema claro y oscuro siguiendo
+  `prefers-color-scheme`, y el interruptor en un archivo aparte porque la CSP no admite
+  `'unsafe-inline'`.
+- Bootstrap 5.3.3 y htmx 2.0.10 **vendorizados con SRI**. La CSP es `'self'`: un CDN no
+  cargaría, y en modo taller puede no haber red.
+
+### Añadido — retención y disco
+
+- Tres políticas (`efimera`, `temporal`, `permanente`) con el valor por omisión que
+  corresponde al modo. Las entradas subidas se borran **siempre** al terminar.
+- **Presupuesto de disco con cola.** Es lo que de verdad protege el servidor: borrar al
+  terminar no impide que tres conversiones simultáneas llenen el volumen. Un trabajo que no
+  cabe espera en vez de arrancar, y no falla — el disco se libera solo.
+- Barrido de caducados, entradas y huérfanos, al arrancar y cada cinco minutos.
+- La descarga borra el archivo al completarse, **no al empezar**: con archivos de cientos
+  de megabytes la descarga se corta, y hay que poder reintentarla.
+
 ### Añadido
 
 - **AeroConvert convierte.** Se cierran las fases F1.2 (modelo de trabajo) y F1.5 (motor
@@ -35,6 +60,20 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
   se hará al final, renombrar, y se deja el archivo como estaba.
 - Cancelar dejaba el trabajo en `error`. Ahora queda en `cancelled`: mezclar «esto se
   rompió» con «cambié de idea» hacía inservible el historial.
+- **Los perfiles de destino no fijaban nada.** Estaban escritos con las claves de GDAL
+  —`COMPRESS`, `BLOCKXSIZE`— y el motor lee `compresion` y `tamano_tesela`, así que el
+  trabajo salía con los valores por omisión: **el perfil de Civil 3D prometía descartar la
+  banda alfa y no lo hacía.** Es justo el fallo que la regla de «las opciones las declara el
+  motor» existe para impedir; ahora hay una prueba que compara ambos vocabularios.
+- **`gdaladdo` dejaba un `.ovr` de 360 MB junto a cada JP2.** Solo escribe las pirámides
+  dentro del archivo cuando el controlador admite abrirlo para actualizar; con JP2, ECW o
+  ASC deja un GeoTIFF de pirámides al lado. Sobre la ortofoto real eran 360 MB pegados a un
+  archivo de 63 MB — rompía las dos promesas a la vez: un solo archivo autocontenido, y no
+  llenar el disco. Ahora solo se piden donde caben dentro.
+- El runner borra los acompañantes que el motor cuelga del nombre del parcial. GDAL escribe
+  un `.aux.xml` que quedaba huérfano en cuanto el archivo se renombraba.
+- Un comentario de plantilla escrito como `{# … #}` en varias líneas se imprimía literal en
+  el recibo: esa forma es de una sola línea.
 
 ### Añadido (documentación)
 

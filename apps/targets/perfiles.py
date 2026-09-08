@@ -85,20 +85,23 @@ CIVIL3D = PerfilDeDestino(
     formatos_preferidos=("geotiff",),
     formatos_aceptados=("jp2", "ecw", "mrsid", "img", "png", "jpeg"),
     formato_destino="geotiff",
+    # **Las claves son las que declara el motor, no las de GDAL.**
+    #
+    # Escribirlas como `COMPRESS` o `BLOCKXSIZE` parecia natural -- es lo que acaba en el
+    # comando -- y estaba mal: el motor lee `compresion` y `tamano_tesela`, asi que el
+    # perfil no fijaba nada y el trabajo salia con los valores por omision. El perfil de
+    # Civil 3D prometia descartar la banda alfa y **no lo hacia**.
+    #
+    # Es justo el fallo que la regla de «las opciones las declara el motor» existe para
+    # impedir, y hay una prueba que compara ambos vocabularios para que no vuelva.
     opciones={
-        # La opcion que resuelve el caso. `BIGTIFF=NO` obliga a TIFF clasico y falla
-        # ruidosamente si no cabe, que es preferible a escribir algo que no abrira.
-        "BIGTIFF": "NO",
-        "TILED": "YES",
-        "BLOCKXSIZE": "512",
-        "BLOCKYSIZE": "512",
-        "COMPRESS": "LZW",
-        "PREDICTOR": "2",
-        "bandas_rgb": True,
-        "alfa_a_mascara": True,
+        # La opcion que resuelve el caso que origino la aplicacion.
+        "bigtiff": "NO",
+        "compresion": "DEFLATE",
+        "tamano_tesela": "512",
+        "solo_rgb": True,
         "piramides": "2 4 8 16 32",
     },
-    escribir_acompanantes=(".tfw", ".prj"),
 )
 
 QGIS = PerfilDeDestino(
@@ -121,7 +124,7 @@ QGIS = PerfilDeDestino(
         "copc",
     ),
     formato_destino="cog",
-    opciones={"COMPRESS": "DEFLATE", "PREDICTOR": "2", "BIGTIFF": "IF_SAFER"},
+    opciones={"compresion": "DEFLATE"},
 )
 
 ARCGIS = PerfilDeDestino(
@@ -131,7 +134,9 @@ ARCGIS = PerfilDeDestino(
     formatos_preferidos=("geotiff", "bigtiff", "cog", "img", "gpkg"),
     formatos_aceptados=("jp2", "ecw", "mrsid", "asc", "shp", "geojson", "las", "laz"),
     formato_destino="geotiff",
-    opciones={"TILED": "YES", "COMPRESS": "LZW", "BIGTIFF": "IF_SAFER"},
+    # ArcGIS si lee BigTIFF, asi que no hay razon para forzar el clasico y arriesgarse a
+    # que un raster grande no quepa.
+    opciones={"compresion": "LZW", "bigtiff": "IF_SAFER", "piramides": "2 4 8 16 32"},
 )
 
 GOOGLE_EARTH = PerfilDeDestino(
@@ -151,7 +156,7 @@ WEB = PerfilDeDestino(
     formatos_preferidos=("cog",),
     formatos_aceptados=("mbtiles", "geojson", "copc"),
     formato_destino="cog",
-    opciones={"COMPRESS": "DEFLATE", "piramides": "auto", "BIGTIFF": "IF_SAFER"},
+    opciones={"compresion": "DEFLATE"},
 )
 
 AEROBIM = PerfilDeDestino(
@@ -160,7 +165,7 @@ AEROBIM = PerfilDeDestino(
     descripcion="La aplicacion hermana: COG para raster, COPC para nubes, DXF para planos.",
     formatos_preferidos=("cog", "copc", "dxf", "ifc"),
     formato_destino="cog",
-    opciones={"COMPRESS": "DEFLATE", "BIGTIFF": "IF_SAFER"},
+    opciones={"compresion": "DEFLATE"},
 )
 
 PERFILES: dict[str, PerfilDeDestino] = {
@@ -188,8 +193,8 @@ def _veredicto_civil3d(inspeccion) -> Veredicto:
             perfil_id=CIVIL3D.id,
             perfil_nombre=CIVIL3D.nombre,
             severidad=NO_ABRE,
-            motivo="Es BigTIFF, y Civil 3D no lee BigTIFF aunque la extension sea .tif.",
-            remedio="Reescribir como TIFF clasico. No pierde un solo pixel.",
+            motivo="Es BigTIFF, y Civil 3D no lee BigTIFF aunque la extensión sea .tif.",
+            remedio="Reescribir como TIFF clásico. No pierde un solo píxel.",
         )
 
     if not CIVIL3D.lee(codigo):
@@ -200,7 +205,7 @@ def _veredicto_civil3d(inspeccion) -> Veredicto:
             perfil_nombre=CIVIL3D.nombre,
             severidad=NO_ABRE,
             motivo=f"Civil 3D no abre {nombre}.",
-            remedio="Convertir a GeoTIFF clasico.",
+            remedio="Convertir a GeoTIFF clásico.",
         )
 
     if tiff is not None and tiff.tiene_alfa:
@@ -218,7 +223,7 @@ def _veredicto_civil3d(inspeccion) -> Veredicto:
             perfil_nombre=CIVIL3D.nombre,
             severidad=CON_REPAROS,
             motivo="Necesita Raster Design o Map 3D; AutoCAD base no lo lee.",
-            remedio="Si el puesto no lo tiene, convertir a GeoTIFF clasico.",
+            remedio="Si el puesto no lo tiene, convertir a GeoTIFF clásico.",
         )
 
     if not inspeccion.crs.conocido:

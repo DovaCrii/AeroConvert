@@ -153,7 +153,7 @@ def ejecutar(job: ConversionJob) -> Resultado:
 def _ejecutar(job: ConversionJob) -> Resultado:
     origen = Path(job.source_path)
     if not origen.exists():
-        raise TrabajoFallido("origen-no-legible", f"Ya no hay ningun archivo en {origen}.")
+        raise TrabajoFallido("origen-no-legible", f"Ya no hay ningún archivo en {origen}.")
 
     huella_antes = origen.stat().st_mtime_ns
 
@@ -224,17 +224,22 @@ def _ejecutar(job: ConversionJob) -> Resultado:
         raise TrabajoFallido(veredicto.codigo_motivo or "salida-invalida", veredicto.motivo)
 
     _renombrar(parcial, destino)
+    _limpiar_restos(parcial)
+
+    from . import retencion
 
     job.output_path = str(destino)
     job.output_size_bytes = destino.stat().st_size
     job.verified_at = timezone.now()
     job.verification = veredicto.detalles
+    job.expires_at = retencion.caducidad_para()
     job.save(
         update_fields=[
             "output_path",
             "output_size_bytes",
             "verified_at",
             "verification",
+            "expires_at",
             "updated_at",
         ]
     )
@@ -244,7 +249,7 @@ def _ejecutar(job: ConversionJob) -> Resultado:
     # cortesia: es la unica forma de detectar un motor que escribio donde no debia.
     if origen.stat().st_mtime_ns != huella_antes:
         job.registrar(
-            "El archivo de origen cambio durante la conversion. Revisa el motor.",
+            "El archivo de origen cambio durante la conversión. Revisa el motor.",
             nivel=JobEvent.ERROR,
         )
 
@@ -271,7 +276,7 @@ def _exigir_crs(job: ConversionJob, inspeccion) -> None:
     if reproyecta or lo_exige:
         raise TrabajoFallido(
             "crs-ausente",
-            "El archivo no declara sistema de referencia y esta conversion lo necesita. "
+            "El archivo no declara sistema de referencia y esta conversión lo necesita. "
             "Declara el EPSG: adivinarlo es peor que no tenerlo.",
         )
 
@@ -447,7 +452,7 @@ def _lanzar(job: ConversionJob, plan: PlanDeEjecucion, parcial: Path) -> None:
             _borrar(parcial)
             raise TrabajoFallido(
                 "tardo-demasiado",
-                f"La conversion paso de {plan.timeout_s // 60} minutos y se corto.",
+                f"La conversión paso de {plan.timeout_s // 60} minutos y se corto.",
             )
 
     codigo = proceso.wait()
@@ -456,23 +461,23 @@ def _lanzar(job: ConversionJob, plan: PlanDeEjecucion, parcial: Path) -> None:
     if codigo != 0:
         _borrar(parcial)
         job.registrar(
-            f"El motor termino con codigo {codigo}.",
+            f"El motor terminó con código {codigo}.",
             nivel=JobEvent.ERROR,
             etapa=CONVERSION,
             stderr_cola=texto,
             codigo_de_salida=codigo,
         )
-        raise TrabajoFallido("error-del-motor", _ultima_linea_util(texto) or f"Codigo {codigo}.")
+        raise TrabajoFallido("error-del-motor", _ultima_linea_util(texto) or f"Código {codigo}.")
 
     # Codigo 0 no basta. Es la regla numero uno del proyecto.
     if not parcial.exists():
         job.registrar(
-            "El motor termino con codigo 0 pero no escribio ningun archivo.",
+            "El motor termino con código 0 pero no escribio ningún archivo.",
             nivel=JobEvent.ERROR,
             etapa=CONVERSION,
             stderr_cola=texto,
         )
-        raise TrabajoFallido("sin-salida", "El motor termino sin escribir ningun archivo.")
+        raise TrabajoFallido("sin-salida", "El motor termino sin escribir ningún archivo.")
 
     _pasos_posteriores(job, plan, parcial, entorno)
     job.marcar_progreso(CONVERSION, 1.0)
@@ -515,7 +520,7 @@ def _pasos_posteriores(job, plan: PlanDeEjecucion, parcial: Path, entorno: dict)
             salida = (resultado.stdout or "") + (resultado.stderr or "")
             _borrar(parcial)
             job.registrar(
-                f"El paso posterior {indice} termino con codigo {resultado.returncode}.",
+                f"El paso posterior {indice} termino con código {resultado.returncode}.",
                 nivel=JobEvent.ERROR,
                 etapa=CONVERSION,
                 stderr_cola=salida,
@@ -583,6 +588,25 @@ def _matar(proceso) -> None:
     except subprocess.TimeoutExpired:
         proceso.kill()
         proceso.wait(timeout=5)
+
+
+def _limpiar_restos(parcial: Path) -> None:
+    """Borra los acompanantes que GDAL colgo del nombre del parcial.
+
+    GDAL escribe un `.aux.xml` junto a lo que crea, y como lo crea con el nombre del
+    parcial, ese acompanante se queda huerfano en cuanto el archivo se renombra: nadie lo
+    reclama y nadie lo borra. Son unos pocos kilobytes cada uno, pero se acumulan uno por
+    conversion y **contradicen lo que se promete** -- que el entregable es un solo archivo
+    que se basta a si mismo.
+
+    Se borra por prefijo. El destino nunca coincide: `entrega.jp2` no empieza por
+    `entrega.jp2.parcial`.
+    """
+    try:
+        for resto in parcial.parent.glob(parcial.name + ".*"):
+            _borrar(resto)
+    except OSError:
+        pass
 
 
 def _borrar(ruta: Path) -> None:

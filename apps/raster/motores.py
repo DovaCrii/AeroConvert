@@ -56,6 +56,23 @@ CONTROLADOR = {
 #: detector de silencio, no este.
 SEGUNDOS_POR_GB_POR_DEFECTO = 900
 
+#: Los unicos destinos a los que se les pide `gdaladdo`.
+#:
+#: **La lista es corta a proposito, y saltarsela cuesta caro.** `gdaladdo` solo escribe las
+#: piramides *dentro* del archivo cuando el controlador admite abrirlo para actualizar; con
+#: cualquier otro escribe un `.ovr` al lado. Y un `.ovr` es un GeoTIFF con la piramide sin
+#: comprimir bien: sobre una ortofoto de 14.526 x 14.443 son **360 MB** pegados a un JP2 de
+#: 63 MB. Se midio.
+#:
+#: Eso rompe las dos cosas que se prometen: el entregable deja de ser un solo archivo que se
+#: basta a si mismo, y el disco del servidor se llena con seis veces lo que se pidio.
+#:
+#: Los que faltan no lo necesitan:
+#: - `cog` las construye el propio controlador.
+#: - `jp2` y `ecw` son wavelet: son multirresolucion por construccion.
+#: - `asc` es texto plano y `png`/`jpeg`/`webp` no son formatos de archivo geoespacial.
+DESTINOS_CON_PIRAMIDES = frozenset({"geotiff", "bigtiff", "img"})
+
 
 def _bin(nombre: str) -> str:
     """Donde esta la herramienta de GDAL. Configuracion primero, PATH despues."""
@@ -70,7 +87,7 @@ def _bin(nombre: str) -> str:
 
 
 class MotorGdalRaster(Motor):
-    """Conversion raster con GDAL. Es el caballo de tiro del producto."""
+    """Conversión raster con GDAL. Es el caballo de tiro del producto."""
 
     id = "gdal-raster"
     nombre = "GDAL"
@@ -122,19 +139,26 @@ class MotorGdalRaster(Motor):
                 por_defecto=False,
                 ayuda="Varios CAD pintan la banda alfa como una banda gris más.",
             ),
-            OpcionDeMotor(
-                "piramides",
-                "Pirámides",
-                "eleccion",
-                por_defecto="2 4 8 16 32",
-                elecciones=(
-                    ("", "Ninguna"),
-                    ("2 4 8", "Tres niveles"),
-                    ("2 4 8 16 32", "Cinco niveles — recomendado"),
-                ),
-                ayuda="Sin ellas, cada zoom lee la imagen entera.",
-            ),
         )
+        # Las piramides solo se ofrecen donde de verdad caben dentro del archivo. Ofrecerlas
+        # en un JP2 seria ofrecer un `.ovr` de 360 MB al lado, que es justo lo contrario de
+        # lo que se pide.
+        if par.destino in DESTINOS_CON_PIRAMIDES:
+            comunes = (
+                *comunes,
+                OpcionDeMotor(
+                    "piramides",
+                    "Pirámides",
+                    "eleccion",
+                    por_defecto="2 4 8 16 32",
+                    elecciones=(
+                        ("", "Ninguna"),
+                        ("2 4 8", "Tres niveles"),
+                        ("2 4 8 16 32", "Cinco niveles — recomendado"),
+                    ),
+                    ayuda="Van dentro del archivo. Sin ellas, cada zoom lee la imagen entera.",
+                ),
+            )
         if par.destino in ("geotiff", "bigtiff", "cog"):
             return (
                 *comunes,
@@ -207,9 +231,7 @@ class MotorGdalRaster(Motor):
 
         posteriores: list[tuple[str, ...]] = []
         niveles = str(opciones.get("piramides", "2 4 8 16 32")).split()
-        # El controlador COG construye sus propias piramides: pedirselas otra vez las
-        # duplicaria dentro del archivo.
-        if niveles and trabajo.target_format_code != "cog":
+        if niveles and trabajo.target_format_code in DESTINOS_CON_PIRAMIDES:
             posteriores.append(
                 (
                     _bin("gdaladdo"),
@@ -270,7 +292,7 @@ class MotorGdalRaster(Motor):
             # necesite un `.j2w` al lado.
             creacion["GeoJP2"] = "YES"
             creacion["GMLJP2"] = "YES"
-            creacion["RESOLUTIONS"] = str(opciones.get("resoluciones", 6))
+            creacion["RESOLUTIONS"] = str(opciones.get("resoluciónes", 6))
 
         elif destino == "webp":
             creacion["QUALITY"] = str(opciones.get("calidad", 85))
@@ -337,7 +359,7 @@ class MotorGdalRaster(Motor):
                 correcta=False,
                 motivo=(
                     f"El origen estaba en EPSG:{trabajo.source_crs_code} y la salida no "
-                    "declara ningun sistema de referencia."
+                    "declara ningún sistema de referencia."
                 ),
                 codigo_motivo="salida-invalida",
                 detalles=detalles,
@@ -448,7 +470,7 @@ def _gdalinfo(ruta: Path) -> dict | None:
 
 
 def _epsg_de(info: dict) -> str:
-    """El codigo EPSG que declara `gdalinfo -json`, si lo declara."""
+    """El código EPSG que declara `gdalinfo -json`, si lo declara."""
     try:
         wkt = info.get("coordinateSystem", {}).get("wkt", "")
     except AttributeError:

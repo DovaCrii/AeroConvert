@@ -18,7 +18,7 @@ no un ejemplo inventado. Sus cifras están en
 | F0.3 | Identidad | Marca y variante oscura, quinto color de familia `#F15BB5` con sus tokens medidos | ✅ 2026-09-08 |
 | F0.4 | Modos | `settings.MODO`, chapa en la interfaz, `comprobar_ruta()`, `manage.py check` que falla sin raíces | ✅ 2026-09-08 |
 | F0.5 | Gate | `scripts/verify.ps1`, `run.ps1`, `sondear.ps1`, CI de GitHub Actions **verde** | ✅ 2026-09-08 |
-| F0.6 | Vendorizado | Bootstrap 5.3.3 y htmx 2.0.10 con SRI en `static/vendor/`, CSP `'self'` | ⬜ |
+| F0.6 | Vendorizado | Bootstrap 5.3.3 y htmx 2.0.10 con SRI en `static/vendor/`, CSP `'self'` | ✅ 2026-09-08 |
 
 ## Fase 1 — Ráster, de punta a punta
 
@@ -28,7 +28,8 @@ no un ejemplo inventado. Sus cifras están en
 | F1.1 | Motores | Contrato, registro, sondas de GDAL/PROJ/PDAL/ECW/ODA, matriz de capacidades, `/motores/`, API | 🟨 lógica lista, falta `RegistroDeSonda` y la plantilla |
 | F1.2 | Trabajos | `ConversionJob`, `JobEvent`, runner, despachador, reclamo atómico, latido, cancelación, escritura atómica | ✅ 2026-09-08 |
 | F1.3 | Perfiles de destino | `apps.targets` y la tira de veredictos | ✅ 2026-09-08 |
-| F1.4 | La mesa | Ficha del archivo, destino por software, modo experto, progreso htmx, el recibo, historial | ⬜ |
+| F1.4 | La mesa | Ficha del archivo, destino por software, modo experto, progreso htmx, el recibo, historial, matriz | ✅ 2026-09-08 |
+| F1.8 | Retención y disco | Tres políticas, presupuesto con cola, barrido de caducados y huérfanos, descarga que consume | ✅ 2026-09-08 |
 | F1.5 | Ráster GDAL | GeoTIFF/BigTIFF ↔ COG, JP2, IMG, ASC; reproyección, pirámides, alfa descartada, verificación con `gdalinfo` | ✅ 2026-09-08 |
 | F1.6 | ECW | `gdal-ecw` con clave OEM y `ecw-externo`, tres motivos, alternativa COG/JP2, «reencolar como JP2» | ⬜ |
 | F1.7 | Preajustes y pulido | `ConversionPreset`, repetir trabajo, estimación de memoria y espacio, detector de atasco, i18n | ⬜ |
@@ -72,8 +73,9 @@ no un ejemplo inventado. Sus cifras están en
 
 | Qué | Por qué está | Cuándo se paga |
 | --- | --- | --- |
-| No hay plantillas ni CSS | La interfaz es F1.4. **Hoy solo se puede convertir desde el shell** | F1.4 |
 | Sin `RegistroDeSonda` | La matriz se calcula en vivo; falta el historial de «el día que GDAL desapareció» | F1.1 |
-| Sin remuestreo ni nodata configurables | El plan los acepta, el formulario aún no existe | F1.4 |
+| El modo experto solo elige formato | Las opciones del motor ya son declarativas, pero el formulario aún no las despliega | F1.7 |
+| Sin remuestreo ni nodata en la interfaz | El plan los acepta; falta exponerlos | F1.7 |
+| Sin traducciones compiladas | Los nombres de formato salen en inglés, que es su `msgid` | F1.7 |
 | El LAS no reporta su CRS | Vive en las VLR, que aún no se leen | F2.3 |
-| Sin traducciones compiladas | No hay cadenas de interfaz todavía | F1.4 |
+| Soltar un archivo solo da su nombre | El navegador no entrega la ruta completa, por seguridad. Pegar la ruta es el camino fiable | no se paga |

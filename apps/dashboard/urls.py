@@ -7,4 +7,5 @@ app_name = "dashboard"
 urlpatterns = [
     path("", views.mesa, name="mesa"),
     path("inspeccionar/", views.inspeccionar, name="inspeccionar"),
+    path("convertir/", views.convertir, name="convertir"),
 ]

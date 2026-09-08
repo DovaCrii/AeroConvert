@@ -1,0 +1,62 @@
+{% load static i18n %}<!doctype html>
+<html lang="es" data-theme="{{ request.COOKIES.tema|default:'' }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block titulo %}AeroConvert{% endblock %}</title>
+  <link rel="icon" href="{% static 'img/aeroconvert-mark.svg' %}">
+
+  {# Vendorizados con SRI. La CSP es 'self': un CDN no cargaria. Ver static/vendor/README.md #}
+  <link rel="stylesheet" href="{% static 'vendor/bootstrap.min.css' %}"
+        integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
+        crossorigin="anonymous">
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+</head>
+<body>
+  <a class="salto" href="#principal">Saltar al contenido</a>
+
+  <header class="barra">
+    <a class="marca" href="{% url 'dashboard:mesa' %}">
+      <img src="{% static 'img/aeroconvert-mark.svg' %}" alt="" aria-hidden="true">
+      <span>AeroConvert</span>
+    </a>
+
+    <span class="chapa chapa-{{ chapa.modo }}" title="{{ chapa.explicacion }}">{{ chapa.etiqueta }}</span>
+
+    {% if user.is_authenticated %}
+      <nav style="display:flex; gap:16px; margin-left:auto; align-items:center;">
+        <a href="{% url 'dashboard:mesa' %}">Mesa</a>
+        <a href="{% url 'jobs:lista' %}">Trabajos</a>
+        <a href="{% url 'engines:matriz' %}">Motores</a>
+        <button type="button" class="chapa" id="cambiar-tema" style="cursor:pointer; background:none;">
+          Tema
+        </button>
+        <form method="post" action="{% url 'logout' %}" style="margin:0;">
+          {% csrf_token %}
+          <button type="submit" class="chapa" style="cursor:pointer; background:none; color:#fff;">
+            Salir
+          </button>
+        </form>
+      </nav>
+    {% endif %}
+  </header>
+
+  <main id="principal" class="container-fluid" style="max-width:1200px; padding:20px 16px 48px;">
+    {% if messages %}
+      {% for mensaje in messages %}
+        <div class="{% if mensaje.tags == 'error' %}error{% else %}aviso{% endif %}" style="margin-bottom:12px;">
+          {{ mensaje }}
+        </div>
+      {% endfor %}
+    {% endif %}
+
+    {% block contenido %}{% endblock %}
+  </main>
+
+  <script src="{% static 'vendor/htmx.min.js' %}"
+          integrity="sha384-H5SrcfygHmAuTDZphMHqBJLc3FhssKjG7w/CeCpFReSfwBWDTKpkzPP8c+cLsK+V"
+          crossorigin="anonymous"></script>
+  <script src="{% static 'js/tema.js' %}"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

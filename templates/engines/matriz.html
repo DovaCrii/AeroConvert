@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block titulo %}Motores · AeroConvert{% endblock %}
+
+{% block contenido %}
+<div class="eyebrow">Motores</div>
+<h1 style="font-size:1.4rem; margin-bottom:4px;">Qué sabe hacer esta instalación</h1>
+<p class="tenue" style="margin-bottom:18px;">
+  Es la pantalla que hay que mirar antes de escribir a soporte. Nada se oculta: lo que falta
+  aparece apagado y dice qué falta.
+</p>
+
+<div class="tarjeta" style="margin-bottom:14px;">
+  <div class="eyebrow">Herramientas</div>
+  <table class="table table-sm" style="margin:0;">
+    <tbody>
+      {% for m in motores %}
+        <tr>
+          <td style="width:12rem;"><strong>{{ m.id }}</strong><br><span class="tenue">{{ m.nombre }}</span></td>
+          <td style="width:8rem;">
+            {% if m.estado.disponible %}
+              <span class="pildora pildora-done">disponible</span>
+            {% else %}
+              <span class="pildora pildora-error">apagado</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if m.estado.disponible %}
+              <span class="tenue">{{ m.estado.version }}</span>
+            {% else %}
+              {{ m.estado.mensaje }}
+              {% if m.estado.sugerencia %}
+                <br><span class="tenue">{{ m.estado.sugerencia }}</span>
+              {% endif %}
+              {% if m.estado.alternativas %}
+                <br><span class="tenue">En su lugar sirven: {{ m.estado.alternativas|join:", " }}</span>
+              {% endif %}
+            {% endif %}
+          </td>
+          <td class="cifra text-end tenue" style="width:6rem;">{{ m.pares }} pares</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="tarjeta">
+  <div class="eyebrow">Matriz de capacidades</div>
+  <p class="tenue" style="margin-bottom:12px;">
+    <span class="pildora pildora-done">disponible</span> funciona ahora ·
+    <span class="pildora pildora-running">instalable</span> funcionaría con algo ·
+    <span class="pildora pildora-cancelled">no soportado</span> nadie sabe hacerlo
+  </p>
+
+  <div style="overflow-x:auto;">
+    <table class="matriz">
+      <thead>
+        <tr>
+          <th scope="col">origen ↓ / destino →</th>
+          {% for d in destinos %}<th scope="col">{{ d }}</th>{% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for fila in filas %}
+          <tr>
+            <th scope="row">{{ fila.origen }}</th>
+            {% for c in fila.celdas %}
+              <td class="celda-{{ c.estado }}"
+                  {% if c.mensaje %}title="{{ c.mensaje }}{% if c.sugerencia %} — {{ c.sugerencia }}{% endif %}"{% endif %}>
+                {% if c.estado == 'disponible' %}✓
+                {% elif c.estado == 'instalable' %}!
+                {% else %}·{% endif %}
+              </td>
+            {% endfor %}
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if motivos %}
+    <div style="margin-top:14px;">
+      <strong>Lo que falta, y por qué</strong>
+      <ul style="margin:6px 0 0;">
+        {% for m in motivos %}
+          <li><code>{{ m.codigo }}</code> — {{ m.mensaje }} <span class="tenue">({{ m.cuantas }} conversiones)</span></li>
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

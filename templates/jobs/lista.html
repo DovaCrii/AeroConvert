@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block titulo %}Trabajos · AeroConvert{% endblock %}
+
+{% block contenido %}
+<div class="eyebrow">Historial</div>
+<h1 style="font-size:1.4rem; margin-bottom:18px;">Trabajos</h1>
+
+<div class="tarjeta">
+  <table class="table table-sm align-middle" style="margin:0;">
+    <thead>
+      <tr>
+        <th>Archivo</th>
+        <th>Destino</th>
+        <th>Estado</th>
+        <th class="text-end">Entrada</th>
+        <th class="text-end">Salida</th>
+        <th class="text-end">Cuándo</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for t in trabajos %}
+        <tr>
+          <td><a href="{% url 'jobs:ficha' t.pk %}">{{ t.source_name }}</a></td>
+          <td>
+            {{ t.target_format_code }}
+            {% if t.target_profile_id %}<span class="tenue">· {{ t.target_profile_id }}</span>{% endif %}
+          </td>
+          <td>
+            <span class="pildora pildora-{{ t.status }}">{{ t.get_status_display }}</span>
+            {% if t.reason_code %}<code class="tenue">{{ t.reason_code }}</code>{% endif %}
+          </td>
+          <td class="cifra text-end">{{ t.source_size_bytes|filesizeformat }}</td>
+          <td class="cifra text-end">
+            {% if t.output_size_bytes %}
+              {{ t.output_size_bytes|filesizeformat }}
+              {% if t.reduccion_pct %}<span class="tenue">−{{ t.reduccion_pct }} %</span>{% endif %}
+            {% else %}—{% endif %}
+          </td>
+          <td class="cifra text-end tenue">{{ t.created_at|date:"d/m H:i" }}</td>
+        </tr>
+      {% empty %}
+        <tr>
+          <td colspan="6" class="vacio">
+            Todavía no hay ningún trabajo.
+            <a href="{% url 'dashboard:mesa' %}">Convierte algo.</a>
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

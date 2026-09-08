@@ -6,6 +6,7 @@ a un fallo que de verdad ocurre en produccion y que no da sintoma hasta que es t
 
 import os
 import time
+from pathlib import Path
 
 import pytest
 from django.contrib.auth import get_user_model
@@ -86,6 +87,27 @@ class TestConversionCorrecta:
         runner.ejecutar(_trabajo(usuario, origen, tmp_path))
         assert not (tmp_path / "salida.tif.parcial").exists()
         assert not (tmp_path / "salida.tif.prueba").exists()
+
+    def test_se_borran_los_acompanantes_que_dejo_el_motor(
+        self, usuario, origen, tmp_path, registro_limpio
+    ):
+        """GDAL cuelga un `.aux.xml` del nombre del parcial. Al renombrar el archivo ese
+        acompañante se queda huérfano: nadie lo reclama y nadie lo borra. Son kilobytes,
+        pero uno por conversión, y contradicen lo que se promete — que el entregable es un
+        solo archivo que se basta a sí mismo."""
+
+        class MotorSucio(MotorDeMentira):
+            def plan(self, trabajo):
+                plan = super().plan(trabajo)
+                # Simula lo que hace GDAL: escribir un acompañante junto al parcial.
+                Path(str(plan.ruta_de_salida) + ".parcial.aux.xml").write_text("<PAMDataset/>")
+                return plan
+
+        _con_motor(MotorSucio())
+        runner.ejecutar(_trabajo(usuario, origen, tmp_path))
+
+        restantes = sorted(p.name for p in tmp_path.iterdir())
+        assert restantes == ["orto.tif", "salida.tif"]
 
     def test_guarda_la_huella_del_original_no_la_de_la_salida(
         self, usuario, origen, tmp_path, registro_limpio

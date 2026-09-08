@@ -1,15 +1,65 @@
+from dataclasses import dataclass
+
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
 
 from . import registry
+from .base import CeldaVacia
+
+
+@dataclass(frozen=True)
+class Fila:
+    origen: str
+    celdas: tuple
 
 
 @login_required
 def matriz(request):
-    """La rejilla origen x destino. Es la pantalla que se mira antes de escribir a
-    soporte, asi que cada celda apagada lleva su motivo y su alternativa."""
+    """La rejilla origen × destino.
+
+    Se pinta **entera**, con huecos incluidos, y no solo las conversiones que hoy funcionan.
+    Una capacidad ausente tiene que verse distinta de una inexistente: la primera se arregla
+    instalando algo, la segunda no se arregla.
+    """
+    celdas = registry.matriz_de_capacidades()
+
+    origenes = sorted({o for o, _ in celdas})
+    destinos = sorted({d for _, d in celdas})
+
+    filas = tuple(
+        Fila(
+            origen=origen,
+            celdas=tuple(
+                celdas.get((origen, destino)) or CeldaVacia(origen, destino) for destino in destinos
+            ),
+        )
+        for origen in origenes
+    )
+
+    motores = tuple(
+        {"id": m.id, "nombre": m.nombre, "estado": m.disponibilidad(), "pares": len(m.pares())}
+        for m in registry.todos()
+    )
+
+    # Lo que falta, agrupado por motivo. Repetir el mismo mensaje en cuarenta celdas no
+    # ayuda a nadie; verlo una vez con su cuenta, sí.
+    por_motivo: dict[str, dict] = {}
+    for celda in celdas.values():
+        if celda.estado == "disponible" or not celda.codigo_motivo:
+            continue
+        entrada = por_motivo.setdefault(
+            celda.codigo_motivo,
+            {"codigo": celda.codigo_motivo, "mensaje": celda.mensaje, "cuantas": 0},
+        )
+        entrada["cuantas"] += 1
+
     return render(
         request,
         "engines/matriz.html",
-        {"celdas": registry.matriz_de_capacidades().values(), "motores": registry.todos()},
+        {
+            "filas": filas,
+            "destinos": destinos,
+            "motores": motores,
+            "motivos": sorted(por_motivo.values(), key=lambda m: -m["cuantas"]),
+        },
     )

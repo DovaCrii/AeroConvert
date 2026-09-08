@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 120" width="160" height="120"
+     fill="none" stroke="#F5A8D3" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"
+     role="img" aria-labelledby="titulo descripcion">
+  <title id="titulo">AeroConvert</title>
+  <desc id="descripcion">El dron de la familia Aero sobre dos placas unidas por flechas de
+    intercambio, en su variante para fondos oscuros.</desc>
+
+  <!-- Variante oscura, por la misma razon medida que la de AeroBim: el fuselaje #1B2A4A
+       sobre la barra navy da 1,00:1 y desaparece. El magenta de marca #F15BB5 tampoco
+       basta; el acento oscuro #F5A8D3 da 8,9:1 sobre la superficie oscura.
+       No se pone una placa clara detras: seria un parche que no pertenece a la paleta. -->
+  <path d="M68 25 52 17M92 25l16-8M68 35 52 46M92 35l16 11" />
+  <circle cx="42" cy="13" r="8" />
+  <circle cx="118" cy="13" r="8" />
+  <circle cx="42" cy="46" r="8" />
+  <circle cx="118" cy="46" r="8" />
+  <rect x="64" y="21" width="32" height="18" rx="8" fill="#F5A8D3" fill-opacity="0.18" />
+  <circle cx="74" cy="30" r="3.5" fill="#F5A8D3" stroke="none" />
+  <circle cx="86" cy="30" r="3.5" fill="#F5A8D3" stroke="none" />
+
+  <rect x="36" y="62" width="28" height="40" rx="4" fill="#F5A8D3" fill-opacity="0.18" />
+  <rect x="96" y="62" width="28" height="40" rx="4" fill="#F5A8D3" fill-opacity="0.18" />
+  <path d="M68 76h18" stroke-width="6" />
+  <path d="M81 71l5 5-5 5" stroke-width="6" />
+  <path d="M92 90H74" stroke-width="6" />
+  <path d="M79 85l-5 5 5 5" stroke-width="6" />
+</svg>

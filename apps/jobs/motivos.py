@@ -35,10 +35,10 @@ def _m(codigo: str, mensaje: str, sugerencia: str = "") -> tuple[str, Motivo]:
 MOTIVOS: dict[str, Motivo] = dict(
     [
         # --- Falta una herramienta -----------------------------------------
-        _m("sin-motor", "Ningun motor sabe hacer esta conversion."),
+        _m("sin-motor", "Ningún motor sabe hacer esta conversión."),
         _m(
             "motor-no-disponible",
-            "El motor existe pero no esta instalado en esta maquina.",
+            "El motor existe pero no esta instalado en esta máquina.",
             "Revisa INSTALL.md.",
         ),
         _m(
@@ -64,15 +64,15 @@ MOTIVOS: dict[str, Motivo] = dict(
         ),
         # --- El par no se puede --------------------------------------------
         _m("par-no-soportado", "Ese formato de destino no se puede escribir."),
-        _m("extension-no-convertible", "No se convierte esa extension."),
+        _m("extension-no-convertible", "No se convierte esa extensión."),
         _m("formato-no-reconocido", "No se pudo reconocer el formato del archivo."),
         # --- Sistema de referencia -----------------------------------------
         _m(
             "crs-ausente",
-            "El archivo no declara sistema de referencia y esta conversion lo necesita.",
+            "El archivo no declara sistema de referencia y esta conversión lo necesita.",
             "Declara el EPSG. Adivinarlo es peor que no tenerlo.",
         ),
-        _m("crs-invalido", "El codigo EPSG declarado no existe."),
+        _m("crs-invalido", "El código EPSG declarado no existe."),
         # --- Entrada y salida ----------------------------------------------
         _m("origen-no-legible", "No se pudo leer el archivo de origen."),
         _m("origen-bloqueado", "El archivo de origen esta abierto en otro programa."),
@@ -86,14 +86,14 @@ MOTIVOS: dict[str, Motivo] = dict(
         _m("ruta-no-permitida", "La ruta esta fuera de las carpetas permitidas."),
         _m("sin-espacio", "No hay espacio suficiente en el disco de destino."),
         _m("memoria-insuficiente", "El proceso se quedo sin memoria."),
-        _m("excede-tope", "El archivo pasa del tope de tamano de este servidor."),
+        _m("excede-tope", "El archivo pasa del tope de tamaño de este servidor."),
         # --- Resultado -------------------------------------------------------
-        _m("sin-salida", "El motor termino sin escribir ningun archivo."),
+        _m("sin-salida", "El motor termino sin escribir ningún archivo."),
         _m("salida-invalida", "El archivo salio, pero no paso la verificacion."),
         _m("error-del-motor", "El motor termino con error."),
         # --- Tiempo y ciclo de vida ------------------------------------------
         _m("sin-avance", "El motor lleva demasiado tiempo sin dar senales."),
-        _m("tardo-demasiado", "La conversion agoto su presupuesto de tiempo."),
+        _m("tardo-demasiado", "La conversión agoto su presupuesto de tiempo."),
         _m("cancelado-por-el-usuario", "Se cancelo."),
         _m("interrumpido", "El proceso que lo ejecutaba desaparecio."),
     ]

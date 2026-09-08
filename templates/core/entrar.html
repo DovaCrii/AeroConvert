@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block titulo %}Entrar · AeroConvert{% endblock %}
+
+{% block contenido %}
+<div style="max-width:26rem; margin:6vh auto;">
+  <div class="tarjeta tarjeta-acento">
+    <div style="text-align:center; margin-bottom:16px;">
+      <img src="{% static 'img/aeroconvert-mark.svg' %}" width="112" height="84" alt="AeroConvert">
+    </div>
+
+    <h1 style="font-size:1.3rem; text-align:center; margin-bottom:4px;">AeroConvert</h1>
+    <p class="tenue" style="text-align:center; margin-bottom:18px;">{{ chapa.explicacion }}</p>
+
+    {% if form.errors %}
+      <div class="error" style="margin-bottom:12px;">
+        El usuario o la contraseña no coinciden.
+      </div>
+    {% endif %}
+
+    <form method="post">
+      {% csrf_token %}
+      <label for="id_username" style="font-weight:600;">Usuario</label>
+      {{ form.username }}
+      <label for="id_password" style="font-weight:600; margin-top:10px; display:block;">Contraseña</label>
+      {{ form.password }}
+      <button type="submit" class="boton" style="width:100%; margin-top:16px;">Entrar</button>
+    </form>
+
+    {% if chapa.modo == 'taller' %}
+      <p class="tenue" style="font-size:.82rem; margin:14px 0 0;">
+        La puerta se exige también en modo taller: aquí la ruta de origen es un primitivo de
+        lectura del disco, así que importa más, no menos.
+      </p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

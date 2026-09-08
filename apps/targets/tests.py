@@ -80,6 +80,50 @@ class TestSinGeorreferencia:
         assert "referencia" in veredicto.motivo
 
 
+class TestLosPerfilesHablanElIdiomaDelMotor:
+    """La invariante que faltaba, y que costó un bug silencioso.
+
+    Los perfiles se escribieron con las claves de GDAL —`COMPRESS`, `BLOCKXSIZE`— porque es
+    lo que acaba en el comando. Pero el motor lee `compresion` y `tamano_tesela`, así que
+    **el perfil no fijaba nada**: el trabajo salía con los valores por omisión, y el perfil
+    de Civil 3D prometía descartar la banda alfa sin hacerlo.
+
+    Es exactamente el fallo que la regla de «las opciones las declara el motor» existe para
+    impedir. Esta prueba la hace cumplir.
+    """
+
+    def _declaradas_por_el_motor(self, codigo_destino: str) -> set[str]:
+        from apps.engines.base import ParDeFormatos
+        from apps.raster.motores import MotorEcw, MotorGdalRaster
+
+        motor = MotorEcw() if codigo_destino == "ecw" else MotorGdalRaster()
+        par = ParDeFormatos("geotiff", codigo_destino)
+        # `bigtiff` es un ajuste interno del motor que el formulario no ofrece pero el plan
+        # sí honra; se admite explícitamente para no obligar a exponerlo.
+        return {o.nombre for o in motor.opciones(par)} | {"bigtiff"}
+
+    @pytest.mark.parametrize("identificador", list(perfiles.PERFILES))
+    def test_toda_opcion_de_un_perfil_la_entiende_el_motor(self, identificador):
+        perfil = perfiles.PERFILES[identificador]
+        if perfil.formato_destino not in ("geotiff", "bigtiff", "cog", "jp2", "img", "ecw"):
+            pytest.skip(f"{perfil.formato_destino} lo sirve un motor de otra fase.")
+
+        declaradas = self._declaradas_por_el_motor(perfil.formato_destino)
+        desconocidas = set(perfil.opciones) - declaradas
+
+        assert not desconocidas, (
+            f"El perfil «{perfil.nombre}» fija {sorted(desconocidas)}, que el motor no lee. "
+            f"El motor entiende: {sorted(declaradas)}."
+        )
+
+    def test_civil3d_de_verdad_descarta_la_banda_alfa(self):
+        """La promesa concreta del perfil que originó todo."""
+        assert perfiles.CIVIL3D.opciones["solo_rgb"] is True
+
+    def test_civil3d_de_verdad_fuerza_el_tiff_clasico(self):
+        assert perfiles.CIVIL3D.opciones["bigtiff"] == "NO"
+
+
 class TestFormaDeLosVeredictos:
     def test_ninguno_se_apoya_solo_en_el_color(self, tmp_path):
         """Color + icono distinguible + texto. Uno de cada doce hombres no distingue el

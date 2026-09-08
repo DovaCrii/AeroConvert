@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block titulo %}{{ trabajo.source_name }} · AeroConvert{% endblock %}
+
+{% block contenido %}
+<div class="eyebrow">Trabajo</div>
+<h1 style="font-size:1.4rem; margin-bottom:2px;">{{ trabajo.source_name }}</h1>
+<p class="tenue" style="margin-bottom:18px;">
+  hacia {{ trabajo.target_format_code }}
+  {% if trabajo.target_profile_id %}· perfil {{ trabajo.target_profile_id }}{% endif %}
+</p>
+
+<div id="progreso-{{ trabajo.pk }}">
+  {% include "jobs/_progreso.html" %}
+</div>
+
+<div class="tarjeta" style="margin-top:14px;">
+  <div class="eyebrow">Bitácora</div>
+  <table class="table table-sm" style="margin:0;">
+    <tbody>
+      {% for e in trabajo.eventos.all %}
+        <tr>
+          <td class="cifra tenue" style="width:6rem;">{{ e.created_at|date:"H:i:s" }}</td>
+          <td style="width:5rem;">
+            <span class="pildora pildora-{% if e.level == 'error' %}error{% elif e.level == 'warn' %}running{% else %}done{% endif %}">
+              {{ e.get_level_display }}
+            </span>
+          </td>
+          <td>
+            {{ e.message }}
+            {% if e.reason_code %}<code class="tenue">{{ e.reason_code }}</code>{% endif %}
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td class="vacio">Nada todavía.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

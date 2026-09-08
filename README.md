@@ -9,7 +9,7 @@
 [![Licencia: MIT](https://img.shields.io/badge/licencia-MIT-F15BB5.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.12-1B2A4A.svg)](https://www.python.org/)
 [![Django](https://img.shields.io/badge/django-6.1-1B2A4A.svg)](https://www.djangoproject.com/)
-[![Estado](https://img.shields.io/badge/estado-v0.1.0--alpha-F15BB5.svg)](#estado-actual)
+[![Estado](https://img.shields.io/badge/estado-v0.2.0--alpha-F15BB5.svg)](#estado-actual)
 
 Aplicaciones hermanas: **[AeroBim](https://github.com/DovaCrii/AeroBim)** (visor y coordinación BIM) · **[AeroControl](https://github.com/DovaCrii/AeroControl)** (operaciones RPA) · **[AeroPlanner](https://github.com/DovaCrii/AeroPlanner)** (planificación de misiones) · **[AeroLink](https://github.com/DovaCrii/AeroLink)** (telemetría y evidencia) — funcionan por separado, se comunican cuando conviene
 
@@ -101,26 +101,34 @@ más: **ninguna comparte base de datos con otra**. Se comunican por archivo o po
 
 ## Estado actual
 
-**`v0.1.0-alpha`** — andamiaje y núcleo de detección. **73 pruebas**, todas verdes sin GDAL
-instalado.
+**`v0.2.0-alpha`** — ráster de punta a punta, con interfaz. **290 pruebas**, 91 % de
+cobertura, verdes **sin GDAL instalado**, y el CI de GitHub Actions en verde.
+
+Sobre el entregable real de BHP —466,2 MB en BigTIFF, 4 bandas con alfa, EPSG:32719—:
+
+| Destino | Tiempo | Salida | Verificado con `gdalinfo` |
+| --- | ---: | ---: | --- |
+| Civil 3D → GeoTIFF clásico DEFLATE, 3 bandas, 5 pirámides | 7 s | 285 MB | 14.526 × 14.443 · EPSG:32719 |
+| Entrega → JPEG 2000 | 9 s | 60 MB | 14.526 × 14.443 · EPSG:32719 |
 
 Lo que **funciona hoy**:
 
-- **Lector propio de cabecera TIFF y BigTIFF**, sin GDAL. Saca variante, dimensiones,
-  bandas, alfa, compresión, teselado, pirámides reales, EPSG, GSD y extensión en terreno.
-  Contrastado contra `gdalinfo` sobre archivos de obra: **coincide exactamente**, incluido
-  el conteo de pirámides que distingue las reducciones de los IFD de máscara.
-- **Catálogo de formatos** con BigTIFF como entrada propia, no como bandera de GeoTIFF.
-- **Detección por firma → extensión → GDAL**, con la confianza declarada en cada respuesta.
-- **CRS con procedencia**, y la regla de la familia: si falta, se pregunta; no se adivina.
-- **Perfiles de destino y veredictos** para Civil 3D, QGIS, ArcGIS Pro, Google Earth, visor
-  web y AeroBim.
-- **Registro de motores y matriz de capacidades**, con sondas reales de GDAL, PROJ, PDAL,
-  ECW y ODA.
+- **La mesa.** Se pega una ruta y aparece, sin abrir la imagen, qué hay dentro y la tira de
+  veredictos por programa. Se elige el destino y convierte.
+- **Lector propio de cabecera TIFF y BigTIFF**, sin GDAL. Contrastado contra `gdalinfo`
+  sobre archivos de obra: **coincide exactamente**, incluido el conteo de pirámides que
+  distingue las reducciones de los IFD de máscara.
+- **Motor ráster GDAL** entre GeoTIFF, BigTIFF, COG, JPEG 2000, IMG y ASCII Grid, con
+  reproyección, pirámides y verificación de la salida contra `gdalinfo`.
+- **El original nunca se toca**, la salida se escribe atómica, y el trabajo se puede
+  cancelar de verdad.
+- **Retención y presupuesto de disco**: en modo nube nada se acumula, y un trabajo que no
+  cabe espera en la cola en vez de llenar el volumen.
 
-Lo que **todavía no**: el modelo de trabajo, el despachador, la ejecución de conversiones y
-la interfaz. Es decir, **AeroConvert todavía no convierte nada**. Diagnostica. Decir otra
-cosa sería adornar.
+Lo que **todavía no**: nubes de puntos, vectorial y BIM (fases F2 a F4), ECW —que necesita
+una instalación con la SDK de Hexagon para poder probarse—, y los preajustes con nombre
+propio. El modo experto de la interfaz solo elige formato: las opciones del motor ya son
+declarativas pero aún no se despliegan.
 
 El trabajo pendiente vive en dos documentos, no en este README:
 

@@ -187,6 +187,16 @@ class ConversionJob(BaseModel):
         return 1 - (self.output_size_bytes / self.source_size_bytes)
 
     @property
+    def reduccion_pct(self) -> int | None:
+        """Lo mismo en porcentaje, listo para la plantilla.
+
+        Existe para que el recibo no tenga que encadenar filtros para multiplicar por cien:
+        una cifra que el cliente va a leer no se calcula con `floatformat`.
+        """
+        reduccion = self.reduccion
+        return None if reduccion is None else int(round(reduccion * 100))
+
+    @property
     def intervalo_de_sondeo_s(self) -> int:
         """Cada cuanto pregunta el navegador.
 

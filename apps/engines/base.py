@@ -124,6 +124,27 @@ class PlanDeEjecucion:
 
 
 @dataclass(frozen=True)
+class CeldaVacia:
+    """El hueco de la rejilla donde ningun motor declara nada.
+
+    Existe para que la plantilla no tenga que distinguir entre «no hay celda» y «la celda
+    dice que no se puede»: las dos se pintan igual y con el mismo atributo.
+    """
+
+    origen: str
+    destino: str
+    estado: str = NO_SOPORTADO
+    codigo_motivo: str = ""
+    mensaje: str = ""
+    sugerencia: str = ""
+    alternativas: tuple[str, ...] = ()
+
+    @property
+    def se_puede(self) -> bool:
+        return False
+
+
+@dataclass(frozen=True)
 class Verificacion:
     """El resultado de mirar la salida. `correcta=False` significa que se borra."""
 

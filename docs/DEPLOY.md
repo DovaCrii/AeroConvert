@@ -88,6 +88,80 @@ pwsh scripts/sondear.ps1
 El primero es la puerta de calidad. El segundo dice qué motores ve **esa** máquina — que no
 es la de desarrollo, y es donde aparecen las sorpresas.
 
+## Cuánto disco gasta esto, y cómo no gastarlo
+
+### Lo que no se puede evitar
+
+GDAL necesita **un archivo de verdad, con acceso aleatorio**, tanto de entrada como de
+salida. No hay forma de convertir un GeoTIFF «al vuelo» desde el flujo HTTP: el formato
+exige saltar por dentro del archivo — leer la cabecera, ir al índice de teselas, volver.
+`/vsistdin/` existe, pero solo sirve para formatos secuenciales, que no son estos.
+
+Así que **algo toca disco siempre**. Lo que sí se puede garantizar es que no sobreviva a la
+petición.
+
+### Las tres políticas
+
+`AEROCONVERT_RETENCION`:
+
+| Política | Qué hace | Cuándo usarla |
+| --- | --- | --- |
+| **`efimera`** | La salida se borra **en cuanto se descarga**; si nadie la descarga, a los 30 min | Servicio compartido. Es el valor por omisión en modo nube |
+| `temporal` | Se guarda 24 h y se barre | Un equipo pequeño que rehace entregas el mismo día |
+| `permanente` | No se barre nunca | Modo taller. La salida vive junto al original, en el disco de la persona: barrerla sería borrarle su entregable |
+
+Las **entradas subidas se borran siempre** al terminar el trabajo, con cualquier política.
+Quien la subió ya la tiene, y guardarla duplicaría el archivo del cliente en nuestro
+servidor sin que nadie lo haya pedido.
+
+Lo que **sí** sobrevive es la fila del trabajo: tamaños, huellas, CRS, motor, veredicto y
+bitácora. Son unos pocos KB y es lo que permite responder «¿qué le pasó a esa entrega?» seis
+meses después. El recibo sobrevive; el archivo no.
+
+### Y lo que de verdad protege el disco
+
+No es la política de borrado. Borrar al terminar **no impide** que tres conversiones
+simultáneas de 40 GB llenen el volumen a la vez.
+
+Lo que lo impide es `AEROCONVERT_PRESUPUESTO_GB`: antes de reclamar un trabajo, el
+despachador mide lo que ya ocupa la carpeta de trabajo y lo que este va a necesitar —**el
+doble de la entrada**, porque durante un instante conviven el parcial y el definitivo—. Si
+no cabe, el trabajo **espera en la cola** en vez de arrancar. No falla: un disco lleno es
+transitorio y se libera cuando otro trabajo se descarga; fallarlo obligaría a reencolar a
+mano por algo que se arregla solo.
+
+Un servidor que se queda sin disco no devuelve un error: deja de funcionar entero, y
+normalmente se lleva la base de datos por delante.
+
+### Cómo dimensionarlo
+
+```
+presupuesto ≈ 2 × (mayor archivo esperado) × (trabajos simultáneos)  +  margen
+```
+
+Con un solo trabajo a la vez y ortofotos de hasta 5 GB, 20 GB de presupuesto sobran. Con
+`AEROCONVERT_TRABAJOS_SIMULTANEOS=1` —el valor por omisión— el pico es predecible.
+
+### El barrido
+
+Corre solo: al arrancar el despachador y cada cinco minutos. También a mano:
+
+```powershell
+uv run python manage.py barrer --simular
+```
+
+```powershell
+uv run python manage.py barrer
+```
+
+Recoge tres cosas: salidas caducadas, entradas subidas de trabajos terminados, y
+**huérfanos** — un `.parcial` que sobrevivió a un proceso muerto. Los huérfanos se exigen de
+más de una hora para no llevarse por delante el parcial de un trabajo que está corriendo
+ahora mismo: el nombre no dice de quién es.
+
+El barrido de arranque es el importante. Es el único momento en que se sabe con certeza que
+ningún trabajo está en marcha, así que es cuando se puede limpiar lo que dejó un apagón.
+
 ## Respaldo
 
 La base guarda el historial de trabajos y los preajustes, no los archivos. En modo taller

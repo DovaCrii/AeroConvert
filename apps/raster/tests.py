@@ -177,6 +177,35 @@ class TestPiramides:
         plan = MotorGdalRaster().plan(_trabajo(usuario, tmp_path, target_format_code="cog"))
         assert plan.posteriores == ()
 
+    @pytest.mark.parametrize("destino", ["jp2", "ecw", "asc", "png", "jpeg", "webp", "cog"])
+    def test_nunca_se_piden_donde_generarian_un_ovr_al_lado(self, usuario, tmp_path, destino):
+        """La lección más cara de esta fase, y salió de medirla.
+
+        `gdaladdo` solo escribe las pirámides **dentro** del archivo cuando el controlador
+        admite abrirlo para actualizar. Con cualquier otro deja un `.ovr` al lado: sobre la
+        ortofoto de 14.526 × 14.443 eran **360 MB pegados a un JP2 de 63 MB**.
+
+        Rompe las dos promesas a la vez — el entregable deja de ser un solo archivo que se
+        basta a sí mismo, y el disco del servidor se llena con seis veces lo pedido.
+        """
+        job = _trabajo(usuario, tmp_path, target_format_code=destino)
+        motor = MotorEcw() if destino == "ecw" else MotorGdalRaster()
+        assert motor.plan(job).posteriores == ()
+
+    @pytest.mark.parametrize("destino", ["geotiff", "bigtiff", "img"])
+    def test_si_se_piden_donde_van_dentro(self, usuario, tmp_path, destino):
+        job = _trabajo(usuario, tmp_path, target_format_code=destino)
+        assert len(MotorGdalRaster().plan(job).posteriores) == 1
+
+    def test_el_formulario_no_las_ofrece_donde_no_caben(self, usuario, tmp_path):
+        """La regla de siempre: el formulario no puede ofrecer lo que el motor no hará."""
+        nombres = {o.nombre for o in MotorGdalRaster().opciones(ParDeFormatos("geotiff", "jp2"))}
+        assert "piramides" not in nombres
+        nombres = {
+            o.nombre for o in MotorGdalRaster().opciones(ParDeFormatos("geotiff", "geotiff"))
+        }
+        assert "piramides" in nombres
+
     def test_se_pueden_desactivar(self, usuario, tmp_path):
         job = _trabajo(usuario, tmp_path, target_format_code="geotiff", options={"piramides": ""})
         assert MotorGdalRaster().plan(job).posteriores == ()

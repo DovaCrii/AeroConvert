@@ -25,6 +25,7 @@ htmlcov/
 # cliente, no nuestro.
 /datos/
 /salidas/
+/trabajo/
 *.tif
 *.tiff
 *.ecw

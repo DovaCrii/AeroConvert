@@ -1,0 +1,574 @@
+/* AeroConvert — la identidad de la familia Aero, quinto color.
+ *
+ * ## La regla que ordena la paleta: la marca pinta, la acción se lee
+ *
+ * El magenta #F15BB5 da 3,03:1 sobre blanco. Sirve para el logo, el acento y las franjas;
+ * NUNCA para texto ni para el relleno de un botón. El color de acción es #A3176F, que da
+ * 7,2:1 — y en tema oscuro #F5A8D3, que da 8,9:1 sobre la superficie.
+ *
+ * Es la misma disciplina de AeroBim y AeroControl, y hay una prueba que lee este archivo,
+ * calcula los contrastes con la fórmula de WCAG 2.1 y falla si alguno baja del piso. Los
+ * números de arriba no son una afirmación: son una prueba.
+ *
+ * ## Y la que ordena la interacción: nada se esconde en hover
+ *
+ * El patrón «aparece al pasar el ratón» está prohibido en toda la familia. No existe para
+ * teclado ni para táctil.
+ */
+
+:root {
+  color-scheme: light;
+
+  /* Estructura, compartida con las cuatro hermanas */
+  --av-navy: #1b2a4a;
+
+  /* Marca — solo pinta */
+  --av-magenta: #f15bb5;
+
+  /* Acción — se lee */
+  --av-primary: #a3176f;
+  --av-primary-hover: #85115a;
+  --av-primary-soft: #fce7f3;
+  --av-sobre-accion: #ffffff;
+
+  --av-bg: #f4f7fb;
+  --av-surface: #ffffff;
+  --av-surface-alt: #f8fafc;
+  --av-border: #dbe3ee;
+  --av-border-control: #7f8b9e;
+  --av-text: #172238;
+  --av-text-secondary: #4f5b72;
+  --av-text-muted: #626f85;
+
+  --av-ok: #0f7a5f;
+  --av-warn: #8a5a00;
+  --av-danger: #c53b4d;
+  --av-ok-soft: #e4f6ea;
+  --av-warn-soft: #fdf1dc;
+  --av-danger-soft: #fce4e6;
+
+  --av-radius: 12px;
+  --av-radius-sm: 8px;
+  --av-control-height: 42px;
+  --av-touch-min: 44px;
+  --av-shadow: 0 10px 30px rgb(18 34 59 / 8%);
+  --av-shadow-alto: 0 14px 34px rgb(18 34 59 / 14%);
+
+  --av-fs-xs: 0.78rem;
+  --av-fs-sm: 0.85rem;
+  --av-fs-base: 1rem;
+  --av-fs-lg: 1.25rem;
+  --av-fs-xl: 1.5rem;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --av-magenta: #f15bb5;
+  --av-primary: #f5a8d3;
+  --av-primary-hover: #f9c4e1;
+  --av-primary-soft: #3a1030;
+  --av-sobre-accion: #1b0d16;
+
+  --av-bg: #131a26;
+  --av-surface: #1b2432;
+  --av-surface-alt: #202b3b;
+  --av-border: #2b3648;
+  --av-border-control: #6b7890;
+  --av-text: #eef1f6;
+  --av-text-secondary: #b6c0d1;
+  --av-text-muted: #97a3b6;
+
+  --av-ok: #5fd3ae;
+  --av-warn: #f0b45e;
+  --av-danger: #f08a97;
+  --av-ok-soft: #14361f;
+  --av-warn-soft: #3d2f14;
+  --av-danger-soft: #3d1a1e;
+
+  --av-shadow: 0 10px 30px rgb(0 0 0 / 35%);
+  --av-shadow-alto: 0 14px 34px rgb(0 0 0 / 50%);
+}
+
+/* Sin `data-theme`, se sigue al sistema. El selector `:not([data-theme="light"])` es lo que
+   hace que la elección explícita de la persona gane en las dos direcciones. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --av-primary: #f5a8d3;
+    --av-primary-hover: #f9c4e1;
+    --av-primary-soft: #3a1030;
+    --av-sobre-accion: #1b0d16;
+    --av-bg: #131a26;
+    --av-surface: #1b2432;
+    --av-surface-alt: #202b3b;
+    --av-border: #2b3648;
+    --av-border-control: #6b7890;
+    --av-text: #eef1f6;
+    --av-text-secondary: #b6c0d1;
+    --av-text-muted: #97a3b6;
+    --av-ok: #5fd3ae;
+    --av-warn: #f0b45e;
+    --av-danger: #f08a97;
+    --av-ok-soft: #14361f;
+    --av-warn-soft: #3d2f14;
+    --av-danger-soft: #3d1a1e;
+    --av-shadow: 0 10px 30px rgb(0 0 0 / 35%);
+    --av-shadow-alto: 0 14px 34px rgb(0 0 0 / 50%);
+  }
+}
+
+body {
+  background: var(--av-bg);
+  color: var(--av-text);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+/* Esta aplicación es cifras de punta a punta: sin `tabular-nums` las columnas bailan al
+   actualizarse el progreso. */
+.cifra,
+td.cifra,
+.ficha dd,
+.recibo {
+  font-variant-numeric: tabular-nums;
+}
+
+:focus-visible {
+  outline: 2px solid var(--av-primary);
+  outline-offset: 2px;
+}
+
+/* --- La barra ----------------------------------------------------------- */
+
+.barra {
+  background: var(--av-navy);
+  color: #fff;
+  padding: 10px 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.barra a {
+  color: #fff;
+  text-decoration: none;
+  opacity: 0.85;
+}
+
+.barra a:hover,
+.barra a[aria-current="page"] {
+  opacity: 1;
+  text-decoration: underline;
+}
+
+.marca {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.marca img {
+  width: 2.4rem;
+  height: 1.8rem;
+}
+
+/* La chapa del modo. Saber si los archivos salen o no de la máquina es lo primero que hay
+   que ver, no algo que se averigua entrando a una pantalla de ajustes. */
+.chapa {
+  font-size: var(--av-fs-xs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 2px 10px;
+  border-radius: 999px;
+  border: 1px solid currentcolor;
+}
+
+.chapa-taller {
+  color: #7fe3c4;
+}
+
+.chapa-nube {
+  color: #f5a8d3;
+}
+
+/* --- Tarjetas ------------------------------------------------------------ */
+
+.tarjeta {
+  background: var(--av-surface);
+  border: 1px solid var(--av-border);
+  border-radius: var(--av-radius);
+  box-shadow: var(--av-shadow);
+  padding: 18px 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* La franja de marca. Es de las pocas cosas para las que sirve el magenta. */
+.tarjeta-acento::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: var(--av-magenta);
+}
+
+.tarjeta h2 {
+  font-size: var(--av-fs-lg);
+  margin: 0 0 4px;
+}
+
+.eyebrow {
+  font-size: var(--av-fs-xs);
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--av-primary);
+  margin-bottom: 2px;
+}
+
+/* --- La zona de soltar ---------------------------------------------------- */
+
+.soltar {
+  border: 2px dashed var(--av-border-control);
+  border-radius: var(--av-radius);
+  background: var(--av-surface-alt);
+  padding: 28px 20px;
+  text-align: center;
+  transition: border-color 120ms ease, background 120ms ease;
+}
+
+.soltar.encima {
+  border-color: var(--av-magenta);
+  background: var(--av-primary-soft);
+}
+
+.soltar input[type="text"] {
+  min-height: var(--av-control-height);
+}
+
+/* --- La ficha del archivo ------------------------------------------------- */
+
+.ficha dl {
+  display: grid;
+  grid-template-columns: minmax(9rem, auto) 1fr;
+  gap: 4px 16px;
+  margin: 0;
+}
+
+.ficha dt {
+  color: var(--av-text-secondary);
+  font-weight: 500;
+}
+
+.ficha dd {
+  margin: 0;
+  font-weight: 600;
+}
+
+/* --- Los veredictos -------------------------------------------------------
+ * Color + forma de icono distinta + texto. Nunca solo color: uno de cada doce hombres no
+ * distingue el rojo del verde, y esta tira se lee de un vistazo.
+ */
+
+.veredictos {
+  display: grid;
+  gap: 8px;
+}
+
+.veredicto {
+  display: grid;
+  grid-template-columns: 1.5rem minmax(9rem, auto) 1fr;
+  align-items: baseline;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: var(--av-radius-sm);
+  border: 1px solid transparent;
+}
+
+.veredicto-marca {
+  font-weight: 800;
+  text-align: center;
+}
+
+.veredicto-destino {
+  font-weight: 700;
+}
+
+.veredicto-abre {
+  background: var(--av-ok-soft);
+  border-color: color-mix(in srgb, var(--av-ok) 35%, transparent);
+  color: var(--av-ok);
+}
+
+.veredicto-con-reparos {
+  background: var(--av-warn-soft);
+  border-color: color-mix(in srgb, var(--av-warn) 35%, transparent);
+  color: var(--av-warn);
+}
+
+.veredicto-no-abre {
+  background: var(--av-danger-soft);
+  border-color: color-mix(in srgb, var(--av-danger) 35%, transparent);
+  color: var(--av-danger);
+}
+
+.veredicto-motivo {
+  color: var(--av-text);
+}
+
+.veredicto-remedio {
+  display: block;
+  color: var(--av-text-secondary);
+  font-size: var(--av-fs-sm);
+}
+
+/* --- Los destinos ---------------------------------------------------------
+ * El selector primario es un programa, no una extensión. Es la idea del producto.
+ */
+
+.destinos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
+  gap: 10px;
+}
+
+.destino {
+  display: block;
+  width: 100%;
+  text-align: left;
+  min-height: var(--av-touch-min);
+  padding: 12px 14px;
+  border-radius: var(--av-radius-sm);
+  border: 1px solid var(--av-border);
+  background: var(--av-surface);
+  color: var(--av-text);
+  cursor: pointer;
+}
+
+.destino:hover:not(:disabled) {
+  border-color: var(--av-primary);
+  box-shadow: var(--av-shadow-alto);
+}
+
+.destino[aria-pressed="true"] {
+  border-color: var(--av-primary);
+  background: var(--av-primary-soft);
+}
+
+.destino:disabled {
+  opacity: 1; /* No se atenúa: se explica. Un botón fantasma no dice por qué. */
+  cursor: not-allowed;
+  border-style: dashed;
+  color: var(--av-text-muted);
+}
+
+.destino strong {
+  display: block;
+}
+
+.destino small {
+  color: var(--av-text-secondary);
+}
+
+/* --- Progreso ------------------------------------------------------------- */
+
+.avance {
+  height: 10px;
+  border-radius: 999px;
+  background: var(--av-border);
+  overflow: hidden;
+}
+
+.avance-relleno {
+  height: 100%;
+  background: var(--av-primary);
+  transition: width 200ms ease;
+}
+
+.etapa {
+  font-size: var(--av-fs-sm);
+  color: var(--av-text-secondary);
+}
+
+/* --- El recibo ------------------------------------------------------------ */
+
+.recibo {
+  background: var(--av-surface-alt);
+  border: 1px solid var(--av-border);
+  border-left: 4px solid var(--av-ok);
+  border-radius: var(--av-radius-sm);
+  padding: 14px 16px;
+}
+
+.recibo dl {
+  display: grid;
+  grid-template-columns: minmax(11rem, auto) 1fr;
+  gap: 3px 16px;
+  margin: 0;
+}
+
+.recibo dt {
+  color: var(--av-text-secondary);
+}
+
+.recibo dd {
+  margin: 0;
+  font-weight: 600;
+}
+
+/* --- Píldoras de estado --------------------------------------------------- */
+
+.pildora {
+  display: inline-block;
+  padding: 1px 9px;
+  border-radius: 999px;
+  font-size: var(--av-fs-xs);
+  font-weight: 700;
+  border: 1px solid currentcolor;
+  background: color-mix(in srgb, currentcolor 14%, transparent);
+}
+
+.pildora-done {
+  color: var(--av-ok);
+}
+
+.pildora-error {
+  color: var(--av-danger);
+}
+
+.pildora-cancelled,
+.pildora-expired {
+  color: var(--av-text-muted);
+}
+
+.pildora-running,
+.pildora-verifying,
+.pildora-queued {
+  color: var(--av-primary);
+}
+
+/* --- Botones -------------------------------------------------------------- */
+
+.boton {
+  min-height: var(--av-control-height);
+  padding: 0 18px;
+  border-radius: var(--av-radius-sm);
+  border: 1px solid transparent;
+  font-weight: 600;
+  cursor: pointer;
+  background: var(--av-primary);
+  color: var(--av-sobre-accion);
+}
+
+.boton:hover:not(:disabled) {
+  background: var(--av-primary-hover);
+}
+
+.boton:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.boton-suave {
+  background: transparent;
+  border-color: var(--av-border-control);
+  color: var(--av-text);
+}
+
+/* --- La matriz de capacidades --------------------------------------------- */
+
+.matriz {
+  border-collapse: collapse;
+  font-size: var(--av-fs-sm);
+}
+
+.matriz th,
+.matriz td {
+  border: 1px solid var(--av-border);
+  padding: 6px 9px;
+  text-align: center;
+}
+
+.matriz th {
+  background: var(--av-surface-alt);
+  font-weight: 700;
+}
+
+.matriz th[scope="row"] {
+  text-align: left;
+}
+
+.celda-disponible {
+  background: var(--av-ok-soft);
+  color: var(--av-ok);
+  font-weight: 700;
+}
+
+.celda-instalable {
+  background: var(--av-warn-soft);
+  color: var(--av-warn);
+  font-weight: 700;
+}
+
+.celda-no-soportado {
+  color: var(--av-text-muted);
+}
+
+/* --- Utilidades ----------------------------------------------------------- */
+
+.tenue {
+  color: var(--av-text-secondary);
+}
+
+.vacio {
+  color: var(--av-text-muted);
+  padding: 24px;
+  text-align: center;
+}
+
+.aviso {
+  background: var(--av-warn-soft);
+  border: 1px solid color-mix(in srgb, var(--av-warn) 35%, transparent);
+  color: var(--av-warn);
+  border-radius: var(--av-radius-sm);
+  padding: 9px 12px;
+  font-size: var(--av-fs-sm);
+}
+
+.error {
+  background: var(--av-danger-soft);
+  border: 1px solid color-mix(in srgb, var(--av-danger) 35%, transparent);
+  color: var(--av-danger);
+  border-radius: var(--av-radius-sm);
+  padding: 9px 12px;
+}
+
+.salto {
+  position: absolute;
+  left: -9999px;
+}
+
+.salto:focus {
+  left: 8px;
+  top: 8px;
+  z-index: 10;
+  background: var(--av-surface);
+  padding: 8px 12px;
+  border-radius: var(--av-radius-sm);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* 0.01ms y no 0, para que `transitionend` siga disparando. */
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}

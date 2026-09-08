@@ -31,6 +31,24 @@ RAICES_PERMITIDAS = config("AEROCONVERT_RAICES_PERMITIDAS", default="")
 # Solo aplica en modo nube.
 TOPE_MB = config("AEROCONVERT_TOPE_MB", default=2048, cast=int)
 
+# --- Retencion y disco -----------------------------------------------------
+# GDAL necesita un archivo de verdad, con acceso aleatorio: **algo toca disco siempre**. Lo
+# que se elige aqui es cuanto sobrevive y cuanto se deja gastar.
+
+#: `efimera` | `temporal` | `permanente`. Vacio = `permanente` en taller (la salida vive
+#: junto al original, en el disco de la persona) y `efimera` en nube.
+RETENCION = config("AEROCONVERT_RETENCION", default="")
+#: Donde viven las salidas mientras esperan a ser descargadas. Carpeta propia y no el
+#: temporal del sistema: asi el presupuesto se puede medir y el barrido sabe donde mirar.
+CARPETA_DE_TRABAJO = config("AEROCONVERT_CARPETA_DE_TRABAJO", default="")
+#: Cuanto tiempo sobrevive una salida efimera que nadie llego a descargar.
+EFIMERA_MINUTOS = config("AEROCONVERT_EFIMERA_MINUTOS", default=30, cast=int)
+#: Cuanto sobrevive con politica `temporal`.
+RETENCION_HORAS = config("AEROCONVERT_RETENCION_HORAS", default=24, cast=int)
+#: **Lo que de verdad protege el disco.** Un trabajo que no cabe espera en la cola en vez
+#: de llenar el volumen. Un servidor sin disco no da un error: deja de funcionar entero.
+PRESUPUESTO_GB = config("AEROCONVERT_PRESUPUESTO_GB", default=20, cast=int)
+
 # --- Motores externos ------------------------------------------------------
 # Ninguno es dependencia del paquete: se sondean en tiempo de ejecucion y su ausencia
 # apaga una fila de la matriz de capacidades, no rompe la aplicacion.

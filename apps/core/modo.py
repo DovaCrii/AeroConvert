@@ -139,7 +139,7 @@ def chapa() -> Chapa:
         return Chapa(
             modo=settings.MODO_TALLER,
             etiqueta="Taller",
-            explicacion="Los archivos se leen de tu disco y no salen de esta maquina.",
+            explicacion="Los archivos se leen de tu disco y no salen de esta máquina.",
         )
     return Chapa(
         modo=settings.MODO_NUBE,

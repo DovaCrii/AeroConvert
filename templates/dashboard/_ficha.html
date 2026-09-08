@@ -1,0 +1,170 @@
+{% if error %}
+  <div class="error">
+    <strong>{{ error }}</strong>
+    <div style="font-size:.85rem; opacity:.85; margin-top:2px;">
+      Motivo: <code>{{ codigo_error }}</code>
+    </div>
+  </div>
+{% elif i %}
+
+<div class="tarjeta tarjeta-acento" style="margin-bottom:14px;">
+  <div class="eyebrow">Lo que hay dentro</div>
+  <h2>{{ i.nombre }}</h2>
+  <p class="tenue" style="margin-bottom:14px;">
+    {{ i.bytes_totales|filesizeformat }} ·
+    {% if i.formato %}{{ i.formato.nombre }}{% else %}formato no reconocido{% endif %} ·
+    {{ i.etiqueta_confianza }}
+  </p>
+
+  <div class="ficha">
+    <dl>
+      {% if i.tiff %}
+        <dt>Variante</dt>
+        <dd>
+          {% if i.tiff.es_bigtiff %}BigTIFF{% else %}TIFF clásico{% endif %} ·
+          {{ i.tiff.nombre_compresion }} ·
+          {% if i.tiff.teselado %}teselas {{ i.tiff.ancho_tesela }}×{{ i.tiff.alto_tesela }}{% else %}por franjas{% endif %}
+        </dd>
+
+        <dt>Dimensiones</dt>
+        <dd>{{ i.tiff.ancho_px }} × {{ i.tiff.alto_px }} px · {{ i.tiff.megapixeles|floatformat:1 }} Mpx</dd>
+
+        <dt>Bandas</dt>
+        <dd>
+          {{ i.tiff.bandas }} · {{ i.tiff.bits_por_muestra }} bits
+          {% if i.tiff.tiene_alfa %}· con banda alfa{% endif %}
+        </dd>
+
+        <dt>Pirámides</dt>
+        <dd>
+          {% if i.tiff.reducciones %}{{ i.tiff.reducciones }} niveles internos
+          {% else %}ninguna que GDAL reconozca
+            {% if i.tiff.menores_sin_declarar %}
+              <span class="tenue">({{ i.tiff.menores_sin_declarar }} IFD menores sin declarar)</span>
+            {% endif %}
+          {% endif %}
+        </dd>
+
+        {% if i.tiff.gsd_cm %}
+          <dt>Resolución</dt>
+          <dd>{{ i.tiff.gsd_cm|floatformat:2 }} cm/px</dd>
+
+          {% if i.tiff.extension_terreno_m %}
+            <dt>Cobertura</dt>
+            <dd>
+              {{ i.tiff.extension_terreno_m.0|floatformat:0 }} m ×
+              {{ i.tiff.extension_terreno_m.1|floatformat:0 }} m
+            </dd>
+          {% endif %}
+        {% endif %}
+      {% endif %}
+
+      <dt>Sistema de referencia</dt>
+      <dd>
+        {% if i.crs.conocido %}
+          {{ i.crs }}{% if i.crs.nombre %} — {{ i.crs.nombre }}{% endif %}
+          <span class="tenue">({{ i.crs.procedencia }})</span>
+        {% else %}
+          <span style="color:var(--av-warn);">no lo declara</span>
+        {% endif %}
+      </dd>
+
+      {% if i.acompanantes %}
+        <dt>Acompañantes</dt>
+        <dd>
+          {% for a in i.acompanantes %}{% if a.presente %}<code>{{ a.extension }}</code> {% endif %}{% empty %}—{% endfor %}
+          {% if i.faltan_imprescindibles %}
+            <br>
+            <span style="color:var(--av-danger);">
+              faltan:
+              {% for a in i.faltan_imprescindibles %}<code>{{ a.extension }}</code> {% endfor %}
+            </span>
+          {% endif %}
+        </dd>
+      {% endif %}
+    </dl>
+  </div>
+
+  {% for aviso in i.avisos %}
+    <div class="aviso" style="margin-top:10px;">{{ aviso }}</div>
+  {% endfor %}
+</div>
+
+<div class="tarjeta" style="margin-bottom:14px;">
+  <div class="eyebrow">Dónde abre y dónde no</div>
+  <p class="tenue" style="margin-bottom:12px;">
+    Esto es lo que ninguna otra herramienta te dice.
+  </p>
+
+  <div class="veredictos">
+    {% for v in veredictos %}
+      <div class="veredicto veredicto-{{ v.severidad }}">
+        <span class="veredicto-marca" aria-hidden="true">
+          {% if v.severidad == 'abre' %}✓{% elif v.severidad == 'con-reparos' %}!{% else %}✗{% endif %}
+        </span>
+        <span class="veredicto-destino">{{ v.perfil_nombre }}</span>
+        <span class="veredicto-motivo">
+          <span class="visually-hidden">{{ v.etiqueta }}.</span>
+          {{ v.motivo }}
+          {% if v.remedio %}<span class="veredicto-remedio">{{ v.remedio }}</span>{% endif %}
+        </span>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="tarjeta">
+  <div class="eyebrow">Convertir</div>
+  <h2 style="font-size:1.1rem;">¿Dónde tiene que abrir?</h2>
+  <p class="tenue" style="margin-bottom:12px;">
+    Eliges el programa; el formato y las opciones los pone el perfil.
+  </p>
+
+  <form method="post" action="{% url 'dashboard:convertir' %}">
+    {% csrf_token %}
+    <input type="hidden" name="ruta" value="{{ i.ruta }}">
+
+    <div class="destinos" style="margin-bottom:14px;">
+      {% for p in perfiles %}
+        <button type="submit" name="perfil" value="{{ p.perfil.id }}"
+                class="destino" {% if not p.se_puede %}disabled{% endif %}
+                {% if not p.se_puede %}title="{{ p.motivo }}"{% endif %}>
+          <strong>{{ p.perfil.nombre }}</strong>
+          <small>
+            {% if p.se_puede %}
+              → {{ p.nombre_destino }}
+            {% else %}
+              {{ p.motivo }}
+              {% if p.alternativas %}<br>En su lugar: {{ p.alternativas|join:", " }}{% endif %}
+            {% endif %}
+          </small>
+        </button>
+      {% endfor %}
+    </div>
+
+    <details>
+      <summary style="cursor:pointer; font-weight:600;">Ajustar a mano</summary>
+      <p class="tenue" style="margin:8px 0;">
+        Las opciones salen de lo que el motor sabe pasar, así que aquí no hay nada que el
+        motor vaya a ignorar.
+      </p>
+      <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(15rem,1fr)); gap:10px;">
+        <label>
+          Formato de destino
+          <select name="formato" class="form-select">
+            {% for f in escribibles %}
+              <option value="{{ f.codigo }}">{{ f.nombre }}</option>
+            {% endfor %}
+          </select>
+        </label>
+      </div>
+      <button type="submit" name="perfil" value="" class="boton boton-suave" style="margin-top:10px;">
+        Convertir con estos ajustes
+      </button>
+    </details>
+  </form>
+</div>
+
+{% else %}
+  <div class="vacio">Indica una ruta y pulsa «Inspeccionar».</div>
+{% endif %}

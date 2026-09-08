@@ -1,0 +1,112 @@
+{% comment %}
+El fragmento que htmx reemplaza mientras el trabajo avanza.
+
+**El `hx-trigger` solo se pone si el trabajo no ha terminado.** Así el sondeo se detiene
+solo, sin una línea de JavaScript: cuando el trabajo llega a un estado terminal, este
+fragmento se pinta sin disparador y htmx deja de preguntar.
+
+Y el intervalo escala con el tiempo transcurrido — un trabajo de tres horas no puede
+generar 10.800 peticiones.
+{% endcomment %}
+
+<div class="tarjeta tarjeta-acento"
+     id="progreso-{{ trabajo.pk }}"
+     {% if not trabajo.es_terminal %}
+     hx-get="{% url 'jobs:progreso' trabajo.pk %}"
+     hx-trigger="every {{ trabajo.intervalo_de_sondeo_s }}s"
+     hx-swap="outerHTML"
+     {% endif %}>
+
+  <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+    <span class="pildora pildora-{{ trabajo.status }}">{{ trabajo.get_status_display }}</span>
+    {% if trabajo.progress_stage and not trabajo.es_terminal %}
+      <span class="etapa">{{ trabajo.get_progress_stage_display }}</span>
+    {% endif %}
+    <span class="cifra tenue" style="margin-left:auto;">
+      {% if trabajo.duracion_s %}{{ trabajo.duracion_s|floatformat:0 }} s{% endif %}
+    </span>
+  </div>
+
+  {% if not trabajo.es_terminal %}
+    <div class="avance" role="progressbar"
+         aria-valuenow="{{ trabajo.progress_percent }}" aria-valuemin="0" aria-valuemax="100">
+      <div class="avance-relleno" style="width: {{ trabajo.progress_percent }}%;"></div>
+    </div>
+    <p class="cifra tenue" style="margin:6px 0 0;">{{ trabajo.progress_percent }} %</p>
+
+    <form method="post" action="{% url 'jobs:cancelar' trabajo.pk %}" style="margin-top:10px;">
+      {% csrf_token %}
+      <button type="submit" class="boton boton-suave">Cancelar</button>
+    </form>
+  {% endif %}
+
+  {% if trabajo.status == 'done' %}
+    {% comment %}
+      El recibo. Es lo que se le manda al cliente: sin él, «lo convertí» es una afirmación
+      sin respaldo.
+
+      Va con `{% comment %}` y no con `{# #}`: la segunda forma es de UNA sola línea, y en
+      varias Django la imprime tal cual en la página.
+    {% endcomment %}
+    <div class="recibo">
+      <strong style="color:var(--av-ok);">✓ Verificado contra el original</strong>
+      <dl style="margin-top:8px;">
+        <dt>Tamaño</dt>
+        <dd>
+          {{ trabajo.source_size_bytes|filesizeformat }} →
+          {{ trabajo.output_size_bytes|filesizeformat }}
+          {% if trabajo.reduccion_pct %}
+            <span class="tenue">(−{{ trabajo.reduccion_pct }} %)</span>
+          {% endif %}
+        </dd>
+
+        {% if trabajo.verification.ancho_px %}
+          <dt>Dimensiones</dt>
+          <dd>{{ trabajo.verification.ancho_px }} × {{ trabajo.verification.alto_px }} px · sin cambio</dd>
+        {% endif %}
+
+        {% if trabajo.verification.epsg %}
+          <dt>Sistema de referencia</dt>
+          <dd>EPSG:{{ trabajo.verification.epsg }} · sin cambio</dd>
+        {% endif %}
+
+        {% if trabajo.verification.bandas %}
+          <dt>Bandas</dt>
+          <dd>{{ trabajo.verification.bandas }}</dd>
+        {% endif %}
+
+        <dt>Motor</dt>
+        <dd>{{ trabajo.engine_version|default:trabajo.engine_id }}</dd>
+
+        <dt>sha256 del original</dt>
+        <dd style="font-family:ui-monospace, Consolas, monospace; font-size:.8rem;">
+          {{ trabajo.source_sha256|slice:":32" }}…
+          <span class="tenue">(el original no se tocó)</span>
+        </dd>
+
+        {% if trabajo.expires_at %}
+          <dt>Disponible hasta</dt>
+          <dd>{{ trabajo.expires_at|date:"H:i" }} <span class="tenue">· después se borra</span></dd>
+        {% endif %}
+      </dl>
+
+      {% if trabajo.output_path %}
+        <a class="boton" style="display:inline-block; margin-top:12px; text-decoration:none; line-height:42px;"
+           href="{% url 'jobs:descargar' trabajo.pk %}">Descargar</a>
+        <p class="tenue" style="margin:8px 0 0; font-size:.85rem;">{{ trabajo.output_path }}</p>
+      {% else %}
+        <p class="tenue" style="margin-top:10px;">El archivo ya se descargó y se borró.</p>
+      {% endif %}
+    </div>
+  {% elif trabajo.status == 'error' %}
+    <div class="error">
+      <strong>{{ trabajo.reason_detail }}</strong>
+      <div style="font-size:.85rem; opacity:.85; margin-top:2px;">
+        Motivo: <code>{{ trabajo.reason_code }}</code>
+        {% if trabajo.es_reintentable %} · esto suele arreglarse reintentando{% endif %}
+      </div>
+    </div>
+  {% elif trabajo.status == 'cancelled' %}
+    <div class="aviso">Cancelado. No se escribió nada.</div>
+  {% endif %}
+</div>

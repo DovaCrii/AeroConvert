@@ -136,7 +136,7 @@ PATRON_FORMATO = re.compile(r"^\s{2}(\S+)\s+-[\w,\s]+-\s+\(([^)]*)\):")
 
 
 def sondar_gdal() -> EstadoGdal:
-    """GDAL: si esta, que version, y **que sabe escribir**."""
+    """GDAL: si esta, que versión, y **que sabe escribir**."""
     guardado = cache.get("motores:gdal")
     if guardado is not None:
         return guardado
@@ -218,7 +218,7 @@ def sondar_ecw() -> Disponibilidad:
             return Disponibilidad.si(f"conversor externo: {binario}")
         return Disponibilidad.no(
             "sin-binario-ecw",
-            f"AEROCONVERT_ECW_BIN apunta a {binario}, y ahi no hay ningun archivo.",
+            f"AEROCONVERT_ECW_BIN apunta a {binario}, y ahi no hay ningún archivo.",
             sugerencia="Corrige la ruta o deja la variable vacia.",
             alternativas=alternativas,
         )
@@ -309,7 +309,7 @@ def sondar_oda() -> Disponibilidad:
     if not Path(ruta).is_file():
         return Disponibilidad.no(
             "sin-conversor",
-            f"AEROCONVERT_ODA_CONVERTER apunta a {ruta}, y ahi no hay ningun archivo.",
+            f"AEROCONVERT_ODA_CONVERTER apunta a {ruta}, y ahi no hay ningún archivo.",
             alternativas=("dxf",),
         )
     return Disponibilidad.si(ruta)

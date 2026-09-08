@@ -49,8 +49,14 @@ INTERVALO_S = 2.0
 #: porque un proceso ocupado escribiendo un tramo grande puede tardar en latir.
 LATIDOS_PERDIDOS = 3
 
+#: Cada cuantos ciclos se barre lo caducado. Cada 150 ciclos de 2 s son unos cinco minutos:
+#: suficiente para que una salida efimera no se quede horas ocupando disco, y poco frecuente
+#: como para no recorrer la carpeta a cada rato.
+CICLOS_ENTRE_BARRIDOS = 150
+
 _hilo: threading.Thread | None = None
 _parar = threading.Event()
+_ciclos = 0
 
 
 def procesar_una_vez() -> int:
@@ -70,6 +76,17 @@ def procesar_una_vez() -> int:
     if siguiente is None:
         return 0
 
+    # **El presupuesto de disco se mira antes de reclamar, no dentro del trabajo.** Si no
+    # cabe, el trabajo se queda en la cola y se reintenta en el ciclo siguiente -- que es lo
+    # correcto: el disco se libera solo cuando otro trabajo termina y se descarga. Fallarlo
+    # obligaria a la persona a reencolarlo a mano por algo transitorio.
+    from . import retencion
+
+    presupuesto = retencion.presupuesto_para(siguiente.source_size_bytes or 0)
+    if not presupuesto.cabe:
+        _avisar_de_disco(siguiente, presupuesto)
+        return 0
+
     from . import runner
 
     if not runner.reclamar(siguiente.pk):
@@ -80,6 +97,24 @@ def procesar_una_vez() -> int:
     registro.info("Ejecutando %s", siguiente.pk)
     runner.ejecutar(siguiente)
     return 1
+
+
+def _avisar_de_disco(job, presupuesto) -> None:
+    """Deja escrito por que el trabajo sigue esperando, **una sola vez**.
+
+    Sin la guarda, un trabajo que espera media hora escribiria novecientas lineas iguales en
+    la bitacora y la volveria ilegible justo cuando alguien va a leerla.
+    """
+    from .models import JobEvent
+
+    ya_avisado = JobEvent.objects.filter(job=job, reason_code="sin-espacio").exists()
+    if ya_avisado:
+        return
+    job.registrar(
+        f"Esperando espacio. {presupuesto.motivo}",
+        nivel=JobEvent.AVISO,
+        reason_code="sin-espacio",
+    )
 
 
 def recoger_muertos() -> int:
@@ -138,11 +173,22 @@ def _vive(pid: int) -> bool:
 
 
 def _bucle() -> None:
+    global _ciclos
+
     while not _parar.is_set():
         try:
             # El hilo vive fuera del ciclo de peticion, asi que nadie cierra sus conexiones
             # por el. Sin esto, SQLite acaba con conexiones colgadas.
             close_old_connections()
+
+            _ciclos += 1
+            if _ciclos % CICLOS_ENTRE_BARRIDOS == 0:
+                from . import retencion
+
+                resultado = retencion.barrer()
+                if resultado.bytes_liberados:
+                    registro.info("Barrido: %s", resultado)
+
             if procesar_una_vez() == 0:
                 time.sleep(INTERVALO_S)
         except Exception:  # noqa: BLE001 - el hilo no se puede morir por un trabajo malo
@@ -164,6 +210,16 @@ def arrancar() -> bool:
 
     if _hilo is not None and _hilo.is_alive():
         return False
+
+    # Un barrido al arrancar. Es el unico momento en que se sabe con certeza que ningun
+    # trabajo esta corriendo, asi que es cuando se pueden recoger los huerfanos que dejo un
+    # apagon o un `kill` sin miedo a llevarse un `.parcial` vivo por delante.
+    try:
+        from . import retencion
+
+        retencion.barrer()
+    except Exception:  # noqa: BLE001 - un barrido fallido no impide arrancar
+        registro.exception("El barrido de arranque fallo")
 
     _parar.clear()
     _hilo = threading.Thread(target=_bucle, name="aeroconvert-despachador", daemon=True)

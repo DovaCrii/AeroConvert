@@ -30,13 +30,13 @@ BYTES_DE_FIRMA = 65_536
 
 CONFIANZA_FIRMA = "firma"
 CONFIANZA_GDAL = "gdal"
-CONFIANZA_EXTENSION = "extension"
+CONFIANZA_EXTENSION = "extensión"
 CONFIANZA_DESCONOCIDA = "desconocido"
 
 ETIQUETAS_CONFIANZA = {
     CONFIANZA_FIRMA: "reconocido por su contenido",
     CONFIANZA_GDAL: "reconocido por GDAL",
-    CONFIANZA_EXTENSION: "supuesto por la extension",
+    CONFIANZA_EXTENSION: "supuesto por la extensión",
     CONFIANZA_DESCONOCIDA: "no reconocido",
 }
 
@@ -185,7 +185,7 @@ def inspeccionar(ruta: str | Path) -> Inspeccion:
     ruta = Path(ruta)
 
     if not ruta.exists():
-        raise OrigenIlegible(f"No hay ningun archivo en {ruta}.", "origen-no-legible")
+        raise OrigenIlegible(f"No hay ningún archivo en {ruta}.", "origen-no-legible")
     if ruta.is_dir():
         raise OrigenIlegible(f"{ruta} es una carpeta, no un archivo.", "origen-no-legible")
 
@@ -233,7 +233,7 @@ def inspeccionar(ruta: str | Path) -> Inspeccion:
             # Compartir extension no es discrepancia: `.tif` es geotiff y bigtiff a la vez.
             if not (formato_firma.extensiones & supuesta.extensiones):
                 avisos.append(
-                    f"La extension dice {supuesta.nombre} pero el contenido es "
+                    f"La extensión dice {supuesta.nombre} pero el contenido es "
                     f"{formato_firma.nombre}. Gana el contenido."
                 )
 
@@ -254,13 +254,13 @@ def inspeccionar(ruta: str | Path) -> Inspeccion:
                 avisos.append(
                     "Es BigTIFF sin necesitarlo: sin comprimir ocupa "
                     f"{cabecera_tiff.bytes_sin_comprimir / 1e9:.2f} GB, muy por debajo del "
-                    "techo de 4 GB del TIFF clasico. Reescribirlo como clasico no pierde "
-                    "nada y lo abre mucho mas software."
+                    "techo de 4 GB del TIFF clásico. Reescribirlo como clásico no pierde "
+                    "nada y lo abre mucho más software."
                 )
             if cabecera_tiff.tiene_alfa:
                 avisos.append(
-                    "Trae una banda alfa. Varios CAD la pintan como una banda gris mas o "
-                    "dejan negro donde deberia ser transparente."
+                    "Trae una banda alfa. Varios CAD la pintan como una banda gris más o "
+                    "dejan negro donde debería ser transparente."
                 )
 
     if not crs.conocido:
