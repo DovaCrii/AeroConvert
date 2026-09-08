@@ -106,6 +106,11 @@ class PlanDeEjecucion:
 
     argv: tuple[str, ...]
     ruta_de_salida: Path
+    #: Comandos que se ejecutan **despues** del principal y antes de verificar, con el mismo
+    #: entorno. Existe porque las piramides son un `gdaladdo` aparte: no hay forma de
+    #: pedirlas a `gdal_translate`. Se ejecutan en orden y un fallo en cualquiera detiene el
+    #: trabajo -- una salida sin sus piramides es una salida distinta de la que se pidio.
+    posteriores: tuple[tuple[str, ...], ...] = ()
     #: Variables del entorno del **proceso hijo**. Nunca se tocan las del servidor: es
     #: donde viaja la clave de ECW, y no puede acabar en un log del padre.
     env: dict[str, str] = field(default_factory=dict)

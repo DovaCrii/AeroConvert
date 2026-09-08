@@ -7,6 +7,37 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ### Añadido
 
+- **AeroConvert convierte.** Se cierran las fases F1.2 (modelo de trabajo) y F1.5 (motor
+  ráster GDAL). El entregable real de BHP —466,2 MB en BigTIFF— pasa de punta a punta por
+  la aplicación: 7 s a GeoTIFF clásico DEFLATE de 3 bandas con pirámides, y 9 s a JPEG 2000
+  de 60 MB. En los dos casos `gdalinfo` confirma 14.526 × 14.443 px y EPSG:32719, y el
+  original queda intacto.
+- `ConversionJob` y `JobEvent`, con reclamo atómico, latido, cancelación cooperativa,
+  escritura atómica en `.parcial` y bitácora de solo anexar.
+- Despachador en hilo, sin broker ni segundo proceso, con las cuatro guardas: `RUN_MAIN`,
+  `UPDATE` atómico, apagado en pruebas y recogida de obreros muertos.
+- `MotorGdalRaster` y `MotorEcw`: construcción del `argv`, opciones declarativas de las que
+  se generará el formulario, pirámides como paso posterior y verificación con `gdalinfo`.
+- `MotorDeMentira`, que lanza un proceso real para probar el runner entero sin GDAL.
+
+### Corregido
+
+- **El progreso no llegaba.** GDAL escribe `0...10...20...` en una sola línea que va
+  creciendo, sin salto, así que leer por líneas no devolvía nada hasta el final. Sobre el
+  archivo de 466 MB eran 3 tics; ahora son 33. No era solo cosmético: sin señales, **el
+  detector de atasco habría matado un motor sano** en cualquier ráster que tardase más que
+  el umbral de silencio.
+- Se quitó el `-q` que silenciaba a GDAL, por la misma razón.
+- **La reserva del destino no detectaba nada.** `open(destino, "ab")` funciona en Windows
+  aunque otro programa tenga el archivo abierto, porque Python abre con uso compartido: la
+  comprobación daba verde siempre y el fallo real aparecía 23 s después, al renombrar —
+  justo lo que esa comprobación existe para evitar. Ahora se intenta la misma operación que
+  se hará al final, renombrar, y se deja el archivo como estaba.
+- Cancelar dejaba el trabajo en `error`. Ahora queda en `cancelled`: mezclar «esto se
+  rompió» con «cambié de idea» hacía inservible el historial.
+
+### Añadido (documentación)
+
 - La documentación que `AGENTS.md` declaraba en su cadena de precedencia y todavía no
   existía: `docs/ARCHITECTURE.md`, `docs/MVP.md`, `docs/MOTORES.md`, `docs/FORMATOS.md`,
   `docs/REFERENCES.md`, `docs/DEPLOY.md` y las dos de integración con AeroBim y AeroControl.

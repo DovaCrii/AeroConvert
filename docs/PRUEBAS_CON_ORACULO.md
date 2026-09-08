@@ -96,7 +96,43 @@ De ahí salen los dos valores por omisión del producto:
 
 **Idénticas en las dos**, hasta el cuarto decimal.
 
-### 4. El original quedó intacto
+### 4. De punta a punta, por la aplicación entera
+
+Ya no es `gdal_translate` a mano: el archivo pasa por `ConversionJob` → `runner` → motor →
+verificación.
+
+| Destino | Tiempo | Salida | Lo que dijo `gdalinfo` al verificar |
+| --- | ---: | ---: | --- |
+| GeoTIFF clásico, DEFLATE, 3 bandas, 5 pirámides | 7,1 s | 285,0 MB | 14.526 × 14.443 · 3 bandas · GTiff · EPSG:32719 |
+| JPEG 2000, calidad 25 | 9,4 s | 60,0 MB | 14.526 × 14.443 · 4 bandas · JP2OpenJPEG · EPSG:32719 |
+
+Y el veredicto se invierte, que es el objetivo del producto. Leído con el lector propio,
+sin GDAL:
+
+```
+Cruce Minero.tif          BigTIFF | 4 bandas | alfa=True  | EPSG:32719
+                          Civil 3D -> NO ABRE: es BigTIFF
+
+AEROCONVERT_civil3d.tif   TIFF clásico | 3 bandas | alfa=False | EPSG:32719
+                          Civil 3D -> ABRE: abre tal cual
+```
+
+### 5. El progreso, que estuvo roto
+
+Sobre el mismo archivo de 466 MB, contando los avisos de avance que llegan durante la etapa
+de conversión:
+
+| | Tics de progreso |
+| --- | ---: |
+| Leyendo la salida por líneas | **3** |
+| Leyendo por trozos con `os.read` | **33** |
+
+No era cosmético. GDAL escribe `0...10...20...` en una sola línea que va creciendo, sin
+salto, así que por líneas no llegaba nada hasta el final — y **sin señales el detector de
+atasco habría matado un motor sano** en cualquier ráster que tardase más que
+`AEROCONVERT_SILENCIO_MAXIMO_S`.
+
+### 6. El original quedó intacto
 
 `488.815.770` bytes y la misma fecha de escritura antes y después de las cinco
 conversiones.
