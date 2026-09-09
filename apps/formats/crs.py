@@ -22,12 +22,19 @@ from functools import lru_cache
 INCRUSTADO = "incrustado"
 SIDECAR_PRJ = "sidecar-prj"
 DECLARADO = "declarado"
+#: Lo impone el formato. KML y KMZ solo existen en EPSG:4326: lo dice la norma.
+#:
+#: Es un origen aparte de `INCRUSTADO` porque no viene escrito dentro del archivo, y aparte
+#: de `DECLARADO` porque no lo eligio nadie. La ficha lo dice tal cual, y esa distincion es
+#: la que separa «lo sabemos» de «alguien lo supuso».
+POR_NORMA = "por-norma"
 DESCONOCIDO = "desconocido"
 
 ETIQUETAS_ORIGEN = {
     INCRUSTADO: "venia dentro del archivo",
     SIDECAR_PRJ: "venia en el .prj de al lado",
     DECLARADO: "lo declaro una persona",
+    POR_NORMA: "lo fija el formato",
     DESCONOCIDO: "no se sabe",
 }
 
@@ -61,6 +68,29 @@ class Crs:
     def es_declarado(self) -> bool:
         """`True` si lo puso una persona. La interfaz lo marca distinto a proposito."""
         return self.origen == DECLARADO
+
+    @property
+    def es_geografico(self) -> bool:
+        """`True` si sus coordenadas son **grados** y no metros.
+
+        Importa porque hay destinos donde eso hace el archivo inservible sin dar ningun
+        error. Un DXF en EPSG:4326 es un dibujo de 0,002 unidades de ancho: abre en Civil
+        3D, no se ve nada, y no hay nada que diga por que.
+
+        Devuelve `False` cuando no se puede saber -- sin pyproj o con un codigo que PROJ no
+        conoce -- porque la alternativa seria bloquear conversiones legitimas por no poder
+        comprobar algo.
+        """
+        if not self.conocido:
+            return False
+        try:
+            from pyproj import CRS as PyprojCRS
+        except ImportError:  # pragma: no cover - pyproj es dependencia dura
+            return False
+        try:
+            return bool(PyprojCRS.from_user_input(str(self)).is_geographic)
+        except Exception:  # pragma: no cover - un codigo que PROJ no conoce
+            return False
 
 
 #: El CRS que no se sabe. Se usa en vez de `None` para que el codigo que lo consume no

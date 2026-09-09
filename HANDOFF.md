@@ -121,6 +121,13 @@ desde cero, no como compromiso.
 - **Un `integrity` desparejado no da error visible**: el navegador descarta el recurso y la
   página sale sin estilos. Si re-vendorizas algo, actualiza el hash en `base.html`;
   `test_estaticos.py` compara los dos.
+- **Un DXF en grados es un dibujo de dos milésimas de unidad.** No guarda sistema de
+  referencia: guarda números. Un KMZ viene siempre en EPSG:4326, así que llevarlo a DXF sin
+  reproyectar «funciona» y entrega algo invisible en Civil 3D. Lo para `_exigir_metros` en el
+  runner, **antes** de convertir: mirando la salida no hay forma de saberlo, el dato solo
+  existe en el origen. Se declara con la opción `crs_destino`.
+- **KML y KMZ son EPSG:4326 por norma**, así que la inspección se lo pone con el origen
+  `por-norma` — ni incrustado ni declarado por nadie. De eso depende el aviso anterior.
 - **`GDAL_DATA` no se deduce con una regla, y sin ella hay controladores que no arrancan.**
   El de DXF busca la plantilla `header.dxf` y, al no encontrarla, responde `DXF driver
   failed to create ...`. En QGIS 4.0.2 conviven dos diseños: los binarios en `bin`, los

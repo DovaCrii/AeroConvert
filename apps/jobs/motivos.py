@@ -83,6 +83,10 @@ MOTIVOS: dict[str, Motivo] = dict(
             "Declara el EPSG. Adivinarlo es peor que no tenerlo.",
         ),
         _m("crs-invalido", "El código EPSG declarado no existe."),
+        _m(
+            "crs-en-grados",
+            "El destino necesita metros y el origen está en grados. Hay que reproyectar.",
+        ),
         # --- Entrada y salida ----------------------------------------------
         _m("origen-no-legible", "No se pudo leer el archivo de origen."),
         _m("origen-bloqueado", "El archivo de origen esta abierto en otro programa."),

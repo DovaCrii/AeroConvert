@@ -47,6 +47,7 @@ from apps.engines.base import (
     ruta_parcial,
 )
 from apps.engines.entorno import entorno_de_gdal
+from apps.formats import catalogo
 from apps.formats import puntos as puntos_mod
 
 #: El controlador de OGR para cada codigo del catalogo.
@@ -466,7 +467,8 @@ class MotorOgrVector(Motor):
             # No hay opciones que ofrecer: el destino manda el CRS y el motor lo pone. Dejar
             # aqui un selector de CRS invitaria a elegir uno que el formato no admite.
             return ()
-        return (
+
+        comunes = (
             OpcionDeMotor(
                 "solo_geometria",
                 "Descartar los atributos",
@@ -475,6 +477,27 @@ class MotorOgrVector(Motor):
                 ayuda="Útil para un DXF que solo tiene que dibujar.",
             ),
         )
+
+        formato = catalogo.FORMATOS.get(par.destino)
+        if formato is not None and formato.exige_metros:
+            # **Sin valor por omisión**, igual que el CRS declarado de la ficha: sugerir uno
+            # sería adivinar con la firma de otra persona. Lo que sí se puede decir es por
+            # qué hace falta, que es lo que la ayuda explica.
+            return (
+                OpcionDeMotor(
+                    "crs_destino",
+                    "Reproyectar a (EPSG)",
+                    "texto",
+                    por_defecto="",
+                    ayuda=(
+                        "Obligatorio si el origen está en grados: un DXF guarda números sin "
+                        "sistema de referencia, y en grados el dibujo mide milésimas de "
+                        "unidad. Por ejemplo 32719 para UTM 19 sur."
+                    ),
+                ),
+                *comunes,
+            )
+        return comunes
 
     def plan(self, trabajo) -> PlanDeEjecucion:
         origen = Path(trabajo.source_path)
@@ -486,9 +509,14 @@ class MotorOgrVector(Motor):
 
         argv: list[str] = [_bin("ogr2ogr"), "-f", controlador, str(parcial), str(origen)]
 
+        declarado = str(opciones.get("crs_destino", "") or "").strip()
         if trabajo.target_crs_code:
             autoridad = trabajo.target_crs_authority or "EPSG"
             argv += ["-t_srs", f"{autoridad}:{trabajo.target_crs_code}"]
+        elif declarado:
+            # Puede venir como `32719` o como `EPSG:32719`; `-t_srs` acepta las dos, pero se
+            # normaliza para que el argv de la bitácora se lea siempre igual.
+            argv += ["-t_srs", declarado if ":" in declarado else f"EPSG:{declarado}"]
         elif trabajo.target_format_code in DESTINOS_EN_GRADOS:
             argv += ["-t_srs", "EPSG:4326"]
 

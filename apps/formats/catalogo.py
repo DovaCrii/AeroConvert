@@ -57,6 +57,22 @@ class Formato:
     admite_lectura: bool = True
     admite_escritura: bool = True
     con_perdida: bool = False
+    #: `True` si el formato solo tiene sentido en **unidades lineales**, no en grados.
+    #:
+    #: Un DXF no guarda sistema de referencia: guarda numeros. Si esos numeros son grados,
+    #: el dibujo mide 0,002 unidades de ancho — abre en Civil 3D, no se ve nada, y no hay
+    #: nada en el archivo que diga por que. Convertir un KMZ (que siempre viene en
+    #: EPSG:4326) a DXF sin reproyectar produce exactamente eso, y la conversion «funciona».
+    #:
+    #: Es dato del catalogo y no un `if` en el runner por la misma razon que `con_perdida`:
+    #: la comprobacion sale del formato, no de la memoria de quien escribio la regla.
+    exige_metros: bool = False
+    #: El EPSG que el **formato impone**, cuando lo impone. Vacio si no.
+    #:
+    #: KML y KMZ solo existen en EPSG:4326: lo dice la norma, no es una convencion ni una
+    #: probabilidad. Saberlo no es adivinar, y saberlo importa -- es lo que permite avisar
+    #: de que un KMZ llevado a DXF sin reproyectar sale en grados.
+    crs_fijo: str = ""
     #: Extensiones que viajan al lado y sin las cuales se pierde informacion.
     acompanantes: frozenset[str] = field(default_factory=frozenset)
     nota: str = ""
@@ -327,6 +343,7 @@ FORMATOS: dict[str, Formato] = {
         familia=VECTOR,
         nombre="KML",
         extensiones=frozenset({".kml"}),
+        crs_fijo="4326",
         nota="Siempre EPSG:4326, longitud antes que latitud.",
     ),
     "kmz": _f(
@@ -335,6 +352,8 @@ FORMATOS: dict[str, Formato] = {
         nombre="KMZ",
         extensiones=frozenset({".kmz"}),
         firmas=(b"PK\x03\x04",),
+        crs_fijo="4326",
+        nota="Un KML comprimido. Mismo EPSG:4326 obligatorio.",
     ),
     "gml": _f(
         codigo="gml",
@@ -354,6 +373,11 @@ FORMATOS: dict[str, Formato] = {
         nombre="DXF",
         extensiones=frozenset({".dxf"}),
         lleva_crs_incrustado=False,
+        exige_metros=True,
+        nota=(
+            "No guarda sistema de referencia: guarda numeros. Si vienen en grados, el "
+            "dibujo mide milesimas de unidad y no se ve nada."
+        ),
     ),
     "dwg": _f(
         codigo="dwg",

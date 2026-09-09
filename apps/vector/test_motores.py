@@ -331,6 +331,59 @@ class TestElMotorDeLandXml:
         assert "bien formado" in veredicto.motivo
 
 
+class TestElCrsDeDestinoDelMotorGeneral:
+    """Un DXF guarda números sin sistema de referencia, así que hay que poder declararlo."""
+
+    def _trabajo_dxf(self, tmp_path, **extra):
+        origen = tmp_path / "recinto.kml"
+        origen.write_text("<kml/>", encoding="utf-8")
+        return TrabajoDeMentira(
+            source_path=str(origen),
+            output_path=str(tmp_path / "plano.dxf"),
+            target_format_code="dxf",
+            **extra,
+        )
+
+    def test_se_ofrece_solo_donde_hace_falta(self):
+        para_dxf = {
+            o.nombre for o in motores.MotorOgrVector().opciones(ParDeFormatos("kml", "dxf"))
+        }
+        para_gpkg = {
+            o.nombre for o in motores.MotorOgrVector().opciones(ParDeFormatos("kml", "gpkg"))
+        }
+        assert "crs_destino" in para_dxf
+        assert "crs_destino" not in para_gpkg
+
+    def test_sin_valor_por_omision(self):
+        """Sugerir un EPSG sería adivinar con la firma de otra persona."""
+        opcion = next(
+            o
+            for o in motores.MotorOgrVector().opciones(ParDeFormatos("kml", "dxf"))
+            if o.nombre == "crs_destino"
+        )
+        assert opcion.por_defecto == ""
+
+    def test_lo_declarado_llega_al_comando(self, tmp_path):
+        argv = (
+            motores.MotorOgrVector()
+            .plan(self._trabajo_dxf(tmp_path, options={"crs_destino": "32719"}))
+            .argv
+        )
+        assert argv[argv.index("-t_srs") + 1] == "EPSG:32719"
+
+    def test_admite_el_codigo_con_prefijo_o_sin_el(self, tmp_path):
+        argv = (
+            motores.MotorOgrVector()
+            .plan(self._trabajo_dxf(tmp_path, options={"crs_destino": "EPSG:32719"}))
+            .argv
+        )
+        assert argv[argv.index("-t_srs") + 1] == "EPSG:32719"
+
+    def test_sin_declarar_nada_no_se_inventa(self, tmp_path):
+        """Quien para esto es el runner, con su motivo y su explicación."""
+        assert "-t_srs" not in motores.MotorOgrVector().plan(self._trabajo_dxf(tmp_path)).argv
+
+
 class TestLaVerificacion:
     def test_un_archivo_sin_entidades_no_pasa(self, libreta, tmp_path, monkeypatch):
         """`ogr2ogr` devuelve 0 y escribe un GPKG de 98 KB perfectamente válido y

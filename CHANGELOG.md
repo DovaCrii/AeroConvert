@@ -44,6 +44,31 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
   la muestra recortada para dibujar, y entregar ese recorte como si fuera el archivo sería
   el peor fallo posible del escritor.
 
+### Corregido — lo que se veía en pantalla
+
+- **La interfaz salía en inglés.** La aplicación declara `LANGUAGE_CODE = "es"` y escribe los
+  msgid en inglés, que es la convención de gettext, pero el catálogo español **nunca se
+  creó**: no había carpeta `locale/` ni un solo `.po`. Sin catálogo Django cae al msgid, así
+  que la píldora de un trabajo terminado decía `Done` y la etapa decía `Conversion`. También
+  pasan por gettext los nombres **descriptivos** de formato —`Survey point file
+  (PNEZD/PENZD)` era lo que leía quien soltaba una libreta—; los nombres propios como
+  `GeoTIFF` o `Shapefile` se quedan como están.
+- **Los veredictos decían que no abre lo que sí abre.** QGIS abre un PNEZD como texto
+  delimitado y ArcGIS con «XY Table To Point»; lo que pasa es que los dos preguntan qué
+  columna es la X y aceptan la respuesta equivocada sin decir nada. Eso no es «no abre», es
+  «abre, y ahí está el problema».
+- **Y remediaban con otra familia**: el veredicto de QGIS ante una libreta proponía
+  «convertir a Cloud Optimized GeoTIFF» —un ráster, a partir de un archivo de texto— mientras
+  el botón de al lado ofrecía GeoPackage.
+- **Google Earth ahora dice sus tres condiciones** —KMZ, EPSG:4326 y teselar si la imagen es
+  grande— en vez de solo la primera. Una ortofoto de 210 Mpx en una sola superposición se ve
+  borrosa entera.
+- **Un KMZ llevado a DXF salía en grados**, es decir un dibujo de dos milésimas de unidad que
+  abre en Civil 3D sin enseñar nada, con el recibo en verde. Ahora se para antes de
+  convertir, con motivo propio `crs-en-grados`, y se declara el sistema proyectado de
+  destino. Verificado con el viaje de ida y vuelta: CSV → KML → DXF devuelve las coordenadas
+  originales al milímetro.
+
 ### Corregido
 
 - **El modo taller devolvía 500 en todas las páginas.** Corre con `DEBUG=False` y almacén con

@@ -190,6 +190,7 @@ def _ejecutar(job: ConversionJob) -> Resultado:
         job.registrar(aviso, nivel=JobEvent.AVISO, etapa=INSPECCION)
 
     _exigir_crs(job, inspeccion)
+    _exigir_metros(job, inspeccion)
 
     # --- 3. Conversion ---------------------------------------------------
     par = ParDeFormatos(job.source_format_code, job.target_format_code)
@@ -338,6 +339,54 @@ def _exigir_crs(job: ConversionJob, inspeccion) -> None:
         "tampoco lo exige, pero la salida tampoco lo tendra.",
         nivel=JobEvent.AVISO,
         etapa=INSPECCION,
+    )
+
+
+def _exigir_metros(job: ConversionJob, inspeccion) -> None:
+    """Un destino que necesita metros no se llena de grados en silencio.
+
+    Es el mismo fallo que el del KML, en la dirección contraria y con la misma cara de
+    éxito. Un KMZ viene siempre en EPSG:4326; convertirlo a DXF sin reproyectar escribe
+    coordenadas como `-69,046` y `-24,244`, así que el dibujo entero mide **dos milésimas
+    de unidad**. Se comprobó: abre en Civil 3D, no se ve nada, y el recibo dice «hecho».
+
+    Se para **antes** de convertir y no al verificar porque un DXF no guarda sistema de
+    referencia: mirando la salida no hay forma de saber en qué unidades está. El dato solo
+    existe aquí, en el origen.
+    """
+    from apps.formats import catalogo
+
+    destino = catalogo.FORMATOS.get(job.target_format_code)
+    if destino is None or not destino.exige_metros:
+        return
+
+    origen_crs = inspeccion.crs if inspeccion.crs.conocido else _crs_declarado_del_trabajo(job)
+    if not origen_crs.es_geografico:
+        return
+
+    # El destino puede venir del trabajo o de la opción del motor. Se miran las dos porque
+    # el formulario experto llega por `options` y la API por `target_crs_code`.
+    if job.target_crs_code or (job.options or {}).get("crs_destino"):
+        return
+
+    formato = destino.nombre
+    raise TrabajoFallido(
+        "crs-en-grados",
+        f"El origen está en {origen_crs}, que son grados, y un {formato} guarda números sin "
+        "sistema de referencia: el dibujo saldría midiendo milésimas de unidad. Declara a "
+        "qué sistema proyectado hay que llevarlo — para esta zona suele ser un UTM en metros.",
+    )
+
+
+def _crs_declarado_del_trabajo(job: ConversionJob):
+    from apps.formats import crs as crs_mod
+
+    if not job.source_crs_code:
+        return crs_mod.SIN_CRS
+    return crs_mod.Crs(
+        autoridad=job.source_crs_authority or "EPSG",
+        codigo=job.source_crs_code,
+        origen=job.source_crs_origin or crs_mod.DECLARADO,
     )
 
 

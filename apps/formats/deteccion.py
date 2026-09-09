@@ -319,6 +319,14 @@ def inspeccionar(ruta: str | Path) -> Inspeccion:
     if not crs.conocido:
         crs = _crs_de_prj(ruta)
 
+    if not crs.conocido:
+        # Lo que impone el formato. Un KML **solo** existe en EPSG:4326, así que decirlo no
+        # es adivinar: es leer la norma. Va el último para que no pise nada de lo que traiga
+        # el archivo, aunque en estos formatos no puede haber otra cosa.
+        formato = catalogo.FORMATOS.get(codigo or "")
+        if formato is not None and formato.crs_fijo:
+            crs = crs_mod.epsg(int(formato.crs_fijo), origen=crs_mod.POR_NORMA)
+
     return Inspeccion(
         ruta=ruta,
         nombre=ruta.name,
