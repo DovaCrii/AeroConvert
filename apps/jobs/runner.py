@@ -224,7 +224,7 @@ def _ejecutar(job: ConversionJob) -> Resultado:
         _borrar(parcial)
         raise TrabajoFallido(veredicto.codigo_motivo or "salida-invalida", veredicto.motivo)
 
-    _renombrar(parcial, destino)
+    _renombrar_con_acompanantes(job, parcial, destino)
     _limpiar_restos(parcial)
 
     from . import retencion
@@ -576,7 +576,11 @@ def _lanzar(job: ConversionJob, plan: PlanDeEjecucion, parcial: Path) -> None:
         raise TrabajoFallido("error-del-motor", _ultima_linea_util(texto) or f"Código {codigo}.")
 
     # Codigo 0 no basta. Es la regla numero uno del proyecto.
-    if not parcial.exists():
+    #
+    # Se comprueba aqui salvo que el plan diga que la salida la escribe un paso posterior:
+    # hay conversiones que no las hace una sola herramienta, y en esas el principal deja un
+    # intermedio y no el parcial. La comprobacion no se salta, se mueve abajo.
+    if not plan.salida_en_posteriores and not parcial.exists():
         job.registrar(
             "El motor termino con código 0 pero no escribio ningún archivo.",
             nivel=JobEvent.ERROR,
@@ -586,6 +590,16 @@ def _lanzar(job: ConversionJob, plan: PlanDeEjecucion, parcial: Path) -> None:
         raise TrabajoFallido("sin-salida", "El motor termino sin escribir ningún archivo.")
 
     _pasos_posteriores(job, plan, parcial, entorno)
+
+    if plan.salida_en_posteriores and not parcial.exists():
+        job.registrar(
+            "Los pasos posteriores terminaron sin escribir ningún archivo.",
+            nivel=JobEvent.ERROR,
+            etapa=CONVERSION,
+            stderr_cola=texto,
+        )
+        raise TrabajoFallido("sin-salida", "El motor termino sin escribir ningún archivo.")
+
     job.marcar_progreso(CONVERSION, 1.0)
 
 
@@ -722,6 +736,43 @@ def _borrar(ruta: Path) -> None:
         # Que no se pueda borrar el parcial es feo, no grave: el trabajo ya fallo y el
         # motivo real es el que se esta reportando.
         pass
+
+
+def _renombrar_con_acompanantes(job: ConversionJob, parcial: Path, destino: Path) -> None:
+    """Renombra la salida **y los archivos que la acompañan**.
+
+    Un Shapefile no es un archivo: son cinco. `salida.shp` sin su `.shx` y su `.dbf` al lado
+    **no abre en ninguna parte** -- `ogrinfo` responde «Unable to open salida.shx». Y no
+    fallaba de forma visible: la verificacion corre sobre el parcial, cuando los hermanos
+    todavia se llaman `salida.parcial.shx`, asi que pasaba; el renombrado movia solo el
+    `.shp` y los dejaba huerfanos. El recibo decia «verificado» sobre un entregable
+    inservible, que es el peor fallo que puede tener esto.
+
+    Cuales acompañan lo dice el catalogo, no una lista escrita aqui: es el mismo dato que ya
+    usa la ficha para avisar de que falta un `.prj`.
+    """
+    from apps.formats import catalogo
+
+    _renombrar(parcial, destino)
+
+    formato = catalogo.FORMATOS.get(job.target_format_code)
+    if formato is None or not formato.acompanantes:
+        return
+
+    for extension in sorted(formato.acompanantes):
+        hermano = parcial.with_suffix(extension)
+        if not hermano.exists():
+            continue
+        try:
+            _renombrar(hermano, destino.with_suffix(extension))
+        except TrabajoFallido:
+            # Un acompañante que no se puede mover deja el entregable incompleto, y eso hay
+            # que decirlo: el archivo principal ya esta en su sitio y parece correcto.
+            job.registrar(
+                f"No se pudo colocar {destino.with_suffix(extension).name} junto a la "
+                "salida. El archivo puede no abrir sin el.",
+                nivel=JobEvent.ERROR,
+            )
 
 
 def _renombrar(parcial: Path, destino: Path) -> None:

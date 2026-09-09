@@ -25,6 +25,7 @@ from pathlib import Path
 
 from . import catalogo, tiff
 from . import crs as crs_mod
+from . import landxml as landxml_mod
 from . import las as las_mod
 from . import puntos as puntos_mod
 
@@ -76,6 +77,8 @@ class Inspeccion:
     las: las_mod.CabeceraLas | None = None
     #: Presente solo cuando el archivo es una libreta de puntos (PNEZD y compañía).
     puntos: puntos_mod.CabeceraPuntos | None = None
+    #: Presente solo cuando el archivo es un LandXML.
+    landxml: landxml_mod.CabeceraLandXml | None = None
     avisos: tuple[str, ...] = ()
     detalles: dict = field(default_factory=dict)
 
@@ -316,6 +319,21 @@ def inspeccionar(ruta: str | Path) -> Inspeccion:
         else:
             avisos.extend(_avisos_de_puntos(cabecera_puntos))
 
+    cabecera_landxml = None
+    if codigo == "landxml":
+        try:
+            cabecera_landxml = landxml_mod.leer_cabecera(ruta)
+        except landxml_mod.NoEsLandXml as fallo:
+            # Un `.xml` que no es un LandXML es un `.xml` cualquiera. La extensión no
+            # promete nada: la comparten media docena de formatos y todos los que no lo son.
+            codigo = ""
+            confianza = CONFIANZA_DESCONOCIDA
+            avisos.append(f"Tiene extensión .xml pero no es un LandXML: {fallo}")
+        else:
+            if cabecera_landxml.epsg:
+                crs = crs_mod.epsg(int(cabecera_landxml.epsg), origen=crs_mod.INCRUSTADO)
+            avisos.extend(_avisos_de_landxml(cabecera_landxml))
+
     if not crs.conocido:
         crs = _crs_de_prj(ruta)
 
@@ -338,9 +356,37 @@ def inspeccionar(ruta: str | Path) -> Inspeccion:
         tiff=cabecera_tiff,
         las=cabecera_las,
         puntos=cabecera_puntos,
+        landxml=cabecera_landxml,
         avisos=tuple(avisos),
         detalles=detalles,
     )
+
+
+def _avisos_de_landxml(cabecera: landxml_mod.CabeceraLandXml) -> list[str]:
+    """Lo que hay que decir de un LandXML.
+
+    El aviso que importa es el del archivo que **solo** trae superficies o alineamientos: se
+    reconoce, se sabe qué tiene dentro, y aun así no hay conversión que ofrecer. Callarlo
+    dejaría a alguien pulsando un botón que va a fallar; decirlo aquí lo evita.
+    """
+    avisos = [f"Contiene {cabecera.resumen}."]
+
+    if cabecera.solo_trae_lo_que_no_se_convierte:
+        avisos.append(
+            "Hoy solo se convierten los puntos de un LandXML. Las superficies y los "
+            "alineamientos se reconocen y se cuentan, pero no se traducen todavía: hacerlo "
+            "sin un archivo real con el que contrastarlo produciría una superficie que "
+            "parece correcta y no lo es."
+        )
+
+    if cabecera.tiene_puntos and not cabecera.epsg:
+        avisos.append(
+            "No declara <CoordinateSystem>, así que el archivo no dice dónde están sus "
+            "puntos. Hay que declarar el EPSG."
+        )
+
+    avisos.extend(cabecera.avisos)
+    return avisos
 
 
 def _avisos_de_puntos(cabecera: puntos_mod.CabeceraPuntos) -> list[str]:

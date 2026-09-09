@@ -16,6 +16,16 @@ dependencies = [
     # instalado: la validacion del CRS tiene que funcionar en una maquina limpia,
     # que es justo donde alguien teclea un EPSG equivocado.
     "pyproj>=3.7,<4",
+    # defusedxml analiza el XML que llega **de fuera**: un LandXML lo escribe otro
+    # programa y lo manda otra oficina. El `xml.etree` de la biblioteca estandar
+    # sigue siendo vulnerable a la expansion de entidades -- unas pocas lineas de
+    # DTD y el proceso se come toda la memoria de la maquina -- y aqui el archivo
+    # se analiza **antes** de que nadie decida nada sobre el.
+    #
+    # Estaba instalado ya, pero por arrastre de una herramienta de auditoria. Una
+    # dependencia de ejecucion que solo esta por casualidad es una dependencia que
+    # desaparece el dia que se cambia esa herramienta.
+    "defusedxml>=0.7,<1",
 ]
 
 # GDAL, PDAL y el conversor de ECW **no van aca a proposito**. Son herramientas

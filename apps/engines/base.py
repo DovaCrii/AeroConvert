@@ -159,6 +159,19 @@ class PlanDeEjecucion:
     #: pedirlas a `gdal_translate`. Se ejecutan en orden y un fallo en cualquiera detiene el
     #: trabajo -- una salida sin sus piramides es una salida distinta de la que se pidio.
     posteriores: tuple[tuple[str, ...], ...] = ()
+    #: `True` cuando el archivo de salida **lo escribe un paso posterior**, no el principal.
+    #:
+    #: Por omision el runner comprueba que el parcial exista en cuanto termina el comando
+    #: principal, y esa comprobacion es la regla numero uno del proyecto: el codigo de
+    #: salida no es la prueba de que funciono. Pero hay conversiones que **no las hace una
+    #: sola herramienta**: un LandXML lo lee un modulo nuestro -- OGR no sabe -- y lo
+    #: escribe `ogr2ogr` a partir de un intermedio. Ahi el principal no produce el parcial
+    #: y no tiene por que.
+    #:
+    #: Se declara en vez de mover la comprobacion para todos: en `gdal_translate` seguido
+    #: de `gdaladdo`, el principal **si** escribe la salida, y comprobarlo ahi da un motivo
+    #: mucho mas claro que dejar que `gdaladdo` falle sobre un archivo que no existe.
+    salida_en_posteriores: bool = False
     #: Variables del entorno del **proceso hijo**. Nunca se tocan las del servidor: es
     #: donde viaja la clave de ECW, y no puede acabar en un log del padre.
     env: dict[str, str] = field(default_factory=dict)

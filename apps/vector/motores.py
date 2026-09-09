@@ -49,6 +49,7 @@ from apps.engines.base import (
 from apps.engines.entorno import entorno_de_gdal
 from apps.formats import catalogo
 from apps.formats import puntos as puntos_mod
+from apps.vector import desde_landxml
 
 #: El controlador de OGR para cada codigo del catalogo.
 #:
@@ -111,6 +112,16 @@ def _es_campo_generado(nombre: str) -> bool:
     camino no construye consulta ninguna.
     """
     return bool(PATRON_CAMPO_GENERADO.match(nombre or ""))
+
+
+def _nombre_de_capa(destino: Path) -> str:
+    """El nombre de la capa dentro del archivo de salida.
+
+    Se toma del nombre del archivo y se limpia: un GPKG con una capa llamada
+    `puntos control cruce minero` obliga a citarla entre comillas en cada consulta.
+    """
+    limpio = "".join(c if c.isalnum() else "_" for c in destino.stem.lower())
+    return limpio.strip("_") or "puntos"
 
 
 def _sonda_ogr() -> Disponibilidad:
@@ -282,13 +293,7 @@ class MotorPuntosTopograficos(Motor):
         return f'SELECT {", ".join(seleccion)} FROM "{capa}"'  # nosec B608
 
     def _nombre_de_capa(self, destino: Path) -> str:
-        """El nombre de la capa dentro del archivo de salida.
-
-        Se toma del nombre del archivo y se limpia: un GPKG con una capa llamada
-        `puntos control cruce minero` obliga a citarla entre comillas en cada consulta.
-        """
-        limpio = "".join(c if c.isalnum() else "_" for c in destino.stem.lower())
-        return limpio.strip("_") or "puntos"
+        return _nombre_de_capa(destino)
 
     def verificar(self, trabajo, salida: Path) -> Verificacion:
         return _verificar_con_ogrinfo(trabajo, salida, super().verificar(trabajo, salida))
@@ -441,6 +446,115 @@ def _contar_cgpoints(ruta: Path) -> int:
     except ElementTree.ParseError as fallo:
         raise ValueError(str(fallo)) from fallo
     return cuantos
+
+
+class MotorDesdeLandXml(Motor):
+    """LandXML → lo que sea, en dos pasos, y **solo los puntos**.
+
+    OGR no lee LandXML, así que la primera mitad la hace un módulo nuestro que saca los
+    `CgPoint` a un CSV intermedio, y la segunda es el `ogr2ogr` de siempre. El intermedio se
+    llama colgando del parcial —`salida.parcial.shp.csv`— para que lo borre la limpieza que
+    ya existe, que barre por ese prefijo.
+
+    **Las superficies y los alineamientos no se convierten**, y eso se dice en vez de
+    esconderse. No es una limitación de diseño: es que no hay ningún LandXML real con el que
+    contrastar un lector de triangulados, y una malla mal leída produce una superficie
+    plausible y equivocada. Un archivo que solo traiga superficies falla aquí con un motivo
+    que lo explica, en vez de entregar una capa vacía.
+    """
+
+    id = "aeroconvert-desde-landxml"
+    nombre = "AeroConvert + OGR"
+    familia = "vector"
+    prioridad = 10
+
+    def pares(self) -> frozenset[ParDeFormatos]:
+        return frozenset(ParDeFormatos("landxml", destino) for destino in DESTINOS_DE_PUNTOS)
+
+    def disponibilidad(self) -> Disponibilidad:
+        """El primer paso es nuestro, pero el segundo sigue siendo OGR."""
+        return _sonda_ogr()
+
+    def opciones(self, par: ParDeFormatos) -> tuple[OpcionDeMotor, ...]:
+        """Ninguna sobre el orden de columnas: **aquí esa pregunta no existe.**
+
+        El CSV intermedio lo escribimos nosotros con nuestro propio encabezado, así que es
+        el único camino del proyecto donde no hay nada que deducir ni que confirmar.
+        """
+        return MotorOgrVector().opciones(par)
+
+    def plan(self, trabajo) -> PlanDeEjecucion:
+        origen = Path(trabajo.source_path)
+        destino = Path(trabajo.output_path)
+        parcial = ruta_parcial(destino)
+        # Colgando del parcial: `_limpiar_restos()` barre `<parcial>.*` al terminar.
+        intermedio = parcial.with_name(parcial.name + ".csv")
+
+        opciones = dict(trabajo.options or {})
+        controlador = CONTROLADOR.get(trabajo.target_format_code, "GPKG")
+        epsg = _epsg_del_trabajo(trabajo)
+
+        argv = (
+            sys.executable,
+            "-m",
+            "apps.vector.desde_landxml",
+            str(origen),
+            str(intermedio),
+        )
+
+        segundo: list[str] = [
+            _bin("ogr2ogr"),
+            "-f",
+            controlador,
+            str(parcial),
+            str(intermedio),
+            "-oo",
+            "HEADERS=YES",
+            "-oo",
+            "SEPARATOR=COMMA",
+            "-oo",
+            "AUTODETECT_TYPE=YES",
+            "-oo",
+            f"X_POSSIBLE_NAMES={desde_landxml.CAMPO_ESTE}",
+            "-oo",
+            f"Y_POSSIBLE_NAMES={desde_landxml.CAMPO_NORTE}",
+            "-oo",
+            f"Z_POSSIBLE_NAMES={desde_landxml.CAMPO_COTA}",
+            "-oo",
+            "KEEP_GEOM_COLUMNS=NO",
+        ]
+
+        declarado = str(opciones.get("crs_destino", "") or "").strip()
+        objetivo = ""
+        if trabajo.target_crs_code:
+            objetivo = f"{trabajo.target_crs_authority or 'EPSG'}:{trabajo.target_crs_code}"
+        elif declarado:
+            objetivo = declarado if ":" in declarado else f"EPSG:{declarado}"
+        elif trabajo.target_format_code in DESTINOS_EN_GRADOS:
+            objetivo = "EPSG:4326"
+
+        # Las mismas dos ramas que en la libreta: etiquetar o mover, nunca las dos.
+        if epsg and objetivo:
+            segundo += ["-s_srs", epsg, "-t_srs", objetivo]
+        elif epsg:
+            segundo += ["-a_srs", epsg]
+
+        segundo += ["-nln", _nombre_de_capa(destino)]
+
+        return PlanDeEjecucion(
+            argv=argv,
+            ruta_de_salida=destino,
+            posteriores=(tuple(segundo),),
+            # El principal escribe el CSV intermedio; el parcial lo escribe `ogr2ogr`.
+            salida_en_posteriores=True,
+            env=entorno_de_gdal(),
+            cwd=Path(settings.BASE_DIR),
+            timeout_s=1800,
+            emite_progreso=False,
+        )
+
+    def verificar(self, trabajo, salida: Path) -> Verificacion:
+        return _verificar_con_ogrinfo(trabajo, salida, super().verificar(trabajo, salida))
 
 
 class MotorOgrVector(Motor):
@@ -628,4 +742,5 @@ def _epsg_de(capas: list[dict]) -> str:
 def registrar_todos() -> None:
     registry.registrar(MotorPuntosTopograficos())
     registry.registrar(MotorLandXml())
+    registry.registrar(MotorDesdeLandXml())
     registry.registrar(MotorOgrVector())

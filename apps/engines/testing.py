@@ -26,13 +26,18 @@ from .base import Disponibilidad, Motor, ParDeFormatos, PlanDeEjecucion, ruta_pa
 #: con que codigo salir. Todo por argumentos, para que no haya estado escondido.
 GUION = r"""
 import sys, time
-salida, contenido, tarda, pasos, codigo = sys.argv[1:6]
+from pathlib import Path
+salida, contenido, tarda, pasos, codigo, acompanantes = sys.argv[1:7]
 for i in range(int(pasos)):
     print(f"{int(100 * (i + 1) / int(pasos))}...", flush=True)
     time.sleep(float(tarda) / max(1, int(pasos)))
 if contenido:
     with open(salida, "wb") as f:
         f.write(contenido.encode("utf-8"))
+    # Los hermanos de un formato multiarchivo, con el nombre del parcial: es exactamente
+    # como los deja OGR al escribir un Shapefile.
+    for extension in filter(None, acompanantes.split(",")):
+        Path(salida).with_suffix(extension).write_bytes(contenido.encode("utf-8"))
 sys.exit(int(codigo))
 """
 
@@ -64,6 +69,7 @@ class MotorDeMentira(Motor):
         pasos: int = 4,
         timeout_s: int = 3600,
         ruta_de_salida: Path | None = None,
+        escribe_acompanantes: tuple[str, ...] = (),
     ) -> None:
         self.id = identificador
         self.nombre = identificador
@@ -77,6 +83,9 @@ class MotorDeMentira(Motor):
         self.pasos = pasos
         self.timeout_s = timeout_s
         self.ruta_de_salida = ruta_de_salida
+        #: Extensiones de los hermanos que el hijo deja junto al parcial. Un Shapefile son
+        #: cinco archivos, y renombrar solo uno entrega algo que no abre.
+        self.escribe_acompanantes = tuple(escribe_acompanantes)
         #: El ultimo plan construido. Las pruebas lo inspeccionan para comprobar el argv.
         self.ultimo_plan: PlanDeEjecucion | None = None
 
@@ -110,6 +119,7 @@ class MotorDeMentira(Motor):
                 str(self.tarda_s),
                 str(self.pasos),
                 str(self.codigo_de_salida),
+                ",".join(self.escribe_acompanantes),
             ),
             ruta_de_salida=destino,
             timeout_s=self.timeout_s,
