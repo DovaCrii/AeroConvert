@@ -1,0 +1,127 @@
+# AeroConvert — catálogo de traducción al español.
+#
+# La aplicación se usa en español y `LANGUAGE_CODE` es `es`, pero los msgid están en inglés
+# —que es la convención de gettext— así que **sin este archivo Django cae al msgid y la
+# interfaz sale en inglés**. Es lo que pasaba: la píldora de un trabajo terminado decía
+# «Done».
+#
+# Lo que Django lee de verdad es el `.mo`, y **se versiona junto a este archivo**. Lo normal
+# es compilarlo al desplegar, y aquí sería un error: `compilemessages` necesita `msgfmt`
+# (GNU gettext) en la máquina, y la promesa de esta aplicación es «un `.ps1` y listo».
+#
+# Después de tocar este archivo hay que recompilar, o se sigue aplicando lo viejo sin avisar:
+#
+#     uv run python manage.py compilemessages --ignore=.venv --ignore=staticfiles
+#
+# `apps/core/test_traducciones.py` compara lo compilado con lo escrito y falla si se olvida.
+#
+# Solo se traducen los nombres **descriptivos** de formato. `GeoTIFF`, `Shapefile` o `MrSID`
+# son nombres propios: traducirlos haría que alguien buscara algo que no existe.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: AeroConvert\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-09 17:20-0300\n"
+"PO-Revision-Date: 2026-09-09 17:30-0300\n"
+"Last-Translator: AeroConvert\n"
+"Language-Team: Español\n"
+"Language: es\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+msgid "GeoTIFF (classic)"
+msgstr "GeoTIFF clásico"
+
+msgid "PNG with world file"
+msgstr "PNG con world file"
+
+msgid "JPEG with world file"
+msgstr "JPEG con world file"
+
+msgid "GeoPackage raster"
+msgstr "GeoPackage ráster"
+
+msgid "GDAL Virtual Raster"
+msgstr "Ráster virtual de GDAL (VRT)"
+
+msgid "LAS point cloud"
+msgstr "Nube de puntos LAS"
+
+msgid "LAZ compressed point cloud"
+msgstr "Nube de puntos LAZ (comprimida)"
+
+msgid "E57 point cloud"
+msgstr "Nube de puntos E57"
+
+msgid "PLY point cloud"
+msgstr "Nube de puntos PLY"
+
+msgid "Autodesk ReCap scan"
+msgstr "Escaneo de Autodesk ReCap"
+
+msgid "Autodesk ReCap project"
+msgstr "Proyecto de Autodesk ReCap"
+
+msgid "XYZ text point cloud"
+msgstr "Nube de puntos XYZ (texto)"
+
+msgid "Survey point file (PNEZD/PENZD)"
+msgstr "Libreta de puntos (PNEZD/PENZD)"
+
+# --- Estados de un trabajo -------------------------------------------------
+# Salen en la píldora de color de cada fila del historial y en la ficha del trabajo.
+msgid "Draft"
+msgstr "Borrador"
+
+msgid "Queued"
+msgstr "En cola"
+
+# «Convirtiendo» y no «Ejecutando»: dice lo que está pasando, no lo que hace el programa.
+msgid "Running"
+msgstr "Convirtiendo"
+
+msgid "Verifying"
+msgstr "Verificando"
+
+msgid "Done"
+msgstr "Hecho"
+
+msgid "Error"
+msgstr "Error"
+
+msgid "Cancelled"
+msgstr "Cancelado"
+
+msgid "Expired"
+msgstr "Caducado"
+
+# --- Etapas de la barra de progreso ----------------------------------------
+msgid "Fingerprint"
+msgstr "Huella"
+
+msgid "Inspection"
+msgstr "Inspección"
+
+msgid "Conversion"
+msgstr "Conversión"
+
+msgid "Verification"
+msgstr "Verificación"
+
+# --- Niveles de la bitácora ------------------------------------------------
+msgid "Info"
+msgstr "Información"
+
+msgid "Warning"
+msgstr "Aviso"
+
+# --- Nombres de idioma -----------------------------------------------------
+msgid "English"
+msgstr "Inglés"
+
+msgid "Spanish"
+msgstr "Español"
+

@@ -19,6 +19,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+from django.utils.translation import gettext_lazy as _
+
 RASTER = "raster"
 NUBE = "nube"
 VECTOR = "vector"
@@ -36,7 +38,17 @@ FAMILIAS = {
 class Formato:
     codigo: str
     familia: str
-    #: Se escribe en ingles: es el msgid de gettext. El espanol vive en el catalogo.
+    #: **Solo se traduce la parte descriptiva.**
+    #:
+    #: `GeoTIFF`, `Shapefile`, `LandXML` o `MrSID` son nombres propios y se dejan como
+    #: estan: traducirlos haria que alguien buscara en Google algo que no existe. Lo que se
+    #: traduce es lo que describe -- `GeoTIFF (classic)` a `GeoTIFF clasico`, `Survey point
+    #: file` a `Libreta de puntos` -- y va en ingles porque es el msgid de gettext; el
+    #: espanol vive en `locale/es/LC_MESSAGES/django.po`.
+    #:
+    #: El tipo es `str` y no `StrPromise` porque las dos formas conviven en el catalogo y
+    #: una cadena perezosa se comporta como `str` en todo lo que hace falta aqui: se formatea,
+    #: se compara y DRF la serializa.
     nombre: str
     extensiones: frozenset[str]
     #: Firmas de los primeros bytes. Vacio = el formato no tiene firma (texto plano).
@@ -61,7 +73,7 @@ FORMATOS: dict[str, Formato] = {
     "geotiff": _f(
         codigo="geotiff",
         familia=RASTER,
-        nombre="GeoTIFF (classic)",
+        nombre=_("GeoTIFF (classic)"),
         extensiones=frozenset({".tif", ".tiff"}),
         firmas=(b"II*\x00", b"MM\x00*"),
         acompanantes=frozenset({".tfw", ".prj", ".aux.xml", ".ovr", ".msk"}),
@@ -152,7 +164,7 @@ FORMATOS: dict[str, Formato] = {
     "png": _f(
         codigo="png",
         familia=RASTER,
-        nombre="PNG with world file",
+        nombre=_("PNG with world file"),
         extensiones=frozenset({".png"}),
         firmas=(b"\x89PNG\r\n\x1a\n",),
         lleva_crs_incrustado=False,
@@ -161,7 +173,7 @@ FORMATOS: dict[str, Formato] = {
     "jpeg": _f(
         codigo="jpeg",
         familia=RASTER,
-        nombre="JPEG with world file",
+        nombre=_("JPEG with world file"),
         extensiones=frozenset({".jpg", ".jpeg"}),
         firmas=(b"\xff\xd8\xff",),
         lleva_crs_incrustado=False,
@@ -181,7 +193,7 @@ FORMATOS: dict[str, Formato] = {
     "gpkg_raster": _f(
         codigo="gpkg_raster",
         familia=RASTER,
-        nombre="GeoPackage raster",
+        nombre=_("GeoPackage raster"),
         extensiones=frozenset({".gpkg"}),
         firmas=(b"SQLite format 3\x00",),
     ),
@@ -196,7 +208,7 @@ FORMATOS: dict[str, Formato] = {
     "vrt": _f(
         codigo="vrt",
         familia=RASTER,
-        nombre="GDAL Virtual Raster",
+        nombre=_("GDAL Virtual Raster"),
         extensiones=frozenset({".vrt"}),
         nota="Mosaico virtual: apunta a otros archivos sin copiar un solo pixel.",
     ),
@@ -204,14 +216,14 @@ FORMATOS: dict[str, Formato] = {
     "las": _f(
         codigo="las",
         familia=NUBE,
-        nombre="LAS point cloud",
+        nombre=_("LAS point cloud"),
         extensiones=frozenset({".las"}),
         firmas=(b"LASF",),
     ),
     "laz": _f(
         codigo="laz",
         familia=NUBE,
-        nombre="LAZ compressed point cloud",
+        nombre=_("LAZ compressed point cloud"),
         extensiones=frozenset({".laz"}),
         firmas=(b"LASF",),
     ),
@@ -226,7 +238,7 @@ FORMATOS: dict[str, Formato] = {
     "e57": _f(
         codigo="e57",
         familia=NUBE,
-        nombre="E57 point cloud",
+        nombre=_("E57 point cloud"),
         extensiones=frozenset({".e57"}),
         firmas=(b"ASTM-E57",),
         nota=(
@@ -237,7 +249,7 @@ FORMATOS: dict[str, Formato] = {
     "ply": _f(
         codigo="ply",
         familia=NUBE,
-        nombre="PLY point cloud",
+        nombre=_("PLY point cloud"),
         extensiones=frozenset({".ply"}),
         firmas=(b"ply\n", b"ply\r\n"),
         lleva_crs_incrustado=False,
@@ -254,7 +266,7 @@ FORMATOS: dict[str, Formato] = {
     "rcs": _f(
         codigo="rcs",
         familia=NUBE,
-        nombre="Autodesk ReCap scan",
+        nombre=_("Autodesk ReCap scan"),
         extensiones=frozenset({".rcs"}),
         admite_lectura=False,
         admite_escritura=False,
@@ -267,7 +279,7 @@ FORMATOS: dict[str, Formato] = {
     "rcp": _f(
         codigo="rcp",
         familia=NUBE,
-        nombre="Autodesk ReCap project",
+        nombre=_("Autodesk ReCap project"),
         extensiones=frozenset({".rcp"}),
         admite_lectura=False,
         admite_escritura=False,
@@ -280,7 +292,7 @@ FORMATOS: dict[str, Formato] = {
     "xyz_nube": _f(
         codigo="xyz_nube",
         familia=NUBE,
-        nombre="XYZ text point cloud",
+        nombre=_("XYZ text point cloud"),
         extensiones=frozenset({".xyz", ".pts", ".txt"}),
         lleva_crs_incrustado=False,
     ),
@@ -368,7 +380,7 @@ FORMATOS: dict[str, Formato] = {
     "puntos": _f(
         codigo="puntos",
         familia=VECTOR,
-        nombre="Survey point file (PNEZD/PENZD)",
+        nombre=_("Survey point file (PNEZD/PENZD)"),
         extensiones=frozenset({".csv", ".txt", ".pnt"}),
         lleva_crs_incrustado=False,
         acompanantes=frozenset({".prj"}),

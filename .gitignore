@@ -18,6 +18,16 @@ db.sqlite3-*
 .coverage
 htmlcov/
 *.mo
+# ...menos el catalogo de la aplicacion, que **si** se versiona.
+#
+# Lo normal es compilarlo al desplegar, y aqui seria un error: `compilemessages` necesita
+# `msgfmt` (GNU gettext) en la maquina, y la promesa de esta aplicacion es «un .ps1 y
+# listo». Si el arranque lo compilara, una estacion sin gettext no arrancaria; y si no lo
+# compilara, la interfaz saldria en ingles sin que nadie supiera por que.
+#
+# Versionarlo quita las dos. El riesgo que queda -- que el .mo se quede atras respecto del
+# .po -- lo vigila `apps/core/test_traducciones.py`.
+!locale/**/*.mo
 
 # Datos reales: NUNCA entran al repositorio.
 # Ortofotos, nubes de puntos, DEM, entregables de cliente y claves de SDK viven
