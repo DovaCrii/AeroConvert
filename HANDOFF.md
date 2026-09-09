@@ -70,6 +70,23 @@ Y en los tres el veredicto se invierte, que es el objetivo del producto.
 - **No corras un reemplazo automático de acentos sobre el código.** Se intentó y acentuó
   claves de opción, códigos de motivo estables y el flag `--version` de GDAL.
 - **Las pruebas con oráculo no corren en el gate**: `uv run pytest -m oraculo`.
+- **`taller` no arranca sin `collectstatic`, y el síntoma no se parece a la causa.** Corre con
+  `DEBUG=False` y almacén con manifiesto: sin `staticfiles.json`, la primera etiqueta
+  `{% static %}` revienta y **todas** las páginas devuelven 500. Lo que se llegaba a ver era
+  la aplicación cayendo de vuelta a `dev` —`manage.py` la tiene por omisión y `.env` trae
+  `DEBUG=True`—, y ahí los estáticos van **sin huella y sin `Cache-Control`**, solo con
+  `Last-Modified`: el navegador reutiliza su copia y pinta el HTML nuevo con la hoja vieja.
+  Se lee como un error de diseño y no lo es. `run.ps1` ya recolecta, y `test_arranque.py` lo
+  vigila.
+- **El manifiesto persigue los `sourceMappingURL` y aborta si falta el `.map`.** Vendorizamos
+  los minificados sin sus mapas, así que `collectstatic` moría en
+  `bootstrap.bundle.min.js.map`. **No se arregla borrando el comentario del minificado**: el
+  `integrity` se calcula sobre los bytes exactos y el navegador descartaría la hoja entera —
+  el arreglo causaría el fallo que intenta arreglar. Se arregla en el almacén,
+  `apps/core/estaticos.py`.
+- **Un `integrity` desparejado no da error visible**: el navegador descarta el recurso y la
+  página sale sin estilos. Si re-vendorizas algo, actualiza el hash en `base.html`;
+  `test_estaticos.py` compara los dos.
 
 ## Cómo levantarlo
 

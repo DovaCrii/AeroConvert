@@ -17,6 +17,23 @@ if (-not (Test-Path ".env")) {
 
 $env:DJANGO_SETTINGS_MODULE = "config.settings.taller"
 
+# Recolectar los estaticos NO es opcional en este modo, y omitirlo no da un aviso: da un
+# 500 en todas las paginas.
+#
+# `taller` corre con DEBUG=False, asi que Django no sirve `static/` por su cuenta y el
+# almacen de `base.py` es `CompressedManifestStaticFilesStorage`. Sin `staticfiles.json`,
+# la primera etiqueta `{% static %}` de la plantilla revienta. Ya paso: el servidor
+# respondia 500 a todo y lo unico que se llegaba a ver era la aplicacion cayendo de vuelta
+# a los ajustes de desarrollo.
+#
+# Y de paso arregla el fallo que se veia como «la pagina se ve mal»: el manifiesto le pone
+# huella de contenido al nombre (`app.<hash>.css`), asi que un archivo editado estrena URL
+# y el navegador no puede servir la hoja de estilos vieja de su cache. En desarrollo, sin
+# manifiesto, la URL no cambia nunca y el navegador reutiliza la copia guardada.
+Write-Host "Recolectando estaticos ..." -ForegroundColor DarkGray
+uv run python manage.py collectstatic --noinput --clear | Out-Null
+if ($LASTEXITCODE -ne 0) { throw "collectstatic fallo con codigo $LASTEXITCODE." }
+
 # `--noreload` no es un detalle: con el recargador, `runserver` son DOS procesos y
 # arrancarian dos despachadores compitiendo por el mismo trabajo.
 $servidor = Start-Process -PassThru -NoNewWindow -FilePath "uv" `

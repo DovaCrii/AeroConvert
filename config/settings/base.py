@@ -179,7 +179,9 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
-    "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
+    # El de whitenoise, pero sin perseguir los `.map` que no vendorizamos.
+    # El motivo entero esta en `apps/core/estaticos.py`.
+    "staticfiles": {"BACKEND": "apps.core.estaticos.AlmacenDeEstaticos"},
 }
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
