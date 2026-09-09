@@ -132,7 +132,14 @@ def _formatos_gdal_crudo(ejecutable: str) -> str:
 #: `gdalinfo --formats` imprime una linea por controlador, asi:
 #:     GTiff -raster- (rw+uvs): GeoTIFF (*.tif, *.tiff)
 #: Las banderas entre parentesis son lo que importa: `r` lee, `w` escribe, `+` crea.
-PATRON_FORMATO = re.compile(r"^\s{2}(\S+)\s+-[\w,\s]+-\s+\(([^)]*)\):")
+#:
+#: **El nombre puede llevar espacios**, y darlo por hecho costo cuatro controladores. Con
+#: `(\S+)` la linea `ESRI Shapefile -vector- (rw+uv): ...` no coincide con nada, asi que
+#: `ESRI Shapefile`, `MapInfo File` e `Interlis 1` y `2` desaparecian de la lista -- y una
+#: celda de la matriz que dice «no se puede escribir SHP» porque una expresion regular no
+#: supo leer un espacio es exactamente la clase de fallo que esta aplicacion existe para no
+#: cometer. En raster no se notaba: ahi los nombres son de una sola palabra.
+PATRON_FORMATO = re.compile(r"^\s{2}(.+?)\s+-[\w,\s]+-\s+\(([^)]*)\):")
 
 
 def sondar_gdal() -> EstadoGdal:
@@ -176,6 +183,73 @@ def sondar_gdal() -> EstadoGdal:
         escribibles=frozenset(escribibles),
     )
     cache.set("motores:gdal", estado, SEGUNDOS_DE_CACHE)
+    return estado
+
+
+@lru_cache(maxsize=1)
+def _formatos_ogr_crudo(ejecutable: str) -> str:
+    # Misma justificacion que en `_preguntar_version`.
+    resultado = subprocess.run(  # nosec B603
+        [ejecutable, "--formats"],
+        capture_output=True,
+        text=True,
+        timeout=TIEMPO_MAXIMO_SONDA_S,
+        check=False,
+        shell=False,
+    )
+    return resultado.stdout or ""
+
+
+def sondar_ogr() -> EstadoGdal:
+    """OGR: la mitad vectorial de GDAL, y **hay que sondarla aparte**.
+
+    `gdalinfo --formats` lista los controladores **raster** y `ogrinfo --formats` los
+    vectoriales. Son listas distintas: preguntarle a `gdalinfo` por GPKG o por DXF no los
+    encuentra, y dar por hecho que «si GDAL esta, OGR escribe DXF» apagaria media matriz
+    vectorial por el motivo equivocado.
+
+    Reutiliza `EstadoGdal` porque la respuesta tiene la misma forma: version, controladores
+    y -- lo que de verdad importa -- cuales saben **crear** archivos.
+    """
+    guardado = cache.get("motores:ogr")
+    if guardado is not None:
+        return guardado
+
+    ejecutable = _ejecutable("ogrinfo", getattr(settings, "GDAL_BIN", ""))
+    if ejecutable is None:
+        estado = EstadoGdal(
+            disponible=False,
+            motivo=(
+                "No se encontro ogrinfo. Viene con GDAL: instalalo (OSGeo4W, QGIS o "
+                "conda-forge) y apunta AEROCONVERT_GDAL_BIN a su carpeta bin."
+            ),
+        )
+        cache.set("motores:ogr", estado, SEGUNDOS_DE_CACHE)
+        return estado
+
+    version = _preguntar_version(ejecutable, "--version") or ""
+    controladores: set[str] = set()
+    escribibles: set[str] = set()
+    try:
+        for linea in _formatos_ogr_crudo(ejecutable).splitlines():
+            coincidencia = PATRON_FORMATO.match(linea)
+            if not coincidencia:
+                continue
+            nombre, banderas = coincidencia.group(1).upper(), coincidencia.group(2)
+            controladores.add(nombre)
+            if "w" in banderas:
+                escribibles.add(nombre)
+    except (OSError, subprocess.SubprocessError):
+        pass
+
+    estado = EstadoGdal(
+        disponible=True,
+        version=version,
+        ejecutable=ejecutable,
+        controladores=frozenset(controladores),
+        escribibles=frozenset(escribibles),
+    )
+    cache.set("motores:ogr", estado, SEGUNDOS_DE_CACHE)
     return estado
 
 
@@ -366,5 +440,7 @@ def sondar_oda() -> Disponibilidad:
 def olvidar() -> None:
     """Vacia la cache de sondas. La usan las pruebas y el boton de volver a sondear."""
     cache.delete("motores:gdal")
+    cache.delete("motores:ogr")
     _formatos_gdal_crudo.cache_clear()
+    _formatos_ogr_crudo.cache_clear()
     _controladores_pdal.cache_clear()

@@ -996,6 +996,49 @@ code {
   border-radius: var(--av-radius-sm);
 }
 
+/* --- El dibujo de una libreta de puntos ---------------------------------- */
+/*
+ * El magenta de marca aquí sí vale: es relleno de una forma, no texto. Da 3,03:1 sobre
+ * blanco, que es poco para leer y de sobra para ver un círculo de 3 px de radio.
+ *
+ * El SVG escala con su `viewBox`, así que la caja no lleva alto fijo: `height: auto` deja
+ * que el navegador conserve la proporción, y perderla deformaría el levantamiento — que es
+ * justo lo que la vista previa existe para no hacer.
+ */
+.dibujo-puntos {
+  display: block;
+  width: 100%;
+  height: auto;
+  background: var(--av-bg);
+  border: 1px solid var(--av-border);
+  border-radius: var(--av-radius-sm);
+}
+
+.dibujo-ejes line {
+  stroke: var(--av-border);
+  stroke-width: 1;
+}
+
+.dibujo-punto circle {
+  fill: var(--av-magenta);
+  stroke: var(--av-surface);
+  stroke-width: 1;
+}
+
+.dibujo-punto text {
+  fill: var(--av-text-secondary);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Al pasar por encima se resalta, pero **nada aparece que no estuviera**: la regla de la
+ * familia prohíbe esconder información en hover. El `<title>` de cada punto ya está en el
+ * documento y lo lee un lector de pantalla sin necesidad de ratón. */
+.dibujo-punto:hover circle {
+  fill: var(--av-primary);
+  r: 5;
+}
+
 @media (prefers-reduced-motion: reduce) {
   /* 0.01ms y no 0, para que `transitionend` siga disparando. */
   *,

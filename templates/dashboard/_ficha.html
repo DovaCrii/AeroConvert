@@ -87,6 +87,31 @@
         {% endif %}
       {% endif %}
 
+      {% if i.puntos %}
+        <dt>Libreta</dt>
+        <dd>
+          {{ i.puntos.nombre_del_orden }}
+          <br><span class="tenue">{{ i.puntos.etiqueta_certeza }}</span>
+        </dd>
+
+        <dt>Puntos</dt>
+        <dd>
+          {{ i.puntos.puntos_leidos }}
+          {% if i.puntos.lineas_ignoradas %}
+            <span style="color:var(--av-warn);">
+              · {{ i.puntos.lineas_ignoradas }} línea(s) sin interpretar
+            </span>
+          {% endif %}
+        </dd>
+
+        <dt>Cobertura</dt>
+        <dd>
+          {{ i.puntos.extension_m.1|floatformat:1 }} m ×
+          {{ i.puntos.extension_m.0|floatformat:1 }} m ·
+          {{ i.puntos.extension_m.2|floatformat:1 }} m de desnivel
+        </dd>
+      {% endif %}
+
       <dt>Sistema de referencia</dt>
       <dd>
         {% if i.crs.conocido %}
@@ -118,6 +143,83 @@
   {% endfor %}
 </div>
 
+{% if dibujo and dibujo.hay_algo %}
+  {% comment %}
+    La vista previa de la libreta, **antes** de convertir.
+
+    Es lo que convierte «elige el orden de columnas» en una decisión que se toma mirando: un
+    levantamiento leído bien tiene forma de levantamiento. Y no lleva mapa de fondo porque
+    la CSP es 'self' y un mapa base son teselas de un servidor ajeno; lo que se dibuja es la
+    geometría propia.
+  {% endcomment %}
+  <div class="tarjeta" style="margin-bottom:14px;">
+    <div class="cabecera-tarjeta">
+      <div>
+        <div class="eyebrow">Míralos antes</div>
+        <h2 style="font-size:1.1rem;">Los puntos, como se han leído</h2>
+      </div>
+      <span class="tenue cifra">{{ dibujo.lado_mayor_m|floatformat:0 }} m de lado</span>
+    </div>
+
+    <p class="tenue" style="margin:0 0 10px;">
+      Si esto no tiene la forma del levantamiento, el orden de columnas no es el que se
+      dedujo. Se cambia abajo, en «ajustar a mano».
+    </p>
+
+    <svg class="dibujo-puntos" viewBox="0 0 {{ dibujo.ancho|floatformat:0 }} {{ dibujo.alto|floatformat:0 }}"
+         role="img" aria-label="Los {{ i.puntos.puntos_leidos }} puntos de la libreta, vistos en planta.">
+      <g class="dibujo-ejes" aria-hidden="true">
+        <line x1="14" y1="{{ dibujo.alto|add:'-14' }}" x2="{{ dibujo.ancho|add:'-14' }}" y2="{{ dibujo.alto|add:'-14' }}"></line>
+        <line x1="14" y1="14" x2="14" y2="{{ dibujo.alto|add:'-14' }}"></line>
+      </g>
+      {% for p in dibujo.puntos %}
+        <g class="dibujo-punto">
+          <title>{{ p.titulo }}</title>
+          <circle cx="{{ p.x }}" cy="{{ p.y }}" r="{{ dibujo.radio }}"></circle>
+          {% if dibujo.con_rotulos and p.identificador %}
+            <text x="{{ p.x|add:6 }}" y="{{ p.y|add:'-6' }}">{{ p.identificador }}</text>
+          {% endif %}
+        </g>
+      {% endfor %}
+    </svg>
+
+    <p class="tenue" style="margin:8px 0 0; font-size:.85rem;">
+      El norte va hacia arriba y la escala es la misma en los dos ejes, así que la forma es
+      la del terreno.
+    </p>
+  </div>
+{% endif %}
+
+{% if not i.crs.conocido %}
+  {% comment %}
+    Declarar el sistema de referencia. Sin valor por omisión y sin sugerir «el más
+    probable»: un desplegable que ya viene con EPSG:32719 puesto es una forma de adivinar
+    con la firma de otra persona.
+  {% endcomment %}
+  <div class="tarjeta tarjeta-acento" style="margin-bottom:14px;">
+    <div class="eyebrow">Hace falta</div>
+    <h2 style="font-size:1.1rem;">¿En qué sistema de referencia están estas coordenadas?</h2>
+    <p class="tenue" style="margin:6px 0 10px;">
+      {% if i.puntos %}
+        Una libreta de puntos no lo lleva dentro nunca: es texto con tres números por línea.
+        Sin declararlo, esos números no dicen dónde está nada.
+      {% else %}
+        El archivo no lo declara. Se puede convertir igual si el destino tampoco lo exige,
+        pero la salida tampoco lo tendrá.
+      {% endif %}
+      Míralo en el <code>.prj</code> del levantamiento, o pregúntaselo a quien lo midió.
+    </p>
+    <div style="max-width:16rem;">
+      <label for="id_crs_declarado" style="font-weight:600;">Código EPSG</label>
+      <input type="text" name="crs_declarado" id="id_crs_declarado" class="form-control"
+             form="forma-destino" placeholder="32719" autocomplete="off" inputmode="numeric">
+    </div>
+    <p class="tenue" style="margin:8px 0 0; font-size:.85rem;">
+      Queda anotado con tu nombre en la bitácora del trabajo.
+    </p>
+  </div>
+{% endif %}
+
 <div class="tarjeta" style="margin-bottom:14px;">
   <div class="eyebrow">Dónde abre y dónde no</div>
   <p class="tenue" style="margin-bottom:12px;">
@@ -148,7 +250,13 @@
     Eliges el programa; el formato y las opciones los pone el perfil.
   </p>
 
-  <form method="post" action="{% url 'dashboard:convertir' %}">
+  {% comment %}
+    Lleva `id` porque el campo del sistema de referencia vive en **otra tarjeta**, más
+    arriba: se pregunta donde se entiende la pregunta, no donde está el botón. El atributo
+    `form` de HTML permite eso sin anidar formularios ni mover el campo aquí abajo, que es
+    donde nadie lo relacionaría con el aviso.
+  {% endcomment %}
+  <form id="forma-destino" method="post" action="{% url 'dashboard:encolar' %}">
     {% csrf_token %}
     <input type="hidden" name="ruta" value="{{ i.ruta }}">
 

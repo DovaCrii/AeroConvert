@@ -5,6 +5,54 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Sin publicar]
 
+### Añadido — vectorial y libretas de puntos (fase F3, parcial)
+
+- **Libretas de puntos topográficos PNEZD, PENZD, NEZ, ENZ y sus variantes**, a GPKG, SHP,
+  GeoJSON, KML, KMZ y DXF. Sobre el archivo real de control del cruce minero de BHP: los
+  cinco puntos en las cuatro salidas, con la extensión exacta del original —161,5 × 192,0 m—
+  y verificados con `ogrinfo`.
+- **El orden de columnas se deduce, no se adivina.** Es el fallo que este módulo existe para
+  impedir: leer un PNEZD como PENZD no da ningún error, da un archivo que abre, dibuja, y
+  tiene los puntos a miles de kilómetros. Se decide con una restricción del sistema de
+  coordenadas y no con una heurística: **el este de una zona UTM va de 166.000 a 834.000 m**,
+  así que un valor de 7.318.729 no cabe como este y solo puede ser norte. Cuando las dos
+  columnas caben las dos —pasa en el hemisferio norte— **no se decide**: se marca ambiguo, se
+  dibuja, y se pregunta diciendo la consecuencia («elegir mal deja los puntos a 9.650 km»).
+- **Vista previa dibujada antes de convertir**, en SVG y sin pedir nada de fuera —la CSP es
+  `'self'` y un mapa base serían teselas ajenas—. El norte va hacia arriba y la escala es la
+  misma en los dos ejes, así que la forma que se ve es la del terreno; cada punto lleva sus
+  coordenadas en un `<title>`, que es lo que lee un lector de pantalla.
+- **Declarar el sistema de referencia a mano**, validado contra pyproj, sin valor por omisión
+  y sin sugerir «el más probable». Queda anotado en la bitácora del trabajo con el nombre de
+  quien lo declaró. Una libreta de puntos no lleva CRS dentro nunca, así que sin esto no
+  había ninguna conversión posible.
+- **Conversión vectorial general** entre SHP, GPKG, GeoJSON, KML, KMZ y DXF.
+- `sondar_ogr()`, porque `ogrinfo --formats` y `gdalinfo --formats` listan cosas distintas.
+
+### Corregido
+
+- **El modo taller devolvía 500 en todas las páginas.** Corre con `DEBUG=False` y almacén con
+  manifiesto, y `run.ps1` no ejecutaba `collectstatic`. Lo único que se llegaba a ver era la
+  aplicación cayendo de vuelta a los ajustes de desarrollo, donde los estáticos van sin huella
+  de contenido y sin `Cache-Control`: el navegador reutilizaba su copia y pintaba el HTML
+  nuevo con la hoja de estilos vieja. El síntoma se leía como un error de diseño y no lo era.
+- **`collectstatic` tampoco pasaba**: el manifiesto persigue los `sourceMappingURL` de los
+  minificados vendorizados y aborta al no encontrar el `.map`. Se arregla en el almacén y no
+  borrando el comentario, porque el hash SRI se calcula sobre los bytes exactos y editarlos
+  haría que el navegador descartase la hoja entera.
+- **El botón de convertir no convertía.** El formulario de la ficha enviaba a la vista que
+  pinta la pantalla en vez de a la que encola, así que pulsar cualquier destino recargaba la
+  página sin dar ningún error. Se colló al renombrar «Mesa» a «Convertir».
+- **El techo de memoria de una nube crece con los puntos.** PDAL no respeta `GDAL_CACHEMAX`:
+  medido, 966 MB de pico para 9.618.692 puntos, un 50 % por encima de lo que se anunciaba, y
+  el error crecía con el tamaño de la nube.
+- **`GDAL_DATA` no llegaba al proceso hijo**, y sin ella el controlador DXF no arranca: busca
+  la plantilla `header.dxf`. La ruta no se puede deducir con una regla, así que se busca por
+  archivo testigo.
+- **`ESRI Shapefile` y `MapInfo File` no aparecían en la sonda.** Su nombre corto lleva un
+  espacio y el patrón exigía que no lo llevara, así que SHP salía como no escribible.
+- Un CRS declarado a mano no lo tenía en cuenta el runner, que exigía CRS incrustado.
+
 ### Añadido — nubes de puntos (fase F2)
 
 - **LAS y LAZ → COPC**, con diezmado y reproyección. Sobre la nube real de BHP: 278,9 MB y

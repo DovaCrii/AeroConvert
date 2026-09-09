@@ -57,9 +57,9 @@ no un ejemplo inventado. Sus cifras están en
 
 | # | Entrega | Estado |
 | --- | --- | --- |
-| F3.1 | OGR: SHP, GPKG, GeoJSON, GML, GPX, DXF | ⬜ |
-| F3.2 | KML y KMZ reusando `AeroControl/apps/geo/kml/parse.py` | ⬜ |
-| F3.3 | **Archivos de puntos PNEZD/PENZD/NEZ/ENZ, con vista previa en mapa antes de convertir** | ⬜ |
+| F3.1 | OGR: SHP, GPKG, GeoJSON, GML, GPX, DXF | ✅ |
+| F3.2 | KML y KMZ reusando `AeroControl/apps/geo/kml/parse.py` | ⬜ · se escriben ya con LIBKML; falta el lector endurecido |
+| F3.3 | **Archivos de puntos PNEZD/PENZD/NEZ/ENZ, con vista previa antes de convertir** | ✅ |
 | F3.4 | DWG y DGN v8 por ODA; DGN v7 por GDAL | ⬜ |
 | F3.5 | LandXML: superficies y alineamientos para Civil 3D | ⬜ |
 

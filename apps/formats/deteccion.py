@@ -26,6 +26,7 @@ from pathlib import Path
 from . import catalogo, tiff
 from . import crs as crs_mod
 from . import las as las_mod
+from . import puntos as puntos_mod
 
 #: Cuanto se lee para reconocer la firma.
 BYTES_DE_FIRMA = 65_536
@@ -73,6 +74,8 @@ class Inspeccion:
     tiff: tiff.CabeceraTiff | None = None
     #: Presente solo cuando el archivo es un LAS, LAZ o COPC.
     las: las_mod.CabeceraLas | None = None
+    #: Presente solo cuando el archivo es una libreta de puntos (PNEZD y compañía).
+    puntos: puntos_mod.CabeceraPuntos | None = None
     avisos: tuple[str, ...] = ()
     detalles: dict = field(default_factory=dict)
 
@@ -300,6 +303,19 @@ def inspeccionar(ruta: str | Path) -> Inspeccion:
                     "puntos unos 20 cm. Cualquier visor que lo haga mal se notará."
                 )
 
+    cabecera_puntos = None
+    if codigo == "puntos":
+        try:
+            cabecera_puntos = puntos_mod.leer(ruta)
+        except (puntos_mod.NoEsArchivoDePuntos, OSError, ValueError) as fallo:
+            # Un `.csv` que no es una libreta de puntos es un `.csv` cualquiera, y decirlo
+            # es mejor que dejar la ficha en blanco: la extensión no promete nada.
+            codigo = ""
+            confianza = CONFIANZA_DESCONOCIDA
+            avisos.append(f"Tiene extensión de libreta de puntos pero no lo es: {fallo}")
+        else:
+            avisos.extend(_avisos_de_puntos(cabecera_puntos))
+
     if not crs.conocido:
         crs = _crs_de_prj(ruta)
 
@@ -313,9 +329,43 @@ def inspeccionar(ruta: str | Path) -> Inspeccion:
         acompanantes=archivos_acompanantes(ruta, codigo or ""),
         tiff=cabecera_tiff,
         las=cabecera_las,
+        puntos=cabecera_puntos,
         avisos=tuple(avisos),
         detalles=detalles,
     )
+
+
+def _avisos_de_puntos(cabecera: puntos_mod.CabeceraPuntos) -> list[str]:
+    """Lo que hay que decir de una libreta de puntos, y en qué tono.
+
+    El aviso importante es el del orden ambiguo, y se escribe con la consecuencia y no con
+    el diagnóstico: «hay que elegir el orden» no mueve a nadie, «si se elige mal los puntos
+    caen a 9.650 km» sí. La cifra sale del propio archivo.
+    """
+    avisos: list[str] = []
+
+    if cabecera.hay_que_preguntar:
+        kilometros = f"{cabecera.distancia_si_se_invierte_m / 1000:.0f}".replace(",", ".")
+        avisos.append(
+            f"No se puede deducir si el archivo es {cabecera.orden.upper()} o "
+            f"{cabecera.orden_alternativo.upper()}: las dos columnas de coordenadas caben "
+            "como este UTM. Hay que elegirlo a mano, y elegir mal no da ningún error: "
+            f"deja los puntos a unos {kilometros} km de donde van."
+        )
+    else:
+        avisos.append(
+            f"Orden de columnas {cabecera.orden.upper()}, "
+            f"{cabecera.etiqueta_certeza}. Compruébalo en la vista previa antes de "
+            "convertir."
+        )
+
+    if cabecera.lineas_ignoradas:
+        avisos.append(
+            f"{cabecera.lineas_ignoradas} línea(s) no se pudieron interpretar y se van a "
+            "quedar fuera."
+        )
+
+    return avisos
 
 
 #: Atributo de Windows para un archivo cuyo contenido vive en la nube y no en el disco.

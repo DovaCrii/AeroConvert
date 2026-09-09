@@ -15,10 +15,12 @@ from django.shortcuts import redirect, render
 from django.views.decorators.http import require_POST
 
 from apps.core import modo as modo_mod
+from apps.dashboard import vista_previa as vista_previa_mod
 from apps.engines import formulario as formulario_mod
 from apps.engines import registry
 from apps.engines.base import ParDeFormatos
 from apps.formats import catalogo, deteccion
+from apps.formats import crs as crs_mod
 from apps.jobs import estimacion as estimacion_mod
 from apps.jobs.models import ConversionJob
 from apps.presets.models import ConversionPreset
@@ -136,6 +138,11 @@ def inspeccionar(request):
         "dashboard/_ficha.html",
         {
             "i": inspeccion,
+            # El dibujo de la libreta, cuando lo es. Es lo que convierte «elige el orden de
+            # columnas» en una decisión que se toma mirando.
+            "dibujo": (
+                vista_previa_mod.dibujo_de_puntos(inspeccion.puntos) if inspeccion.puntos else None
+            ),
             "veredictos": perfiles_mod.veredictos(inspeccion),
             "perfiles": _destinos_para(inspeccion),
             "escribibles": escribibles,
@@ -212,6 +219,12 @@ def encolar(request):
         messages.error(request, str(fallo))
         return redirect("dashboard:convertir")
 
+    try:
+        crs = _crs_del_trabajo(request, inspeccion)
+    except ValueError as fallo:
+        messages.error(request, str(fallo))
+        return redirect("dashboard:convertir")
+
     origen = Path(inspeccion.ruta)
     job = ConversionJob.objects.create(
         owner=request.user,
@@ -220,14 +233,25 @@ def encolar(request):
         source_size_bytes=inspeccion.bytes_totales,
         source_format_code=inspeccion.codigo_formato,
         source_format_confidence=inspeccion.confianza,
-        source_crs_authority=inspeccion.crs.autoridad,
-        source_crs_code=inspeccion.crs.codigo,
-        source_crs_origin=inspeccion.crs.origen,
+        source_crs_authority=crs.autoridad,
+        source_crs_code=crs.codigo,
+        source_crs_origin=crs.origen,
         target_format_code=formato,
         target_profile_id=perfil_id,
         options=opciones,
         output_path=str(_ruta_de_salida(origen, formato, perfil_id)),
     )
+
+    if crs.es_declarado:
+        # **La traza del día en que alguien puso la obra en otro país.**
+        #
+        # Va con el nombre de quien lo declaró, y va en la bitácora del trabajo, que es
+        # append-only. Sin esta línea, «lo declaró una persona» no se puede sostener seis
+        # meses después, cuando alguien pregunte por qué el entregable está donde está.
+        job.registrar(
+            f"{request.user.get_username()} declaró el sistema de referencia "
+            f"{crs.autoridad}:{crs.codigo}. El archivo no lo traía dentro."
+        )
 
     if preajuste is not None:
         preajuste.usar()
@@ -238,6 +262,31 @@ def encolar(request):
         job.registrar(f"Encolado hacia {formato} con ajustes a mano.")
 
     return redirect("jobs:ficha", pk=job.pk)
+
+
+def _crs_del_trabajo(request, inspeccion):
+    """El CRS con el que se encola: el del archivo, o el que alguien declaró.
+
+    Cuando el archivo lo trae dentro, no se admite nada más: dejar que un campo del
+    formulario sobrescriba un CRS incrustado sería regalar una forma silenciosa de mover la
+    obra de sitio.
+
+    Y cuando no lo trae -- una libreta de puntos **nunca** lo trae -- se acepta lo declarado,
+    validado contra pyproj. Sin valor por omisión y sin sugerir «el más probable»: la regla
+    de la familia es que adivinarlo es peor que no tenerlo, y un desplegable que ya viene
+    con EPSG:32719 puesto es una forma de adivinar con la firma de otro.
+    """
+    if inspeccion.crs.conocido:
+        return inspeccion.crs
+
+    declarado = (request.POST.get("crs_declarado") or "").strip()
+    if not declarado:
+        return inspeccion.crs
+
+    try:
+        return crs_mod.validar_declarado(declarado)
+    except crs_mod.CrsInvalido as fallo:
+        raise ValueError(str(fallo)) from fallo
 
 
 def _destino_pedido(request, inspeccion):

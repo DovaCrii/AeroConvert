@@ -32,6 +32,7 @@ from apps.engines.base import (
     Verificacion,
     ruta_parcial,
 )
+from apps.engines.entorno import entorno_de_gdal
 
 #: Origenes raster que GDAL sabe leer.
 ORIGENES = ("geotiff", "bigtiff", "cog", "jp2", "img", "asc", "png", "jpeg", "mrsid", "ecw")
@@ -301,19 +302,17 @@ class MotorGdalRaster(Motor):
         return creacion
 
     def _entorno(self) -> dict[str, str]:
-        """Variables del **proceso hijo**. Nunca las del servidor."""
-        entorno = {
-            "GDAL_NUM_THREADS": "ALL_CPUS",
+        """Variables del **proceso hijo**. Nunca las del servidor.
+
+        `GDAL_DATA` y las de PROJ las localiza `entorno_de_gdal()`: no se pueden deducir de
+        la carpeta de binarios con una regla, y sin ellas hay controladores que no arrancan.
+        """
+        return entorno_de_gdal(
+            GDAL_NUM_THREADS="ALL_CPUS",
             # Sin tope, GDAL se come la memoria de la maquina en un raster grande y el
             # sistema empieza a paginar. 512 MB es de sobra y deja la estacion usable.
-            "GDAL_CACHEMAX": "512",
-        }
-        carpeta = (getattr(settings, "GDAL_BIN", "") or "").strip().strip('"')
-        if carpeta:
-            import os
-
-            entorno["PATH"] = carpeta + os.pathsep + os.environ.get("PATH", "")
-        return entorno
+            GDAL_CACHEMAX="512",
+        )
 
     def _presupuesto(self, trabajo) -> int:
         gigas = max(1.0, (trabajo.source_size_bytes or 0) / 1e9)

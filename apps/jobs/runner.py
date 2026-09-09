@@ -267,8 +267,29 @@ def _exigir_crs(job: ConversionJob, inspeccion) -> None:
     if inspeccion.crs.conocido:
         return
 
-    reproyecta = bool(job.target_crs_code)
     from apps.formats import catalogo
+    from apps.formats import crs as crs_mod
+
+    # **Lo declarado a mano cuenta, y hay formatos donde es la única vía.**
+    #
+    # Una libreta de puntos no lleva sistema de referencia dentro **nunca**: es texto con
+    # tres números por línea. Si lo único que vale fuera el CRS incrustado, esta rama
+    # rechazaría todas las libretas del mundo y la mitad de la fase vectorial no existiría.
+    #
+    # Se acepta con dos condiciones, y las dos importan: que lo haya declarado una persona
+    # -- `validar_declarado()` lo marca así y comprueba el código contra pyproj -- y que
+    # quede escrito en la bitácora. Esa anotación es la traza del día en que alguien puso la
+    # obra en otro país, y sin ella «lo declaró alguien» no se puede sostener.
+    if job.source_crs_code and job.source_crs_origin == crs_mod.DECLARADO:
+        job.registrar(
+            f"El archivo no declara sistema de referencia. Se usa el declarado a mano: "
+            f"{job.source_crs_authority or 'EPSG'}:{job.source_crs_code}.",
+            nivel=JobEvent.AVISO,
+            etapa=INSPECCION,
+        )
+        return
+
+    reproyecta = bool(job.target_crs_code)
 
     destino = catalogo.FORMATOS.get(job.target_format_code)
     origen = catalogo.FORMATOS.get(job.source_format_code)
@@ -284,13 +305,29 @@ def _exigir_crs(job: ConversionJob, inspeccion) -> None:
         or (origen and origen.familia == catalogo.NUBE)
     )
 
-    if reproyecta or lo_exige or es_nube:
-        detalle = (
-            "Una nube sin sistema de referencia no se puede cruzar con nada, y el dato se "
-            "pierde para siempre si nadie lo apunta al entregarla."
-            if es_nube
-            else "Declara el EPSG: adivinarlo es peor que no tenerlo."
-        )
+    # **En una libreta de puntos tampoco hay excepción, y por un motivo distinto.**
+    #
+    # Un ráster sin georreferencia sigue siendo una imagen: tiene píxeles, se ve, y pasarla a
+    # otro formato sin georreferencia no pierde nada. Una libreta de puntos **no es nada más
+    # que coordenadas**. Sin sistema de referencia, esos tres números no dicen dónde está el
+    # punto, y la salida es una capa que afirma estar en algún sitio sin estarlo. Además, a
+    # KML no se podría ni llegar: exige EPSG:4326 y reproyectar necesita saber de dónde.
+    es_libreta = bool(origen and origen.codigo == "puntos")
+
+    if reproyecta or lo_exige or es_nube or es_libreta:
+        if es_nube:
+            detalle = (
+                "Una nube sin sistema de referencia no se puede cruzar con nada, y el dato "
+                "se pierde para siempre si nadie lo apunta al entregarla."
+            )
+        elif es_libreta:
+            detalle = (
+                "Una libreta de puntos no es más que coordenadas: sin declarar el EPSG, "
+                "esos números no dicen dónde está nada. Míralo en el .prj del "
+                "levantamiento o pregúntaselo a quien lo midió."
+            )
+        else:
+            detalle = "Declara el EPSG: adivinarlo es peor que no tenerlo."
         raise TrabajoFallido(
             "crs-ausente",
             f"El archivo no declara sistema de referencia y esta conversión lo necesita. {detalle}",
