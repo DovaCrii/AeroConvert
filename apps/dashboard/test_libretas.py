@@ -50,6 +50,24 @@ def libreta(tmp_path, settings):
     return ruta
 
 
+@pytest.fixture
+def con_ogr(monkeypatch):
+    """Finge que OGR está en esta máquina.
+
+    **El gate corre sin GDAL ni PDAL instalados**, que es la regla de la familia, y sin esto
+    la vista rechazaba el envío con «ningún motor sabe hacer esa conversión»: `motor_para()`
+    solo devuelve motores *disponibles*. Estas pruebas van del camino del formulario —el
+    CRS declarado, la bitácora, el rechazo de un EPSG inventado— y no de si la herramienta
+    está instalada, que ya lo comprueba la sonda con sus propias pruebas.
+
+    Se descubrió porque pasaban en Windows y fallaban en CI, que es la peor forma de pasar.
+    """
+    from apps.engines.base import Disponibilidad
+    from apps.vector import motores
+
+    monkeypatch.setattr(motores, "_sonda_ogr", lambda: Disponibilidad.si("OGR de mentira 1.0"))
+
+
 def _inspeccionar(sesion, ruta):
     return sesion.get(reverse("dashboard:inspeccionar"), {"ruta": str(ruta)})
 
@@ -142,7 +160,9 @@ class TestDeclararElSistemaDeReferencia:
         # de adivinar con la firma de otra persona.
         assert 'value="32719"' not in cuerpo
 
-    def test_lo_declarado_queda_en_el_trabajo_y_marcado_como_declarado(self, sesion, libreta):
+    def test_lo_declarado_queda_en_el_trabajo_y_marcado_como_declarado(
+        self, sesion, libreta, con_ogr
+    ):
         respuesta = sesion.post(
             reverse("dashboard:encolar"),
             {"ruta": str(libreta), "formato": "gpkg", "crs_declarado": "32719", "perfil": ""},
@@ -153,7 +173,7 @@ class TestDeclararElSistemaDeReferencia:
         assert trabajo.source_crs_code == "32719"
         assert trabajo.source_crs_origin == "declarado"
 
-    def test_y_queda_escrito_quien_lo_declaro(self, sesion, libreta, usuario):
+    def test_y_queda_escrito_quien_lo_declaro(self, sesion, libreta, usuario, con_ogr):
         """La traza del día en que alguien puso la obra en otro país."""
         sesion.post(
             reverse("dashboard:encolar"),
@@ -164,7 +184,7 @@ class TestDeclararElSistemaDeReferencia:
         assert usuario.get_username() in mensajes
         assert "32719" in mensajes
 
-    def test_un_epsg_que_no_existe_se_rechaza(self, sesion, libreta):
+    def test_un_epsg_que_no_existe_se_rechaza(self, sesion, libreta, con_ogr):
         respuesta = sesion.post(
             reverse("dashboard:encolar"),
             {"ruta": str(libreta), "formato": "gpkg", "crs_declarado": "999999", "perfil": ""},
@@ -173,14 +193,14 @@ class TestDeclararElSistemaDeReferencia:
         assert ConversionJob.objects.count() == 0
         assert any("999999" in str(m) for m in respuesta.context["messages"])
 
-    def test_lo_que_no_es_un_numero_se_rechaza(self, sesion, libreta):
+    def test_lo_que_no_es_un_numero_se_rechaza(self, sesion, libreta, con_ogr):
         sesion.post(
             reverse("dashboard:encolar"),
             {"ruta": str(libreta), "formato": "gpkg", "crs_declarado": "UTM 19 sur", "perfil": ""},
         )
         assert ConversionJob.objects.count() == 0
 
-    def test_no_declarar_nada_no_impide_encolar(self, sesion, libreta):
+    def test_no_declarar_nada_no_impide_encolar(self, sesion, libreta, con_ogr):
         """Encolar sin CRS es legítimo: quien lo para, con su motivo y su explicación, es el
         runner. Rechazarlo aquí daría el mensaje en el sitio equivocado."""
         sesion.post(
