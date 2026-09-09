@@ -1,5 +1,5 @@
 {% load static i18n %}<!doctype html>
-<html lang="es" data-theme="{{ request.COOKIES.tema|default:'' }}">
+<html lang="es">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -12,42 +12,99 @@
         crossorigin="anonymous">
   <link rel="stylesheet" href="{% static 'css/app.css' %}">
 </head>
-<body>
+<body class="{% block clase_cuerpo %}{% endblock %}">
   <a class="salto" href="#principal">Saltar al contenido</a>
 
   <header class="barra">
-    <a class="marca" href="{% url 'dashboard:mesa' %}">
+    <a class="marca" href="{% url 'dashboard:convertir' %}">
       <img src="{% static 'img/aeroconvert-mark.svg' %}" alt="" aria-hidden="true">
       <span>AeroConvert</span>
     </a>
 
-    <span class="chapa chapa-{{ chapa.modo }}" title="{{ chapa.explicacion }}">{{ chapa.etiqueta }}</span>
+    {% comment %}
+      La chapa del modo, con su explicación **visible** y no escondida en un `title`.
+
+      Antes era una etiqueta de tres letras con la explicación en el tooltip, y un tooltip
+      no existe para quien usa el teclado ni para quien va con prisa. Saber si los archivos
+      salen de la máquina es lo primero que hay que ver, no algo que se descubre pasando el
+      ratón por encima.
+    {% endcomment %}
+    <span class="chapa chapa-{{ chapa.modo }}">{{ chapa.etiqueta }}</span>
+    <span class="barra-explicacion">{{ chapa.explicacion }}</span>
 
     {% if user.is_authenticated %}
-      <nav style="display:flex; gap:16px; margin-left:auto; align-items:center;">
-        <a href="{% url 'dashboard:mesa' %}">Mesa</a>
-        <a href="{% url 'jobs:lista' %}">Trabajos</a>
-        <a href="{% url 'engines:matriz' %}">Motores</a>
-        <button type="button" class="chapa" id="cambiar-tema" style="cursor:pointer; background:none;">
-          Tema
+      {% comment %}
+        Cada entrada lleva icono **y** palabra.
+
+        Solo el icono obliga a adivinar; solo la palabra hace que cuatro entradas se lean
+        como cuatro palabras iguales de largas. Y los nombres dicen lo que hay detrás:
+        «Motores» era jerga de quien lo programó — lo que esa pantalla contesta es qué se
+        puede convertir en este equipo, así que se llama «Compatibilidad».
+      {% endcomment %}
+      <nav class="barra-nav" aria-label="Secciones">
+        <a href="{% url 'dashboard:convertir' %}" class="nav-item"
+           {% if seccion == 'convertir' %}aria-current="page"{% endif %}>
+          <svg class="nav-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-convertir"></use></svg>
+          <span>Convertir</span>
+        </a>
+        <a href="{% url 'jobs:lista' %}" class="nav-item"
+           {% if seccion == 'historial' %}aria-current="page"{% endif %}>
+          <svg class="nav-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-historial"></use></svg>
+          <span>Historial</span>
+        </a>
+        <a href="{% url 'presets:lista' %}" class="nav-item"
+           {% if seccion == 'preajustes' %}aria-current="page"{% endif %}>
+          <svg class="nav-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-preajustes"></use></svg>
+          <span>Preajustes</span>
+        </a>
+        <a href="{% url 'engines:matriz' %}" class="nav-item"
+           {% if seccion == 'compatibilidad' %}aria-current="page"{% endif %}>
+          <svg class="nav-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-compatibilidad"></use></svg>
+          <span>Compatibilidad</span>
+        </a>
+
+        <span class="barra-separador" aria-hidden="true"></span>
+
+        {# Sol y luna, como en AeroControl. El JS enseña el que corresponde. #}
+        <button type="button" class="boton-icono" id="cambiar-tema"
+                aria-label="Cambiar entre claro y oscuro" title="Cambiar entre claro y oscuro">
+          <svg class="nav-icono icono-sol" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-sol"></use></svg>
+          <svg class="nav-icono icono-luna" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-luna"></use></svg>
         </button>
+
         <form method="post" action="{% url 'logout' %}" style="margin:0;">
           {% csrf_token %}
-          <button type="submit" class="chapa" style="cursor:pointer; background:none; color:#fff;">
-            Salir
+          <button type="submit" class="boton-icono" aria-label="Salir" title="Salir">
+            <svg class="nav-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-salir"></use></svg>
           </button>
         </form>
       </nav>
     {% endif %}
   </header>
 
-  <main id="principal" class="container-fluid" style="max-width:1200px; padding:20px 16px 48px;">
+  <main id="principal" class="envoltorio">
     {% if messages %}
       {% for mensaje in messages %}
-        <div class="{% if mensaje.tags == 'error' %}error{% else %}aviso{% endif %}" style="margin-bottom:12px;">
+        <div class="{% if mensaje.tags == 'error' %}error{% else %}aviso{% endif %}"
+             style="margin-bottom:12px;">
           {{ mensaje }}
         </div>
       {% endfor %}
+    {% endif %}
+
+    {% comment %}
+      La cabecera de página: dónde estás y para qué sirve esta pantalla.
+
+      Cada vista la rellena con `seccion`, `titulo_pagina` y `proposito`. Está aquí y no en
+      cada plantilla para que ninguna se quede sin decir para qué es — que era el caso de
+      «Trabajos», donde solo había un título y una tabla.
+    {% endcomment %}
+    {% if titulo_pagina %}
+      <div class="cabecera-pagina">
+        <div class="eyebrow">{{ etiqueta_seccion|default:titulo_pagina }}</div>
+        <h1>{{ titulo_pagina }}</h1>
+        {% if proposito %}<p class="proposito">{{ proposito }}</p>{% endif %}
+      </div>
     {% endif %}
 
     {% block contenido %}{% endblock %}

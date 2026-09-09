@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block titulo %}Convertir · AeroConvert{% endblock %}
+
+{% block contenido %}
+
+{% comment %}
+  Los tres pasos, antes de la zona de soltar.
+
+  La pantalla anterior era una caja de texto y nada más: quien llegaba no sabía qué iba a
+  pasar al pulsar. Tres líneas cuestan un vistazo y quitan esa duda — y de paso explican
+  que aquí primero se **mira** y solo después se convierte, que es lo que separa a esta
+  herramienta de las demás.
+{% endcomment %}
+<ol class="pasos">
+  <li>
+    <span class="paso-numero">1</span>
+    <div>
+      <strong>Suelta el archivo</strong>
+      <span>Ortofoto, nube de puntos, cartografía. No se copia ni se sube.</span>
+    </div>
+  </li>
+  <li>
+    <span class="paso-numero">2</span>
+    <div>
+      <strong>Mira qué tiene dentro</strong>
+      <span>Formato real, dimensiones, bandas, sistema de referencia — y en qué programas abre.</span>
+    </div>
+  </li>
+  <li>
+    <span class="paso-numero">3</span>
+    <div>
+      <strong>Elige dónde tiene que abrir</strong>
+      <span>Civil 3D, QGIS, AeroBim… El formato y los ajustes los pone el perfil.</span>
+    </div>
+  </li>
+</ol>
+
+<div class="tarjeta tarjeta-acento" style="margin-bottom:18px;">
+  <form id="forma-inspeccion"
+        hx-get="{% url 'dashboard:inspeccionar' %}"
+        hx-target="#ficha"
+        hx-swap="innerHTML"
+        hx-indicator="#mirando">
+    <div class="soltar" id="zona">
+      <svg class="soltar-icono" aria-hidden="true">
+        <use href="{% static 'img/icons.svg' %}#icon-soltar"></use>
+      </svg>
+
+      <p class="soltar-titulo">Arrastra el archivo aquí, o pega su ruta</p>
+      <p class="soltar-ayuda">
+        En el Explorador: clic derecho con <kbd>Mayús</kbd> → «Copiar como ruta»
+      </p>
+
+      <div class="soltar-campo">
+        <label class="visually-hidden" for="ruta">Ruta del archivo</label>
+        <input type="text" id="ruta" name="ruta" class="form-control ruta"
+               placeholder="D:\obras\vuelo\ortofoto.tif"
+               autocomplete="off" spellcheck="false">
+        <button type="submit" class="boton">Inspeccionar</button>
+      </div>
+
+      <p id="mirando" class="tenue htmx-indicator" style="margin:12px 0 0;">Mirando el archivo…</p>
+    </div>
+  </form>
+</div>
+
+<div id="ficha"></div>
+
+{% if recientes %}
+  {% comment %}
+    Lo último convertido: para no dejar media pantalla en negro, y para poder volver a un
+    entregable sin pasar por el historial.
+
+    Va con la etiqueta de comentario larga y no con la corta de almohadilla: esa segunda
+    forma es de UNA línea, y repartida en varias Django la imprime tal cual en la página.
+    Ya pasó dos veces aquí, así que hay una prueba que lo vigila.
+  {% endcomment %}
+  <div class="tarjeta" id="recientes">
+    <div class="cabecera-tarjeta">
+      <div>
+        <div class="eyebrow">Lo último</div>
+        <h2>Conversiones recientes</h2>
+      </div>
+      <a href="{% url 'jobs:lista' %}" class="enlace-suave">Ver el historial completo →</a>
+    </div>
+
+    <table class="table table-sm align-middle" style="margin:0;">
+      <tbody>
+        {% for t in recientes %}
+          <tr>
+            <td><a href="{% url 'jobs:ficha' t.pk %}">{{ t.source_name }}</a></td>
+            <td class="tenue">→ {{ t.target_format_code }}</td>
+            <td><span class="pildora pildora-{{ t.status }}">{{ t.get_status_display }}</span></td>
+            <td class="cifra text-end tenue">
+              {% if t.output_size_bytes %}{{ t.output_size_bytes|filesizeformat }}{% endif %}
+            </td>
+            <td class="cifra text-end tenue">{{ t.created_at|date:"d/m H:i" }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'js/convertir.js' %}"></script>
+{% endblock %}

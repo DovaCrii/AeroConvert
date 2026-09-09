@@ -2,6 +2,7 @@ from django.contrib import admin
 from django.contrib.auth import views as auth_views
 from django.urls import include, path
 
+from apps.core import forms as core_forms
 from apps.core import views as core_views
 
 urlpatterns = [
@@ -13,7 +14,11 @@ urlpatterns = [
     path("salud/", core_views.salud, name="salud"),
     path(
         "entrar/",
-        auth_views.LoginView.as_view(template_name="core/entrar.html"),
+        auth_views.LoginView.as_view(
+            template_name="core/entrar.html",
+            authentication_form=core_forms.FormularioDeEntrada,
+            redirect_authenticated_user=True,
+        ),
         name="login",
     ),
     path("salir/", auth_views.LogoutView.as_view(), name="logout"),

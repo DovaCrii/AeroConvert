@@ -1,4 +1,10 @@
-"""La mesa: soltar un archivo, ver qué tiene dentro y qué abre dónde."""
+"""Convertir: soltar un archivo, ver qué tiene dentro y qué abre dónde.
+
+La pantalla se llamaba «la mesa». Era una metáfora que a quien la escribió le parecía
+evidente y que a nadie más le decía nada — «Mesa» en un menú no anuncia lo que hay detrás.
+Ahora se llama por lo que hace, y el nombre interno va con el visible: tenerlos distintos
+obliga a traducir mentalmente cada vez que se lee un error.
+"""
 
 from dataclasses import dataclass
 from pathlib import Path
@@ -83,8 +89,23 @@ def _formulario_experto(inspeccion, formato: str, valores: dict | None = None):
 
 
 @login_required
-def mesa(request):
-    return render(request, "dashboard/mesa.html", {})
+def convertir(request):
+    """La pantalla principal: soltar un archivo y ver qué se puede hacer con él."""
+    return render(
+        request,
+        "dashboard/convertir.html",
+        {
+            "seccion": "convertir",
+            "etiqueta_seccion": "Convertir",
+            "titulo_pagina": "Qué tiene dentro, y dónde va a abrir",
+            "proposito": (
+                "Suelta un archivo o pega su ruta. AeroConvert lo mira por dentro sin "
+                "abrirlo, te dice en qué programas va a funcionar y en cuáles no, y lo "
+                "convierte al que te haga falta."
+            ),
+            "recientes": ConversionJob.objects.filter(owner=request.user)[:5],
+        },
+    )
 
 
 @login_required
@@ -120,8 +141,11 @@ def inspeccionar(request):
             "escribibles": escribibles,
             "formato_experto": experto,
             "campos": campos,
+            # **Solo los propios.** Los de fábrica salen de los perfiles, y los perfiles ya
+            # están arriba como botones de destino: enseñarlos otra vez era una segunda
+            # fila de botones con los mismos nombres haciendo lo mismo.
             "preajustes": ConversionPreset.objects.filter(
-                target_format_code__in=[f.codigo for f in escribibles]
+                de_fabrica=False, target_format_code__in=[f.codigo for f in escribibles]
             )[:12],
         },
     )
@@ -167,7 +191,7 @@ def _inspeccionar(ruta_pedida: str):
 
 @login_required
 @require_POST
-def convertir(request):
+def encolar(request):
     """Encola el trabajo y lleva a su ficha.
 
     No convierte aquí: encola. La conversión la hace el despachador en un proceso hijo, y
@@ -177,16 +201,16 @@ def convertir(request):
     inspeccion, error = _inspeccionar(request.POST.get("ruta") or "")
     if error:
         messages.error(request, error["error"])
-        return redirect("dashboard:mesa")
+        return redirect("dashboard:convertir")
 
     try:
         formato, opciones, perfil_id, preajuste = _destino_pedido(request, inspeccion)
     except formulario_mod.OpcionInvalida as fallo:
         messages.error(request, fallo.mensaje)
-        return redirect("dashboard:mesa")
+        return redirect("dashboard:convertir")
     except ValueError as fallo:
         messages.error(request, str(fallo))
-        return redirect("dashboard:mesa")
+        return redirect("dashboard:convertir")
 
     origen = Path(inspeccion.ruta)
     job = ConversionJob.objects.create(

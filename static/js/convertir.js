@@ -1,4 +1,4 @@
-// Arrastrar y soltar sobre la zona de la mesa.
+// Arrastrar y soltar sobre la zona de la pantalla de convertir.
 //
 // **Lo que se toma del archivo soltado es su nombre, no su contenido.** En modo taller la
 // conversion lee del disco, asi que subir los bytes al servidor solo para volver a leerlos

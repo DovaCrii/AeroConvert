@@ -1,3 +1,4 @@
+{% load static %}
 {% if error %}
   <div class="error">
     <strong>{{ error }}</strong>
@@ -126,9 +127,9 @@
   <div class="veredictos">
     {% for v in veredictos %}
       <div class="veredicto veredicto-{{ v.severidad }}">
-        <span class="veredicto-marca" aria-hidden="true">
-          {% if v.severidad == 'abre' %}✓{% elif v.severidad == 'con-reparos' %}!{% else %}✗{% endif %}
-        </span>
+        <svg class="veredicto-marca" aria-hidden="true">
+          <use href="{% static 'img/icons.svg' %}#{{ v.icono }}"></use>
+        </svg>
         <span class="veredicto-destino">{{ v.perfil_nombre }}</span>
         <span class="veredicto-motivo">
           <span class="visually-hidden">{{ v.etiqueta }}.</span>

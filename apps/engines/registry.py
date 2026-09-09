@@ -72,7 +72,7 @@ def celda(par: ParDeFormatos) -> CeldaDeCapacidad:
             destino=par.destino,
             estado=NO_SOPORTADO,
             codigo_motivo="sin-motor",
-            mensaje="Ningun motor sabe hacer esta conversion.",
+            mensaje="Todavía no hay ningún motor para esta conversión.",
         )
 
     fallos = []

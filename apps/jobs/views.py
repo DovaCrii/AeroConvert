@@ -23,7 +23,21 @@ def _mio(request, pk) -> ConversionJob:
 @login_required
 def lista(request):
     trabajos = ConversionJob.objects.filter(owner=request.user)[:100]
-    return render(request, "jobs/lista.html", {"trabajos": trabajos})
+    return render(
+        request,
+        "jobs/lista.html",
+        {
+            "trabajos": trabajos,
+            "seccion": "historial",
+            "etiqueta_seccion": "Historial",
+            "titulo_pagina": "Lo que has convertido",
+            "proposito": (
+                "Cada conversión queda registrada con su recibo: qué entró, qué salió, con "
+                "qué motor y si se verificó. El recibo sobrevive aunque el archivo ya se "
+                "haya borrado."
+            ),
+        },
+    )
 
 
 def _alternativas(job: ConversionJob) -> tuple[dict, ...]:

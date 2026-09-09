@@ -2,38 +2,88 @@
 {% load static %}
 
 {% block titulo %}Entrar · AeroConvert{% endblock %}
+{% block clase_cuerpo %}entrada{% endblock %}
 
 {% block contenido %}
-<div style="max-width:26rem; margin:6vh auto;">
-  <div class="tarjeta tarjeta-acento">
-    <div style="text-align:center; margin-bottom:16px;">
-      <img src="{% static 'img/aeroconvert-mark.svg' %}" width="112" height="84" alt="AeroConvert">
-    </div>
+<div class="portada">
 
-    <h1 style="font-size:1.3rem; text-align:center; margin-bottom:4px;">AeroConvert</h1>
-    <p class="tenue" style="text-align:center; margin-bottom:18px;">{{ chapa.explicacion }}</p>
+  {% comment %}
+    La mitad izquierda dice QUÉ ES esto. Alguien que llega por primera vez a una pantalla
+    de entrada con solo dos campos no sabe si está en el sitio correcto.
+  {% endcomment %}
+  <section class="portada-presentacion">
+    <img src="{% static 'img/aeroconvert-mark.svg' %}" width="128" height="96" alt="">
+
+    <h1>AeroConvert</h1>
+    <p class="portada-lema">
+      Convierte ortofotos, nubes de puntos y cartografía — y te dice
+      <strong>por qué</strong> un archivo no abre donde debería.
+    </p>
+
+    <ul class="portada-puntos">
+      <li>
+        <span class="portada-icono" aria-hidden="true">◆</span>
+        <span><strong>Mira dentro del archivo</strong> sin abrirlo: formato real,
+        dimensiones, bandas, sistema de referencia.</span>
+      </li>
+      <li>
+        <span class="portada-icono" aria-hidden="true">◆</span>
+        <span><strong>Eliges el programa de destino</strong>, no la extensión. Civil 3D,
+        QGIS, ArcGIS, Google Earth, AeroBim.</span>
+      </li>
+      <li>
+        <span class="portada-icono" aria-hidden="true">◆</span>
+        <span><strong>Verifica lo que entrega</strong> contra el original, y el archivo de
+        partida nunca se toca.</span>
+      </li>
+    </ul>
+
+    <p class="portada-familia">
+      Aplicación hermana de AeroBim, AeroControl, AeroPlanner y AeroLink.
+    </p>
+  </section>
+
+  {# Y la derecha, entrar. Nada mas. #}
+  <section class="tarjeta tarjeta-acento portada-acceso">
+    <div class="eyebrow">Acceso</div>
+    <h2 style="font-size:1.15rem; margin-bottom:14px;">Entrar</h2>
 
     {% if form.errors %}
-      <div class="error" style="margin-bottom:12px;">
+      <div class="error" style="margin-bottom:14px;">
         El usuario o la contraseña no coinciden.
       </div>
     {% endif %}
 
-    <form method="post">
+    <form method="post" class="formulario-vertical">
       {% csrf_token %}
-      <label for="id_username" style="font-weight:600;">Usuario</label>
-      {{ form.username }}
-      <label for="id_password" style="font-weight:600; margin-top:10px; display:block;">Contraseña</label>
-      {{ form.password }}
-      <button type="submit" class="boton" style="width:100%; margin-top:16px;">Entrar</button>
+
+      <div>
+        <label for="{{ form.username.id_for_label }}">{{ form.username.label }}</label>
+        {{ form.username }}
+      </div>
+
+      <div>
+        <label for="{{ form.password.id_for_label }}">{{ form.password.label }}</label>
+        {{ form.password }}
+      </div>
+
+      <button type="submit" class="boton" style="width:100%;">Entrar</button>
     </form>
 
-    {% if chapa.modo == 'taller' %}
-      <p class="tenue" style="font-size:.82rem; margin:14px 0 0;">
-        La puerta se exige también en modo taller: aquí la ruta de origen es un primitivo de
-        lectura del disco, así que importa más, no menos.
-      </p>
-    {% endif %}
-  </div>
+    {% comment %}
+      La chapa del modo, explicada. En la barra es una etiqueta de tres letras; aquí, que
+      es donde alguien la ve por primera vez, tiene que decir lo que significa.
+    {% endcomment %}
+    <div class="nota-modo nota-modo-{{ chapa.modo }}">
+      <strong>Modo {{ chapa.etiqueta }}</strong>
+      <p>{{ chapa.explicacion }}</p>
+      {% if chapa.modo == 'taller' %}
+        <p class="tenue">
+          Se pide usuario igualmente: en este modo se leen rutas de tu disco, así que la
+          puerta importa más, no menos.
+        </p>
+      {% endif %}
+    </div>
+  </section>
 </div>
 {% endblock %}

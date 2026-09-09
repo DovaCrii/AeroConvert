@@ -3,13 +3,6 @@
 {% block titulo %}Preajustes · AeroConvert{% endblock %}
 
 {% block contenido %}
-<div class="eyebrow">Preajustes</div>
-<h1 style="font-size:1.4rem; margin-bottom:4px;">Preajustes</h1>
-<p class="tenue" style="margin-bottom:18px;">
-  Un destino guardado con nombre propio. Los de fábrica salen de los perfiles y se
-  actualizan con ellos; los tuyos son de esta oficina.
-</p>
-
 {% include "presets/_grupo.html" with preajustes=de_fabrica titulo="De fábrica" %}
 {% include "presets/_grupo.html" with preajustes=propios titulo="Tuyos" %}
 {% endblock %}

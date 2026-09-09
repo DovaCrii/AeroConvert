@@ -1,4 +1,4 @@
-"""La mesa: la puerta, la ficha, los veredictos y el encolado."""
+"""Convertir: la puerta, la ficha, los veredictos y el encolado."""
 
 import pytest
 from django.contrib.auth import get_user_model
@@ -63,7 +63,7 @@ class TestLaPuerta:
     def test_convertir_no_admite_get(self, entrado):
         """Encolar cambia estado: un GET no puede hacerlo, ni desde un enlace ni desde una
         imagen incrustada en un correo."""
-        assert entrado.get("/convertir/").status_code == 405
+        assert entrado.get("/encolar/").status_code == 405
 
 
 class TestLaMesa:
@@ -164,7 +164,7 @@ class TestInspeccionar:
 
 class TestConvertir:
     def test_encola_y_lleva_a_la_ficha(self, entrado, ortofoto, con_motor):
-        respuesta = entrado.post("/convertir/", {"ruta": str(ortofoto), "perfil": "civil3d"})
+        respuesta = entrado.post("/encolar/", {"ruta": str(ortofoto), "perfil": "civil3d"})
 
         job = ConversionJob.objects.get()
         assert respuesta.status_code == 302
@@ -174,7 +174,7 @@ class TestConvertir:
     def test_el_perfil_fija_formato_y_opciones(self, entrado, ortofoto, con_motor):
         """Nadie quiere «un GeoTIFF con BIGTIFF=NO»: quiere que abra en el PC del
         proyectista. El perfil traduce lo segundo en lo primero."""
-        entrado.post("/convertir/", {"ruta": str(ortofoto), "perfil": "civil3d"})
+        entrado.post("/encolar/", {"ruta": str(ortofoto), "perfil": "civil3d"})
 
         job = ConversionJob.objects.get()
         assert job.target_format_code == "geotiff"
@@ -183,7 +183,7 @@ class TestConvertir:
         assert job.options["solo_rgb"] is True
 
     def test_guarda_lo_inspeccionado_para_no_repetirlo(self, entrado, ortofoto, con_motor):
-        entrado.post("/convertir/", {"ruta": str(ortofoto), "perfil": "civil3d"})
+        entrado.post("/encolar/", {"ruta": str(ortofoto), "perfil": "civil3d"})
         job = ConversionJob.objects.get()
         assert job.source_format_code == "bigtiff"
         assert job.source_crs_code == "32719"
@@ -192,13 +192,13 @@ class TestConvertir:
     def test_la_salida_va_junto_al_original_en_taller(self, entrado, ortofoto, con_motor):
         """Quien convierte una ortofoto la quiere al lado de su entregable, no perdida en
         un directorio de la aplicación."""
-        entrado.post("/convertir/", {"ruta": str(ortofoto), "perfil": "civil3d"})
+        entrado.post("/encolar/", {"ruta": str(ortofoto), "perfil": "civil3d"})
         job = ConversionJob.objects.get()
         assert job.output_path.startswith(str(ortofoto.parent))
         assert job.output_path.endswith("_civil3d.tif")
 
     def test_el_modo_experto_acepta_un_formato_suelto(self, entrado, ortofoto, con_motor):
-        entrado.post("/convertir/", {"ruta": str(ortofoto), "perfil": "", "formato": "geotiff"})
+        entrado.post("/encolar/", {"ruta": str(ortofoto), "perfil": "", "formato": "geotiff"})
         job = ConversionJob.objects.get()
         assert job.target_format_code == "geotiff"
         assert job.target_profile_id == ""
@@ -209,7 +209,7 @@ class TestConvertir:
         """El motor de mentira no declara ninguno, así que el resultado tiene que ser un
         diccionario vacío y no lo que venga en el POST."""
         entrado.post(
-            "/convertir/",
+            "/encolar/",
             {"ruta": str(ortofoto), "perfil": "", "formato": "geotiff", "inventado": "x"},
         )
         assert ConversionJob.objects.get().options == {}
@@ -217,7 +217,7 @@ class TestConvertir:
     def test_un_par_que_ningun_motor_sabe_hacer_se_rechaza(self, entrado, ortofoto, con_motor):
         """Encolarlo sería condenar a alguien a esperar un fallo que ya se sabe. El motor de
         mentira sabe `bigtiff→geotiff`, no `bigtiff→jp2`."""
-        entrado.post("/convertir/", {"ruta": str(ortofoto), "perfil": "", "formato": "jp2"})
+        entrado.post("/encolar/", {"ruta": str(ortofoto), "perfil": "", "formato": "jp2"})
         assert ConversionJob.objects.count() == 0
 
     def test_un_preajuste_fija_su_destino_y_cuenta_el_uso(self, entrado, ortofoto, con_motor):
@@ -230,7 +230,7 @@ class TestConvertir:
             options={"compresion": "DEFLATE", "solo_rgb": True},
         )
 
-        entrado.post("/convertir/", {"ruta": str(ortofoto), "preajuste": preajuste.slug})
+        entrado.post("/encolar/", {"ruta": str(ortofoto), "preajuste": preajuste.slug})
 
         job = ConversionJob.objects.get()
         assert job.target_format_code == "geotiff"
@@ -239,19 +239,19 @@ class TestConvertir:
         assert preajuste.veces_usado == 1
 
     def test_un_preajuste_borrado_no_encola_nada(self, entrado, ortofoto, con_motor):
-        entrado.post("/convertir/", {"ruta": str(ortofoto), "preajuste": "ya-no-existe"})
+        entrado.post("/encolar/", {"ruta": str(ortofoto), "preajuste": "ya-no-existe"})
         assert ConversionJob.objects.count() == 0
 
     def test_un_formato_inventado_se_rechaza(self, entrado, ortofoto, con_motor):
-        entrado.post("/convertir/", {"ruta": str(ortofoto), "perfil": "", "formato": "xyzzy"})
+        entrado.post("/encolar/", {"ruta": str(ortofoto), "perfil": "", "formato": "xyzzy"})
         assert ConversionJob.objects.count() == 0
 
     def test_una_ruta_prohibida_no_encola_nada(self, entrado, taller, con_motor):
-        entrado.post("/convertir/", {"ruta": r"C:\Windows\notepad.exe", "perfil": "civil3d"})
+        entrado.post("/encolar/", {"ruta": r"C:\Windows\notepad.exe", "perfil": "civil3d"})
         assert ConversionJob.objects.count() == 0
 
     def test_no_se_convierte_sin_entrar(self, client, ortofoto):
-        respuesta = client.post("/convertir/", {"ruta": str(ortofoto), "perfil": "civil3d"})
+        respuesta = client.post("/encolar/", {"ruta": str(ortofoto), "perfil": "civil3d"})
         assert respuesta.status_code == 302
         assert ConversionJob.objects.count() == 0
 
@@ -261,5 +261,5 @@ class TestConvertir:
     ):
         settings.MODO = "taller"  # comprobar_ruta exige taller para leer del disco
         settings.CARPETA_DE_TRABAJO = str(tmp_path / "trabajo")
-        entrado.post("/convertir/", {"ruta": str(ortofoto), "perfil": "civil3d"})
+        entrado.post("/encolar/", {"ruta": str(ortofoto), "perfil": "civil3d"})
         assert ConversionJob.objects.count() == 1

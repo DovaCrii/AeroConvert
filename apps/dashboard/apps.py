@@ -3,4 +3,4 @@ from django.apps import AppConfig
 
 class DashboardConfig(AppConfig):
     name = "apps.dashboard"
-    verbose_name = "La mesa"
+    verbose_name = "Convertir"

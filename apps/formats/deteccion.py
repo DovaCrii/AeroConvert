@@ -255,11 +255,13 @@ def inspeccionar(ruta: str | Path) -> Inspeccion:
             if cabecera_tiff.epsg:
                 crs = crs_mod.epsg(cabecera_tiff.epsg, origen=crs_mod.INCRUSTADO)
             if cabecera_tiff.es_bigtiff and not cabecera_tiff.necesitaba_bigtiff:
+                # La coma decimal, no el punto: el resto de la ficha dice «466,2 MB» y
+                # «2,56 cm/px», y mezclar las dos convenciones en la misma tarjeta se nota.
+                gigas = f"{cabecera_tiff.bytes_sin_comprimir / 1e9:.2f}".replace(".", ",")
                 avisos.append(
-                    "Es BigTIFF sin necesitarlo: sin comprimir ocupa "
-                    f"{cabecera_tiff.bytes_sin_comprimir / 1e9:.2f} GB, muy por debajo del "
-                    "techo de 4 GB del TIFF clásico. Reescribirlo como clásico no pierde "
-                    "nada y lo abre mucho más software."
+                    f"Es BigTIFF sin necesitarlo: sin comprimir ocupa {gigas} GB, muy por "
+                    "debajo del techo de 4 GB del TIFF clásico. Reescribirlo como clásico "
+                    "no pierde nada y lo abre mucho más software."
                 )
             if cabecera_tiff.tiene_alfa:
                 avisos.append(

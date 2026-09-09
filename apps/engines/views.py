@@ -61,5 +61,13 @@ def matriz(request):
             "destinos": destinos,
             "motores": motores,
             "motivos": sorted(por_motivo.values(), key=lambda m: -m["cuantas"]),
+            "seccion": "compatibilidad",
+            "etiqueta_seccion": "Compatibilidad",
+            "titulo_pagina": "Qué se puede convertir en este equipo",
+            "proposito": (
+                "Es la pantalla que hay que mirar antes de escribir a soporte. Nada se "
+                "oculta: lo que falta aparece apagado y dice qué falta y qué sirve en su "
+                "lugar."
+            ),
         },
     )

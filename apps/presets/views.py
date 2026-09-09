@@ -18,6 +18,13 @@ def lista(request):
             "de_fabrica": ConversionPreset.objects.filter(de_fabrica=True),
             "propios": ConversionPreset.objects.filter(de_fabrica=False),
             "formatos": {f.codigo: f.nombre for f in catalogo.FORMATOS.values()},
+            "seccion": "preajustes",
+            "etiqueta_seccion": "Preajustes",
+            "titulo_pagina": "Destinos guardados con nombre propio",
+            "proposito": (
+                "Los de fábrica salen de los perfiles y se actualizan con ellos. Copia uno "
+                "y cámbialo para tener el tuyo: «Entrega cliente BHP», por ejemplo."
+            ),
         },
     )
 

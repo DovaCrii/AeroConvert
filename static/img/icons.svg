@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+  <!--
+    Sprite de iconos, dibujados a mano.
+
+    Sin `fill` ni `stroke` propios: los heredan de quien los usa. Es lo que permite que el
+    mismo símbolo sirva en la barra navy y en una tarjeta clara sin dos copias.
+
+    Regla de la familia: **un símbolo distinguible por entrada de menú**, no solo distinto.
+    Cuatro variaciones de un rectángulo no son cuatro iconos: son ruido con forma de icono.
+  -->
+
+  <symbol id="icon-convertir" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Dos flechas de intercambio: el mismo motivo que el logo. -->
+    <path d="M4 8h13" />
+    <path d="M14 5l3 3-3 3" />
+    <path d="M20 16H7" />
+    <path d="M10 13l-3 3 3 3" />
+  </symbol>
+
+  <symbol id="icon-historial" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Un reloj con la flecha de retroceso: lo que ya pasó. -->
+    <path d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1" />
+    <path d="M3 4v4h4" />
+    <path d="M12 7.5V12l3 1.8" />
+  </symbol>
+
+  <symbol id="icon-preajustes" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Un marcador: algo guardado para volver a usarlo. -->
+    <path d="M6 3.5h12v17l-6-4.2-6 4.2z" />
+  </symbol>
+
+  <symbol id="icon-compatibilidad" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Una rejilla con una celda marcada: la matriz origen x destino. -->
+    <rect x="3.5" y="3.5" width="17" height="17" rx="2" />
+    <path d="M3.5 9.5h17M3.5 15h17M9.5 3.5v17M15 3.5v17" />
+    <path d="M11 12.2l1.4 1.4 2.6-2.8" stroke-width="2.1" />
+  </symbol>
+
+  <symbol id="icon-sol" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="4.2" />
+    <path d="M12 2.5v2.2M12 19.3v2.2M4.2 4.2l1.6 1.6M18.2 18.2l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.2 19.8l1.6-1.6M18.2 5.8l1.6-1.6" />
+  </symbol>
+
+  <symbol id="icon-luna" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M20 14.3A8.3 8.3 0 0 1 9.7 4a8.5 8.5 0 1 0 10.3 10.3z" />
+  </symbol>
+
+  <symbol id="icon-salir" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M14.5 4.5H6a1.5 1.5 0 0 0-1.5 1.5v12A1.5 1.5 0 0 0 6 19.5h8.5" />
+    <path d="M17 15.5l3.5-3.5L17 8.5" />
+    <path d="M20.5 12H10" />
+  </symbol>
+
+  <symbol id="icon-soltar" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 3.5v11" />
+    <path d="M8 10.5l4 4 4-4" />
+    <path d="M4 16v2.5A2 2 0 0 0 6 20.5h12a2 2 0 0 0 2-2V16" />
+  </symbol>
+
+  <!-- Los tres veredictos. Formas claramente distintas, no tres círculos de colores: uno de
+       cada doce hombres no distingue el rojo del verde. -->
+  <symbol id="icon-veredicto-abre" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M4.5 12.5l5 5 10-11" />
+  </symbol>
+
+  <symbol id="icon-veredicto-reparos" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 3.5L22 20H2z" />
+    <path d="M12 10v4.2" />
+    <path d="M12 17.2h.01" stroke-width="2.4" />
+  </symbol>
+
+  <symbol id="icon-veredicto-no" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M5.5 5.5l13 13M18.5 5.5l-13 13" />
+  </symbol>
+</svg>

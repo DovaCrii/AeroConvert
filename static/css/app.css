@@ -70,14 +70,17 @@
   --av-primary-soft: #3a1030;
   --av-sobre-accion: #1b0d16;
 
-  --av-bg: #131a26;
-  --av-surface: #1b2432;
-  --av-surface-alt: #202b3b;
-  --av-border: #2b3648;
-  --av-border-control: #6b7890;
+  /* El fondo baja y las superficies suben: antes iban a 12 puntos de luminancia y las
+     tarjetas no se despegaban del fondo, así que la pantalla entera se leía como una
+     mancha gris. Ahora hay tres escalones que se distinguen. */
+  --av-bg: #0e141d;
+  --av-surface: #1c2634;
+  --av-surface-alt: #24303f;
+  --av-border: #334054;
+  --av-border-control: #74829a;
   --av-text: #eef1f6;
-  --av-text-secondary: #b6c0d1;
-  --av-text-muted: #97a3b6;
+  --av-text-secondary: #bcc6d6;
+  --av-text-muted: #9daabc;
 
   --av-ok: #5fd3ae;
   --av-warn: #f0b45e;
@@ -99,14 +102,14 @@
     --av-primary-hover: #f9c4e1;
     --av-primary-soft: #3a1030;
     --av-sobre-accion: #1b0d16;
-    --av-bg: #131a26;
-    --av-surface: #1b2432;
-    --av-surface-alt: #202b3b;
-    --av-border: #2b3648;
-    --av-border-control: #6b7890;
+    --av-bg: #0e141d;
+    --av-surface: #1c2634;
+    --av-surface-alt: #24303f;
+    --av-border: #334054;
+    --av-border-control: #74829a;
     --av-text: #eef1f6;
-    --av-text-secondary: #b6c0d1;
-    --av-text-muted: #97a3b6;
+    --av-text-secondary: #bcc6d6;
+    --av-text-muted: #9daabc;
     --av-ok: #5fd3ae;
     --av-warn: #f0b45e;
     --av-danger: #f08a97;
@@ -124,6 +127,46 @@ body {
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   font-size: 0.95rem;
   line-height: 1.5;
+  min-height: 100vh;
+}
+
+/* Un velo de color muy tenue sobre el fondo, anclado arriba a la izquierda —donde está la
+ * marca— y disipándose. Es la diferencia entre «una pantalla oscura» y «una pantalla que
+ * es de algo»: sin él, el fondo plano hace que todo se lea como gris, que es justo lo que
+ * pasaba. A 6 % y 4 % no compite con nada ni mueve un solo contraste. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(1100px 620px at 6% -8%, rgb(241 91 181 / 6%), transparent 62%),
+    radial-gradient(900px 520px at 96% 4%, rgb(46 196 182 / 4%), transparent 60%);
+}
+
+.envoltorio {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 22px 18px 56px;
+}
+
+/* --- La cabecera de página: dónde estás y para qué sirve esto ------------- */
+
+.cabecera-pagina {
+  margin-bottom: 20px;
+}
+
+.cabecera-pagina h1 {
+  font-size: 1.5rem;
+  margin: 0 0 4px;
+  letter-spacing: -0.01em;
+}
+
+.cabecera-pagina .proposito {
+  color: var(--av-text-secondary);
+  margin: 0;
+  max-width: 62ch;
 }
 
 /* Esta aplicación es cifras de punta a punta: sin `tabular-nums` las columnas bailan al
@@ -143,13 +186,50 @@ td.cifra,
 /* --- La barra ----------------------------------------------------------- */
 
 .barra {
-  background: var(--av-navy);
+  background: linear-gradient(180deg, #22335a 0%, var(--av-navy) 100%);
+  border-bottom: 1px solid rgb(241 91 181 / 22%);
   color: #fff;
   padding: 10px 20px;
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 14px;
   flex-wrap: wrap;
+}
+
+/* La explicación del modo, en la barra y no en un `title`. Un tooltip no existe para quien
+ * usa el teclado, y saber si los archivos salen de la máquina no es un detalle secundario.
+ * Se esconde en pantallas estrechas, donde la chapa sola tiene que bastar. */
+.barra-explicacion {
+  font-size: var(--av-fs-xs);
+  color: rgb(255 255 255 / 72%);
+}
+
+.barra-nav {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-left: auto;
+}
+
+.boton-barra {
+  background: none;
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--av-fs-xs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.boton-barra:hover {
+  background: rgb(255 255 255 / 10%);
+}
+
+@media (max-width: 900px) {
+  .barra-explicacion {
+    display: none;
+  }
 }
 
 .barra a {
@@ -197,6 +277,128 @@ td.cifra,
   color: #f5a8d3;
 }
 
+/* --- La portada de entrada -----------------------------------------------
+ * Dos mitades: qué es esto, y entrar. Antes solo estaba la segunda, y una pantalla con dos
+ * campos y nada más no dice si has llegado al sitio correcto.
+ */
+
+.portada {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(20rem, 24rem);
+  gap: 48px;
+  align-items: center;
+  min-height: 72vh;
+}
+
+.portada-presentacion h1 {
+  font-size: 2.1rem;
+  margin: 14px 0 6px;
+  letter-spacing: -0.02em;
+}
+
+.portada-lema {
+  font-size: 1.05rem;
+  color: var(--av-text-secondary);
+  max-width: 46ch;
+  margin-bottom: 22px;
+}
+
+.portada-lema strong {
+  color: var(--av-text);
+}
+
+.portada-puntos {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 22px;
+  display: grid;
+  gap: 12px;
+  max-width: 50ch;
+}
+
+.portada-puntos li {
+  display: grid;
+  grid-template-columns: 1.2rem 1fr;
+  gap: 10px;
+  align-items: baseline;
+  color: var(--av-text-secondary);
+}
+
+.portada-puntos strong {
+  color: var(--av-text);
+}
+
+.portada-icono {
+  color: var(--av-magenta);
+  font-size: 0.7rem;
+}
+
+.portada-familia {
+  font-size: var(--av-fs-sm);
+  color: var(--av-text-muted);
+  margin: 0;
+}
+
+.portada-acceso {
+  padding: 24px 26px;
+}
+
+.formulario-vertical {
+  display: grid;
+  gap: 14px;
+}
+
+.formulario-vertical label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.formulario-vertical .form-control {
+  min-height: var(--av-control-height);
+}
+
+/* La chapa del modo, explicada donde alguien la ve por primera vez. */
+.nota-modo {
+  margin-top: 18px;
+  padding: 12px 14px;
+  border-radius: var(--av-radius-sm);
+  border: 1px solid currentcolor;
+  background: color-mix(in srgb, currentcolor 10%, transparent);
+  font-size: var(--av-fs-sm);
+}
+
+.nota-modo strong {
+  display: block;
+  margin-bottom: 2px;
+}
+
+.nota-modo p {
+  margin: 0;
+  color: var(--av-text);
+}
+
+.nota-modo p.tenue {
+  margin-top: 6px;
+  color: var(--av-text-secondary);
+}
+
+.nota-modo-taller {
+  color: var(--av-ok);
+}
+
+.nota-modo-nube {
+  color: var(--av-primary);
+}
+
+@media (max-width: 860px) {
+  .portada {
+    grid-template-columns: 1fr;
+    gap: 28px;
+    min-height: 0;
+  }
+}
+
 /* --- Tarjetas ------------------------------------------------------------ */
 
 .tarjeta {
@@ -232,13 +434,144 @@ td.cifra,
   margin-bottom: 2px;
 }
 
+/* --- La navegacion -------------------------------------------------------- */
+
+.nav-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 10px;
+  border-radius: var(--av-radius-sm);
+  opacity: 0.82;
+}
+
+.nav-item:hover {
+  opacity: 1;
+  background: rgb(255 255 255 / 9%);
+  text-decoration: none;
+}
+
+.nav-item[aria-current="page"] {
+  opacity: 1;
+  background: rgb(241 91 181 / 18%);
+  box-shadow: inset 0 -2px 0 var(--av-magenta);
+  text-decoration: none;
+}
+
+.nav-icono {
+  width: 1.15rem;
+  height: 1.15rem;
+  flex: 0 0 auto;
+}
+
+.barra-separador {
+  width: 1px;
+  height: 1.4rem;
+  background: rgb(255 255 255 / 20%);
+}
+
+.boton-icono {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--av-touch-min);
+  min-height: 36px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--av-radius-sm);
+  background: none;
+  color: #fff;
+  cursor: pointer;
+  opacity: 0.82;
+}
+
+.boton-icono:hover {
+  opacity: 1;
+  background: rgb(255 255 255 / 9%);
+}
+
+/* Sol o luna, nunca los dos. Se enseña el que se va a obtener al pulsar, no el estado
+ * actual: un botón dice lo que hace, no dónde estás. */
+.icono-sol {
+  display: none;
+}
+
+:root[data-theme="dark"] .icono-sol,
+.icono-luna {
+  display: inline-block;
+}
+
+:root[data-theme="dark"] .icono-luna {
+  display: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .icono-sol {
+    display: inline-block;
+  }
+
+  :root:not([data-theme="light"]) .icono-luna {
+    display: none;
+  }
+}
+
+@media (max-width: 1100px) {
+  .nav-item span {
+    display: none;
+  }
+}
+
+/* --- Los tres pasos ------------------------------------------------------- */
+
+.pasos {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: 14px;
+  padding: 0;
+  margin: 0 0 18px;
+}
+
+.pasos li {
+  display: grid;
+  grid-template-columns: 1.9rem 1fr;
+  gap: 12px;
+  align-items: start;
+  padding: 14px 16px;
+  border-radius: var(--av-radius);
+  background: var(--av-surface);
+  border: 1px solid var(--av-border);
+}
+
+.paso-numero {
+  display: grid;
+  place-items: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  border-radius: 50%;
+  background: var(--av-primary-soft);
+  color: var(--av-primary);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.pasos strong {
+  display: block;
+  margin-bottom: 1px;
+}
+
+.pasos span {
+  color: var(--av-text-secondary);
+  font-size: var(--av-fs-sm);
+}
+
 /* --- La zona de soltar ---------------------------------------------------- */
 
 .soltar {
   border: 2px dashed var(--av-border-control);
   border-radius: var(--av-radius);
   background: var(--av-surface-alt);
-  padding: 28px 20px;
+  padding: 34px 20px 28px;
   text-align: center;
   transition: border-color 120ms ease, background 120ms ease;
 }
@@ -248,8 +581,66 @@ td.cifra,
   background: var(--av-primary-soft);
 }
 
-.soltar input[type="text"] {
+.soltar-icono {
+  width: 2.6rem;
+  height: 2.6rem;
+  color: var(--av-magenta);
+  margin-bottom: 8px;
+}
+
+.soltar-titulo {
+  font-size: 1.05rem;
+  font-weight: 600;
+  margin: 0 0 3px;
+}
+
+.soltar-ayuda {
+  color: var(--av-text-secondary);
+  font-size: var(--av-fs-sm);
+  margin: 0 0 16px;
+}
+
+.soltar kbd {
+  background: var(--av-surface);
+  border: 1px solid var(--av-border-control);
+  border-radius: 4px;
+  padding: 0 5px;
+  font-size: 0.85em;
+  color: var(--av-text);
+}
+
+.soltar-campo {
+  display: flex;
+  gap: 8px;
+  max-width: 46rem;
+  margin: 0 auto;
+}
+
+.soltar-campo .ruta {
   min-height: var(--av-control-height);
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  font-size: var(--av-fs-sm);
+}
+
+/* --- Cabecera de tarjeta con accion a la derecha -------------------------- */
+
+.cabecera-tarjeta {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 10px;
+}
+
+.cabecera-tarjeta h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.enlace-suave {
+  color: var(--av-primary);
+  font-size: var(--av-fs-sm);
+  white-space: nowrap;
 }
 
 /* --- La ficha del archivo ------------------------------------------------- */
@@ -292,8 +683,10 @@ td.cifra,
 }
 
 .veredicto-marca {
-  font-weight: 800;
-  text-align: center;
+  width: 1.1rem;
+  height: 1.1rem;
+  justify-self: center;
+  align-self: center;
 }
 
 .veredicto-destino {
@@ -518,6 +911,46 @@ td.cifra,
 
 .celda-no-soportado {
   color: var(--av-text-muted);
+}
+
+/* --- Correcciones sobre Bootstrap ------------------------------------------
+ * Bootstrap pinta `<code>` de rojo rosado. Aquí `<code>` se usa para los acompañantes
+ * presentes y para los códigos de motivo, así que ese rojo hacía que un `.prj` que **está**
+ * pareciera un error. El color de un elemento no puede significar «malo» en un sitio y
+ * «esto es un identificador» en otro.
+ */
+
+code {
+  color: var(--av-text-secondary);
+  background: color-mix(in srgb, var(--av-text-secondary) 12%, transparent);
+  padding: 0 4px;
+  border-radius: 4px;
+  font-size: 0.86em;
+}
+
+.form-control,
+.form-select {
+  background: var(--av-surface-alt);
+  border-color: var(--av-border-control);
+  color: var(--av-text);
+}
+
+.form-control:focus,
+.form-select:focus {
+  background: var(--av-surface-alt);
+  color: var(--av-text);
+  border-color: var(--av-primary);
+  box-shadow: none;
+}
+
+.form-control::placeholder {
+  color: var(--av-text-muted);
+}
+
+.table {
+  --bs-table-color: var(--av-text);
+  --bs-table-bg: transparent;
+  --bs-table-border-color: var(--av-border);
 }
 
 /* --- Utilidades ----------------------------------------------------------- */
