@@ -196,6 +196,34 @@ contrario.
 Cuando exista esa instalación, el procedimiento es el mismo de la sección 2, y sus cifras se
 anotan aquí con su fecha.
 
+**LandXML tampoco lo tiene, y por un motivo distinto.** No falta una licencia: es que **OGR
+no trae controlador de LandXML**, ni de lectura ni de escritura — comprobado con
+`ogrinfo --formats`. No hay una segunda herramienta a la que preguntarle si el archivo está
+bien, y comprobarlo con nuestro propio lector sería el código dándose la razón.
+
+Lo que sí se comprueba en automático, y basta para atrapar el fallo que de verdad ocurre —un
+archivo válido, vacío o a medias—:
+
+- que el XML esté **bien formado**, según el analizador de la biblioteca estándar;
+- que traiga **tantos `<CgPoint>` como puntos** tenía la libreta;
+- que el contenido de cada punto sea **norte, este, cota**, fijado contra un ejemplo escrito
+  a mano en `apps/vector/test_landxml.py`.
+
+### El procedimiento manual, pendiente
+
+Son cinco minutos en un puesto con Civil 3D, y **es la aceptación de verdad**:
+
+1. Convertir `puntos control cruce minero.csv` con el destino **Civil 3D**, declarando
+   EPSG:32719. Sale `puntos control cruce minero_civil3d.xml`.
+2. En Civil 3D: **Insertar → LandXML**, elegir el archivo, aceptar.
+3. Comprobar cuatro cosas, que son las que pueden fallar sin dar error:
+   - aparecen **5 puntos**, no uno (un `name` repetido o vacío los machaca en silencio);
+   - los números son **P1…P5** y no correlativos inventados;
+   - la **descripción bruta** de cada uno es `pr`;
+   - el punto P1 cae en **N 7.318.729,036 · E 495.279,406 · cota 3.042,641**. Si norte y este
+     salieran cambiados, el grupo aparecería a 9.650 km.
+4. Anotar aquí el resultado con la fecha y la versión de Civil 3D.
+
 ## Cómo repetir la medición
 
 ```powershell

@@ -13,6 +13,7 @@ import pytest
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 
+from apps.engines import registry
 from apps.jobs.models import ConversionJob
 
 pytestmark = pytest.mark.django_db
@@ -130,6 +131,45 @@ class TestElFormularioLlegaADondeConvierte:
             {"ruta": str(libreta), "formato": "gpkg", "crs_declarado": "32719"},
         )
         assert ConversionJob.objects.count() == 0
+
+
+class TestElDestinoQueSeOfrece:
+    """Un perfil es «dónde tiene que abrir», no «a qué formato».
+
+    Civil 3D quiere un GeoTIFF si le llega una ortofoto y un **LandXML** si le llega una
+    libreta de puntos, y son la misma respuesta a la misma pregunta. Antes de esto el botón
+    de Civil 3D salía apagado delante de una libreta —diciendo que no se puede— porque el
+    único destino que sabía ofrecer era el ráster.
+    """
+
+    def test_civil3d_ofrece_landxml_para_una_libreta(self, sesion, libreta):
+        cuerpo = _inspeccionar(sesion, libreta).content.decode()
+        assert "LandXML" in cuerpo
+
+    def test_y_el_boton_no_sale_apagado(self, sesion, libreta):
+        """LandXML lo escribimos nosotros, así que no depende de nada instalado: en una
+        máquina sin GDAL este botón tiene que seguir vivo."""
+        from apps.engines.base import ParDeFormatos
+        from apps.targets import perfiles as perfiles_mod
+
+        assert perfiles_mod.CIVIL3D.destino_para("vector") == "landxml"
+        assert registry.celda(ParDeFormatos("puntos", "landxml")).se_puede is True
+
+    def test_para_una_ortofoto_sigue_siendo_geotiff(self):
+        """El cambio no puede mover el caso que originó la aplicación."""
+        from apps.targets import perfiles as perfiles_mod
+
+        assert perfiles_mod.CIVIL3D.destino_para("raster") == "geotiff"
+        assert perfiles_mod.CIVIL3D.destino_para("") == "geotiff"
+
+    def test_lo_que_se_ofrece_es_lo_que_se_encola(self, sesion, libreta):
+        """Tener el destino por familia en dos sitios con criterios distintos haría que el
+        botón dijera «LandXML» y el trabajo saliera como GeoTIFF."""
+        sesion.post(
+            reverse("dashboard:encolar"),
+            {"ruta": str(libreta), "perfil": "civil3d", "crs_declarado": "32719"},
+        )
+        assert ConversionJob.objects.latest("id").target_format_code == "landxml"
 
 
 class TestElOrdenAmbiguo:

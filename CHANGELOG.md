@@ -27,7 +27,22 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
   quien lo declaró. Una libreta de puntos no lleva CRS dentro nunca, así que sin esto no
   había ninguna conversión posible.
 - **Conversión vectorial general** entre SHP, GPKG, GeoJSON, KML, KMZ y DXF.
+- **Salida a LandXML**, escrita por nosotros: OGR no trae controlador, ni de lectura ni de
+  escritura. Es la forma en que Civil 3D importa puntos **de verdad** — un DXF entra como
+  dibujo, con entidades sueltas, y un LandXML entra como grupo de puntos COGO con su número
+  y su descripción. Se escribe en flujo, sin construir el árbol XML, porque una libreta de
+  obra grande trae cientos de miles de puntos. **No tiene oráculo externo y no se finge que
+  sí**: se comprueba que el XML esté bien formado y que traiga tantos `<CgPoint>` como
+  puntos tenía la libreta; abrirlo en Civil 3D es un procedimiento manual, igual que ECW.
+- **Los destinos ahora dependen de la familia del archivo.** Un perfil es «dónde tiene que
+  abrir», no «a qué formato»: Civil 3D quiere un GeoTIFF si le llega una ortofoto y un
+  LandXML si le llega una libreta. Antes, delante de un archivo vectorial, cuatro de los
+  seis botones salían apagados diciendo «ningún motor sabe hacer esa conversión» — y el
+  motor estaba, solo que el perfil pedía un ráster. Lo mismo con las nubes de puntos.
 - `sondar_ogr()`, porque `ogrinfo --formats` y `gdalinfo --formats` listan cosas distintas.
+- `puntos.iterar()`, que recorre la libreta entera sin materializarla. `leer()` guarda solo
+  la muestra recortada para dibujar, y entregar ese recorte como si fuera el archivo sería
+  el peor fallo posible del escritor.
 
 ### Corregido
 

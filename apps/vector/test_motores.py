@@ -9,6 +9,7 @@ tarde en esta fase salieron todos de aquí:
 3. `GDAL_DATA` sin poner. El controlador DXF no arranca.
 """
 
+import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -255,6 +256,79 @@ class TestLaMatriz:
     def test_los_controladores_son_los_nombres_cortos_de_ogr(self):
         """`ESRI Shapefile` lleva espacio, y es así como lo espera `-f`."""
         assert motores.CONTROLADOR["shp"] == "ESRI Shapefile"
+
+
+class TestElMotorDeLandXml:
+    def _trabajo_landxml(self, libreta, tmp_path, **extra):
+        return TrabajoDeMentira(
+            source_path=str(libreta),
+            output_path=str(tmp_path / "control.xml"),
+            target_format_code="landxml",
+            **extra,
+        )
+
+    def test_esta_disponible_sin_nada_instalado(self):
+        """Es la única celda verde de la matriz que no necesita nada en la máquina, y eso
+        es parte de su valor: funciona en una VM pelada."""
+        assert motores.MotorLandXml().disponibilidad().disponible is True
+
+    def test_corre_como_proceso_hijo_y_no_como_llamada(self, libreta, tmp_path):
+        """No es ceremonia: es lo que permite cancelarlo, ponerle presupuesto de tiempo, y
+        que un archivo enorme que agote la memoria no se lleve por delante el servidor."""
+        plan = motores.MotorLandXml().plan(self._trabajo_landxml(libreta, tmp_path))
+        assert plan.argv[0] == sys.executable
+        assert plan.argv[1:3] == ("-m", "apps.vector.landxml")
+
+    def test_arranca_en_la_raiz_del_repositorio(self, libreta, tmp_path):
+        """`-m` resuelve el paquete desde el directorio de trabajo: en cualquier otro sitio
+        el hijo no encontraría `apps` y fallaría con un ImportError sin relación aparente."""
+        from django.conf import settings
+
+        plan = motores.MotorLandXml().plan(self._trabajo_landxml(libreta, tmp_path))
+        assert plan.cwd == Path(settings.BASE_DIR)
+
+    def test_escribe_en_el_parcial(self, libreta, tmp_path):
+        plan = motores.MotorLandXml().plan(self._trabajo_landxml(libreta, tmp_path))
+        assert str(tmp_path / "control.parcial.xml") in plan.argv
+
+    def test_le_pasa_el_epsg_y_el_orden(self, libreta, tmp_path):
+        plan = motores.MotorLandXml().plan(
+            self._trabajo_landxml(libreta, tmp_path, options={"orden": "penzd"})
+        )
+        assert plan.argv[plan.argv.index("--epsg") + 1] == "32719"
+        assert plan.argv[plan.argv.index("--orden") + 1] == "penzd"
+
+    def test_ofrece_el_orden_y_el_nombre_del_grupo(self):
+        nombres = {
+            o.nombre for o in motores.MotorLandXml().opciones(ParDeFormatos("puntos", "landxml"))
+        }
+        assert nombres == {"orden", "grupo"}
+
+    def test_solo_declara_el_par_que_sabe_hacer(self):
+        assert motores.MotorLandXml().pares() == frozenset({ParDeFormatos("puntos", "landxml")})
+
+    def test_un_landxml_sin_puntos_no_pasa_la_verificacion(self, libreta, tmp_path):
+        """Es un archivo válido y bien formado que Civil 3D abre sin protestar y sin
+        enseñar nada. Creerle al código de salida es el error más caro que hay aquí."""
+        vacio = tmp_path / "vacio.xml"
+        vacio.write_text(
+            '<?xml version="1.0"?><LandXML xmlns="http://www.landxml.org/schema/LandXML-1.2">'
+            "<CgPoints/></LandXML>",
+            encoding="utf-8",
+        )
+        veredicto = motores.MotorLandXml().verificar(
+            self._trabajo_landxml(libreta, tmp_path), vacio
+        )
+        assert veredicto.correcta is False
+        assert veredicto.codigo_motivo == "salida-invalida"
+
+    def test_un_xml_a_medias_no_pasa(self, libreta, tmp_path):
+        """Pasa si el proceso muere a mitad de escritura. El parcial existe y tiene bytes."""
+        roto = tmp_path / "roto.xml"
+        roto.write_text("<LandXML><CgPoints><CgPoint>1 2 3</CgPoint>", encoding="utf-8")
+        veredicto = motores.MotorLandXml().verificar(self._trabajo_landxml(libreta, tmp_path), roto)
+        assert veredicto.correcta is False
+        assert "bien formado" in veredicto.motivo
 
 
 class TestLaVerificacion:

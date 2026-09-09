@@ -7,8 +7,9 @@
 ## En una frase
 
 **Ráster, nubes de puntos y libretas de puntos topográficos funcionan de punta a punta, con
-interfaz.** Lo que queda es el resto de la familia vectorial/CAD (LandXML, KML/KMZ, DWG por
-ODA), BIM/malla (F4), y ECW, que necesita una licencia para poder probarse.
+interfaz** — incluida la salida a **LandXML**, que es como Civil 3D importa puntos COGO. Lo
+que queda es el resto de la familia vectorial/CAD (leer LandXML, KML/KMZ, DWG por ODA),
+BIM/malla (F4), y ECW, que necesita una licencia para poder probarse.
 
 ## Lo que se cerró
 
@@ -20,8 +21,9 @@ ODA), BIM/malla (F4), y ECW, que necesita una licencia para poder probarse.
 | F2 | Nubes: lector LAS propio, LAS/LAZ → COPC, diezmado, reproyección, RCS/RCP declarados |
 | F3.1 | OGR vectorial: SHP, GPKG, GeoJSON, KML/KMZ, DXF entre sí |
 | F3.3 | **Libretas de puntos PNEZD/PENZD/NEZ/ENZ**, con detección del orden por rango UTM y vista previa dibujada antes de convertir |
+| F3.5 | **LandXML de salida**: `CgPoints` con número, descripción y `epsgCode`, escrito en flujo |
 
-**514 pruebas**, 92,6 % de cobertura, verdes **sin GDAL ni PDAL instalados**.
+**553 pruebas**, 92,9 % de cobertura, verdes **sin GDAL ni PDAL instalados**.
 
 ### Lo verificado sobre archivos reales
 
@@ -31,6 +33,7 @@ ODA), BIM/malla (F4), y ECW, que necesita una licencia para poder probarse.
 | La misma | JPEG 2000 60 MB | 9 s | `gdalinfo` |
 | Nube 278,9 MB LAS 1.2 | COPC 76,4 MB, 9.618.692 puntos intactos | 50 s | `pdal info` |
 | Libreta `puntos control cruce minero.csv` | GPKG · SHP · KML · DXF, 5 puntos cada uno | < 1 s | `ogrinfo` |
+| La misma | LandXML con 5 `CgPoint`, grupo nombrado y `epsgCode` | < 1 s | sin oráculo: ver abajo |
 
 Y en los cuatro el veredicto se invierte, que es el objetivo del producto.
 
@@ -40,17 +43,25 @@ norte— y las cuatro salidas traen los cinco puntos con la extensión exacta de
 161,5 × 192,0 m. El KML sale reproyectado a EPSG:4326 en **−69,046° / −24,244°**, que es la
 Región de Antofagasta: si el orden se hubiera leído al revés, caería a 9.650 km de ahí.
 
+**LandXML no tiene oráculo y no se finge que sí.** OGR no lo lee, así que no hay una segunda
+herramienta a la que preguntarle, y comprobarlo con nuestro propio lector sería el código
+dándose la razón. Lo que se comprueba automáticamente es lo comprobable: que el XML esté bien
+formado —lo dice el analizador de la biblioteca estándar— y que traiga tantos `<CgPoint>`
+como puntos tenía la libreta. **La aceptación de verdad es abrirlo en Civil 3D**, y está
+pendiente de hacerse en un puesto con licencia; es un procedimiento manual, igual que ECW.
+
 ## Lo siguiente, en orden
 
-1. **F3 — lo que queda.** Las libretas de puntos ya están hechas y verificadas sobre el
-   archivo real (ver abajo). Falta el resto de la fase: **LandXML** —la entrada natural a
-   Civil 3D para superficies y alineamientos—, el parser KML/KMZ endurecido de
-   `AeroControl/apps/geo/kml/parse.py` para leer lo que llega de Google Earth, y **DWG/DGN
-   por el motor ODA**, que ya tiene su sonda escrita.
-2. **F2.6 — 3D Tiles y Potree** con `py3dtiles`, para el visor web.
-3. **F1.6 — ECW.** El motor está escrito y la clave ya viaja solo en el entorno del hijo,
+1. **Abrir el LandXML en Civil 3D.** Es lo único de la fase que no se puede comprobar desde
+   aquí, y es la aceptación de verdad. Cinco minutos en un puesto con licencia.
+2. **F3 — lo que queda.** Falta **leer** LandXML (superficies y alineamientos, que es la otra
+   mitad del formato), el parser KML/KMZ endurecido de
+   `AeroControl/apps/geo/kml/parse.py` para lo que llega de Google Earth, y **DWG/DGN por el
+   motor ODA**, que ya tiene su sonda escrita.
+3. **F2.6 — 3D Tiles y Potree** con `py3dtiles`, para el visor web.
+4. **F1.6 — ECW.** El motor está escrito y la clave ya viaja solo en el entorno del hijo,
    con su prueba centinela. Falta la SDK de Hexagon para probarlo.
-4. **F4 — BIM y malla.**
+5. **F4 — BIM y malla.**
 
 ## Ideas anotadas, sin decidir
 
@@ -154,4 +165,6 @@ uv run python manage.py procesar_trabajos --una-vez
 **No están en el repositorio y no deben estarlo.** Sus cifras están en
 `docs/PRUEBAS_CON_ORACULO.md`; las pruebas reconstruyen equivalentes de 400 bytes en
 `apps/formats/tests/constructor.py`, tanto TIFF como LAS.
+
+
 

@@ -46,6 +46,7 @@ inspección, que es antes de elegir destino y antes de tocar nada.
 from __future__ import annotations
 
 import math
+from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -355,6 +356,74 @@ def _decidir_orden(filas: list[list[str]], estructura: _Estructura) -> tuple[str
     )
 
 
+def iterar(ruta: str | Path, *, orden: str = "") -> Iterator[Punto]:
+    """Recorre **todos** los puntos, uno a uno, sin quedarse con ninguno.
+
+    `leer()` guarda solo `muestra`, que está recortada a `MUESTRA_MAXIMA` para poder
+    dibujarla. Quien tiene que **escribir** el archivo entero necesita esto: una libreta de
+    obra grande trae cientos de miles de puntos, y materializarlos todos en una lista de
+    dataclasses para copiarlos a un XML es gastar memoria en algo que se usa una vez.
+
+    La detección se hace con las primeras líneas y luego se recorre el archivo desde el
+    principio, así que el archivo se abre dos veces y no se carga entero nunca.
+    """
+    ruta = Path(ruta)
+    if orden and orden not in ORDENES:
+        raise NoEsArchivoDePuntos(f"«{orden}» no es un orden conocido.")
+
+    cabeza = _primeras_lineas(ruta, FILAS_PARA_DEDUCIR + 1)
+    if not cabeza:
+        raise NoEsArchivoDePuntos("El archivo no tiene ninguna línea con contenido.")
+
+    delimitador = _elegir_delimitador(cabeza)
+    filas = [_partir(linea, delimitador) for linea in cabeza]
+    tiene_encabezado = len(filas) > 1 and _es_encabezado(filas[0])
+    cuerpo = filas[1:] if tiene_encabezado else filas
+
+    para_deducir = [fila for fila in cuerpo if _fila_utilizable(fila)]
+    if not para_deducir:
+        raise NoEsArchivoDePuntos("Ninguna línea trae tres columnas numéricas.")
+
+    estructura = _estructura(para_deducir, _columnas_numericas(para_deducir))
+    if orden:
+        codigo = orden
+        estructura = _con_orden_declarado(estructura, orden)
+    else:
+        codigo, _certeza, _alternativo = _decidir_orden(para_deducir, estructura)
+
+    columna = _columnas_de(codigo, estructura)
+
+    with open(ruta, encoding="utf-8-sig", errors="replace") as archivo:
+        # Se cuentan las líneas **con contenido**, no las del archivo: si empieza con una
+        # línea en blanco, el encabezado no está en la posición cero y saltarla por número
+        # de línea dejaría el rótulo dentro de los datos.
+        con_contenido = 0
+        for linea in archivo:
+            if not linea.strip():
+                continue
+            con_contenido += 1
+            if tiene_encabezado and con_contenido == 1:
+                continue
+            punto = _punto_de(_partir(linea.rstrip("\n"), delimitador), columna, estructura)
+            if punto is not None:
+                yield punto
+
+
+def _primeras_lineas(ruta: Path, cuantas: int) -> list[str]:
+    """Las primeras líneas con contenido, sin leer el archivo entero."""
+    try:
+        with open(ruta, encoding="utf-8-sig", errors="replace") as archivo:
+            recogidas = []
+            for linea in archivo:
+                if linea.strip():
+                    recogidas.append(linea.rstrip("\n"))
+                if len(recogidas) >= cuantas:
+                    break
+            return recogidas
+    except OSError as fallo:  # pragma: no cover - lo filtra la inspección antes
+        raise NoEsArchivoDePuntos(str(fallo)) from fallo
+
+
 def leer(ruta: str | Path, *, orden: str = "") -> CabeceraPuntos:
     """Lee el archivo y deduce su estructura.
 
@@ -552,50 +621,62 @@ def campos_ogr(ruta: str | Path, *, orden: str = "") -> CamposOgr:
     )
 
 
+def _columnas_de(orden: str, estructura: _Estructura) -> dict[str, int]:
+    """Qué columna del archivo lleva el norte, el este y la cota, para ese orden."""
+    solo_coordenadas = [papel for papel in ORDENES[orden] if papel in ("n", "e", "z")]
+    return {
+        papel: estructura.coordenadas[posicion] for posicion, papel in enumerate(solo_coordenadas)
+    }
+
+
+def _punto_de(fila: list[str], columna: dict[str, int], estructura: _Estructura) -> Punto | None:
+    """Una fila convertida en punto, o `None` si no se pudo interpretar.
+
+    Vive suelta porque la usan los dos caminos —`leer()`, que se queda con todo para poder
+    dar mínimos y máximos, e `iterar()`, que no se queda con nada— y tener el criterio de
+    «qué es una fila válida» escrito dos veces es como se desincronizan.
+    """
+    if max(columna.values()) >= len(fila):
+        return None
+
+    norte = _a_numero(fila[columna["n"]])
+    este = _a_numero(fila[columna["e"]])
+    cota = _a_numero(fila[columna["z"]])
+    if norte is None or este is None or cota is None:
+        return None
+
+    identificador = ""
+    if estructura.columna_punto is not None and estructura.columna_punto < len(fila):
+        identificador = fila[estructura.columna_punto].strip()
+
+    descripcion = ""
+    if estructura.columna_descripcion is not None and estructura.columna_descripcion < len(fila):
+        descripcion = fila[estructura.columna_descripcion].strip()
+
+    return Punto(
+        identificador=identificador,
+        norte_m=norte,
+        este_m=este,
+        cota_m=cota,
+        descripcion=descripcion,
+    )
+
+
 def _extraer(
     filas: list[list[str]], orden: str, estructura: _Estructura
 ) -> tuple[list[Punto], int, tuple[Punto, ...]]:
     """Convierte las filas en puntos. Devuelve `(puntos, ignoradas, muestra)`."""
-    papeles = ORDENES[orden]
-    # De los tres papeles de coordenada, en qué posición va cada uno.
-    solo_coordenadas = [papel for papel in papeles if papel in ("n", "e", "z")]
-    columna = {
-        papel: estructura.coordenadas[posicion] for posicion, papel in enumerate(solo_coordenadas)
-    }
+    columna = _columnas_de(orden, estructura)
 
     puntos: list[Punto] = []
     ignoradas = 0
 
     for fila in filas:
-        norte = este = cota = None
-        if max(columna.values()) < len(fila):
-            norte = _a_numero(fila[columna["n"]])
-            este = _a_numero(fila[columna["e"]])
-            cota = _a_numero(fila[columna["z"]])
-
-        if norte is None or este is None or cota is None:
+        punto = _punto_de(fila, columna, estructura)
+        if punto is None:
             ignoradas += 1
             continue
-
-        identificador = ""
-        if estructura.columna_punto is not None and estructura.columna_punto < len(fila):
-            identificador = fila[estructura.columna_punto].strip()
-
-        descripcion = ""
-        if estructura.columna_descripcion is not None and estructura.columna_descripcion < len(
-            fila
-        ):
-            descripcion = fila[estructura.columna_descripcion].strip()
-
-        puntos.append(
-            Punto(
-                identificador=identificador,
-                norte_m=norte,
-                este_m=este,
-                cota_m=cota,
-                descripcion=descripcion,
-            )
-        )
+        puntos.append(punto)
 
     # La muestra se toma repartida por todo el archivo y no de la cabeza: los primeros 3.000
     # puntos de un levantamiento son una esquina de la obra, y dibujarlos daría una vista

@@ -31,6 +31,7 @@ from __future__ import annotations
 
 import re
 import shutil
+import sys
 from pathlib import Path
 
 from django.conf import settings
@@ -292,6 +293,155 @@ class MotorPuntosTopograficos(Motor):
         return _verificar_con_ogrinfo(trabajo, salida, super().verificar(trabajo, salida))
 
 
+class MotorLandXml(Motor):
+    """Libreta de puntos → LandXML, escrito por nosotros.
+
+    **OGR no trae controlador de LandXML**, ni de lectura ni de escritura: comprobado con
+    `ogrinfo --formats`. Así que este motor no lanza una herramienta de fuera, lanza el
+    nuestro — pero **lo lanza igual, como proceso hijo**, y no llama a la función desde la
+    vista. Eso no es ceremonia: es lo que hace que se pueda cancelar, que tenga presupuesto
+    de tiempo, y que un archivo enorme que agote la memoria no se lleve por delante el
+    servidor. La misma decisión que hace que GDAL y PDAL corran fuera.
+
+    Vale la pena frente al DXF que ya se puede hacer: un DXF entra en Civil 3D como dibujo
+    —entidades sueltas— y un LandXML entra como **grupo de puntos COGO**, con su número y su
+    descripción. Es la diferencia entre entregar un plano y entregar topografía.
+    """
+
+    id = "aeroconvert-landxml"
+    nombre = "AeroConvert"
+    familia = "vector"
+    prioridad = 10
+
+    def pares(self) -> frozenset[ParDeFormatos]:
+        return frozenset({ParDeFormatos("puntos", "landxml")})
+
+    def disponibilidad(self) -> Disponibilidad:
+        """Siempre. Es código propio y no depende de nada instalado.
+
+        Es la única celda verde de la matriz que no necesita que haya nada en la máquina, y
+        eso es parte de su valor: funciona en una VM pelada.
+        """
+        from django.conf import settings
+
+        return Disponibilidad.si(f"AeroConvert {getattr(settings, 'VERSION', '')}".strip())
+
+    def opciones(self, par: ParDeFormatos) -> tuple[OpcionDeMotor, ...]:
+        return (
+            *MotorPuntosTopograficos().opciones(par),
+            OpcionDeMotor(
+                "grupo",
+                "Nombre del grupo de puntos",
+                "texto",
+                por_defecto="",
+                ayuda=(
+                    "Como aparecerá el grupo en Civil 3D. Si se deja vacío, se usa el "
+                    "nombre del archivo."
+                ),
+            ),
+        )
+
+    def plan(self, trabajo) -> PlanDeEjecucion:
+        origen = Path(trabajo.source_path)
+        destino = Path(trabajo.output_path)
+        parcial = ruta_parcial(destino)
+        opciones = dict(trabajo.options or {})
+
+        argv = [
+            sys.executable,
+            "-m",
+            "apps.vector.landxml",
+            str(origen),
+            str(parcial),
+            "--orden",
+            str(opciones.get("orden", "") or ""),
+            "--epsg",
+            (trabajo.source_crs_code or ""),
+            "--nombre-crs",
+            (getattr(trabajo, "source_crs_name", "") or ""),
+            "--grupo",
+            str(opciones.get("grupo", "") or ""),
+        ]
+
+        return PlanDeEjecucion(
+            argv=tuple(argv),
+            ruta_de_salida=destino,
+            # `-m` resuelve el paquete desde el directorio de trabajo, así que el hijo tiene
+            # que arrancar en la raíz del repositorio o no encontrará `apps`.
+            cwd=Path(settings.BASE_DIR),
+            timeout_s=1800,
+            emite_progreso=False,
+        )
+
+    def verificar(self, trabajo, salida: Path) -> Verificacion:
+        """Aquí **no hay oráculo externo**, y no se finge que sí.
+
+        OGR no lee LandXML, así que no hay una segunda herramienta a la que preguntarle si
+        el archivo está bien. Comprobarlo con nuestro propio lector no probaría nada: sería
+        el código dándose la razón.
+
+        Lo que se comprueba es lo que sí es comprobable sin lector: que el XML esté bien
+        formado —lo dice el analizador de la biblioteca estándar, que no es nuestro— y que
+        traiga tantos `<CgPoint>` como puntos tenía la libreta. Eso atrapa el fallo que de
+        verdad ocurre: un archivo válido, vacío o a medias.
+
+        La aceptación de verdad es abrirlo en Civil 3D, y está escrita como procedimiento
+        manual en `docs/PRUEBAS_CON_ORACULO.md`, igual que con ECW.
+        """
+        base = super().verificar(trabajo, salida)
+        if not base.correcta:
+            return base
+
+        try:
+            puestos = _contar_cgpoints(salida)
+        except ValueError as fallo:
+            return Verificacion(
+                correcta=False,
+                motivo=f"El LandXML escrito no está bien formado: {fallo}",
+                codigo_motivo="salida-invalida",
+            )
+
+        detalles = {"entidades": puestos, "bytes": salida.stat().st_size}
+        if trabajo.source_crs_code:
+            detalles["epsg"] = trabajo.source_crs_code
+
+        if not puestos:
+            return Verificacion(
+                correcta=False,
+                motivo=(
+                    "El archivo se escribió pero no tiene ningún punto dentro. Civil 3D lo "
+                    "abriría sin protestar y sin enseñar nada."
+                ),
+                codigo_motivo="salida-invalida",
+                detalles=detalles,
+            )
+
+        return Verificacion(correcta=True, detalles=detalles)
+
+
+def _contar_cgpoints(ruta: Path) -> int:
+    """Cuenta los `<CgPoint>` comprobando de paso que el XML esté bien formado.
+
+    Con `iterparse` y no cargando el árbol: un LandXML de cien mil puntos son decenas de
+    megabytes, y verificar la salida no puede costar más memoria que escribirla.
+
+    El analizador es el de la biblioteca estándar y el archivo lo acabamos de escribir
+    nosotros mismos en este equipo, así que no hay contenido ajeno que analizar aquí -- que
+    es de lo que protege `defusedxml`.
+    """
+    from xml.etree import ElementTree  # nosec B405
+
+    cuantos = 0
+    try:
+        for _evento, elemento in ElementTree.iterparse(ruta, events=("end",)):  # nosec B314
+            if elemento.tag.rpartition("}")[2] == "CgPoint":
+                cuantos += 1
+            elemento.clear()
+    except ElementTree.ParseError as fallo:
+        raise ValueError(str(fallo)) from fallo
+    return cuantos
+
+
 class MotorOgrVector(Motor):
     """Conversión vectorial normal: SHP, GPKG, GeoJSON, KML, DXF entre sí."""
 
@@ -449,4 +599,5 @@ def _epsg_de(capas: list[dict]) -> str:
 
 def registrar_todos() -> None:
     registry.registrar(MotorPuntosTopograficos())
+    registry.registrar(MotorLandXml())
     registry.registrar(MotorOgrVector())

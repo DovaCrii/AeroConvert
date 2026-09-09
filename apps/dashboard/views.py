@@ -47,7 +47,9 @@ class DestinoOfrecido:
 def _destinos_para(inspeccion) -> tuple[DestinoOfrecido, ...]:
     ofrecidos = []
     for perfil in perfiles_mod.PERFILES.values():
-        destino = perfil.formato_destino
+        # Por familia: un perfil es «dónde tiene que abrir», no «a qué formato». Civil 3D
+        # quiere un GeoTIFF si le llega una ortofoto y un LandXML si le llega una libreta.
+        destino = perfil.destino_para(inspeccion.familia)
         formato = catalogo.FORMATOS.get(destino)
         celda = registry.celda(ParDeFormatos(inspeccion.codigo_formato, destino))
 
@@ -310,7 +312,14 @@ def _destino_pedido(request, inspeccion):
     identificador = (request.POST.get("perfil") or "").strip()
     perfil = perfiles_mod.PERFILES.get(identificador)
     if perfil is not None:
-        return perfil.formato_destino, dict(perfil.opciones), identificador, None
+        # El mismo destino por familia que se ofreció en el botón. Tenerlo en dos sitios con
+        # criterios distintos haría que el botón dijera «LandXML» y encolara un GeoTIFF.
+        return (
+            perfil.destino_para(inspeccion.familia),
+            dict(perfil.opciones),
+            identificador,
+            None,
+        )
 
     formato = (request.POST.get("formato") or "").strip()
     if formato not in catalogo.FORMATOS:

@@ -64,6 +64,14 @@ class PerfilDeDestino:
     formatos_aceptados: tuple[str, ...] = ()
     #: El formato al que se convierte cuando se elige este perfil.
     formato_destino: str = ""
+    #: Y el que se usa cuando la entrada es de otra familia.
+    #:
+    #: Un perfil es «donde tiene que abrir», no «a qué formato». Civil 3D quiere un GeoTIFF
+    #: si le llega una ortofoto y un LandXML si le llega una libreta de puntos, y son la
+    #: misma respuesta a la misma pregunta. Sin esto, el boton de Civil 3D salia apagado
+    #: delante de una libreta -- diciendo que no se puede -- porque el unico destino que
+    #: sabia ofrecer era el raster.
+    destinos_por_familia: dict[str, str] = field(default_factory=dict)
     #: Las opciones que fija el perfil. Se pueden ver y cambiar en «ajustar a mano».
     opciones: dict = field(default_factory=dict)
     #: Acompanantes que hay que escribir al lado.
@@ -74,6 +82,10 @@ class PerfilDeDestino:
             codigo_formato in self.formatos_preferidos or codigo_formato in self.formatos_aceptados
         )
 
+    def destino_para(self, familia: str) -> str:
+        """El formato al que lleva este perfil una entrada de esa familia."""
+        return self.destinos_por_familia.get(familia, self.formato_destino)
+
 
 # --- Los perfiles ----------------------------------------------------------
 
@@ -82,9 +94,15 @@ CIVIL3D = PerfilDeDestino(
     nombre="Civil 3D / AutoCAD",
     descripcion="Lo que abre en cualquier puesto con Civil 3D, tenga o no Raster Design.",
     # TIFF clasico primero: es lo que abre AutoCAD base, sin complementos.
-    formatos_preferidos=("geotiff",),
-    formatos_aceptados=("jp2", "ecw", "mrsid", "img", "png", "jpeg"),
+    formatos_preferidos=("geotiff", "landxml"),
+    formatos_aceptados=("jp2", "ecw", "mrsid", "img", "png", "jpeg", "dxf", "puntos"),
     formato_destino="geotiff",
+    # Una libreta de puntos va a **LandXML**, no a un ráster.
+    #
+    # Y no a DXF, que también se podría: un DXF entra en Civil 3D como dibujo —entidades
+    # `AcDbPoint` sueltas— y un LandXML entra como grupo de puntos COGO, con su número y su
+    # descripción. Es la diferencia entre entregar un plano y entregar topografía.
+    destinos_por_familia={"vector": "landxml"},
     # **Las claves son las que declara el motor, no las de GDAL.**
     #
     # Escribirlas como `COMPRESS` o `BLOCKXSIZE` parecia natural -- es lo que acaba en el
@@ -124,6 +142,10 @@ QGIS = PerfilDeDestino(
         "copc",
     ),
     formato_destino="cog",
+    # GeoPackage para lo vectorial: un solo archivo, con el CRS y los atributos dentro. Es lo
+    # que el propio catalogo llama «el destino recomendado». Y COPC para nubes, que es lo que
+    # QGIS abre por rangos sin cargarla entera.
+    destinos_por_familia={"vector": "gpkg", "nube": "copc"},
     opciones={"compresion": "DEFLATE"},
 )
 
@@ -134,6 +156,10 @@ ARCGIS = PerfilDeDestino(
     formatos_preferidos=("geotiff", "bigtiff", "cog", "img", "gpkg"),
     formatos_aceptados=("jp2", "ecw", "mrsid", "asc", "shp", "geojson", "las", "laz"),
     formato_destino="geotiff",
+    # Shapefile y no GeoPackage: ArcGIS lee los dos, pero el shapefile sigue siendo lo que
+    # espera media administracion publica cuando pide «los puntos». Quien quiera GPKG lo
+    # tiene a un clic en «ajustar a mano».
+    destinos_por_familia={"vector": "shp", "nube": "laz"},
     # ArcGIS si lee BigTIFF, asi que no hay razon para forzar el clasico y arriesgarse a
     # que un raster grande no quepa.
     opciones={"compresion": "LZW", "bigtiff": "IF_SAFER", "piramides": "2 4 8 16 32"},
@@ -156,6 +182,9 @@ WEB = PerfilDeDestino(
     formatos_preferidos=("cog",),
     formatos_aceptados=("mbtiles", "geojson", "copc"),
     formato_destino="cog",
+    # GeoJSON para lo vectorial y COPC para nubes: los dos formatos que un visor lee sin
+    # servidor detras. Y los dos van en EPSG:4326 o por rangos, que es lo que los hace web.
+    destinos_por_familia={"vector": "geojson", "nube": "copc"},
     opciones={"compresion": "DEFLATE"},
 )
 
@@ -165,6 +194,9 @@ AEROBIM = PerfilDeDestino(
     descripcion="La aplicacion hermana: COG para raster, COPC para nubes, DXF para planos.",
     formatos_preferidos=("cog", "copc", "dxf", "ifc"),
     formato_destino="cog",
+    # Lo que ya dice su propia descripcion, ahora tambien en el boton: DXF para planos y
+    # COPC para nubes. Antes prometia las tres cosas y solo sabia ofrecer la primera.
+    destinos_por_familia={"vector": "dxf", "nube": "copc"},
     opciones={"compresion": "DEFLATE"},
 )
 
