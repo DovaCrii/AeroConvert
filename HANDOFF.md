@@ -6,10 +6,11 @@
 
 ## En una frase
 
-**Ráster, nubes de puntos y libretas de puntos topográficos funcionan de punta a punta, con
-interfaz** — incluida la salida a **LandXML**, que es como Civil 3D importa puntos COGO. Lo
-que queda es el resto de la familia vectorial/CAD (leer LandXML, KML/KMZ, DWG por ODA),
-BIM/malla (F4), y ECW, que necesita una licencia para poder probarse.
+**Ráster, nubes de puntos, libretas de puntos y LandXML funcionan de punta a punta, con
+interfaz.** Casi todo lo que queda **no espera código: espera algo de fuera** — un puesto con
+Civil 3D para dar por buena la salida LandXML, un LandXML de verdad para poder leer sus
+superficies, el conversor de ODA para DWG, la SDK de Hexagon para ECW. Lo único pendiente que
+solo depende de escribirlo es F2.6 (3D Tiles) y F4 (BIM y malla).
 
 ## Lo que se cerró
 
@@ -21,9 +22,9 @@ BIM/malla (F4), y ECW, que necesita una licencia para poder probarse.
 | F2 | Nubes: lector LAS propio, LAS/LAZ → COPC, diezmado, reproyección, RCS/RCP declarados |
 | F3.1 | OGR vectorial: SHP, GPKG, GeoJSON, KML/KMZ, DXF entre sí |
 | F3.3 | **Libretas de puntos PNEZD/PENZD/NEZ/ENZ**, con detección del orden por rango UTM y vista previa dibujada antes de convertir |
-| F3.5 | **LandXML de salida**: `CgPoints` con número, descripción y `epsgCode`, escrito en flujo |
+| F3.5 | **LandXML**: se escribe (CgPoints con número, descripción y epsgCode) y se lee (qué trae dentro; los puntos además se convierten) |
 
-**553 pruebas**, 92,9 % de cobertura, verdes **sin GDAL ni PDAL instalados**.
+**642 pruebas**, 92,6 % de cobertura, verdes **sin GDAL ni PDAL instalados**.
 
 ### Lo verificado sobre archivos reales
 
@@ -34,8 +35,10 @@ BIM/malla (F4), y ECW, que necesita una licencia para poder probarse.
 | Nube 278,9 MB LAS 1.2 | COPC 76,4 MB, 9.618.692 puntos intactos | 50 s | `pdal info` |
 | Libreta `puntos control cruce minero.csv` | GPKG · SHP · KML · DXF, 5 puntos cada uno | < 1 s | `ogrinfo` |
 | La misma | LandXML con 5 `CgPoint`, grupo nombrado y `epsgCode` | < 1 s | sin oráculo: ver abajo |
+| Ese LandXML | de vuelta a SHP · GPKG · KML, 5 entidades y las mismas coordenadas | < 1 s | `ogrinfo` |
+| KMZ del cruce | GPKG y DXF en UTM, ida y vuelta exacta al milímetro | < 1 s | `ogrinfo` |
 
-Y en los cuatro el veredicto se invierte, que es el objetivo del producto.
+Y en todos el veredicto se invierte, que es el objetivo del producto.
 
 **La libreta de puntos, con detalle**, porque es el caso donde el fallo es silencioso: se
 detecta **PNEZD por el rango UTM** —7.318.729 no cabe como este de una zona, así que es
@@ -50,18 +53,28 @@ formado —lo dice el analizador de la biblioteca estándar— y que traiga tant
 como puntos tenía la libreta. **La aceptación de verdad es abrirlo en Civil 3D**, y está
 pendiente de hacerse en un puesto con licencia; es un procedimiento manual, igual que ECW.
 
-## Lo siguiente, en orden
+## Lo siguiente, y de qué depende cada cosa
 
-1. **Abrir el LandXML en Civil 3D.** Es lo único de la fase que no se puede comprobar desde
-   aquí, y es la aceptación de verdad. Cinco minutos en un puesto con licencia.
-2. **F3 — lo que queda.** Falta **leer** LandXML (superficies y alineamientos, que es la otra
-   mitad del formato), el parser KML/KMZ endurecido de
-   `AeroControl/apps/geo/kml/parse.py` para lo que llega de Google Earth, y **DWG/DGN por el
-   motor ODA**, que ya tiene su sonda escrita.
-3. **F2.6 — 3D Tiles y Potree** con `py3dtiles`, para el visor web.
-4. **F1.6 — ECW.** El motor está escrito y la clave ya viaja solo en el entorno del hijo,
-   con su prueba centinela. Falta la SDK de Hexagon para probarlo.
-5. **F4 — BIM y malla.**
+**Lo que espera a alguien, no a código:**
+
+1. **Abrir el LandXML en Civil 3D.** Es la aceptación de verdad y no se puede hacer desde
+   aquí. Cinco minutos en un puesto con licencia; el procedimiento está en
+   `docs/PRUEBAS_CON_ORACULO.md` con los cuatro puntos que pueden fallar sin dar error.
+2. **Conseguir un LandXML de verdad** —de Civil 3D, de un proyectista, de donde sea— para
+   poder hacer el lector de superficies y alineamientos. Hoy se cuentan y se identifican,
+   pero no se traducen: sin un archivo con el que contrastar, un triangulado mal leído da una
+   superficie plausible y equivocada.
+3. **Instalar ODA File Converter** (gratuito, de la Open Design Alliance) y apuntar
+   `AEROCONVERT_ODA_CONVERTER`. Con eso se abre DWG y DGN v8. La sonda ya está escrita y hoy
+   responde `sin-conversor`.
+4. **La SDK de Hexagon** para ECW. El motor está escrito y la clave ya viaja solo en el
+   entorno del hijo, con su prueba centinela.
+
+**Lo que solo espera a que alguien lo escriba:**
+
+5. **F2.6 — 3D Tiles y Potree** con `py3dtiles`, para el visor web. Habría que añadir la
+   dependencia.
+6. **F4 — BIM y malla** con `ifcopenshell`. Tampoco está instalada.
 
 ## Ideas anotadas, sin decidir
 
@@ -121,6 +134,11 @@ desde cero, no como compromiso.
 - **Un `integrity` desparejado no da error visible**: el navegador descarta el recurso y la
   página sale sin estilos. Si re-vendorizas algo, actualiza el hash en `base.html`;
   `test_estaticos.py` compara los dos.
+- **Un Shapefile son cinco archivos, y el renombrado movía uno.** La verificación corre
+  sobre el parcial, cuando los hermanos todavía se llaman `salida.parcial.shx`, así que
+  pasaba; después quedaba un `.shp` huérfano que **no abre en ninguna parte**. Lo mueve
+  `_renombrar_con_acompanantes()`, y quién acompaña a quién lo dice el catálogo. Si añades un
+  formato multiarchivo, sus acompañantes van ahí.
 - **Un DXF en grados es un dibujo de dos milésimas de unidad.** No guarda sistema de
   referencia: guarda números. Un KMZ viene siempre en EPSG:4326, así que llevarlo a DXF sin
   reproyectar «funciona» y entrega algo invisible en Civil 3D. Lo para `_exigir_metros` en el

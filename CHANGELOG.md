@@ -44,6 +44,30 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
   la muestra recortada para dibujar, y entregar ese recorte como si fuera el archivo sería
   el peor fallo posible del escritor.
 
+### Corregido — el entregable
+
+- **Un Shapefile son cinco archivos, y se entregaba uno.** Es el peor fallo que ha tenido el
+  proyecto, porque entregaba algo inservible **con el recibo en verde**: la verificación corre
+  sobre el parcial, cuando los hermanos todavía se llaman `salida.parcial.shx`, así que pasaba
+  y anotaba «5 entidades, EPSG:32719»; después el renombrado movía solo el `.shp` y dejaba a
+  los otros tres huérfanos. Comprobado sobre el archivo entregado: `ogrinfo` responde «Unable
+  to open salida.shx» y no lo abre. Ahora se mueve el juego entero, y quién acompaña a quién
+  lo dice el catálogo.
+
+### Añadido — leer LandXML
+
+- **La inspección dice qué trae dentro** un LandXML: puntos, superficies con sus vértices y
+  caras, alineamientos con su longitud, el EPSG y hasta qué programa lo escribió. Contar
+  `<Surface>` es inequívoco, así que se hace.
+- **Los puntos se convierten** a GPKG, SHP, GeoJSON, KML, KMZ y DXF. En dos pasos, porque OGR
+  no lee LandXML: un módulo nuestro los saca a un CSV intermedio y `ogr2ogr` hace el resto.
+- **Las superficies y los alineamientos no se traducen todavía, y se dice.** No hay ningún
+  LandXML real con el que contrastar un lector de triangulados —se buscó en la unidad entera—
+  y una malla mal leída produce una superficie plausible y equivocada. Un archivo que solo
+  traiga superficies lo explica en la ficha en vez de fallar de forma oscura.
+- `defusedxml` pasa a ser dependencia declarada: el archivo lo escribió otro programa y lo
+  mandó otra oficina, y `xml.etree` sigue siendo vulnerable a la expansión de entidades.
+
 ### Corregido — lo que se veía en pantalla
 
 - **La interfaz salía en inglés.** La aplicación declara `LANGUAGE_CODE = "es"` y escribe los

@@ -58,10 +58,10 @@ no un ejemplo inventado. Sus cifras están en
 | # | Entrega | Estado |
 | --- | --- | --- |
 | F3.1 | OGR: SHP, GPKG, GeoJSON, GML, GPX, DXF | ✅ |
-| F3.2 | KML y KMZ reusando `AeroControl/apps/geo/kml/parse.py` | ⬜ · se escriben ya con LIBKML; falta el lector endurecido |
+| F3.2 | KML y KMZ | ✅ · los lee y los escribe LIBKML, verificado de punta a punta. El parser endurecido de AeroControl **no hace falta**: resolvía un problema que OGR ya cubre |
 | F3.3 | **Archivos de puntos PNEZD/PENZD/NEZ/ENZ, con vista previa antes de convertir** | ✅ |
 | F3.4 | DWG y DGN v8 por ODA; DGN v7 por GDAL | ⬜ |
-| F3.5 | LandXML: superficies y alineamientos para Civil 3D | ◐ · escritura de `CgPoints` hecha; falta **leer** superficies y alineamientos |
+| F3.5 | LandXML: superficies y alineamientos para Civil 3D | ◐ · se escribe y se lee; los puntos se convierten en los dos sentidos. Las superficies y los alineamientos **se cuentan y se identifican**, pero traducirlos espera a tener un archivo real con el que contrastar |
 
 ## Fase 4 — BIM y malla
 
