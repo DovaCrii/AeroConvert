@@ -32,7 +32,7 @@ no un ejemplo inventado. Sus cifras están en
 | F1.8 | Retención y disco | Tres políticas, presupuesto con cola, barrido de caducados y huérfanos, descarga que consume | ✅ 2026-09-08 |
 | F1.5 | Ráster GDAL | GeoTIFF/BigTIFF ↔ COG, JP2, IMG, ASC; reproyección, pirámides, alfa descartada, verificación con `gdalinfo` | ✅ 2026-09-08 |
 | F1.6 | ECW | `gdal-ecw` con clave OEM y `ecw-externo`, tres motivos, alternativa COG/JP2, «reencolar como JP2» | ⬜ |
-| F1.7 | Preajustes y pulido | `ConversionPreset`, repetir trabajo, estimación de memoria y espacio, detector de atasco, i18n | ⬜ |
+| F1.7 | Preajustes y pulido | `ConversionPreset` con sembrado idempotente, formulario generado desde `opciones()`, estimación previa, reintentar y alternativas | ✅ 2026-09-09 |
 
 **Valores por omisión ya decididos, y medidos** (ver `PRUEBAS_CON_ORACULO.md` §2):
 
@@ -45,10 +45,13 @@ no un ejemplo inventado. Sus cifras están en
 
 | # | Entrega | Estado |
 | --- | --- | --- |
-| F2.1 | LAS/LAZ → COPC portando `AeroBim/apps/web/scripts/a-copc.py` | ⬜ |
-| F2.2 | E57 y diezmado con PDAL (`filters.sample`) | ⬜ |
-| F2.3 | Lectura del CRS desde las VLR del LAS. **Aquí un CRS ausente es detención dura, sin excepción** | ⬜ |
-| F2.4 | La aritmética de precisión: `float32` pierde 200 mm en el norte UTM si no se resta el desplazamiento de cabecera | ⬜ |
+| F2.0 | Lector propio de cabecera LAS/LAZ/COPC, sin PDAL | ✅ 2026-09-09 |
+| F2.1 | LAS/LAZ → COPC. **No se portó `a-copc.py`**: el PDAL instalado ya trae `writers.copc`, así que son 3 líneas en vez de 371 | ✅ 2026-09-09 |
+| F2.2 | Diezmado con `filters.sample` y reproyección. **E57 no**: esta compilación de PDAL no lo trae, y su celda lo dice | ✅ 2026-09-09 |
+| F2.3 | CRS desde las VLR, con el mismo parser de geoclaves del GeoTIFF. **Un CRS ausente es detención dura, sin excepción** | ✅ 2026-09-09 |
+| F2.4 | El aviso de precisión: `float32` pierde 200 mm en el norte UTM. Se detecta y se avisa en la ficha | ✅ 2026-09-09 |
+| F2.5 | RCS y RCP de ReCap: en el catálogo **para poder decir que no se pueden**, con el remedio escrito | ✅ 2026-09-09 |
+| F2.6 | 3D Tiles y Potree con `py3dtiles` | ⬜ |
 
 ## Fase 3 — Vectorial, CAD y topografía
 

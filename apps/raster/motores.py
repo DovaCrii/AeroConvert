@@ -30,6 +30,7 @@ from apps.engines.base import (
     ParDeFormatos,
     PlanDeEjecucion,
     Verificacion,
+    ruta_parcial,
 )
 
 #: Origenes raster que GDAL sabe leer.
@@ -193,7 +194,7 @@ class MotorGdalRaster(Motor):
     def plan(self, trabajo) -> PlanDeEjecucion:
         origen = Path(trabajo.source_path)
         destino = Path(trabajo.output_path)
-        parcial = destino.with_name(destino.name + ".parcial")
+        parcial = ruta_parcial(destino)
 
         opciones = dict(trabajo.options or {})
         reproyecta = bool(trabajo.target_crs_code)

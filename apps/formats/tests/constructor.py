@@ -182,6 +182,126 @@ def bigtiff_minimo(**kwargs) -> bytes:
     return ConstructorTiff(bigtiff=True).raster(**opciones).bytes()
 
 
+# --- LAS ---------------------------------------------------------------------
+#
+# Mismo criterio que con el TIFF: se escribe a mano para que la prueba no dependa de PDAL y
+# para que los bytes que importan -- la version, el bit de compresion, el VLR de COPC --
+# esten a la vista en la prueba y no escondidos en una libreria.
+
+
+def _vlr(usuario: bytes, registro: int, datos: bytes, descripcion: bytes = b"") -> bytes:
+    """Un VLR: 54 bytes de cabecera y luego los datos."""
+    return (
+        struct.pack("<H", 0)
+        + usuario.ljust(16, b"\x00")[:16]
+        + struct.pack("<HH", registro, len(datos))
+        + descripcion.ljust(32, b"\x00")[:32]
+        + datos
+    )
+
+
+def vlr_geoclaves(codigo_epsg: int) -> bytes:
+    """El VLR de proyeccion de un LAS 1.0-1.3: las **mismas geoclaves de GeoTIFF**."""
+    claves = geoclaves_epsg(codigo_epsg)
+    return _vlr(
+        b"LASF_Projection", 34735, struct.pack(f"<{len(claves)}H", *claves), b"GeoTIFF keys"
+    )
+
+
+def vlr_wkt(wkt: str) -> bytes:
+    """El VLR de un LAS 1.4: el CRS como texto."""
+    return _vlr(b"LASF_Projection", 2112, wkt.encode("utf-8") + b"\x00", b"WKT")
+
+
+def vlr_copc() -> bytes:
+    """Los 160 bytes de informacion COPC. Su contenido no importa aqui: lo que se prueba es
+    que se reconozca por estar **el primero** y con el identificador correcto."""
+    return _vlr(b"copc", 1, bytes(160), b"COPC info")
+
+
+def las_minimo(
+    *,
+    version: tuple[int, int] = (1, 2),
+    puntos: int = 1000,
+    formato_de_punto: int = 2,
+    comprimido: bool = False,
+    epsg: int | None = 32719,
+    wkt: str = "",
+    copc: bool = False,
+    minimo: tuple[float, float, float] = (495003.24, 7318472.78, 3038.72),
+    maximo: tuple[float, float, float] = (495373.63, 7318841.78, 3064.17),
+    escala: tuple[float, float, float] = (0.01, 0.01, 0.01),
+    desplazamiento: tuple[float, float, float] = (494000.0, 7318000.0, 3000.0),
+    software: str = "AeroConvert pruebas",
+) -> bytes:
+    """Un LAS valido de unos 400 bytes, sin un solo punto dentro."""
+    tamano_cabecera = 375 if version >= (1, 4) else 227
+
+    vlrs = b""
+    cuantos = 0
+    # COPC exige ser el primero, asi que va antes que cualquier otro.
+    if copc:
+        vlrs += vlr_copc()
+        cuantos += 1
+    # Los dos pueden ir a la vez: es el caso real de un archivo que paso por una conversion
+    # y arrastra las geoclaves viejas junto al WKT nuevo.
+    if epsg is not None:
+        vlrs += vlr_geoclaves(epsg)
+        cuantos += 1
+    if wkt:
+        vlrs += vlr_wkt(wkt)
+        cuantos += 1
+
+    codificacion = 0b1_0000 if (wkt and version >= (1, 4)) else 0
+    # El bit alto del identificador de formato es lo que marca la compresion LAZ.
+    crudo_formato = formato_de_punto | (0x80 if comprimido else 0)
+
+    cabecera = bytearray(tamano_cabecera)
+    cabecera[0:4] = b"LASF"
+    struct.pack_into("<H", cabecera, 6, codificacion)
+    cabecera[24] = version[0]
+    cabecera[25] = version[1]
+    cabecera[58:90] = software.encode("latin-1").ljust(32, b"\x00")[:32]
+    struct.pack_into("<H", cabecera, 94, tamano_cabecera)
+    struct.pack_into("<I", cabecera, 96, tamano_cabecera + len(vlrs))
+    struct.pack_into("<I", cabecera, 100, cuantos)
+    cabecera[104] = crudo_formato
+    struct.pack_into("<H", cabecera, 105, 26)
+    # En 1.4 la cuenta de 32 bits queda a cero y manda la de 64.
+    struct.pack_into("<I", cabecera, 107, 0 if version >= (1, 4) else puntos)
+    struct.pack_into("<3d", cabecera, 131, *escala)
+    struct.pack_into("<3d", cabecera, 155, *desplazamiento)
+    # El orden es alternado: max, min, max, min, max, min. Leerlo como dos ternas es el
+    # error clasico, y por eso la prueba usa valores distintos en cada eje.
+    struct.pack_into(
+        "<6d",
+        cabecera,
+        179,
+        maximo[0],
+        minimo[0],
+        maximo[1],
+        minimo[1],
+        maximo[2],
+        minimo[2],
+    )
+    if version >= (1, 4):
+        struct.pack_into("<Q", cabecera, 247, puntos)
+
+    return bytes(cabecera) + vlrs
+
+
+def copc_minimo(**kwargs) -> bytes:
+    """Un COPC valido: LAS 1.4, formato de punto 7, comprimido, con su VLR el primero."""
+    opciones = {
+        "version": (1, 4),
+        "formato_de_punto": 7,
+        "comprimido": True,
+        "copc": True,
+    }
+    opciones.update(kwargs)
+    return las_minimo(**opciones)
+
+
 #: Un Arc/Info ASCII Grid de doce lineas. Texto plano, sin firma: sirve para probar que la
 #: deteccion por extension existe y que su confianza se reporta mas baja.
 ASC_MINIMO = """\

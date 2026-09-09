@@ -9,16 +9,19 @@ from django.shortcuts import redirect, render
 from django.views.decorators.http import require_POST
 
 from apps.core import modo as modo_mod
+from apps.engines import formulario as formulario_mod
 from apps.engines import registry
 from apps.engines.base import ParDeFormatos
 from apps.formats import catalogo, deteccion
+from apps.jobs import estimacion as estimacion_mod
 from apps.jobs.models import ConversionJob
+from apps.presets.models import ConversionPreset
 from apps.targets import perfiles as perfiles_mod
 
 
 @dataclass(frozen=True)
 class DestinoOfrecido:
-    """Un perfil y si esta maquina puede cumplirlo ahora mismo.
+    """Un perfil y si esta máquina puede cumplirlo ahora mismo.
 
     Se calcula contra la matriz de capacidades, no contra una lista fija: si falta la clave
     de ECW, el botón aparece **apagado con su motivo escrito y su alternativa**, no
@@ -30,14 +33,24 @@ class DestinoOfrecido:
     nombre_destino: str = ""
     motivo: str = ""
     alternativas: tuple[str, ...] = ()
+    estimacion: estimacion_mod.Estimacion | None = None
 
 
-def _destinos_para(codigo_origen: str) -> tuple[DestinoOfrecido, ...]:
+def _destinos_para(inspeccion) -> tuple[DestinoOfrecido, ...]:
     ofrecidos = []
     for perfil in perfiles_mod.PERFILES.values():
         destino = perfil.formato_destino
         formato = catalogo.FORMATOS.get(destino)
-        celda = registry.celda(ParDeFormatos(codigo_origen, destino))
+        celda = registry.celda(ParDeFormatos(inspeccion.codigo_formato, destino))
+
+        estimada = None
+        if celda.se_puede:
+            estimada = estimacion_mod.estimar(
+                inspeccion=inspeccion,
+                formato_destino=destino,
+                opciones=perfil.opciones,
+            )
+
         ofrecidos.append(
             DestinoOfrecido(
                 perfil=perfil,
@@ -49,9 +62,24 @@ def _destinos_para(codigo_origen: str) -> tuple[DestinoOfrecido, ...]:
                     for a in celda.alternativas
                     if a in catalogo.FORMATOS
                 ),
+                estimacion=estimada,
             )
         )
     return tuple(ofrecidos)
+
+
+def _formulario_experto(inspeccion, formato: str, valores: dict | None = None):
+    """Los campos que el motor del par declara, o `None` si no hay motor.
+
+    Se construye desde `opciones()` y no a mano: así el formulario no puede ofrecer un
+    ajuste que el motor vaya a ignorar, que es exactamente el fallo silencioso que ya tuvo
+    este proyecto con los perfiles de destino.
+    """
+    par = ParDeFormatos(inspeccion.codigo_formato, formato)
+    motor = registry.motor_para(par)
+    if motor is None:
+        return None, None
+    return motor, formulario_mod.construir(motor, par, valores)
 
 
 @login_required
@@ -75,19 +103,57 @@ def inspeccionar(request):
     if error:
         return render(request, "dashboard/_ficha.html", error)
 
+    escribibles = catalogo.escribibles(inspeccion.familia or catalogo.RASTER)
+    experto = (request.GET.get("formato") or "").strip()
+    if experto not in {f.codigo for f in escribibles}:
+        experto = escribibles[0].codigo if escribibles else ""
+
+    _, campos = _formulario_experto(inspeccion, experto) if experto else (None, None)
+
     return render(
         request,
         "dashboard/_ficha.html",
         {
             "i": inspeccion,
             "veredictos": perfiles_mod.veredictos(inspeccion),
-            "perfiles": _destinos_para(inspeccion.codigo_formato),
-            "escribibles": catalogo.escribibles(inspeccion.familia or catalogo.RASTER),
+            "perfiles": _destinos_para(inspeccion),
+            "escribibles": escribibles,
+            "formato_experto": experto,
+            "campos": campos,
+            "preajustes": ConversionPreset.objects.filter(
+                target_format_code__in=[f.codigo for f in escribibles]
+            )[:12],
         },
     )
 
 
+@login_required
+def ajustes(request):
+    """Los campos del modo experto para el formato elegido.
+
+    Endpoint propio porque cambiar el formato de destino cambia los ajustes: JP2 tiene
+    calidad y GeoTIFF tiene tamaño de tesela. htmx lo pide al cambiar el `<select>`.
+    """
+    inspeccion, error = _inspeccionar(request.GET.get("ruta") or "")
+    if error:
+        return render(request, "dashboard/_ajustes.html", {})
+
+    formato = (request.GET.get("formato") or "").strip()
+    if formato not in catalogo.FORMATOS:
+        return render(request, "dashboard/_ajustes.html", {})
+
+    _, campos = _formulario_experto(inspeccion, formato)
+    return render(
+        request,
+        "dashboard/_ajustes.html",
+        {"campos": campos, "formato_experto": formato, "i": inspeccion},
+    )
+
+
 def _inspeccionar(ruta_pedida: str):
+    ruta_pedida = (ruta_pedida or "").strip()
+    if not ruta_pedida:
+        return None, {"error": "No se indicó ninguna ruta.", "codigo_error": "ruta-no-permitida"}
     try:
         ruta = modo_mod.comprobar_ruta(ruta_pedida)
     except modo_mod.RutaNoPermitida as fallo:
@@ -113,18 +179,14 @@ def convertir(request):
         messages.error(request, error["error"])
         return redirect("dashboard:mesa")
 
-    identificador = (request.POST.get("perfil") or "").strip()
-    perfil = perfiles_mod.PERFILES.get(identificador)
-
-    if perfil is not None:
-        formato = perfil.formato_destino
-        opciones = dict(perfil.opciones)
-    else:
-        formato = (request.POST.get("formato") or "").strip()
-        opciones = {}
-        if formato not in catalogo.FORMATOS:
-            messages.error(request, "Ese formato de destino no existe.")
-            return redirect("dashboard:mesa")
+    try:
+        formato, opciones, perfil_id, preajuste = _destino_pedido(request, inspeccion)
+    except formulario_mod.OpcionInvalida as fallo:
+        messages.error(request, fallo.mensaje)
+        return redirect("dashboard:mesa")
+    except ValueError as fallo:
+        messages.error(request, str(fallo))
+        return redirect("dashboard:mesa")
 
     origen = Path(inspeccion.ruta)
     job = ConversionJob.objects.create(
@@ -138,12 +200,56 @@ def convertir(request):
         source_crs_code=inspeccion.crs.codigo,
         source_crs_origin=inspeccion.crs.origen,
         target_format_code=formato,
-        target_profile_id=identificador,
+        target_profile_id=perfil_id,
         options=opciones,
-        output_path=str(_ruta_de_salida(origen, formato, identificador)),
+        output_path=str(_ruta_de_salida(origen, formato, perfil_id)),
     )
-    job.registrar(f"Encolado hacia {formato}." + (f" Perfil: {identificador}." if perfil else ""))
+
+    if preajuste is not None:
+        preajuste.usar()
+        job.registrar(f"Encolado con el preajuste «{preajuste.nombre}».")
+    elif perfil_id:
+        job.registrar(f"Encolado hacia {formato}. Perfil: {perfil_id}.")
+    else:
+        job.registrar(f"Encolado hacia {formato} con ajustes a mano.")
+
     return redirect("jobs:ficha", pk=job.pk)
+
+
+def _destino_pedido(request, inspeccion):
+    """Qué conversión se pidió: por preajuste, por perfil, o a mano.
+
+    Los tres caminos acaban en lo mismo -- un formato y un diccionario de opciones -- y se
+    resuelven aquí para que la vista no tenga tres ramas con el mismo `create()` al final.
+    """
+    slug = (request.POST.get("preajuste") or "").strip()
+    if slug:
+        preajuste = ConversionPreset.objects.filter(slug=slug).first()
+        if preajuste is None:
+            raise ValueError("Ese preajuste ya no existe.")
+        return (
+            preajuste.target_format_code,
+            dict(preajuste.options),
+            preajuste.target_profile_id,
+            preajuste,
+        )
+
+    identificador = (request.POST.get("perfil") or "").strip()
+    perfil = perfiles_mod.PERFILES.get(identificador)
+    if perfil is not None:
+        return perfil.formato_destino, dict(perfil.opciones), identificador, None
+
+    formato = (request.POST.get("formato") or "").strip()
+    if formato not in catalogo.FORMATOS:
+        raise ValueError("Ese formato de destino no existe.")
+
+    par = ParDeFormatos(inspeccion.codigo_formato, formato)
+    motor = registry.motor_para(par)
+    if motor is None:
+        celda = registry.celda(par)
+        raise ValueError(celda.mensaje or "Ningún motor sabe hacer esa conversión.")
+
+    return formato, formulario_mod.leer(motor, par, request.POST), "", None
 
 
 def _ruta_de_salida(origen: Path, formato: str, perfil_id: str) -> Path:

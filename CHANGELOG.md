@@ -5,6 +5,35 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Sin publicar]
 
+### Añadido — nubes de puntos (fase F2)
+
+- **LAS y LAZ → COPC**, con diezmado y reproyección. Sobre la nube real de BHP: 278,9 MB y
+  9.618.692 puntos → **76,4 MB en 50 s, con los 9.618.692 puntos intactos** y verificados
+  contra el original. El veredicto se invierte igual que con el ráster: la entrada dice
+  «AeroBim: solo lee COPC, y esta no lo es» y la salida dice «abre».
+- **Lector propio de cabecera LAS, LAZ y COPC, sin PDAL.** Contrastado contra `pdal info`
+  sobre el archivo real: coincide en versión, cuenta, formato de punto, límites y EPSG.
+  Reutiliza el parser de geoclaves del GeoTIFF, porque LAS 1.0–1.3 guarda el CRS **con el
+  mismo registro 34735**.
+- El aviso de precisión de AeroBim, ahora automático: sobre la nube real detecta que
+  `float32` perdería unos 20 cm y lo dice en la ficha.
+- **RCS y RCP de Autodesk ReCap entran al catálogo para poder decir que no se pueden.** No
+  hay lector abierto y no lo va a haber, así que su celda queda en «no soportado» —no en
+  «instalable»— con el remedio escrito: exportar a E57 o LAS desde ReCap.
+
+### Añadido — preajustes y pulido (fase F1.7)
+
+- **El formulario del modo experto se genera desde `opciones()`.** Hasta ahora el motor
+  declaraba los ajustes y la interfaz los ignoraba: había dos listas de lo que se puede
+  pedir, y ya se habían desincronizado una vez.
+- `ConversionPreset`, con sembrado idempotente por `slug` que **deriva de los perfiles**, no
+  los copia: si mañana un perfil corrige una opción, el preajuste la hereda.
+- **La estimación previa**: cuánto va a pesar, cuánto va a tardar y si cabe, con ratios
+  medidos sobre la ortofoto real y anclados al tamaño sin comprimir. Cuando no hay medida
+  para esa combinación, se marca en vez de fingir precisión.
+- Botones de reintentar y de reencolar hacia una alternativa, en la ficha del trabajo. La
+  vista existía y no había forma de llegar a ella.
+
 ### Añadido — la interfaz
 
 - **La mesa.** Se suelta o se pega una ruta y aparece, sin abrir la imagen: la ficha de lo
@@ -74,6 +103,21 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
   un `.aux.xml` que quedaba huérfano en cuanto el archivo se renombraba.
 - Un comentario de plantilla escrito como `{# … #}` en varias líneas se imprimía literal en
   el recibo: esa forma es de una sola línea.
+- **El nombre del archivo temporal destruía la extensión.** Se llamaba
+  `nube.copc.laz.parcial`, y media herramienta geoespacial deduce el formato de la
+  extensión: PDAL no lo escribía y `pdal info` no lo leía. Se descubrió convirtiendo la nube
+  de verdad, después de 37 segundos de trabajo tirados. Ahora es `nube.parcial.copc.laz`, y
+  el nombre lo construye una sola función que usan el runner y los motores.
+- **El detector de atasco habría matado los trabajos de PDAL.** PDAL no dice nada mientras
+  trabaja, así que el silencio es su estado normal; el plan ahora lo declara con
+  `emite_progreso=False` y el detector se apaga para esos motores.
+- **Un CRS compuesto se reportaba como desconocido.** PDAL escribe las nubes con un
+  `COMPD_CS` —UTM más un vertical sin datum—, y la heurística del `AUTHORITY` declarado
+  tomaba el **último** del texto: el del metro del componente vertical, `EPSG:9001`. Una
+  nube perfectamente georreferenciada salía sin CRS. Ahora se resuelve por el componente
+  horizontal.
+- El lector LAS confundía el «identificador de sistema» con el «software generador». Son
+  dos campos distintos y muchos programas rellenan los dos, así que pasaba desapercibido.
 
 ### Añadido (documentación)
 

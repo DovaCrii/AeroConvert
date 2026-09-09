@@ -17,9 +17,21 @@ class TestCoherencia:
             for extension in formato.extensiones:
                 assert extension.startswith("."), (formato.codigo, extension)
 
-    def test_ningun_formato_es_ilegible_e_inescribible(self):
+    def test_un_formato_que_no_se_lee_ni_se_escribe_tiene_que_explicarse(self):
+        """Estar en el catálogo sin poder hacer nada con él es legítimo **y útil**: quien
+        suelte un `.rcs` merece leer «esto sale de ReCap, expórtalo a E57» en vez de
+        «formato no reconocido», que suena a fallo de la aplicación.
+
+        Lo que no es legítimo es estar ahí sin decir por qué. La invariante original pedía
+        que todo formato fuera legible o escribible; esta pide algo más útil.
+        """
         for formato in catalogo.FORMATOS.values():
-            assert formato.admite_lectura or formato.admite_escritura, formato.codigo
+            if formato.admite_lectura or formato.admite_escritura:
+                continue
+            assert formato.nota, (
+                f"«{formato.codigo}» no se lee ni se escribe y no dice por qué. "
+                "Un hueco sin explicación es peor que no tener la entrada."
+            )
 
 
 class TestBigtiffEsUnaEntradaPropia:

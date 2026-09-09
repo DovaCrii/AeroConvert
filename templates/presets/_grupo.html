@@ -1,0 +1,59 @@
+<div class="tarjeta" style="margin-bottom:14px;">
+  <div class="eyebrow">{{ titulo }}</div>
+  <table class="table table-sm align-middle" style="margin:0;">
+    <thead>
+      <tr>
+        <th>Nombre</th>
+        <th>Destino</th>
+        <th>Ajustes</th>
+        <th class="text-end">Usos</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in preajustes %}
+        <tr>
+          <td>
+            <strong>{{ p.nombre }}</strong>
+            {% if p.descripcion %}<br><small class="tenue">{{ p.descripcion }}</small>{% endif %}
+          </td>
+          <td>{{ p.nombre_destino }}</td>
+          <td>
+            {% for clave, valor in p.options.items %}
+              <code class="tenue" style="font-size:.75rem;">{{ clave }}={{ valor }}</code>
+            {% empty %}
+              <span class="tenue">los del formato</span>
+            {% endfor %}
+          </td>
+          <td class="cifra text-end">{{ p.veces_usado }}</td>
+          <td class="text-end" style="white-space:nowrap;">
+            <form method="post" action="{% url 'presets:copiar' p.slug %}" style="display:inline; margin:0;">
+              {% csrf_token %}
+              <button type="submit" class="boton boton-suave" style="padding:4px 12px; min-height:auto;">
+                Copiar
+              </button>
+            </form>
+            {% if p.editable %}
+              <form method="post" action="{% url 'presets:borrar' p.slug %}" style="display:inline; margin:0;">
+                {% csrf_token %}
+                <button type="submit" class="boton boton-suave" style="padding:4px 12px; min-height:auto;">
+                  Borrar
+                </button>
+              </form>
+            {% endif %}
+          </td>
+        </tr>
+      {% empty %}
+        <tr>
+          <td colspan="5" class="vacio">
+            {% if titulo == "Tuyos" %}
+              Todavía ninguno. Copia uno de fábrica y cámbialo.
+            {% else %}
+              Ninguno. Corre <code>manage.py sembrar_preajustes</code>.
+            {% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>

@@ -286,6 +286,54 @@ def sondar_pdal() -> Disponibilidad:
     return Disponibilidad.si(version)
 
 
+@lru_cache(maxsize=1)
+def _controladores_pdal(ejecutable: str) -> frozenset[str]:
+    try:
+        resultado = subprocess.run(  # nosec B603
+            [ejecutable, "--drivers"],
+            capture_output=True,
+            text=True,
+            timeout=TIEMPO_MAXIMO_SONDA_S,
+            check=False,
+            shell=False,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return frozenset()
+    nombres = set()
+    for linea in (resultado.stdout or "").splitlines():
+        primera = linea.strip().split(" ", 1)[0]
+        if primera.startswith(("readers.", "writers.", "filters.")):
+            nombres.add(primera)
+    return frozenset(nombres)
+
+
+def sondar_pdal_controlador(nombre: str) -> Disponibilidad:
+    """Si **este** PDAL trae ese controlador.
+
+    Los controladores de PDAL se fijan al compilarlo: el que trae QGIS no incluye E57, y no
+    hay forma de anadirlo sin reinstalar. Distinguirlo de «PDAL no esta» importa, porque el
+    arreglo es distinto -- uno se instala, el otro se cambia de compilacion.
+    """
+    ejecutable = _ejecutable("pdal", getattr(settings, "PDAL_BIN", ""))
+    if ejecutable is None:
+        return Disponibilidad.no(
+            "motor-no-disponible",
+            "No se encontro pdal.",
+            sugerencia="Viene con QGIS y con conda-forge. Ver INSTALL.md.",
+        )
+    if nombre not in _controladores_pdal(ejecutable):
+        return Disponibilidad.no(
+            "sin-driver-pdal",
+            f"Este PDAL no trae {nombre}.",
+            sugerencia=(
+                "Los controladores se fijan al compilar PDAL. El de QGIS no lo incluye; una "
+                "compilacion de conda-forge con esa opcion si."
+            ),
+            alternativas=("las", "laz", "copc"),
+        )
+    return Disponibilidad.si(_preguntar_version(ejecutable, "--version", contiene="pdal") or "pdal")
+
+
 def sondar_oda() -> Disponibilidad:
     """ODA File Converter, para DWG y DGN.
 
@@ -319,3 +367,4 @@ def olvidar() -> None:
     """Vacia la cache de sondas. La usan las pruebas y el boton de volver a sondear."""
     cache.delete("motores:gdal")
     _formatos_gdal_crudo.cache_clear()
+    _controladores_pdal.cache_clear()

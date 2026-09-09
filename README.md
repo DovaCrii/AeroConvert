@@ -9,7 +9,7 @@
 [![Licencia: MIT](https://img.shields.io/badge/licencia-MIT-F15BB5.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.12-1B2A4A.svg)](https://www.python.org/)
 [![Django](https://img.shields.io/badge/django-6.1-1B2A4A.svg)](https://www.djangoproject.com/)
-[![Estado](https://img.shields.io/badge/estado-v0.2.0--alpha-F15BB5.svg)](#estado-actual)
+[![Estado](https://img.shields.io/badge/estado-v0.3.0--alpha-F15BB5.svg)](#estado-actual)
 
 Aplicaciones hermanas: **[AeroBim](https://github.com/DovaCrii/AeroBim)** (visor y coordinación BIM) · **[AeroControl](https://github.com/DovaCrii/AeroControl)** (operaciones RPA) · **[AeroPlanner](https://github.com/DovaCrii/AeroPlanner)** (planificación de misiones) · **[AeroLink](https://github.com/DovaCrii/AeroLink)** (telemetría y evidencia) — funcionan por separado, se comunican cuando conviene
 
@@ -101,34 +101,43 @@ más: **ninguna comparte base de datos con otra**. Se comunican por archivo o po
 
 ## Estado actual
 
-**`v0.2.0-alpha`** — ráster de punta a punta, con interfaz. **290 pruebas**, 91 % de
-cobertura, verdes **sin GDAL instalado**, y el CI de GitHub Actions en verde.
+**`v0.3.0-alpha`** — ráster y nubes de puntos de punta a punta, con interfaz.
+**394 pruebas**, 92 % de cobertura, verdes **sin GDAL ni PDAL instalados**, y el CI de
+GitHub Actions en verde.
 
-Sobre el entregable real de BHP —466,2 MB en BigTIFF, 4 bandas con alfa, EPSG:32719—:
+Sobre los entregables reales de un vuelo de BHP:
 
-| Destino | Tiempo | Salida | Verificado con `gdalinfo` |
-| --- | ---: | ---: | --- |
-| Civil 3D → GeoTIFF clásico DEFLATE, 3 bandas, 5 pirámides | 7 s | 285 MB | 14.526 × 14.443 · EPSG:32719 |
-| Entrega → JPEG 2000 | 9 s | 60 MB | 14.526 × 14.443 · EPSG:32719 |
+| Entrada | Destino | Tiempo | Salida | Verificado |
+| --- | --- | ---: | ---: | --- |
+| Ortofoto 466,2 MB **BigTIFF** | Civil 3D → GeoTIFF clásico | 7 s | 285 MB | `gdalinfo` |
+| La misma | Entrega → JPEG 2000 | 9 s | 60 MB | `gdalinfo` |
+| Nube 278,9 MB **LAS 1.2** | AeroBim → COPC | 50 s | 76,4 MB, 9.618.692 puntos intactos | `pdal info` |
+
+Y en los tres el veredicto se invierte, que es de lo que trata el producto: la entrada dice
+«no abre, y por esto» y la salida dice «abre tal cual».
 
 Lo que **funciona hoy**:
 
-- **La mesa.** Se pega una ruta y aparece, sin abrir la imagen, qué hay dentro y la tira de
+- **La mesa.** Se pega una ruta y aparece, sin abrir el archivo, qué hay dentro y la tira de
   veredictos por programa. Se elige el destino y convierte.
-- **Lector propio de cabecera TIFF y BigTIFF**, sin GDAL. Contrastado contra `gdalinfo`
-  sobre archivos de obra: **coincide exactamente**, incluido el conteo de pirámides que
-  distingue las reducciones de los IFD de máscara.
-- **Motor ráster GDAL** entre GeoTIFF, BigTIFF, COG, JPEG 2000, IMG y ASCII Grid, con
-  reproyección, pirámides y verificación de la salida contra `gdalinfo`.
-- **El original nunca se toca**, la salida se escribe atómica, y el trabajo se puede
-  cancelar de verdad.
+- **Lectores propios de cabecera TIFF/BigTIFF y LAS/LAZ/COPC**, sin GDAL ni PDAL.
+  Contrastados contra `gdalinfo` y `pdal info` sobre archivos de obra: **coinciden
+  exactamente**. Distinguen lo que las herramientas no distinguen — un BigTIFF de un TIFF
+  clásico, un COPC de un LAZ corriente — que es justo de lo que dependen los veredictos.
+- **Motor ráster GDAL** entre GeoTIFF, BigTIFF, COG, JPEG 2000, IMG y ASCII Grid.
+- **Motor de nubes PDAL**: LAS, LAZ y COPC, con diezmado por separación y reproyección.
+- **Preajustes** con nombre propio y **modo experto generado desde lo que el motor declara**,
+  así que no puede ofrecer un ajuste que el motor vaya a ignorar.
+- **Estimación previa**: cuánto va a pesar, cuánto va a tardar y si cabe, con ratios medidos.
+- **El original nunca se toca**, la salida se escribe atómica, y se puede cancelar de verdad.
 - **Retención y presupuesto de disco**: en modo nube nada se acumula, y un trabajo que no
   cabe espera en la cola en vez de llenar el volumen.
 
-Lo que **todavía no**: nubes de puntos, vectorial y BIM (fases F2 a F4), ECW —que necesita
-una instalación con la SDK de Hexagon para poder probarse—, y los preajustes con nombre
-propio. El modo experto de la interfaz solo elige formato: las opciones del motor ya son
-declarativas pero aún no se despliegan.
+Lo que **todavía no**: vectorial/CAD y BIM (fases F3 y F4), 3D Tiles, y **ECW**, que necesita
+una instalación con la SDK de Hexagon para poder probarse. **E57** tampoco: los controladores
+de PDAL se fijan al compilarlo y el que trae QGIS no lo incluye — la matriz lo dice con su
+motivo. **RCS y RCP de ReCap no se van a poder nunca**: son binarios cerrados sin lector
+abierto, y la aplicación lo dice con el remedio escrito en vez de fingir que no los conoce.
 
 El trabajo pendiente vive en dos documentos, no en este README:
 

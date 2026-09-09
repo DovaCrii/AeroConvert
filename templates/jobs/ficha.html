@@ -10,9 +10,7 @@
   {% if trabajo.target_profile_id %}· perfil {{ trabajo.target_profile_id }}{% endif %}
 </p>
 
-<div id="progreso-{{ trabajo.pk }}">
-  {% include "jobs/_progreso.html" %}
-</div>
+{% include "jobs/_progreso.html" %}
 
 <div class="tarjeta" style="margin-top:14px;">
   <div class="eyebrow">Bitácora</div>

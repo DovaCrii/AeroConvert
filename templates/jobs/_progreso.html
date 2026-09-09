@@ -103,10 +103,45 @@ generar 10.800 peticiones.
       <strong>{{ trabajo.reason_detail }}</strong>
       <div style="font-size:.85rem; opacity:.85; margin-top:2px;">
         Motivo: <code>{{ trabajo.reason_code }}</code>
-        {% if trabajo.es_reintentable %} · esto suele arreglarse reintentando{% endif %}
       </div>
+    </div>
+
+    {% comment %}
+      Reintentar y las alternativas.
+
+      Solo se ofrece reintentar lo que mejora repitiéndose — un archivo que otro programa
+      tenía abierto, un antivirus que estaba mirando. Ofrecerlo para `sin-clave-ecw` sería
+      invitar a alguien a confirmar tres veces lo mismo.
+
+      Y cuando el motivo es que falta una herramienta, la respuesta útil no es «no»: es
+      «no, y esto sí». De ahí los botones de alternativa.
+    {% endcomment %}
+    <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:12px;">
+      {% if trabajo.es_reintentable %}
+        <form method="post" action="{% url 'jobs:reencolar' trabajo.pk %}" style="margin:0;">
+          {% csrf_token %}
+          <button type="submit" class="boton">Reintentar</button>
+        </form>
+        <span class="tenue" style="align-self:center; font-size:.85rem;">
+          Esto suele arreglarse solo al repetirlo.
+        </span>
+      {% endif %}
+
+      {% for alternativa in alternativas %}
+        <form method="post" action="{% url 'jobs:reencolar' trabajo.pk %}" style="margin:0;">
+          {% csrf_token %}
+          <input type="hidden" name="formato" value="{{ alternativa.codigo }}">
+          <button type="submit" class="boton {% if not forloop.first %}boton-suave{% endif %}">
+            Reencolar como {{ alternativa.nombre }}
+          </button>
+        </form>
+      {% endfor %}
     </div>
   {% elif trabajo.status == 'cancelled' %}
     <div class="aviso">Cancelado. No se escribió nada.</div>
+    <form method="post" action="{% url 'jobs:reencolar' trabajo.pk %}" style="margin-top:10px;">
+      {% csrf_token %}
+      <button type="submit" class="boton boton-suave">Volver a encolar</button>
+    </form>
   {% endif %}
 </div>

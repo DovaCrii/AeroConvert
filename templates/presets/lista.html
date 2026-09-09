@@ -4,14 +4,12 @@
 
 {% block contenido %}
 <div class="eyebrow">Preajustes</div>
-<h1 style="font-size:1.4rem; margin-bottom:18px;">Preajustes</h1>
+<h1 style="font-size:1.4rem; margin-bottom:4px;">Preajustes</h1>
+<p class="tenue" style="margin-bottom:18px;">
+  Un destino guardado con nombre propio. Los de fábrica salen de los perfiles y se
+  actualizan con ellos; los tuyos son de esta oficina.
+</p>
 
-<div class="tarjeta">
-  <div class="vacio">
-    Los preajustes con nombre propio —«Ortofoto para Civil 3D», «Entrega cliente BHP»—
-    llegan en la fase F1.7.
-    <br>
-    Mientras tanto, los perfiles de destino de la mesa ya fijan formato y opciones.
-  </div>
-</div>
+{% include "presets/_grupo.html" with preajustes=de_fabrica titulo="De fábrica" %}
+{% include "presets/_grupo.html" with preajustes=propios titulo="Tuyos" %}
 {% endblock %}

@@ -6,7 +6,6 @@ a un fallo que de verdad ocurre en produccion y que no da sintoma hasta que es t
 
 import os
 import time
-from pathlib import Path
 
 import pytest
 from django.contrib.auth import get_user_model
@@ -96,11 +95,14 @@ class TestConversionCorrecta:
         pero uno por conversión, y contradicen lo que se promete — que el entregable es un
         solo archivo que se basta a sí mismo."""
 
+        from apps.engines.base import ruta_parcial
+
         class MotorSucio(MotorDeMentira):
             def plan(self, trabajo):
                 plan = super().plan(trabajo)
                 # Simula lo que hace GDAL: escribir un acompañante junto al parcial.
-                Path(str(plan.ruta_de_salida) + ".parcial.aux.xml").write_text("<PAMDataset/>")
+                parcial = ruta_parcial(plan.ruta_de_salida)
+                parcial.with_name(parcial.name + ".aux.xml").write_text("<PAMDataset/>")
                 return plan
 
         _con_motor(MotorSucio())

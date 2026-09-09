@@ -229,6 +229,10 @@ FORMATOS: dict[str, Formato] = {
         nombre="E57 point cloud",
         extensiones=frozenset({".e57"}),
         firmas=(b"ASTM-E57",),
+        nota=(
+            "El puente estandar cuando el dato viene de un escaner o de ReCap. **Este PDAL "
+            "no lo trae**: la sonda lo dice y la celda queda apagada."
+        ),
     ),
     "ply": _f(
         codigo="ply",
@@ -237,6 +241,41 @@ FORMATOS: dict[str, Formato] = {
         extensiones=frozenset({".ply"}),
         firmas=(b"ply\n", b"ply\r\n"),
         lleva_crs_incrustado=False,
+    ),
+    # ReCap de Autodesk. **Ni se lee ni se escribe, y no es una carencia pendiente.**
+    #
+    # `.rcs` es un escaneo indexado y `.rcp` el proyecto que apunta a varios. Los dos son
+    # binarios cerrados de Autodesk: no hay lector abierto, PDAL no los conoce, GDAL tampoco,
+    # y CloudCompare tampoco. El unico programa que los exporta es ReCap Pro.
+    #
+    # Estan en el catalogo **a proposito**: quien suelte un `.rcs` merece leer «esto sale de
+    # ReCap, exportalo a E57 o LAS» en vez de «formato no reconocido», que suena a fallo de
+    # la aplicacion cuando es una decision de Autodesk.
+    "rcs": _f(
+        codigo="rcs",
+        familia=NUBE,
+        nombre="Autodesk ReCap scan",
+        extensiones=frozenset({".rcs"}),
+        admite_lectura=False,
+        admite_escritura=False,
+        lleva_crs_incrustado=False,
+        nota=(
+            "Formato cerrado de Autodesk. Solo ReCap Pro lo exporta: usa Exportar → E57 "
+            "(o LAS) y convierte ese archivo."
+        ),
+    ),
+    "rcp": _f(
+        codigo="rcp",
+        familia=NUBE,
+        nombre="Autodesk ReCap project",
+        extensiones=frozenset({".rcp"}),
+        admite_lectura=False,
+        admite_escritura=False,
+        lleva_crs_incrustado=False,
+        nota=(
+            "Es el proyecto, no los puntos: apunta a varios .rcs. Solo ReCap Pro lo abre. "
+            "Exporta a E57 o LAS desde ahi."
+        ),
     ),
     "xyz_nube": _f(
         codigo="xyz_nube",

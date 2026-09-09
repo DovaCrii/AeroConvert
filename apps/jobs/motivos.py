@@ -58,6 +58,16 @@ MOTIVOS: dict[str, Motivo] = dict(
         ),
         _m("sin-conversor", "No hay conversor configurado para este formato."),
         _m(
+            "sin-driver-pdal",
+            "Esta compilación de PDAL no trae ese controlador.",
+            "Los controladores se fijan al compilar. El de QGIS no incluye E57.",
+        ),
+        _m(
+            "formato-propietario",
+            "Es un formato cerrado y no hay ningún lector abierto.",
+            "Expórtalo desde el programa que lo escribió a un formato de intercambio.",
+        ),
+        _m(
             "proj-descolocado",
             "GDAL no encuentra su base de datos PROJ.",
             "PROJ_DATA tiene que apuntar a una carpeta con proj.db.",

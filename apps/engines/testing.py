@@ -20,7 +20,7 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-from .base import Disponibilidad, Motor, ParDeFormatos, PlanDeEjecucion
+from .base import Disponibilidad, Motor, ParDeFormatos, PlanDeEjecucion, ruta_parcial
 
 #: Script del hijo. Recibe la ruta de salida, que escribir, cuanto tardar, que imprimir y
 #: con que codigo salir. Todo por argumentos, para que no haya estado escondido.
@@ -99,7 +99,7 @@ class MotorDeMentira(Motor):
     def plan(self, trabajo) -> PlanDeEjecucion:
         destino = self.ruta_de_salida or Path(trabajo.output_path or "salida.tif")
         # El hijo escribe en el parcial, igual que haria un motor de verdad.
-        parcial = destino.with_name(destino.name + ".parcial")
+        parcial = ruta_parcial(destino)
         plan = PlanDeEjecucion(
             argv=(
                 sys.executable,

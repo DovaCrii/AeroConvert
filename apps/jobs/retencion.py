@@ -40,9 +40,13 @@ PERMANENTE = "permanente"
 
 POLITICAS = (EFIMERA, TEMPORAL, PERMANENTE)
 
-#: Sufijos de los archivos de trabajo que nunca deberian sobrevivir a un trabajo. Si el
+#: Marcas de los archivos de trabajo que nunca deberian sobrevivir a un trabajo. Si el
 #: proceso muere a media conversion, quedan huerfanos y hay que ir a buscarlos.
-SUFIJOS_DE_TRABAJO = (".parcial", ".prueba", ".enuso")
+#:
+#: Se buscan **dentro** del nombre y no como sufijo final, porque `ruta_parcial()` conserva
+#: la extension: el archivo se llama `nube.parcial.copc.laz`, no `nube.copc.laz.parcial`.
+#: Buscar por sufijo dejaria de encontrarlos, y se acumularian hasta llenar el disco.
+MARCAS_DE_TRABAJO = (".parcial.", ".parcial", ".prueba", ".enuso")
 
 
 def politica() -> str:
@@ -217,7 +221,7 @@ def _barrer_huerfanos() -> tuple[int, int]:
     contados = 0
     liberados = 0
     for hijo in carpeta_de_trabajo().rglob("*"):
-        if not hijo.is_file() or not hijo.name.endswith(SUFIJOS_DE_TRABAJO):
+        if not hijo.is_file() or not any(marca in hijo.name for marca in MARCAS_DE_TRABAJO):
             continue
         try:
             if hijo.stat().st_mtime > limite:

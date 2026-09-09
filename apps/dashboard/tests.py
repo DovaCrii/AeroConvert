@@ -78,6 +78,39 @@ class TestLaMesa:
             assert b"Taller" in entrado.get(ruta).content
 
 
+class TestLaEstimacion:
+    """La línea honesta: cuánto va a pesar y cuánto va a tardar, antes de pulsar."""
+
+    def test_cada_destino_disponible_trae_su_estimacion(self, entrado, ortofoto, con_motor):
+        contenido = entrado.get("/inspeccionar/", {"ruta": str(ortofoto)}).content.decode()
+        assert "≈" in contenido
+
+    def test_un_destino_apagado_no_estima_nada(self, entrado, ortofoto, con_motor):
+        """Estimar lo que no se puede hacer sería ruido con cifras."""
+        from apps.dashboard.views import _destinos_para
+        from apps.formats.deteccion import inspeccionar as inspeccionar_archivo
+
+        for destino in _destinos_para(inspeccionar_archivo(ortofoto)):
+            if not destino.se_puede:
+                assert destino.estimacion is None
+
+
+class TestModoExperto:
+    def test_los_ajustes_se_piden_aparte_al_cambiar_el_formato(self, entrado, ortofoto, con_motor):
+        """JP2 tiene calidad y GeoTIFF tiene tamaño de tesela: cambiar el destino cambia el
+        formulario, así que htmx lo vuelve a pedir."""
+        respuesta = entrado.get("/ajustes/", {"ruta": str(ortofoto), "formato": "geotiff"})
+        assert respuesta.status_code == 200
+
+    def test_un_formato_inventado_no_pinta_ajustes(self, entrado, ortofoto, con_motor):
+        respuesta = entrado.get("/ajustes/", {"ruta": str(ortofoto), "formato": "xyzzy"})
+        assert respuesta.status_code == 200
+        assert b"<input" not in respuesta.content
+
+    def test_sin_entrar_no_se_piden_ajustes(self, client, ortofoto):
+        assert client.get("/ajustes/").status_code == 302
+
+
 class TestInspeccionar:
     def test_sin_ruta_no_se_queja_todavia(self, entrado, taller):
         """Es el estado inicial de la pantalla, no un error."""
@@ -165,10 +198,49 @@ class TestConvertir:
         assert job.output_path.endswith("_civil3d.tif")
 
     def test_el_modo_experto_acepta_un_formato_suelto(self, entrado, ortofoto, con_motor):
-        entrado.post("/convertir/", {"ruta": str(ortofoto), "perfil": "", "formato": "cog"})
+        entrado.post("/convertir/", {"ruta": str(ortofoto), "perfil": "", "formato": "geotiff"})
         job = ConversionJob.objects.get()
-        assert job.target_format_code == "cog"
+        assert job.target_format_code == "geotiff"
         assert job.target_profile_id == ""
+
+    def test_el_modo_experto_lee_los_ajustes_que_el_motor_declara(
+        self, entrado, ortofoto, con_motor
+    ):
+        """El motor de mentira no declara ninguno, así que el resultado tiene que ser un
+        diccionario vacío y no lo que venga en el POST."""
+        entrado.post(
+            "/convertir/",
+            {"ruta": str(ortofoto), "perfil": "", "formato": "geotiff", "inventado": "x"},
+        )
+        assert ConversionJob.objects.get().options == {}
+
+    def test_un_par_que_ningun_motor_sabe_hacer_se_rechaza(self, entrado, ortofoto, con_motor):
+        """Encolarlo sería condenar a alguien a esperar un fallo que ya se sabe. El motor de
+        mentira sabe `bigtiff→geotiff`, no `bigtiff→jp2`."""
+        entrado.post("/convertir/", {"ruta": str(ortofoto), "perfil": "", "formato": "jp2"})
+        assert ConversionJob.objects.count() == 0
+
+    def test_un_preajuste_fija_su_destino_y_cuenta_el_uso(self, entrado, ortofoto, con_motor):
+        from apps.presets.models import ConversionPreset
+
+        preajuste = ConversionPreset.objects.create(
+            slug="entrega-bhp",
+            nombre="Entrega cliente BHP",
+            target_format_code="geotiff",
+            options={"compresion": "DEFLATE", "solo_rgb": True},
+        )
+
+        entrado.post("/convertir/", {"ruta": str(ortofoto), "preajuste": preajuste.slug})
+
+        job = ConversionJob.objects.get()
+        assert job.target_format_code == "geotiff"
+        assert job.options == {"compresion": "DEFLATE", "solo_rgb": True}
+        preajuste.refresh_from_db()
+        assert preajuste.veces_usado == 1
+
+    def test_un_preajuste_borrado_no_encola_nada(self, entrado, ortofoto, con_motor):
+        entrado.post("/convertir/", {"ruta": str(ortofoto), "preajuste": "ya-no-existe"})
+        assert ConversionJob.objects.count() == 0
 
     def test_un_formato_inventado_se_rechaza(self, entrado, ortofoto, con_motor):
         entrado.post("/convertir/", {"ruta": str(ortofoto), "perfil": "", "formato": "xyzzy"})

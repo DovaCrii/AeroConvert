@@ -19,11 +19,13 @@ from __future__ import annotations
 
 import hashlib
 import os
+import struct
 from dataclasses import dataclass, field
 from pathlib import Path
 
 from . import catalogo, tiff
 from . import crs as crs_mod
+from . import las as las_mod
 
 #: Cuanto se lee para reconocer la firma.
 BYTES_DE_FIRMA = 65_536
@@ -69,6 +71,8 @@ class Inspeccion:
     acompanantes: tuple[Acompanante, ...] = ()
     #: Presente solo cuando el archivo es un TIFF o BigTIFF.
     tiff: tiff.CabeceraTiff | None = None
+    #: Presente solo cuando el archivo es un LAS, LAZ o COPC.
+    las: las_mod.CabeceraLas | None = None
     avisos: tuple[str, ...] = ()
     detalles: dict = field(default_factory=dict)
 
@@ -263,6 +267,37 @@ def inspeccionar(ruta: str | Path) -> Inspeccion:
                     "dejan negro donde debería ser transparente."
                 )
 
+    cabecera_las = None
+    if codigo in ("las", "laz", "copc"):
+        try:
+            cabecera_las = las_mod.leer_cabecera(ruta)
+        # `struct.error` se cuela con un archivo truncado en el sitio justo.
+        except (las_mod.NoEsLas, OSError, ValueError, struct.error) as fallo:
+            avisos.append(f"Empieza como un LAS pero la cabecera no se pudo leer: {fallo}")
+        else:
+            # **La firma no distingue las tres cosas: las tres empiezan por `LASF`.** Un LAZ
+            # es un LAS con los datos comprimidos, y un COPC es un LAZ con un octree dentro.
+            # Solo la cabecera lo dice, y para AeroBim la diferencia es entre poder abrir la
+            # nube y no poder.
+            if cabecera_las.es_copc:
+                codigo = "copc"
+            elif cabecera_las.comprimido:
+                codigo = "laz"
+            else:
+                codigo = "las"
+
+            if cabecera_las.epsg:
+                crs = crs_mod.epsg(cabecera_las.epsg, origen=crs_mod.INCRUSTADO)
+            elif cabecera_las.wkt:
+                crs = crs_mod.desde_wkt(cabecera_las.wkt, origen=crs_mod.INCRUSTADO)
+
+            if not cabecera_las.precision_suficiente_para_float32:
+                avisos.append(
+                    "Las coordenadas son demasiado grandes para float32: pasarlas a "
+                    "precisión simple sin restar el desplazamiento de cabecera mueve los "
+                    "puntos unos 20 cm. Cualquier visor que lo haga mal se notará."
+                )
+
     if not crs.conocido:
         crs = _crs_de_prj(ruta)
 
@@ -275,6 +310,7 @@ def inspeccionar(ruta: str | Path) -> Inspeccion:
         crs=crs,
         acompanantes=archivos_acompanantes(ruta, codigo or ""),
         tiff=cabecera_tiff,
+        las=cabecera_las,
         avisos=tuple(avisos),
         detalles=detalles,
     )

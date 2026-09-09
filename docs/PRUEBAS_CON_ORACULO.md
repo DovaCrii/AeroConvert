@@ -132,7 +132,53 @@ salto, así que por líneas no llegaba nada hasta el final — y **sin señales 
 atasco habría matado un motor sano** en cualquier ráster que tardase más que
 `AEROCONVERT_SILENCIO_MAXIMO_S`.
 
-### 6. El original quedó intacto
+### 6. La nube de puntos, contra `pdal info`
+
+Archivo: `716 - Cruce minero.las`, 278,9 MB, del mismo vuelo.
+
+El lector propio de cabecera LAS **no usa PDAL**, y coincide con él en todo:
+
+| | Lector propio | `pdal info --summary` |
+| --- | --- | --- |
+| Versión | LAS 1.2 | 1.2 |
+| Puntos | 9.618.692 | 9.618.692 |
+| Formato de punto | 2 | 2 |
+| Límites | 495003,24 – 495373,63 · 7318472,78 – 7318841,78 | idénticos |
+| CRS | EPSG:32719 (de las geoclaves) | `WGS 84 / UTM zone 19S` |
+
+Y deriva lo que PDAL no dice: **70,4 puntos/m², un punto cada 11,9 cm**, cobertura de
+370 × 369 × 25,5 m — que cuadra con los 372 × 369 m de la ortofoto del mismo vuelo.
+
+**El aviso de precisión se dispara sobre este archivo**: con el norte en 7,3 millones y una
+escala de 1 cm, `float32` no llega.
+
+### 7. LAS → COPC, de punta a punta
+
+| | |
+| --- | --- |
+| Tiempo | 50,3 s |
+| Entrada | 278,9 MB · LAS 1.2 · formato de punto 2 · sin comprimir |
+| Salida | **76,4 MB** (−73 %) · LAS 1.4 · formato de punto 7 · COPC |
+| Puntos | 9.618.692 → **9.618.692** |
+| Extensión | 370,39 × 369,00 × 25,45 m, sin cambio |
+| CRS | EPSG:32719 conservado (como `COMPD_CS`) |
+
+La verificación compara la cuenta de puntos contra la del original y **rechaza la salida si
+faltan puntos sin haber pedido diezmar**. Es el fallo silencioso propio de esta familia: una
+conversión que se come la mitad de la nube deja un archivo que abre, se ve bien, y le falta
+media obra.
+
+Y el veredicto se invierte igual que con el ráster:
+
+```
+716 - Cruce minero.las      LAS 1.2 · fmt 2 · no comprimido
+                            AeroBim -> NO ABRE: solo lee COPC, y esta no lo es
+
+AEROCONVERT_nube.copc.laz   LAS 1.4 · fmt 7 · COPC
+                            AeroBim -> ABRE: se abre por rangos
+```
+
+### 8. El original quedó intacto
 
 `488.815.770` bytes y la misma fecha de escritura antes y después de las cinco
 conversiones.

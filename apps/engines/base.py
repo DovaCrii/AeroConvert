@@ -37,6 +37,29 @@ INSTALABLE = "instalable"
 NO_SOPORTADO = "no-soportado"
 
 
+def ruta_parcial(destino: Path | str) -> Path:
+    """El nombre del archivo a medio escribir, **conservando la extensión**.
+
+    `salida.tif` → `salida.parcial.tif`, y `nube.copc.laz` → `nube.parcial.copc.laz`.
+
+    Poner `.parcial` **al final** parecía lo natural y era un error de fondo: media
+    herramienta geoespacial deduce el formato de la extensión, así que un
+    `nube.copc.laz.parcial` no lo puede escribir PDAL ni leerlo `pdal info`. Se descubrió
+    convirtiendo la nube de verdad, después de 37 segundos de trabajo tirados.
+
+    Se corta en el **primer** punto, no en el último, porque las extensiones compuestas
+    -- `.copc.laz`, `.aux.xml` -- son parte del formato y perderlas es el mismo problema.
+
+    Vive aquí y no en el runner porque los motores también la necesitan: es a ese nombre al
+    que escriben. Tenerla en dos sitios fue lo que permitió que se desincronizaran.
+    """
+    destino = Path(destino)
+    raiz, punto, extensiones = destino.name.partition(".")
+    if not punto:
+        return destino.with_name(f"{raiz}.parcial")
+    return destino.with_name(f"{raiz}.parcial.{extensiones}")
+
+
 @dataclass(frozen=True)
 class ParDeFormatos:
     origen: str
@@ -57,10 +80,35 @@ class Disponibilidad:
     mensaje: str = ""
     sugerencia: str = ""
     alternativas: tuple[str, ...] = ()
+    #: `True` cuando esto **no se va a poder nunca**, haga lo que haga quien lo lea.
+    #:
+    #: Distinguirlo de «falta instalar algo» importa: RCS y RCP son binarios cerrados de
+    #: Autodesk y no hay lector abierto ni lo va a haber. Presentarlos como «instalable»
+    #: mandaría a alguien a buscar un paquete que no existe.
+    irremediable: bool = False
 
     @classmethod
     def si(cls, version: str) -> Disponibilidad:
         return cls(disponible=True, version=version)
+
+    @classmethod
+    def nunca(
+        cls,
+        codigo_motivo: str,
+        mensaje: str,
+        *,
+        sugerencia: str = "",
+        alternativas: tuple[str, ...] = (),
+    ) -> Disponibilidad:
+        """No se puede, y no es cuestión de instalar nada. Pero sí hay un camino."""
+        return cls(
+            disponible=False,
+            codigo_motivo=codigo_motivo,
+            mensaje=mensaje,
+            sugerencia=sugerencia,
+            alternativas=alternativas,
+            irremediable=True,
+        )
 
     @classmethod
     def no(
@@ -121,6 +169,15 @@ class PlanDeEjecucion:
     #: Recibe una linea de la salida y devuelve la fraccion completada, o `None` si esa
     #: linea no habla de progreso.
     analizador_de_progreso: Callable[[str], float | None] | None = None
+    #: `False` cuando la herramienta **no dice nada mientras trabaja**. PDAL es asi: no
+    #: emite avance por ninguna via usable desde un subproceso.
+    #:
+    #: Importa mas de lo que parece. El detector de atasco del runner se apoya en que llegue
+    #: alguna senal cada tanto; con una herramienta muda, un trabajo perfectamente sano se
+    #: daria por atascado y **se mataria a si mismo** en cuanto pasara del umbral de
+    #: silencio. Declararlo aqui es lo que permite al runner apoyarse solo en el presupuesto
+    #: total de tiempo para estos motores.
+    emite_progreso: bool = True
 
 
 @dataclass(frozen=True)

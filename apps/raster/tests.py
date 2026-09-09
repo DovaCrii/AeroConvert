@@ -14,7 +14,7 @@ import pytest
 from django.contrib.auth import get_user_model
 from django.test import override_settings
 
-from apps.engines.base import ParDeFormatos
+from apps.engines.base import ParDeFormatos, ruta_parcial
 from apps.formats.tests.constructor import geotiff_minimo
 from apps.jobs.models import ConversionJob
 from apps.raster.motores import MotorEcw, MotorGdalRaster, analizar_progreso
@@ -75,13 +75,19 @@ class TestEleccionDeHerramienta:
         """GDAL los toma posicionales. Invertirlos sobrescribe el original."""
         plan = MotorGdalRaster().plan(_trabajo(usuario, tmp_path))
         assert plan.argv[-2] == str(tmp_path / "orto.tif")
-        assert plan.argv[-1].endswith("salida.tif.parcial")
+        assert plan.argv[-1] == str(ruta_parcial(tmp_path / "salida.tif"))
 
     def test_nunca_se_escribe_directamente_en_el_destino(self, usuario, tmp_path):
         """Escritura atomica: primero el parcial, y solo tras verificar se renombra."""
         plan = MotorGdalRaster().plan(_trabajo(usuario, tmp_path))
         assert plan.argv[-1] != str(plan.ruta_de_salida)
-        assert plan.argv[-1].endswith(".parcial")
+        assert ".parcial." in plan.argv[-1]
+
+    def test_el_parcial_conserva_la_extension(self, usuario, tmp_path):
+        """GDAL infiere cosas de la extensión, así que el temporal tiene que conservarla.
+        Con `salida.tif.parcial` la conversión funcionaba y la verificación no."""
+        plan = MotorGdalRaster().plan(_trabajo(usuario, tmp_path))
+        assert plan.argv[-1].endswith(".tif")
 
 
 class TestElMotorTieneQueHablar:
@@ -170,7 +176,7 @@ class TestPiramides:
 
     def test_se_construyen_sobre_el_parcial_no_sobre_el_destino(self, usuario, tmp_path):
         plan = MotorGdalRaster().plan(_trabajo(usuario, tmp_path, target_format_code="geotiff"))
-        assert plan.posteriores[0][-6].endswith(".parcial")
+        assert ".parcial." in plan.posteriores[0][-6]
 
     def test_cog_no_las_pide_dos_veces(self, usuario, tmp_path):
         """El controlador COG las construye solo; pedirlas otra vez las duplicaria dentro."""

@@ -59,6 +59,33 @@
         {% endif %}
       {% endif %}
 
+      {% if i.las %}
+        <dt>Nube</dt>
+        <dd>
+          LAS {{ i.las.version.0 }}.{{ i.las.version.1 }} ·
+          formato de punto {{ i.las.formato_de_punto }} ·
+          {% if i.las.es_copc %}COPC{% elif i.las.comprimido %}comprimido (LAZ){% else %}sin comprimir{% endif %}
+        </dd>
+
+        <dt>Puntos</dt>
+        <dd>{{ i.las.puntos|floatformat:0 }}</dd>
+
+        <dt>Cobertura</dt>
+        <dd>
+          {{ i.las.extension_m.0|floatformat:0 }} m ×
+          {{ i.las.extension_m.1|floatformat:0 }} m ×
+          {{ i.las.extension_m.2|floatformat:1 }} m de desnivel
+        </dd>
+
+        {% if i.las.separacion_media_m %}
+          <dt>Separación</dt>
+          <dd>
+            un punto cada {{ i.las.separacion_media_m|floatformat:3 }} m
+            <span class="tenue">({{ i.las.densidad_por_m2|floatformat:1 }} por m²)</span>
+          </dd>
+        {% endif %}
+      {% endif %}
+
       <dt>Sistema de referencia</dt>
       <dd>
         {% if i.crs.conocido %}
@@ -133,6 +160,22 @@
           <small>
             {% if p.se_puede %}
               → {{ p.nombre_destino }}
+              {% if p.estimacion %}
+                {# La linea honesta: cuanto va a pesar y cuanto va a tardar. #}
+                <br><span class="cifra">≈ {{ p.estimacion.bytes_salida|filesizeformat }}</span>
+                ·
+                {% if p.estimacion.segundos < 90 %}
+                  <span class="cifra">{{ p.estimacion.segundos|floatformat:0 }} s</span>
+                {% else %}
+                  <span class="cifra">{{ p.estimacion.minutos|floatformat:0 }} min</span>
+                {% endif %}
+                {% if p.estimacion.aviso %}
+                  <br><span style="color:var(--av-warn);">{{ p.estimacion.aviso }}</span>
+                {% endif %}
+                {% if not p.estimacion.cabe %}
+                  <br><span style="color:var(--av-danger);">No cabe en el disco de destino.</span>
+                {% endif %}
+              {% endif %}
             {% else %}
               {{ p.motivo }}
               {% if p.alternativas %}<br>En su lugar: {{ p.alternativas|join:", " }}{% endif %}
@@ -142,23 +185,52 @@
       {% endfor %}
     </div>
 
+    {% if preajustes %}
+      <div style="margin-bottom:14px;">
+        <strong style="font-size:.9rem;">Preajustes</strong>
+        <p class="tenue" style="margin:2px 0 8px; font-size:.85rem;">
+          Un destino guardado con nombre propio, de esta oficina.
+        </p>
+        <div style="display:flex; flex-wrap:wrap; gap:8px;">
+          {% for pre in preajustes %}
+            <button type="submit" name="preajuste" value="{{ pre.slug }}"
+                    class="boton boton-suave" style="padding:6px 14px; min-height:auto;"
+                    title="{{ pre.descripcion }}">
+              {{ pre.nombre }}
+              {% if pre.veces_usado %}<span class="tenue cifra">· {{ pre.veces_usado }}</span>{% endif %}
+            </button>
+          {% endfor %}
+        </div>
+      </div>
+    {% endif %}
+
     <details>
       <summary style="cursor:pointer; font-weight:600;">Ajustar a mano</summary>
       <p class="tenue" style="margin:8px 0;">
-        Las opciones salen de lo que el motor sabe pasar, así que aquí no hay nada que el
-        motor vaya a ignorar.
+        Los ajustes salen de lo que el motor declara, así que aquí no hay nada que el motor
+        vaya a ignorar — ni falta nada que sepa hacer.
       </p>
-      <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(15rem,1fr)); gap:10px;">
-        <label>
-          Formato de destino
-          <select name="formato" class="form-select">
-            {% for f in escribibles %}
-              <option value="{{ f.codigo }}">{{ f.nombre }}</option>
-            {% endfor %}
-          </select>
-        </label>
+
+      <div style="max-width:22rem; margin-bottom:12px;">
+        <label for="id_formato" style="font-weight:600;">Formato de destino</label>
+        <select name="formato" id="id_formato" class="form-select"
+                hx-get="{% url 'dashboard:ajustes' %}"
+                hx-target="#ajustes"
+                hx-swap="innerHTML"
+                hx-include="[name='ruta'],[name='formato']">
+          {% for f in escribibles %}
+            <option value="{{ f.codigo }}" {% if f.codigo == formato_experto %}selected{% endif %}>
+              {{ f.nombre }}
+            </option>
+          {% endfor %}
+        </select>
       </div>
-      <button type="submit" name="perfil" value="" class="boton boton-suave" style="margin-top:10px;">
+
+      <div id="ajustes">
+        {% include "dashboard/_ajustes.html" %}
+      </div>
+
+      <button type="submit" name="perfil" value="" class="boton boton-suave" style="margin-top:12px;">
         Convertir con estos ajustes
       </button>
     </details>

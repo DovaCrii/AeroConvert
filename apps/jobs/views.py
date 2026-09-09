@@ -8,7 +8,7 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from . import retencion
-from .models import TERMINALES, ConversionJob
+from .models import ERROR, TERMINALES, ConversionJob
 
 
 def _mio(request, pk) -> ConversionJob:
@@ -26,9 +26,37 @@ def lista(request):
     return render(request, "jobs/lista.html", {"trabajos": trabajos})
 
 
+def _alternativas(job: ConversionJob) -> tuple[dict, ...]:
+    """Los formatos que sí se pueden, cuando el pedido no se pudo.
+
+    Cuando algo falla por falta de una herramienta, la respuesta útil no es «no»: es «no, y
+    esto sí». Las alternativas las declara el propio motor en su `Disponibilidad`, así que
+    salen de la matriz de capacidades y no de una lista escrita a mano aquí.
+    """
+    from apps.engines import registry
+    from apps.engines.base import ParDeFormatos
+    from apps.formats import catalogo
+
+    if job.status != ERROR or not job.source_format_code:
+        return ()
+
+    celda = registry.celda(ParDeFormatos(job.source_format_code, job.target_format_code))
+    salida = []
+    for codigo in celda.alternativas:
+        formato = catalogo.FORMATOS.get(codigo)
+        if formato is None:
+            continue
+        # Se ofrece solo lo que de verdad se puede hacer ahora. Proponer una alternativa
+        # que tambien falla es peor que no proponer nada.
+        if registry.celda(ParDeFormatos(job.source_format_code, codigo)).se_puede:
+            salida.append({"codigo": codigo, "nombre": formato.nombre})
+    return tuple(salida)
+
+
 @login_required
 def ficha(request, pk):
-    return render(request, "jobs/ficha.html", {"trabajo": _mio(request, pk)})
+    job = _mio(request, pk)
+    return render(request, "jobs/ficha.html", {"trabajo": job, "alternativas": _alternativas(job)})
 
 
 @login_required
@@ -38,7 +66,10 @@ def progreso(request, pk):
     Una consulta indexada y un fragmento pequeno. El sondeo se detiene solo porque la
     plantilla omite el `hx-trigger` cuando el trabajo es terminal.
     """
-    return render(request, "jobs/_progreso.html", {"trabajo": _mio(request, pk)})
+    job = _mio(request, pk)
+    return render(
+        request, "jobs/_progreso.html", {"trabajo": job, "alternativas": _alternativas(job)}
+    )
 
 
 @login_required

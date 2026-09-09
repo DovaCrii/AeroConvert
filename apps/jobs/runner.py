@@ -45,7 +45,7 @@ from django.db.models import F
 from django.utils import timezone
 
 from apps.engines import registry
-from apps.engines.base import ParDeFormatos, PlanDeEjecucion
+from apps.engines.base import ParDeFormatos, PlanDeEjecucion, ruta_parcial
 from apps.formats import deteccion
 
 from . import motivos as motivos_mod
@@ -205,7 +205,7 @@ def _ejecutar(job: ConversionJob) -> Resultado:
 
     plan = motor.plan(job)
     destino = Path(plan.ruta_de_salida)
-    parcial = destino.with_name(destino.name + ".parcial")
+    parcial = ruta_parcial(destino)
 
     _reservar_destino(destino)
     _exigir_espacio(destino, job.source_size_bytes)
@@ -271,13 +271,29 @@ def _exigir_crs(job: ConversionJob, inspeccion) -> None:
     from apps.formats import catalogo
 
     destino = catalogo.FORMATOS.get(job.target_format_code)
+    origen = catalogo.FORMATOS.get(job.source_format_code)
     lo_exige = bool(destino and destino.lleva_crs_incrustado and destino.familia == catalogo.RASTER)
 
-    if reproyecta or lo_exige:
+    # **En nubes de puntos no hay excepción.** En ráster se admite convertir sin
+    # georreferencia -- un TIFF suelto a un COG suelto es legítimo y negarlo convertiría la
+    # herramienta en un estorbo. En nubes no: una nube sin CRS no se puede cruzar con nada,
+    # y el dato se pierde para siempre si nadie lo apunta al entregarla. Es la regla escrita
+    # en `AeroBim/docs/NUBES_DE_PUNTOS.md`.
+    es_nube = bool(
+        (destino and destino.familia == catalogo.NUBE)
+        or (origen and origen.familia == catalogo.NUBE)
+    )
+
+    if reproyecta or lo_exige or es_nube:
+        detalle = (
+            "Una nube sin sistema de referencia no se puede cruzar con nada, y el dato se "
+            "pierde para siempre si nadie lo apunta al entregarla."
+            if es_nube
+            else "Declara el EPSG: adivinarlo es peor que no tenerlo."
+        )
         raise TrabajoFallido(
             "crs-ausente",
-            "El archivo no declara sistema de referencia y esta conversión lo necesita. "
-            "Declara el EPSG: adivinarlo es peor que no tenerlo.",
+            f"El archivo no declara sistema de referencia y esta conversión lo necesita. {detalle}",
         )
 
     job.registrar(
@@ -439,7 +455,11 @@ def _lanzar(job: ConversionJob, plan: PlanDeEjecucion, parcial: Path) -> None:
         if proceso.poll() is not None and lineas.empty():
             break
 
-        if ahora - ultimo_signo > silencio_maximo:
+        # El detector de atasco solo vale para motores que hablan. Con una herramienta muda
+        # -- PDAL lo es -- el silencio es su estado normal, y matar por silencio mataria
+        # trabajos sanos. Para esos queda el presupuesto total, que es peor detector pero es
+        # el unico honesto.
+        if plan.emite_progreso and ahora - ultimo_signo > silencio_maximo:
             _matar(proceso)
             _borrar(parcial)
             raise TrabajoFallido(

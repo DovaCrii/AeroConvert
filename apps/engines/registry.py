@@ -89,11 +89,17 @@ def celda(par: ParDeFormatos) -> CeldaDeCapacidad:
         fallos.append((motor, estado))
 
     # Ninguno disponible. Se reporta el primero por prioridad: es el que se usaria.
+    #
+    # Y si **todos** los que saben este par dicen que no se va a poder nunca, la celda no es
+    # «instalable»: es «no soportado» -- pero con su motivo y su remedio, que es lo que la
+    # distingue de un hueco vacio. Presentar RCS como instalable mandaria a alguien a buscar
+    # un paquete que no existe.
     motor, estado = fallos[0]
+    todos_irremediables = all(e.irremediable for _, e in fallos)
     return CeldaDeCapacidad(
         origen=par.origen,
         destino=par.destino,
-        estado=INSTALABLE,
+        estado=NO_SOPORTADO if todos_irremediables else INSTALABLE,
         motor_id=motor.id,
         codigo_motivo=estado.codigo_motivo,
         mensaje=estado.mensaje,

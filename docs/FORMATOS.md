@@ -44,9 +44,48 @@ solo píxel y lo abre mucho más software.
 | MBTiles · GeoPackage ráster | ✔ | ✔ | |
 | VRT | ✔ | ✔ | Mosaico virtual: no copia un píxel |
 
-## Nubes de puntos (fase F2)
+## Nubes de puntos
 
-LAS 1.0–1.4, LAZ, **COPC**, E57, PLY, PCD, XYZ/PTS. Salida a 3D Tiles y Potree.
+| Formato | Lee | Escribe | Nota |
+| --- | :-: | :-: | --- |
+| LAS 1.0 – 1.4 | ✔ | ✔ | |
+| LAZ | ✔ | ✔ | |
+| **COPC** | ✔ | ✔ | Un LAZ 1.4 con un octree dentro. **Es lo único que lee AeroBim** |
+| PLY | ✔ | ✔ | Sin georreferencia |
+| XYZ · PTS · texto | ✔ | ✔ | |
+| E57 | ⚿ | ⚿ | Los controladores de PDAL se fijan al compilarlo, **y el de QGIS no lo trae** |
+| **RCS · RCP** (ReCap) | ✖ | ✖ | Ver abajo |
+| 3D Tiles · Potree | ✖ | ⬜ | Fase F2.6 |
+
+### Por qué RCS y RCP no se pueden, y qué hacer
+
+`.rcs` es un escaneo indexado de Autodesk ReCap y `.rcp` el proyecto que apunta a varios.
+Los dos son **binarios cerrados**: no hay lector abierto, PDAL no los conoce, GDAL tampoco,
+y CloudCompare tampoco. El único programa que los exporta es ReCap Pro.
+
+Están en el catálogo **a propósito**, y su celda dice «no soportado» con el remedio escrito:
+
+> Ábrelo en ReCap Pro y usa **Exportar → E57** (o LAS). Ese archivo sí se convierte aquí.
+
+Quien suelte un `.rcs` merece leer eso en vez de «formato no reconocido», que suena a fallo
+de la aplicación cuando es una decisión de Autodesk. Es el mismo trato que se le da a DWG y
+a ECW, con la diferencia de que ahí sí existe una herramienta externa que instalar.
+
+### La regla dura del CRS
+
+**En nubes, un CRS ausente detiene la conversión. Sin excepción.**
+
+En ráster se admite convertir sin georreferencia: un TIFF suelto a un COG suelto es
+legítimo, y negarlo convertiría la herramienta en un estorbo. En nubes no. Una nube sin CRS
+no se puede cruzar con nada, y el dato **se pierde para siempre** si nadie lo apunta al
+entregarla. Es la regla escrita en `AeroBim/docs/NUBES_DE_PUNTOS.md` y aquí se hereda entera.
+
+### El aviso de precisión
+
+Sobre coordenadas UTM grandes —el norte de Chile ronda los 7,3 millones— un `float32` tiene
+un escalón de medio metro. Pasar los puntos a precisión simple sin restar antes el
+desplazamiento de cabecera **mueve la nube unos 20 cm**. La ficha lo detecta y lo avisa; es
+el hallazgo que AeroBim documentó y que aquí se comprueba solo.
 
 ## Vectorial, CAD y topografía (fase F3)
 

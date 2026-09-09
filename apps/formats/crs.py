@@ -231,14 +231,26 @@ def desde_wkt(wkt: str, *, origen: str = SIDECAR_PRJ) -> Crs:
     except Exception:
         return Crs(autoridad="", codigo="", wkt=wkt, origen=origen, nombre=_seguro(wkt))
 
+    # **Un CRS compuesto se resuelve por su componente horizontal.**
+    #
+    # PDAL escribe las nubes con un `COMPD_CS`: el UTM de siempre más un sistema vertical
+    # que casi nunca trae datum conocido. Ese compuesto no lo identifica nadie, y entonces
+    # entraba la heurística del `AUTHORITY` declarado -- que toma el **último** del texto, y
+    # en un compuesto ese es el del metro del sistema vertical, `EPSG:9001`, no el 32719.
+    # Resultado: una nube perfectamente georreferenciada se reportaba sin CRS.
+    #
+    # Se informa del horizontal porque es el que sitúa el dato en el mapa. El WKT completo
+    # se conserva en `wkt`, así que la parte vertical no se pierde: solo no da el nombre.
+    objetivo, texto_declarado = _componente_horizontal(resuelto, wkt)
+
     try:
-        autoridad = resuelto.to_authority() or resuelto.to_authority(min_confidence=25)
+        autoridad = objetivo.to_authority() or objetivo.to_authority(min_confidence=25)
     except Exception:
         autoridad = None
 
     if autoridad is None:
-        declarada = _autoridad_declarada(wkt)
-        if declarada and declarada[0] == "EPSG" and _coincide_con_epsg(resuelto, int(declarada[1])):
+        declarada = _autoridad_declarada(texto_declarado)
+        if declarada and declarada[0] == "EPSG" and _coincide_con_epsg(objetivo, int(declarada[1])):
             autoridad = declarada
 
     if autoridad is None:
@@ -248,8 +260,24 @@ def desde_wkt(wkt: str, *, origen: str = SIDECAR_PRJ) -> Crs:
         codigo=autoridad[1],
         wkt=wkt,
         origen=origen,
-        nombre=resuelto.name,
+        nombre=objetivo.name,
     )
+
+
+def _componente_horizontal(resuelto, wkt: str):
+    """El sub-CRS que sitúa el dato en el mapa, y el WKT con el que identificarlo.
+
+    Devuelve el propio CRS cuando no es compuesto, y también cuando pyproj no puede
+    descomponerlo — que es un caso real con WKT raros. Volver al compuesto entero es peor
+    que fallar aquí: al menos la resolución estricta sigue teniendo una oportunidad.
+    """
+    try:
+        if resuelto.is_compound and resuelto.sub_crs_list:
+            horizontal = resuelto.sub_crs_list[0]
+            return horizontal, horizontal.to_wkt()
+    except Exception:
+        return resuelto, wkt
+    return resuelto, wkt
 
 
 def _seguro(wkt: str) -> str:

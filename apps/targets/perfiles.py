@@ -300,8 +300,40 @@ def _veredicto_web(inspeccion) -> Veredicto:
     return _veredicto_generico(WEB, inspeccion)
 
 
+def _veredicto_aerobim(inspeccion) -> Veredicto:
+    """AeroBim lee tres formatos y nada mas, y para nubes solo lee COPC.
+
+    Un LAZ corriente **no** le sirve, aunque comparta extension con un COPC: lo que AeroBim
+    necesita es el octree que va dentro. Decir «abre» porque es un `.laz` seria mandar a
+    alguien a una pantalla en blanco.
+    """
+    codigo = inspeccion.codigo_formato
+
+    if codigo == "copc":
+        return Veredicto(AEROBIM.id, AEROBIM.nombre, ABRE, "Es COPC: se abre por rangos.")
+
+    if codigo in ("las", "laz"):
+        cabecera = inspeccion.las
+        detalle = ""
+        if cabecera is not None and cabecera.puntos:
+            detalle = f" Son {cabecera.puntos / 1e6:.1f} millones de puntos."
+        return Veredicto(
+            perfil_id=AEROBIM.id,
+            perfil_nombre=AEROBIM.nombre,
+            severidad=NO_ABRE,
+            motivo=f"AeroBim solo lee nubes en COPC, y esta no lo es.{detalle}",
+            remedio="Convertir a COPC.",
+        )
+
+    return _veredicto_generico(AEROBIM, inspeccion)
+
+
 #: Las reglas propias. Lo que no esta aqui usa `_veredicto_generico`.
-REGLAS = {CIVIL3D.id: _veredicto_civil3d, WEB.id: _veredicto_web}
+REGLAS = {
+    CIVIL3D.id: _veredicto_civil3d,
+    WEB.id: _veredicto_web,
+    AEROBIM.id: _veredicto_aerobim,
+}
 
 
 def veredictos(inspeccion) -> tuple[Veredicto, ...]:
