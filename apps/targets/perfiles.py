@@ -140,6 +140,10 @@ QGIS = PerfilDeDestino(
         "las",
         "laz",
         "copc",
+        # QGIS abre una libreta de puntos como **texto delimitado**, preguntando qué columna
+        # es la X y cuál la Y. Decir que «no la abre» seria mentir; el veredicto de una
+        # libreta lo escribe `_veredicto_de_libreta`, que es donde está el matiz que importa.
+        "puntos",
     ),
     formato_destino="cog",
     # GeoPackage para lo vectorial: un solo archivo, con el CRS y los atributos dentro. Es lo
@@ -154,7 +158,8 @@ ARCGIS = PerfilDeDestino(
     nombre="ArcGIS Pro",
     descripcion="Lee BigTIFF y la mayoria de los raster; prefiere GeoTIFF o CRF.",
     formatos_preferidos=("geotiff", "bigtiff", "cog", "img", "gpkg"),
-    formatos_aceptados=("jp2", "ecw", "mrsid", "asc", "shp", "geojson", "las", "laz"),
+    # `puntos`: ArcGIS los importa con «XY Table To Point», eligiendo las columnas a mano.
+    formatos_aceptados=("jp2", "ecw", "mrsid", "asc", "shp", "geojson", "las", "laz", "puntos"),
     formato_destino="geotiff",
     # Shapefile y no GeoPackage: ArcGIS lee los dos, pero el shapefile sigue siendo lo que
     # espera media administracion publica cuando pide «los puntos». Quien quiera GPKG lo
@@ -237,7 +242,24 @@ def _veredicto_civil3d(inspeccion) -> Veredicto:
             perfil_nombre=CIVIL3D.nombre,
             severidad=NO_ABRE,
             motivo=f"Civil 3D no abre {nombre}.",
-            remedio="Convertir a GeoTIFF clásico.",
+            remedio=_remedio_hacia(CIVIL3D, inspeccion),
+        )
+
+    if codigo == "puntos":
+        # **Este es el formato nativo de puntos de Civil 3D**, así que el veredicto no es
+        # que no abra: es que al importarlo hay que elegir el formato de puntos —PNEZD,
+        # PENZD— de una lista, y ahí está todo el riesgo. En LandXML no hay lista que
+        # elegir: el orden y el sistema de referencia van dentro del archivo.
+        base = _veredicto_de_libreta(CIVIL3D, inspeccion)
+        return Veredicto(
+            perfil_id=CIVIL3D.id,
+            perfil_nombre=CIVIL3D.nombre,
+            severidad=base.severidad,
+            motivo=base.motivo,
+            remedio=(
+                "Convertir a LandXML: entra como grupo de puntos COGO, con el orden y el "
+                "EPSG dentro, y sin lista que elegir."
+            ),
         )
 
     if tiff is not None and tiff.tiene_alfa:
@@ -270,20 +292,64 @@ def _veredicto_civil3d(inspeccion) -> Veredicto:
     return Veredicto(CIVIL3D.id, CIVIL3D.nombre, ABRE, "Abre tal cual.")
 
 
+def _remedio_hacia(perfil_destino: PerfilDeDestino, inspeccion) -> str:
+    """«Convertir a X.», con la X que de verdad se va a ofrecer.
+
+    **Por familia.** Antes se leía `formato_destino` a secas, y delante de una libreta de
+    puntos el veredicto de QGIS decía «convertir a Cloud Optimized GeoTIFF» — un ráster, a
+    partir de un archivo de texto con coordenadas — mientras el botón de al lado ofrecía
+    GeoPackage. Dos respuestas distintas a la misma pregunta, en la misma pantalla.
+    """
+    destino = catalogo.FORMATOS.get(perfil_destino.destino_para(inspeccion.familia))
+    return f"Convertir a {destino.nombre}." if destino else ""
+
+
+#: Lo que hay que decir de una libreta de puntos en **cualquier** programa que la abra.
+#:
+#: Es la frase que resume el producto entero: el archivo se abre, y ahí está el problema. Va
+#: corta porque el motivo es **una línea** de la tira de veredictos; la consecuencia y el
+#: arreglo van en el remedio, que es la segunda.
+AVISO_DEL_ORDEN = "Abre, pero hay que elegir a mano el orden de columnas, y elegir mal no avisa."
+
+
+def _veredicto_de_libreta(perfil_destino: PerfilDeDestino, inspeccion) -> Veredicto:
+    """El veredicto de un archivo de puntos en un programa que sí lo lee.
+
+    **Nunca es «abre tal cual», por bien que esté el archivo.** QGIS lo abre como texto
+    delimitado y ArcGIS con «XY Table To Point»; los dos preguntan qué columna es la X y
+    cuál la Y, y los dos aceptan la respuesta equivocada sin decir nada. Marcar esto en
+    verde sería tranquilizar a alguien justo antes del único paso donde se puede equivocar.
+    """
+    if inspeccion.puntos is not None and inspeccion.puntos.hay_que_preguntar:
+        aviso = "Aquí el orden no se puede deducir del rango UTM: hay que elegirlo. "
+    else:
+        aviso = "Equivocarse deja los puntos a miles de kilómetros. "
+
+    return Veredicto(
+        perfil_id=perfil_destino.id,
+        perfil_nombre=perfil_destino.nombre,
+        severidad=CON_REPAROS,
+        motivo=AVISO_DEL_ORDEN,
+        remedio=aviso + _remedio_hacia(perfil_destino, inspeccion) + " Ahí ya va resuelto.",
+    )
+
+
 def _veredicto_generico(perfil_destino: PerfilDeDestino, inspeccion) -> Veredicto:
     codigo = inspeccion.codigo_formato
 
     if not perfil_destino.lee(codigo):
         formato = catalogo.FORMATOS.get(codigo)
         nombre = formato.nombre if formato else codigo or "desconocido"
-        destino = catalogo.FORMATOS.get(perfil_destino.formato_destino)
         return Veredicto(
             perfil_id=perfil_destino.id,
             perfil_nombre=perfil_destino.nombre,
             severidad=NO_ABRE,
             motivo=f"{perfil_destino.nombre} no abre {nombre}.",
-            remedio=f"Convertir a {destino.nombre}." if destino else "",
+            remedio=_remedio_hacia(perfil_destino, inspeccion),
         )
+
+    if codigo == "puntos":
+        return _veredicto_de_libreta(perfil_destino, inspeccion)
 
     if not inspeccion.crs.conocido and codigo not in ("kml", "kmz"):
         return Veredicto(
@@ -295,16 +361,69 @@ def _veredicto_generico(perfil_destino: PerfilDeDestino, inspeccion) -> Veredict
         )
 
     if codigo not in perfil_destino.formatos_preferidos:
-        destino = catalogo.FORMATOS.get(perfil_destino.formato_destino)
         return Veredicto(
             perfil_id=perfil_destino.id,
             perfil_nombre=perfil_destino.nombre,
             severidad=CON_REPAROS,
             motivo="Abre, pero no es el formato que mejor le sienta.",
-            remedio=f"Convertir a {destino.nombre}." if destino else "",
+            remedio=_remedio_hacia(perfil_destino, inspeccion),
         )
 
     return Veredicto(perfil_destino.id, perfil_destino.nombre, ABRE, "Abre tal cual.")
+
+
+#: Megapíxeles a partir de los cuales una superposición de Google Earth hay que teselarla.
+#:
+#: No es un límite documentado con una cifra redonda, es la práctica: Google Earth remuestrea
+#: cada `GroundOverlay` a la textura que la tarjeta admita —del orden de 2048 × 2048— así que
+#: una imagen mucho mayor se ve borrosa entera, no en detalle al acercarse. Lo que resuelve
+#: eso es una `SuperOverlay`: la misma imagen partida en teselas con niveles.
+MPX_QUE_OBLIGAN_A_TESELAR = 20.0
+
+
+def _veredicto_google_earth(inspeccion) -> Veredicto:
+    """Google Earth es el destino más estrecho, y decirlo entero ahorra un viaje.
+
+    Son **tres** condiciones, no una, y las tres se descubren normalmente de una en una:
+    tiene que ser KMZ, tiene que ir en EPSG:4326, y si la imagen es grande tiene que ir
+    teselada. Un veredicto que solo diga «convertir a KMZ» manda a alguien a hacer un KMZ
+    que se verá borroso o en el sitio equivocado.
+    """
+    codigo = inspeccion.codigo_formato
+    tiff = inspeccion.tiff
+
+    condiciones = []
+    if inspeccion.crs.conocido and inspeccion.crs.codigo not in ("4326", ""):
+        condiciones.append(f"reproyectar de EPSG:{inspeccion.crs.codigo} a EPSG:4326")
+    if tiff is not None and tiff.megapixeles >= MPX_QUE_OBLIGAN_A_TESELAR:
+        condiciones.append(
+            f"teselar los {tiff.megapixeles:.0f} Mpx — en una sola superposición Google "
+            "Earth la remuestrea entera y se ve borrosa"
+        )
+
+    # El motivo es **una línea**; las condiciones van en el remedio, que es la segunda.
+    pasos = ("Hay que " + " y ".join(condiciones) + ". ") if condiciones else ""
+
+    if GOOGLE_EARTH.lee(codigo):
+        if not condiciones:
+            return Veredicto(GOOGLE_EARTH.id, GOOGLE_EARTH.nombre, ABRE, "Abre tal cual.")
+        return Veredicto(
+            perfil_id=GOOGLE_EARTH.id,
+            perfil_nombre=GOOGLE_EARTH.nombre,
+            severidad=CON_REPAROS,
+            motivo="Abre, pero no como está.",
+            remedio=pasos + _remedio_hacia(GOOGLE_EARTH, inspeccion),
+        )
+
+    formato = catalogo.FORMATOS.get(codigo)
+    nombre = formato.nombre if formato else codigo or "desconocido"
+    return Veredicto(
+        perfil_id=GOOGLE_EARTH.id,
+        perfil_nombre=GOOGLE_EARTH.nombre,
+        severidad=NO_ABRE,
+        motivo=f"Google Earth solo abre KML y KMZ, y esto es {nombre}.",
+        remedio=pasos + _remedio_hacia(GOOGLE_EARTH, inspeccion),
+    )
 
 
 def _veredicto_web(inspeccion) -> Veredicto:
@@ -363,6 +482,7 @@ def _veredicto_aerobim(inspeccion) -> Veredicto:
 #: Las reglas propias. Lo que no esta aqui usa `_veredicto_generico`.
 REGLAS = {
     CIVIL3D.id: _veredicto_civil3d,
+    GOOGLE_EARTH.id: _veredicto_google_earth,
     WEB.id: _veredicto_web,
     AEROBIM.id: _veredicto_aerobim,
 }

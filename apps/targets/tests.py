@@ -135,6 +135,89 @@ class TestFormaDeLosVeredictos:
             assert veredicto.motivo
 
     def test_cada_motivo_cabe_en_una_linea(self, tmp_path):
-        inspeccion = _inspeccion(tmp_path, "x.tif", bigtiff_minimo(bandas=4, alfa=True))
-        for veredicto in perfiles.veredictos(inspeccion):
-            assert len(veredicto.motivo) <= 120, veredicto
+        """Y se comprueba sobre **varios** archivos, no sobre uno diminuto.
+
+        Con un solo TIFF de juguete esta prueba pasaba por suerte: ninguna de las ramas que
+        alargan el motivo —la ortofoto grande que hay que teselar, la libreta de puntos— se
+        llegaba a ejecutar. Un motivo de 200 caracteres rompe la tira de veredictos, que es
+        una línea por destino.
+        """
+        libreta = tmp_path / "control.csv"
+        libreta.write_text(
+            "P1,7318729.036,495279.406,3042.641,pr\nP2,7318700.292,495137.090,3045.004,pr\n",
+            encoding="utf-8",
+        )
+        casos = [
+            _inspeccion(tmp_path, "x.tif", bigtiff_minimo(bandas=4, alfa=True)),
+            _inspeccion(tmp_path, "g.tif", bigtiff_minimo(ancho=14526, alto=14443, bandas=3)),
+            _inspeccion(tmp_path, "s.tif", geotiff_minimo(bandas=3)),
+            inspeccionar(libreta),
+        ]
+        for inspeccion in casos:
+            for veredicto in perfiles.veredictos(inspeccion):
+                assert len(veredicto.motivo) <= 120, (inspeccion.nombre, veredicto)
+
+
+class TestUnaLibretaDePuntos:
+    """El caso donde el veredicto tiene que decir lo contrario de lo obvio.
+
+    Un PNEZD **lo abren** Civil 3D, QGIS y ArcGIS: es texto delimitado. Decir «no abre»
+    sería falso, y decir «abre tal cual» sería tranquilizar a alguien justo antes del único
+    paso donde se puede equivocar — elegir qué columna es cada coordenada.
+    """
+
+    @pytest.fixture
+    def libreta(self, tmp_path):
+        ruta = tmp_path / "control.csv"
+        ruta.write_text(
+            "P1,7318729.036,495279.406,3042.641,pr\n"
+            "P2,7318700.292,495137.090,3045.004,pr\n"
+            "P3,7318656.894,495192.496,3046.322,pr\n",
+            encoding="utf-8",
+        )
+        return inspeccionar(ruta)
+
+    def test_civil3d_no_dice_que_no_abre(self, libreta):
+        """Es su formato nativo de puntos. Decir que no lo abre sería absurdo."""
+        assert _de(perfiles.veredictos(libreta), "civil3d").severidad == perfiles.CON_REPAROS
+
+    def test_y_su_remedio_es_landxml(self, libreta):
+        """No DXF, que también se podría: en LandXML no hay lista de formatos que elegir."""
+        assert "LandXML" in _de(perfiles.veredictos(libreta), "civil3d").remedio
+
+    def test_qgis_y_arcgis_tampoco_dicen_que_no(self, libreta):
+        for identificador in ("qgis", "arcgis"):
+            veredicto = _de(perfiles.veredictos(libreta), identificador)
+            assert veredicto.severidad == perfiles.CON_REPAROS, identificador
+            assert "orden de columnas" in veredicto.motivo
+
+    def test_el_remedio_es_el_destino_que_ofrece_el_boton(self, libreta):
+        """Antes se leía `formato_destino` a secas y el veredicto de QGIS decía «convertir a
+        Cloud Optimized GeoTIFF» —un ráster, a partir de un archivo de texto— mientras el
+        botón de al lado ofrecía GeoPackage. Dos respuestas en la misma pantalla."""
+        assert "GeoPackage" in _de(perfiles.veredictos(libreta), "qgis").remedio
+        assert "Shapefile" in _de(perfiles.veredictos(libreta), "arcgis").remedio
+        assert "GeoJSON" in _de(perfiles.veredictos(libreta), "web").remedio
+
+    def test_ninguno_promete_que_abre_tal_cual(self, libreta):
+        for veredicto in perfiles.veredictos(libreta):
+            assert veredicto.severidad != perfiles.ABRE, veredicto
+
+
+class TestGoogleEarthDiceLasTresCondiciones:
+    """Son tres —KMZ, EPSG:4326 y teselar— y normalmente se descubren de una en una."""
+
+    def test_avisa_de_la_reproyeccion(self, tmp_path):
+        inspeccion = _inspeccion(tmp_path, "orto.tif", bigtiff_minimo(bandas=3))
+        assert "EPSG:4326" in _de(perfiles.veredictos(inspeccion), "google-earth").remedio
+
+    def test_avisa_de_teselar_solo_cuando_la_imagen_es_grande(self, tmp_path):
+        """Una ortofoto de 210 Mpx en una sola superposición se ve borrosa entera: Google
+        Earth la remuestrea a la textura que admita la tarjeta."""
+        grande = _inspeccion(
+            tmp_path, "grande.tif", bigtiff_minimo(ancho=14526, alto=14443, bandas=3)
+        )
+        assert "teselar" in _de(perfiles.veredictos(grande), "google-earth").remedio
+
+        pequena = _inspeccion(tmp_path, "chica.tif", bigtiff_minimo(ancho=100, alto=100))
+        assert "teselar" not in _de(perfiles.veredictos(pequena), "google-earth").remedio
