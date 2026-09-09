@@ -65,6 +65,22 @@ MB_POR_SEGUNDO = 45.0
 #: Las pirámides recorren la imagen otra vez, a un tercio de resolución acumulada.
 RECARGO_POR_PIRAMIDES = 1.35
 
+#: Lo que pide el proceso al margen de los datos, en megabytes.
+#:
+#: Medido el 2026-09-09: el pico de `gdal_translate` sobre la ortofoto de referencia, con
+#: `GDAL_CACHEMAX=512`, fue de **655 MB**. El propio proceso pide entonces unos 143, y aquí
+#: se dejan 192 para que la cifra sea un techo de verdad y no una apuesta ajustada.
+MARGEN_DE_PROCESO_MB = 192
+
+#: Megabytes por millón de puntos. **PDAL no respeta `GDAL_CACHEMAX`.**
+#:
+#: Es la corrección de un error de bulto: la estimación devolvía el mismo techo para una
+#: ortofoto y para una nube, y en nubes se quedaba corta de forma **creciente**. Medido el
+#: 2026-09-09 con PDAL 2.10.0 llevando la nube de referencia a COPC: pico de **966 MB** para
+#: 9.618.692 puntos, o sea 100,4 MB por millón. Se redondea hacia arriba porque de este
+#: número depende que la máquina aguante.
+MB_POR_MILLON_DE_PUNTOS = 105.0
+
 
 @dataclass(frozen=True)
 class Estimacion:
@@ -124,7 +140,7 @@ def estimar(
     return Estimacion(
         bytes_salida=bytes_salida,
         segundos=segundos,
-        memoria_mb=_memoria_mb(),
+        memoria_mb=_memoria_mb(inspeccion),
         libre_bytes=libre,
         medida=medida,
         aviso=aviso,
@@ -159,11 +175,21 @@ def _clave_de_ratio(formato: str, opciones: dict) -> tuple[tuple[str, str], bool
     return clave, clave in RATIOS
 
 
-def _memoria_mb() -> int:
-    """Lo que va a pedir el proceso hijo.
+def _memoria_mb(inspeccion=None) -> int:
+    """Lo que va a pedir el proceso hijo. Es un **techo**, no una predicción del uso real.
 
-    Es el tope de caché de GDAL más un margen para el propio proceso. No es una predicción
-    del uso real: es el techo, que es el dato que importa para saber si la estación se va a
-    quedar sin memoria.
+    Y el techo depende de la familia, porque los dos motores acotan la memoria de forma
+    distinta:
+
+    - **GDAL** la acota él: `GDAL_CACHEMAX` es un tope duro y el proceso añade su parte.
+      El techo no depende del tamaño de la imagen, y por eso una ortofoto de 40 GB se
+      convierte en una máquina de 4 GB.
+    - **PDAL no.** Carga los puntos en memoria y `GDAL_CACHEMAX` no le afecta, así que el
+      techo **crece con el número de puntos**. Devolver la cifra de GDAL para una nube era
+      quedarse corto en un 50 % con la nube de referencia, y peor cuanto mayor la nube.
     """
-    return int(getattr(settings, "GDAL_CACHEMAX_MB", 512)) + 128
+    if inspeccion is not None and getattr(inspeccion, "las", None) is not None:
+        millones = inspeccion.las.puntos / 1_000_000
+        return MARGEN_DE_PROCESO_MB + int(millones * MB_POR_MILLON_DE_PUNTOS)
+
+    return int(getattr(settings, "GDAL_CACHEMAX_MB", 512)) + MARGEN_DE_PROCESO_MB

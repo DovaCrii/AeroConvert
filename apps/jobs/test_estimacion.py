@@ -3,7 +3,7 @@
 import pytest
 
 from apps.formats.deteccion import inspeccionar
-from apps.formats.tests.constructor import bigtiff_minimo, geotiff_minimo
+from apps.formats.tests.constructor import bigtiff_minimo, geotiff_minimo, las_minimo
 from apps.jobs import estimacion as est
 
 
@@ -117,6 +117,49 @@ class TestTiempoYMemoria:
     def test_la_memoria_es_el_techo_no_una_prediccion(self, grande):
         """Es el dato que importa para saber si la estación se va a quedar sin memoria."""
         assert est.estimar(inspeccion=grande, formato_destino="cog").memoria_mb >= 512
+
+    def test_el_techo_de_raster_esta_por_encima_de_lo_medido(self, grande):
+        """Medido el 2026-09-09: `gdal_translate` con `GDAL_CACHEMAX=512` picó en 655 MB.
+
+        Un «techo» por debajo del pico real no es un techo: es una cifra que tranquiliza
+        justo antes de que la máquina se quede sin memoria.
+        """
+        estimada = est.estimar(inspeccion=grande, formato_destino="jp2")
+        assert estimada.memoria_mb >= 655
+
+
+class TestLaMemoriaDeLasNubes:
+    """PDAL no respeta `GDAL_CACHEMAX`, así que su techo crece con los puntos.
+
+    Antes se devolvía la cifra de GDAL para todo. Con la nube de referencia se quedaba corta
+    en un 50 %, y el error crecía con el tamaño de la nube — que es la peor forma de
+    equivocarse, porque acierta en las pruebas pequeñas.
+    """
+
+    def _nube(self, carpeta, puntos):
+        carpeta.mkdir(parents=True, exist_ok=True)
+        ruta = carpeta / "nube.las"
+        ruta.write_bytes(las_minimo(puntos=puntos))
+        return inspeccionar(ruta)
+
+    def test_una_nube_pide_mas_que_una_ortofoto(self, tmp_path, grande):
+        nube = self._nube(tmp_path, 9_618_692)
+        de_nube = est.estimar(inspeccion=nube, formato_destino="copc").memoria_mb
+        de_raster = est.estimar(inspeccion=grande, formato_destino="cog").memoria_mb
+        assert de_nube > de_raster
+
+    def test_el_techo_esta_por_encima_del_pico_medido(self, tmp_path):
+        """Medido el 2026-09-09: 966 MB de pico para los 9.618.692 puntos de la referencia."""
+        nube = self._nube(tmp_path, 9_618_692)
+        assert est.estimar(inspeccion=nube, formato_destino="copc").memoria_mb >= 966
+
+    def test_crece_con_el_numero_de_puntos(self, tmp_path):
+        """Lo que distingue esto de una constante: el doble de puntos pide más memoria."""
+        poca = est.estimar(inspeccion=self._nube(tmp_path / "a", 5_000_000), formato_destino="copc")
+        mucha = est.estimar(
+            inspeccion=self._nube(tmp_path / "b", 50_000_000), formato_destino="copc"
+        )
+        assert mucha.memoria_mb > poca.memoria_mb * 5
 
 
 class TestEspacio:

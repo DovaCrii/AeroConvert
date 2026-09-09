@@ -51,6 +51,58 @@ El tope de tamaño se comprueba en **tres** sitios: nginx, el manejador de subid
 streaming y `clean()` del modelo. Solo el último es inevadible, y solo los dos primeros dan
 un mensaje que se entiende.
 
+### Qué VM hace falta
+
+Las cifras salen de medir, no de estimar. Todas son del **2026-09-09**, sobre los archivos
+reales del cruce minero de BHP y con `GDAL_CACHEMAX=512`:
+
+| Trabajo | Entrada | Salida | Tiempo | Pico de memoria |
+| --- | --- | --- | --- | --- |
+| Ortofoto → JP2 | 466,2 MB · 209,8 Mpx · 4 bandas | 60,1 MB | 11,0 s | **655 MB** |
+| Ortofoto → GeoTIFF DEFLATE | 466,2 MB | 285 MB | 7 s | ~650 MB |
+| Nube → COPC | 266,0 MB · 9.618.692 puntos | 72,9 MB | 31,4 s | **966 MB** |
+
+Medido en una máquina de 20 núcleos. El tiempo baja con más núcleos —GDAL y PDAL usan
+todos— pero **no linealmente**: el cuello es el disco antes que el procesador.
+
+**Lo que decide el dimensionado es que las dos familias acotan la memoria de forma
+distinta.** GDAL la acota él: `GDAL_CACHEMAX` es un tope duro, así que una ortofoto de 40 GB
+se convierte con el mismo techo que una de 500 MB. **PDAL no**: carga los puntos en memoria y
+`GDAL_CACHEMAX` no le afecta, así que su techo **crece con el número de puntos** — unos
+**105 MB por millón**, medidos. Una nube de 50 millones de puntos pide más de 5 GB.
+
+Esa asimetría está en el código, en `apps/jobs/estimacion.py::_memoria_mb()`, y es la que
+manda a la hora de elegir la máquina:
+
+| | Mínimo que funciona | Recomendado | Si entran nubes grandes |
+| --- | --- | --- | --- |
+| vCPU | 2 | **4** | 4–8 |
+| RAM | 2 GB | **4 GB** | 8–16 GB |
+| Disco | 40 GB SSD | **80 GB SSD** | 120 GB SSD |
+| Sistema | Ubuntu 24.04 LTS | Ubuntu 24.04 LTS | Ubuntu 24.04 LTS |
+
+- **2 GB de RAM basta para ráster** —el techo son 704 MB más Django, gunicorn y el sistema—
+  pero deja sin margen a cualquier nube de más de 15 millones de puntos.
+- **4 GB es el punto sensato**: cubre ráster de cualquier tamaño y nubes de hasta unos
+  35 millones de puntos, con sitio para la caché de archivos del sistema, que es lo que de
+  verdad acelera esto.
+- **Con nubes de decenas de millones de puntos, la RAM se calcula, no se elige**:
+  `105 MB × millones de puntos + 1 GB`. Y conviene poner `AEROCONVERT_TRABAJOS_SIMULTANEOS=1`
+  —que es el valor por omisión— porque dos nubes a la vez suman sus dos techos.
+- **El disco no lo fija el sistema, lo fija el presupuesto de trabajo**: la regla de más abajo
+  es `2 × (mayor archivo esperado) × (trabajos simultáneos) + margen`. La instalación en sí
+  ocupa poco: unos 125 MB de entorno virtual más 1,5–2,5 GB de GDAL y PDAL.
+- **SSD, no disco mecánico.** Con 466 MB en 11 s el proceso está limitado por
+  entrada/salida buena parte del tiempo.
+
+**GDAL y PDAL no se instalan desde PyPI.** La rueda no trae los binarios que la aplicación
+sondea. En Ubuntu, `apt install gdal-bin pdal` o un entorno de conda-forge; nunca
+`pip install gdal`. La aplicación los **sonda**, no los declara como dependencia — por eso
+una VM sin ellos arranca y enseña la matriz de compatibilidad en ámbar en vez de reventar.
+
+En **modo taller no hay VM que dimensionar**: la máquina es la estación de trabajo, y las
+cifras de arriba dicen lo que la aplicación le va a pedir mientras convierte.
+
 ### Un solo obrero, o el reclamo atómico manda
 
 Con varios obreros de gunicorn hay varios despachadores. Está previsto —reclamar un trabajo
