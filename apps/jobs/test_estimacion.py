@@ -15,14 +15,19 @@ def _inspeccion(tmp_path, **kwargs):
 
 @pytest.fixture
 def grande(tmp_path):
-    """Un archivo con las dimensiones de la ortofoto real, en 400 bytes.
+    """La ortofoto real, en 400 bytes de disco.
 
-    Las dimensiones son lo que manda en la estimación: el ancla es el tamaño **sin
-    comprimir**, no el del archivo.
+    Las dimensiones van en la cabecera y el constructor **no escribe los píxeles**, así que
+    el archivo pesa una cabecera. Pero el tamaño en disco sí importa para dos cosas — el
+    tiempo estimado y el aviso de «va a crecer» — así que se sustituye por el del archivo
+    de verdad, 466,2 MB. Dejarlo en 400 bytes haría creer a la estimación que cualquier
+    salida crece cuatro órdenes de magnitud.
     """
+    from dataclasses import replace
+
     ruta = tmp_path / "grande.tif"
     ruta.write_bytes(geotiff_minimo(ancho=14526, alto=14443, bandas=4))
-    return inspeccionar(ruta)
+    return replace(inspeccionar(ruta), bytes_totales=488_815_770)
 
 
 class TestElAncla:
@@ -86,11 +91,10 @@ class TestRatiosMedidos:
 
 
 class TestAvisos:
-    def test_avisa_cuando_la_salida_va_a_crecer(self, tmp_path):
+    def test_avisa_cuando_la_salida_va_a_crecer(self, grande):
         """ASCII Grid es texto plano y **crece**, mucho. Conviene que se vea antes de
         lanzar la conversión, no después."""
-        inspeccion = _inspeccion(tmp_path, ancho=2000, alto=2000, bandas=1)
-        estimada = est.estimar(inspeccion=inspeccion, formato_destino="asc")
+        estimada = est.estimar(inspeccion=grande, formato_destino="asc")
         assert estimada.crece
         assert "veces el original" in estimada.aviso
 

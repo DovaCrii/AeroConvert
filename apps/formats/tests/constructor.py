@@ -10,7 +10,9 @@ Escribiendolo aqui, el byte de version 43 esta puesto **a proposito y a la vista
 prueba de BigTIFF falla si el lector deja de mirarlo, que es exactamente el defecto que
 haria que la aplicacion dejara de dar su diagnostico principal.
 
-Los archivos salen de unos 400 bytes.
+Los archivos salen de unos 400 bytes **diga lo que diga su cabecera**: los pixeles no se
+escriben nunca. Eso es lo que permite probar el comportamiento con las dimensiones de una
+ortofoto de gigabytes sin escribir una.
 """
 
 from __future__ import annotations
@@ -88,7 +90,18 @@ class ConstructorTiff:
             self.campo(33922, DOUBLE, [0.0, 0.0, 0.0, origen[0], origen[1], 0.0])
         if epsg is not None:
             self.campo(34735, SHORT, geoclaves_epsg(epsg))
-        self._pixeles = bytes(ancho * alto * bandas)
+
+        # **Los pixeles NO se escriben, por muchos que declare la cabecera.**
+        #
+        # El lector nunca los toca: lee el IFD y sigue el `StripOffsets` solo para
+        # declararlo, no para ir. Materializarlos convertia una prueba que declara las
+        # dimensiones de la ortofoto real -- 14.526 x 14.443 x 4 -- en **839 MB de ceros en
+        # disco**, y con varias de esas el CI se quedaba sin espacio. Paso.
+        #
+        # Asi el archivo mide unos 400 bytes diga lo que diga su cabecera, que es justo lo
+        # que hace util a este constructor: se pueden probar las dimensiones de un archivo
+        # de gigabytes sin escribir uno.
+        self._pixeles = bytes(min(ancho * alto * bandas, 64))
         return self
 
     def bytes(self) -> bytes:

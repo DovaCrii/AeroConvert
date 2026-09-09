@@ -151,6 +151,25 @@ class TestNecesitabaBigtiff:
         assert cabecera.necesitaba_bigtiff is True
 
 
+class TestElConstructorNoEscribePixeles:
+    """La invariante que hace útil a este constructor, y que costó una corrida de CI.
+
+    Declarar las dimensiones de la ortofoto real materializaba **839 MB de ceros** por
+    archivo, y con varias pruebas así el runner se quedó sin disco. Los píxeles no se leen
+    nunca: lo que se prueba es la cabecera.
+    """
+
+    def test_un_archivo_enorme_declarado_pesa_lo_que_una_cabecera(self, tmp_path):
+        contenido = geotiff_minimo(ancho=14526, alto=14443, bandas=4)
+        assert len(contenido) < 1000
+
+    def test_y_aun_asi_declara_las_dimensiones_de_verdad(self, tmp_path):
+        contenido = geotiff_minimo(ancho=14526, alto=14443, bandas=4)
+        cabecera = tiff.leer_cabecera(_escribir(tmp_path, "x.tif", contenido))
+        assert (cabecera.ancho_px, cabecera.alto_px, cabecera.bandas) == (14526, 14443, 4)
+        assert cabecera.bytes_sin_comprimir > 800_000_000
+
+
 class TestBigEndian:
     def test_lee_un_tiff_motorola(self, tmp_path):
         """`MM` casi no se ve hoy, pero el que aparece viene de un escaner viejo y es justo
