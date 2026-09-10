@@ -102,11 +102,14 @@ def convertir(request):
             "seccion": "convertir",
             "etiqueta_seccion": "Convertir",
             "titulo_pagina": "Qué tiene dentro, y dónde va a abrir",
-            "proposito": (
-                "Suelta un archivo o pega su ruta. AeroConvert lo mira por dentro sin "
-                "abrirlo, te dice en qué programas va a funcionar y en cuáles no, y lo "
-                "convierte al que te haga falta."
-            ),
+            # Corto, y **diciendo algo que no dice ningún otro sitio de la pantalla**.
+            #
+            # Antes explicaba el funcionamiento con casi las mismas palabras que los tres
+            # pasos de debajo: leer dos veces la misma explicación no aclara, cansa. Los
+            # pasos dicen cómo funciona; el título dice qué hace; esto dice **cuándo
+            # echar mano de ello**, que es la pregunta que trae aquí a alguien la primera
+            # vez. Y es literalmente el caso que originó la aplicación.
+            "proposito": "Para cuando un archivo abre en un equipo y en otro no.",
             "recientes": ConversionJob.objects.filter(owner=request.user)[:5],
         },
     )

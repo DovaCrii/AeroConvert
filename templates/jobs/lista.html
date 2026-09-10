@@ -20,7 +20,7 @@
         <tr>
           <td><a href="{% url 'jobs:ficha' t.pk %}">{{ t.source_name }}</a></td>
           <td>
-            {{ t.target_format_code }}
+            {{ t.nombre_del_destino }}
             {% if t.target_profile_id %}<span class="tenue">· {{ t.target_profile_id }}</span>{% endif %}
           </td>
           <td>
@@ -48,3 +48,4 @@
   </table>
 </div>
 {% endblock %}
+

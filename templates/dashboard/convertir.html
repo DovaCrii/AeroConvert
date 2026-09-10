@@ -12,27 +12,37 @@
   pasar al pulsar. Tres líneas cuestan un vistazo y quitan esa duda — y de paso explican
   que aquí primero se **mira** y solo después se convierte, que es lo que separa a esta
   herramienta de las demás.
+
+  **Sin vocabulario de una sola familia.** La primera versión decía «ortofoto, nube de
+  puntos, cartografía» y «dimensiones, bandas, sistema de referencia»: media pantalla que
+  no le dice nada a quien llega con una libreta de puntos, y que además envejece cada vez
+  que entra una familia nueva. Lo que estos tres pasos tienen que explicar es **cómo
+  funciona esto**, no qué formatos hay; para eso está la matriz de compatibilidad.
+
+  Y cada paso promete algo que la aplicación **cumple de verdad**: que el original no se
+  toca lo comprueba una prueba en cada camino de fallo, y que el formato lo pone el destino
+  es lo que hacen los perfiles.
 {% endcomment %}
 <ol class="pasos">
   <li>
     <span class="paso-numero">1</span>
     <div>
-      <strong>Suelta el archivo</strong>
-      <span>Ortofoto, nube de puntos, cartografía. No se copia ni se sube.</span>
+      <strong>Suelta cualquier archivo</strong>
+      <span>No se copia ni se sube: se queda en tu equipo, y el original no se toca.</span>
     </div>
   </li>
   <li>
     <span class="paso-numero">2</span>
     <div>
-      <strong>Mira qué tiene dentro</strong>
-      <span>Formato real, dimensiones, bandas, sistema de referencia — y en qué programas abre.</span>
+      <strong>Mira qué es en realidad</strong>
+      <span>Sin abrirlo: qué formato tiene de verdad y qué trae dentro.</span>
     </div>
   </li>
   <li>
     <span class="paso-numero">3</span>
     <div>
       <strong>Elige dónde tiene que abrir</strong>
-      <span>Civil 3D, QGIS, AeroBim… El formato y los ajustes los pone el perfil.</span>
+      <span>Dices el programa, no la extensión. Los ajustes se ponen solos.</span>
     </div>
   </li>
 </ol>
@@ -91,7 +101,7 @@
         {% for t in recientes %}
           <tr>
             <td><a href="{% url 'jobs:ficha' t.pk %}">{{ t.source_name }}</a></td>
-            <td class="tenue">→ {{ t.target_format_code }}</td>
+            <td class="tenue">→ {{ t.nombre_del_destino }}</td>
             <td><span class="pildora pildora-{{ t.status }}">{{ t.get_status_display }}</span></td>
             <td class="cifra text-end tenue">
               {% if t.output_size_bytes %}{{ t.output_size_bytes|filesizeformat }}{% endif %}
@@ -108,3 +118,4 @@
 {% block scripts %}
 <script src="{% static 'js/convertir.js' %}"></script>
 {% endblock %}
+

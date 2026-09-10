@@ -169,6 +169,20 @@ class ConversionJob(BaseModel):
         return self.status in TERMINALES
 
     @property
+    def nombre_del_destino(self) -> str:
+        """«GeoTIFF clásico» y no `geotiff`.
+
+        `target_format_code` es la clave interna, en minúscula y sin espacios porque tiene
+        que ser estable. Enseñarla tal cual en el historial obliga a quien lee a traducir
+        `gpkg` o `xyz_nube` mentalmente, y a `landxml` le quita las mayúsculas que sí tiene.
+        El nombre bonito ya existe en el catálogo, traducido incluido.
+        """
+        from apps.formats import catalogo
+
+        formato = catalogo.FORMATOS.get(self.target_format_code)
+        return str(formato.nombre) if formato else self.target_format_code
+
+    @property
     def cancelacion_pedida(self) -> bool:
         return self.cancel_requested_at is not None
 
