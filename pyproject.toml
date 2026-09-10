@@ -34,6 +34,21 @@ dependencies = [
     # LibreDWG en la fase vectorial. La regla no cambia porque la biblioteca sea
     # comoda.
     "pypdf>=5,<7",
+    # pypdfium2 **dibuja** las paginas, que es lo que pypdf no hace. Es PDFium, el
+    # motor de PDF de Chrome, y va con **licencia Apache-2.0 / BSD-3**: se puede
+    # enlazar sin contagiar nada.
+    #
+    # Hace falta para las miniaturas de la pantalla de unir. Ordenar cincuenta y
+    # seis filas de texto no es ordenar: hay que ver las hojas. Y la alternativa
+    # obvia -- PyMuPDF -- vuelve a ser AGPL-3, asi que no.
+    "pypdfium2>=4,<5",
+    # Pillow guarda el mapa de bits que devuelve PDFium como PNG. Licencia MIT-CMU.
+    #
+    # La alternativa era escribir el PNG a mano -- son unas cuarenta lineas de zlib
+    # y `struct` -- y no compensa: seria un codificador de imagen propio sin nada
+    # con que contrastarlo, para ahorrar una dependencia que ademas hace falta para
+    # lo que viene (JPG a PDF, marcas de agua).
+    "pillow>=11,<13",
 ]
 
 # GDAL, PDAL y el conversor de ECW **no van aca a proposito**. Son herramientas

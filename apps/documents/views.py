@@ -31,6 +31,7 @@ from pathlib import Path
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseNotModified
 from django.shortcuts import redirect, render
 from django.views.decorators.http import require_POST
 
@@ -38,8 +39,9 @@ from apps.core import modo as modo_mod
 from apps.engines.base import ruta_parcial
 from apps.formats import pdf as lectura_pdf
 
+from . import miniaturas
 from . import receta as receta_mod
-from .composicion import ComposicionInvalida, componer
+from .composicion import GIROS, ComposicionInvalida, componer
 
 #: Cuántos PDF se admiten de una vez. Más que esto no es una entrega: es un lote, y para
 #: un lote hace falta otra pantalla.
@@ -52,6 +54,9 @@ class Fila:
 
     indice: int
     nombre_archivo: str
+    #: La ruta completa, que es lo que pide la miniatura. No se enseña: la fila muestra
+    #: solo el nombre, porque una ruta de OneDrive ocupa media pantalla.
+    ruta: str
     numero: int
     giro: int
     etiqueta: str
@@ -94,6 +99,7 @@ def _filas(entradas, archivos: list[Path], cabeceras: dict[Path, object]) -> lis
             Fila(
                 indice=indice,
                 nombre_archivo=archivo.name,
+                ruta=str(archivo),
                 numero=entrada.pagina,
                 giro=entrada.giro,
                 etiqueta=etiqueta,
@@ -169,6 +175,52 @@ def componer_vista(request):
         return _generar(request, rutas, entradas)
 
     return render(request, "documents/unir.html", _contexto(rutas, entradas))
+
+
+@login_required
+def miniatura(request):
+    """El PNG de una página. La pantalla pone una por fila.
+
+    **La caché la hace el navegador, no nosotros.** La respuesta lleva un `ETag` que
+    depende del archivo —su fecha y su tamaño— más la página, el giro y el ancho, así que
+    al pulsar «bajar» las cincuenta y seis miniaturas vuelven con un 304 y no se dibuja
+    ninguna otra vez. Guardarlas en disco traería una carpeta que crece, que hay que
+    barrer, y que se queda obsoleta cuando el archivo cambia.
+
+    La ruta pasa por la misma puerta que la inspección: en taller, una ruta es lectura del
+    disco entero, y una vista que sirve imágenes no es excepción.
+    """
+    try:
+        ruta = modo_mod.comprobar_ruta((request.GET.get("ruta") or "").strip())
+    except modo_mod.RutaNoPermitida:
+        return HttpResponseBadRequest("Ruta no permitida.")
+
+    try:
+        pagina = int(request.GET.get("pagina", "1"))
+        giro = int(request.GET.get("giro", "0"))
+        ancho = int(request.GET.get("ancho", miniaturas.ANCHO))
+    except ValueError:
+        return HttpResponseBadRequest("Parámetros no válidos.")
+
+    if giro not in GIROS:
+        giro = 0
+
+    sello = f'"{miniaturas.etiqueta(ruta, pagina, giro, ancho)}"'
+    if request.headers.get("If-None-Match") == sello:
+        return HttpResponseNotModified()
+
+    try:
+        png = miniaturas.dibujar(ruta, pagina, giro=giro, ancho=ancho)
+    except miniaturas.NoSePudoDibujar:
+        # Una miniatura que no sale no puede tumbar la pantalla: la fila se queda sin
+        # imagen y con su texto, que sigue diciendo de qué página se trata.
+        return HttpResponseBadRequest("No se pudo dibujar esa página.")
+
+    respuesta = HttpResponse(png, content_type="image/png")
+    respuesta["ETag"] = sello
+    # `private`: es el archivo de alguien, no se guarda en ningún intermedio compartido.
+    respuesta["Cache-Control"] = "private, max-age=3600"
+    return respuesta
 
 
 def _receta_inicial(rutas: list[Path]):

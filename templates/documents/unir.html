@@ -60,6 +60,15 @@
           <li class="pagina {% if fila.girada %}pagina-girada{% endif %}">
             <span class="pagina-orden">{{ forloop.counter }}</span>
 
+            {% comment %}
+              La miniatura, con el giro pedido ya aplicado: lo que se ve aquí es lo que va
+              a salir en el papel. `loading="lazy"` porque una entrega de sesenta hojas son
+              sesenta imágenes, y las de abajo no hacen falta hasta que se baja.
+            {% endcomment %}
+            <img class="pagina-miniatura" loading="lazy" decoding="async"
+                 alt="Página {{ fila.numero }} de {{ fila.nombre_archivo }}"
+                 src="{% url 'documents:miniatura' %}?ruta={{ fila.ruta|urlencode }}&amp;pagina={{ fila.numero }}&amp;giro={{ fila.giro }}">
+
             <div class="pagina-quees">
               <strong>{{ fila.nombre_archivo }}</strong>
               <span class="tenue">

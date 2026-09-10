@@ -1012,13 +1012,31 @@ code {
 
 .pagina {
   display: grid;
-  grid-template-columns: 2.1rem 1fr auto;
+  grid-template-columns: 2.1rem auto 1fr auto;
   gap: 12px;
   align-items: center;
   padding: 8px 12px;
   border: 1px solid var(--av-border);
   border-radius: var(--av-radius-sm);
   background: var(--av-surface);
+}
+
+/*
+ * La miniatura. Alto fijo y ancho automático: así una lámina apaisada y una hoja vertical
+ * ocupan la misma altura de fila —la lista no baila al girar una— y la forma sigue siendo
+ * la de verdad, que es justo lo que hay que poder juzgar de un vistazo.
+ *
+ * Fondo blanco siempre, también en tema oscuro: el papel es blanco, y una página con el
+ * fondo del tema detrás se lee como si tuviera transparencias.
+ */
+.pagina-miniatura {
+  height: 3.4rem;
+  width: auto;
+  max-width: 5.5rem;
+  object-fit: contain;
+  background: #fff;
+  border: 1px solid var(--av-border);
+  border-radius: 3px;
 }
 
 /* Lo tocado se ve. Color **y** texto: la fila dice «girada 90°» además de teñirse. */

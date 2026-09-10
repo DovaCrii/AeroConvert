@@ -10,4 +10,5 @@ urlpatterns = [
     # que se pulso. Es un formulario, no una API: separar «subir» de «girar» en dos URL
     # obligaria a repetir el mismo trabajo de leer la receta en las dos.
     path("componer/", views.componer_vista, name="componer"),
+    path("miniatura/", views.miniatura, name="miniatura"),
 ]
