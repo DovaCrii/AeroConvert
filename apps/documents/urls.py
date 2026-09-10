@@ -5,10 +5,13 @@ from . import views
 app_name = "documents"
 
 urlpatterns = [
+    path("", views.inicio, name="inicio"),
     path("unir/", views.unir, name="unir"),
-    # Todas las acciones de la pantalla van al mismo sitio y se distinguen por el boton
-    # que se pulso. Es un formulario, no una API: separar «subir» de «girar» en dos URL
-    # obligaria a repetir el mismo trabajo de leer la receta en las dos.
-    path("componer/", views.componer_vista, name="componer"),
+    # Todas las acciones de la pantalla de unir van al mismo sitio y se distinguen por el
+    # boton que se pulso. Es un formulario, no una API: separarlas obligaria a repetir en
+    # cada vista el mismo trabajo de leer la receta.
+    path("unir/componer/", views.componer_vista, name="componer"),
+    path("dividir/", views.dividir_vista, name="dividir"),
+    path("imagenes/", views.imagenes_vista, name="imagenes"),
     path("miniatura/", views.miniatura, name="miniatura"),
 ]

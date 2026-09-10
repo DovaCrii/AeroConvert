@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block titulo %}Imágenes a PDF · AeroConvert{% endblock %}
+
+{% block contenido %}
+
+<form method="post">
+  {% csrf_token %}
+
+  <div class="tarjeta tarjeta-acento" style="margin-bottom:14px;">
+    <div class="eyebrow">Las imágenes</div>
+    <h2 style="font-size:1.1rem;">¿Cuáles y en qué orden?</h2>
+    <p class="tenue" style="margin:6px 0 10px;">
+      Una ruta por línea. Cada imagen es una página, en el orden de la lista.
+      Se admiten {{ extensiones }}.
+    </p>
+
+    <label class="visually-hidden" for="id_imagenes">Rutas de las imágenes</label>
+    <textarea name="archivos_texto" id="id_imagenes" class="form-control ruta" rows="5"
+              spellcheck="false"
+              placeholder="D:\obras\monografia\P1.jpg&#10;D:\obras\monografia\P2.jpg">{{ rutas_texto }}</textarea>
+
+    <fieldset style="border:0; padding:0; margin:14px 0 0;">
+      <legend class="eyebrow" style="padding:0;">Tamaño de la hoja</legend>
+
+      {% comment %}
+        Las dos respuestas razonables, y son distintas de verdad: para una monografía se
+        quieren hojas iguales, y para un escaneo se quiere que no se remuestree nada.
+        Elegir una por la otra sin decirlo sería decidir por quien mira.
+      {% endcomment %}
+      <label class="opcion">
+        <input type="radio" name="tamano" value="a4" {% if tamano != 'imagen' %}checked{% endif %}>
+        <span>
+          <strong>A4</strong>
+          <span class="tenue">
+            Todas las hojas iguales, con la imagen centrada y sin recortar. Cada hoja toma
+            la orientación de su foto.
+          </span>
+        </span>
+      </label>
+
+      <label class="opcion">
+        <input type="radio" name="tamano" value="imagen" {% if tamano == 'imagen' %}checked{% endif %}>
+        <span>
+          <strong>El tamaño de la imagen</strong>
+          <span class="tenue">La hoja mide lo que mide el original y no se remuestrea nada.</span>
+        </span>
+      </label>
+    </fieldset>
+
+    <button type="submit" class="boton" style="margin-top:14px;">Crear el PDF</button>
+  </div>
+</form>
+
+{% if generado %}
+  <div class="tarjeta tarjeta-acento">
+    <div class="eyebrow">Hecho</div>
+    <div class="recibo">
+      <strong style="color:var(--av-ok);">✓ {{ generado.name }}</strong>
+      <p class="tenue" style="margin:8px 0 0; font-family:ui-monospace, Consolas, monospace;
+                              font-size:.85rem;">{{ generado }}</p>
+    </div>
+  </div>
+{% endif %}
+{% endblock %}

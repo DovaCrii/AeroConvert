@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+
+{% block titulo %}Dividir PDF · AeroConvert{% endblock %}
+
+{% block contenido %}
+
+<form method="post">
+  {% csrf_token %}
+
+  <div class="tarjeta tarjeta-acento" style="margin-bottom:14px;">
+    <div class="eyebrow">El documento</div>
+    <h2 style="font-size:1.1rem;">¿Cuál hay que partir?</h2>
+    <p class="tenue" style="margin:6px 0 10px;">
+      En el Explorador: clic derecho con <kbd>Mayús</kbd> → «Copiar como ruta».
+    </p>
+
+    <div class="soltar-campo">
+      <label class="visually-hidden" for="id_ruta">Ruta del PDF</label>
+      <input type="text" name="ruta" id="id_ruta" class="form-control ruta"
+             value="{{ ruta_texto }}" autocomplete="off" spellcheck="false"
+             placeholder="D:\obras\entrega\memoria.pdf">
+      <button type="submit" name="accion" value="mirar" class="boton">Ver el documento</button>
+    </div>
+  </div>
+
+  {% if cabecera %}
+    <input type="hidden" name="ruta" value="{{ ruta }}">
+
+    <div class="tarjeta" style="margin-bottom:14px;">
+      <div class="cabecera-tarjeta">
+        <div>
+          <div class="eyebrow">Lo que hay dentro</div>
+          <h2>{{ cabecera.resumen }}</h2>
+        </div>
+        <button type="submit" name="accion" value="partir" class="boton">Partir</button>
+      </div>
+
+      {% comment %}
+        Una tira de miniaturas, no la lista entera: aquí no se ordena nada, solo hay que
+        saber qué páginas son cuáles para escribir los rangos. Con las primeras basta.
+      {% endcomment %}
+      {% if cabecera.paginas %}
+        <div class="tira">
+          {% for pagina in cabecera.paginas|slice:":12" %}
+            <figure class="tira-hoja">
+              <img loading="lazy" decoding="async"
+                   alt="Página {{ pagina.numero }}"
+                   src="{% url 'documents:miniatura' %}?ruta={{ ruta|urlencode }}&amp;pagina={{ pagina.numero }}&amp;ancho=120">
+              <figcaption>{{ pagina.numero }}</figcaption>
+            </figure>
+          {% endfor %}
+          {% if cabecera.cuantas > 12 %}
+            <p class="tenue" style="align-self:center; margin:0 0 0 6px;">
+              …y {{ cabecera.cuantas|add:"-12" }} más
+            </p>
+          {% endif %}
+        </div>
+      {% endif %}
+
+      <fieldset style="border:0; padding:0; margin:14px 0 0;">
+        <legend class="eyebrow" style="padding:0;">Cómo partirlo</legend>
+
+        <label class="opcion">
+          <input type="radio" name="modo" value="rangos" {% if modo != 'hojas' %}checked{% endif %}>
+          <span>
+            <strong>Por rangos</strong>
+            <span class="tenue">Un archivo por cada trozo que escribas.</span>
+          </span>
+        </label>
+
+        <div style="margin:6px 0 12px 28px; max-width:22rem;">
+          <label class="visually-hidden" for="id_rangos">Rangos</label>
+          <input type="text" name="rangos" id="id_rangos" class="form-control"
+                 value="{{ rangos }}" placeholder="1-5, 8, 12-14" autocomplete="off">
+          <p class="tenue" style="margin:4px 0 0; font-size:.85rem;">
+            Los dos extremos entran: <code>1-5</code> son cinco páginas.
+          </p>
+        </div>
+
+        <label class="opcion">
+          <input type="radio" name="modo" value="hojas" {% if modo == 'hojas' %}checked{% endif %}>
+          <span>
+            <strong>Una hoja por archivo</strong>
+            <span class="tenue">
+              {{ cabecera.cuantas }} archivo(s), numerados como las páginas.
+            </span>
+          </span>
+        </label>
+      </fieldset>
+    </div>
+  {% endif %}
+</form>
+
+{% if escritos %}
+  <div class="tarjeta tarjeta-acento">
+    <div class="eyebrow">Hecho</div>
+    <div class="recibo">
+      <strong style="color:var(--av-ok);">✓ {{ escritos|length }} archivo(s)</strong>
+      <ul style="margin:8px 0 0; padding-left:18px; font-size:.9rem;">
+        {% for archivo in escritos %}
+          <li style="font-family:ui-monospace, Consolas, monospace;">{{ archivo.name }}</li>
+        {% endfor %}
+      </ul>
+      <p class="tenue" style="margin:10px 0 0;">Junto al original, que no se tocó.</p>
+    </div>
+  </div>
+{% endif %}
+{% endblock %}

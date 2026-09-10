@@ -996,6 +996,93 @@ code {
   border-radius: var(--av-radius-sm);
 }
 
+/* --- El índice de herramientas de PDF ------------------------------------ */
+
+.herramientas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
+  gap: 12px;
+}
+
+.herramienta {
+  display: grid;
+  gap: 4px;
+  padding: 16px 18px;
+  border: 1px solid var(--av-border);
+  border-radius: var(--av-radius);
+  background: var(--av-surface);
+  color: inherit;
+  text-decoration: none;
+  transition: border-color 0.12s ease, background 0.12s ease;
+}
+
+.herramienta:hover,
+.herramienta:focus-visible {
+  border-color: var(--av-primary);
+  background: var(--av-primary-soft);
+}
+
+.herramienta span {
+  color: var(--av-text-secondary);
+  font-size: var(--av-fs-sm);
+}
+
+/* --- La tira de miniaturas de un documento -------------------------------- */
+/*
+ * Se desplaza en horizontal en vez de envolverse: son un vistazo para saber qué página es
+ * cuál, y en tres filas dejan de leerse como «el principio del documento».
+ */
+.tira {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+}
+
+.tira-hoja {
+  margin: 0;
+  text-align: center;
+  flex: 0 0 auto;
+}
+
+.tira-hoja img {
+  display: block;
+  height: 4.6rem;
+  width: auto;
+  background: #fff;
+  border: 1px solid var(--av-border);
+  border-radius: 3px;
+}
+
+.tira-hoja figcaption {
+  font-size: var(--av-fs-sm);
+  color: var(--av-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Una opción de radio con su explicación ------------------------------ */
+/*
+ * La explicación va **dentro de la etiqueta**, no en un `title` ni debajo en gris suelto:
+ * así se lee sin pasar el ratón y el clic en el texto marca la opción.
+ */
+.opcion {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 10px;
+  align-items: start;
+  padding: 8px 0;
+  cursor: pointer;
+}
+
+.opcion > span {
+  display: grid;
+  gap: 2px;
+}
+
+.opcion span span {
+  font-size: var(--av-fs-sm);
+}
+
 /* --- La lista de páginas de un PDF --------------------------------------- */
 /*
  * Una fila por página, con su orden a la izquierda y sus cuatro botones a la derecha.

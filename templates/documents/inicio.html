@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block titulo %}PDF · AeroConvert{% endblock %}
+
+{% block contenido %}
+
+{% comment %}
+  El índice de herramientas. Una tarjeta por cosa, con lo que hace en una línea — no el
+  nombre a secas: «Dividir PDF» no dice si parte por hojas o por rangos, y esa es
+  justamente la duda de quien llega.
+{% endcomment %}
+<div class="herramientas">
+  {% for herramienta in herramientas %}
+    <a class="herramienta" href="{% url herramienta.url %}">
+      <strong>{{ herramienta.nombre }}</strong>
+      <span>{{ herramienta.que_hace }}</span>
+    </a>
+  {% endfor %}
+</div>
+
+<div class="tarjeta" style="margin-top:16px;">
+  <div class="eyebrow">Por qué aquí y no en una web</div>
+  <p style="margin:6px 0 0;">
+    Las páginas que hacen esto en internet <strong>suben tu archivo a su servidor</strong>.
+    Con un plano bajo acuerdo de confidencialidad eso no es una molestia: es lo que no se
+    puede hacer. Aquí no sale nada de tu equipo, y no hay límite de tamaño ni de cuántas
+    veces al día.
+  </p>
+</div>
+{% endblock %}

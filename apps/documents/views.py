@@ -39,6 +39,7 @@ from apps.core import modo as modo_mod
 from apps.engines.base import ruta_parcial
 from apps.formats import pdf as lectura_pdf
 
+from . import dividir as dividir_mod
 from . import miniaturas
 from . import receta as receta_mod
 from .composicion import GIROS, ComposicionInvalida, componer
@@ -118,8 +119,8 @@ def _contexto(rutas: list[Path], entradas, extra: dict | None = None) -> dict:
             cabeceras[ruta] = None
 
     contexto = {
-        "seccion": "unir-pdf",
-        "etiqueta_seccion": "Unir PDF",
+        "seccion": "pdf",
+        "etiqueta_seccion": "PDF",
         "titulo_pagina": "Junta varios PDF en uno",
         "proposito": (
             "Elige qué páginas entran, en qué orden, y gira las láminas que lo necesiten."
@@ -132,6 +133,53 @@ def _contexto(rutas: list[Path], entradas, extra: dict | None = None) -> dict:
     }
     contexto.update(extra or {})
     return contexto
+
+
+#: Las herramientas, para el indice y para el titulo de cada pantalla. Una lista y no seis
+#: entradas en la barra: la barra es de secciones, y esto es una seccion con varias cosas
+#: dentro. Ademas asi entra la siguiente sin rediscutir donde ponerla.
+HERRAMIENTAS = (
+    {
+        "id": "unir",
+        "url": "documents:unir",
+        "nombre": "Unir PDF",
+        "que_hace": (
+            "Junta varios en uno. Eliges qué páginas entran, en qué orden, y giras las "
+            "láminas que lo necesiten."
+        ),
+    },
+    {
+        "id": "dividir",
+        "url": "documents:dividir",
+        "nombre": "Dividir PDF",
+        "que_hace": "Saca una parte, o parte uno grande en hojas sueltas.",
+    },
+    {
+        "id": "imagenes",
+        "url": "documents:imagenes",
+        "nombre": "Imágenes a PDF",
+        "que_hace": "Fotos o escaneos en un solo documento, en A4 o al tamaño del original.",
+    },
+)
+
+
+@login_required
+def inicio(request):
+    """El índice de herramientas de PDF."""
+    return render(
+        request,
+        "documents/inicio.html",
+        {
+            "seccion": "pdf",
+            "etiqueta_seccion": "PDF",
+            "titulo_pagina": "Herramientas de PDF",
+            "proposito": (
+                "Todo pasa en tu equipo: los archivos no se copian, no se suben, y el "
+                "original nunca se toca."
+            ),
+            "herramientas": HERRAMIENTAS,
+        },
+    )
 
 
 @login_required
@@ -262,6 +310,113 @@ def _generar(request, rutas: list[Path], entradas):
         "documents/unir.html",
         _contexto(rutas, entradas, {"generado": destino, "resultado": resultado}),
     )
+
+
+@login_required
+def dividir_vista(request):
+    """Partir un PDF: una parte, o cada hoja por su lado.
+
+    Dos pasos como en unir —mirar y después hacer— porque partir sin ver cuántas páginas
+    hay obliga a abrir el documento en otro sitio para saber qué rangos escribir.
+    """
+    contexto = {
+        "seccion": "pdf",
+        "etiqueta_seccion": "PDF",
+        "titulo_pagina": "Dividir un PDF",
+        "proposito": "Saca una parte, o parte uno grande en hojas sueltas.",
+        "ruta_texto": (request.GET.get("ruta") or "").strip(),
+        "modo": "rangos",
+        "rangos": "",
+    }
+
+    if request.method != "POST":
+        return render(request, "documents/dividir.html", contexto)
+
+    try:
+        ruta = modo_mod.comprobar_ruta((request.POST.get("ruta") or "").strip().strip('"'))
+    except modo_mod.RutaNoPermitida as fallo:
+        messages.error(request, str(fallo))
+        return render(request, "documents/dividir.html", contexto)
+
+    contexto["ruta_texto"] = str(ruta)
+    contexto["modo"] = request.POST.get("modo") or "rangos"
+    contexto["rangos"] = (request.POST.get("rangos") or "").strip()
+
+    try:
+        cabecera = lectura_pdf.leer_cabecera(ruta)
+    except lectura_pdf.NoEsPdf as fallo:
+        messages.error(request, str(fallo))
+        return render(request, "documents/dividir.html", contexto)
+
+    if cabecera.cifrado:
+        messages.error(request, f"{ruta.name} pide contraseña, así que no se puede partir.")
+        return render(request, "documents/dividir.html", contexto)
+
+    contexto["cabecera"] = cabecera
+    contexto["ruta"] = str(ruta)
+
+    if request.POST.get("accion") != "partir":
+        return render(request, "documents/dividir.html", contexto)
+
+    try:
+        trozos = (
+            dividir_mod.una_por_pagina(cabecera.cuantas)
+            if contexto["modo"] == "hojas"
+            else dividir_mod.analizar_rangos(contexto["rangos"], cabecera.cuantas)
+        )
+        escritos = dividir_mod.partir(ruta, trozos)
+    except ComposicionInvalida as fallo:
+        messages.error(request, str(fallo))
+        return render(request, "documents/dividir.html", contexto)
+
+    messages.success(request, f"{len(escritos)} archivo(s) escritos junto al original.")
+    contexto["escritos"] = escritos
+    return render(request, "documents/dividir.html", contexto)
+
+
+@login_required
+def imagenes_vista(request):
+    """Fotos o escaneos a un solo PDF."""
+    contexto = {
+        "seccion": "pdf",
+        "etiqueta_seccion": "PDF",
+        "titulo_pagina": "Imágenes a PDF",
+        "proposito": "Fotos o escaneos en un solo documento.",
+        "rutas_texto": "",
+        "tamano": "a4",
+        "extensiones": ", ".join(sorted(dividir_mod.IMAGENES)),
+    }
+
+    if request.method != "POST":
+        return render(request, "documents/imagenes.html", contexto)
+
+    contexto["rutas_texto"] = request.POST.get("archivos_texto", "")
+    contexto["tamano"] = request.POST.get("tamano") or "a4"
+
+    try:
+        rutas = _rutas_pedidas(contexto["rutas_texto"])
+    except modo_mod.RutaNoPermitida as fallo:
+        messages.error(request, str(fallo))
+        return render(request, "documents/imagenes.html", contexto)
+
+    if not rutas:
+        messages.error(request, "No indicaste ninguna imagen.")
+        return render(request, "documents/imagenes.html", contexto)
+
+    destino = rutas[0].with_name(f"{rutas[0].stem}_imagenes.pdf")
+    parcial = ruta_parcial(destino)
+
+    try:
+        cuantas = dividir_mod.desde_imagenes(rutas, parcial, tamano=contexto["tamano"])
+    except ComposicionInvalida as fallo:
+        parcial.unlink(missing_ok=True)
+        messages.error(request, str(fallo))
+        return render(request, "documents/imagenes.html", contexto)
+
+    os.replace(parcial, destino)
+    messages.success(request, f"{cuantas} imagen(es) en {destino.name}.")
+    contexto["generado"] = destino
+    return render(request, "documents/imagenes.html", contexto)
 
 
 def _ruta_de_salida(primero: Path) -> Path:
