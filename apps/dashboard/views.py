@@ -84,6 +84,19 @@ def _destinos_para(inspeccion) -> tuple[DestinoOfrecido, ...]:
     return tuple(ofrecidos)
 
 
+def _hay_algun_destino(inspeccion, escribibles) -> bool:
+    """`True` si algún motor sabe llevar este archivo a algún sitio.
+
+    Se pregunta a la matriz de capacidades, que es la única que lo sabe: el catálogo dice
+    qué formatos existen, no cuáles se pueden alcanzar desde aquí y con lo que hay
+    instalado.
+    """
+    return any(
+        registry.celda(ParDeFormatos(inspeccion.codigo_formato, formato.codigo)).se_puede
+        for formato in escribibles
+    )
+
+
 def _formulario_experto(inspeccion, formato: str, valores: dict | None = None):
     """Los campos que el motor del par declara, o `None` si no hay motor.
 
@@ -159,6 +172,14 @@ def inspeccionar(request):
             "escribibles": escribibles,
             "formato_experto": experto,
             "campos": campos,
+            # **Si no hay a dónde convertir, no se enseña el formulario.**
+            #
+            # Pasa con un PDF y con un IFC: la familia existe en el catálogo pero ningún
+            # motor declara todavía un par que salga de ahí. Pintar el selector y el botón
+            # de «convertir con estos ajustes» ofrece un camino que termina en «ningún
+            # motor sabe hacer esa conversión» — un callejón sin salida con forma de
+            # botón, que es peor que no ofrecer nada.
+            "hay_conversion": _hay_algun_destino(inspeccion, escribibles),
             # **Solo los propios.** Los de fábrica salen de los perfiles, y los perfiles ya
             # están arriba como botones de destino: enseñarlos otra vez era una segunda
             # fila de botones con los mismos nombres haciendo lo mismo.

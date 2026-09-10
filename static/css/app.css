@@ -996,6 +996,81 @@ code {
   border-radius: var(--av-radius-sm);
 }
 
+/* --- La lista de páginas de un PDF --------------------------------------- */
+/*
+ * Una fila por página, con su orden a la izquierda y sus cuatro botones a la derecha.
+ * En lista y no en rejilla de miniaturas: sin miniaturas la rejilla no aporta nada, y
+ * dibujarlas exigiría una biblioteca con licencia contagiosa.
+ */
+.paginas {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.pagina {
+  display: grid;
+  grid-template-columns: 2.1rem 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 8px 12px;
+  border: 1px solid var(--av-border);
+  border-radius: var(--av-radius-sm);
+  background: var(--av-surface);
+}
+
+/* Lo tocado se ve. Color **y** texto: la fila dice «girada 90°» además de teñirse. */
+.pagina-girada {
+  border-color: var(--av-primary);
+  background: var(--av-primary-soft);
+}
+
+.pagina-orden {
+  display: grid;
+  place-items: center;
+  width: 2.1rem;
+  height: 1.9rem;
+  border-radius: var(--av-radius-sm);
+  background: var(--av-surface-alt);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  font-size: var(--av-fs-sm);
+}
+
+.pagina-quees {
+  display: grid;
+  min-width: 0;
+}
+
+.pagina-quees strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pagina-quees span {
+  font-size: var(--av-fs-sm);
+}
+
+.pagina-acciones {
+  display: flex;
+  gap: 4px;
+}
+
+.pagina-acciones .boton-icono {
+  width: 2rem;
+  height: 2rem;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.boton-icono-quitar:hover:not(:disabled) {
+  color: var(--av-danger);
+  border-color: var(--av-danger);
+}
+
 /* --- El dibujo de una libreta de puntos ---------------------------------- */
 /*
  * El magenta de marca aquí sí vale: es relleno de una forma, no texto. Da 3,03:1 sobre

@@ -47,6 +47,17 @@
           <svg class="nav-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-convertir"></use></svg>
           <span>Convertir</span>
         </a>
+        {% comment %}
+          Unir PDF va **al lado de Convertir** y no escondido en un menú: es una tarea
+          distinta, no un ajuste de la conversión. Reutiliza el icono de convertir porque
+          las dos flechas que se cruzan dicen «esto transforma algo» igual de bien, y
+          añadir un icono nuevo por cada entrada acaba en una barra que nadie distingue.
+        {% endcomment %}
+        <a href="{% url 'documents:unir' %}" class="nav-item"
+           {% if seccion == 'unir-pdf' %}aria-current="page"{% endif %}>
+          <svg class="nav-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-preajustes"></use></svg>
+          <span>Unir PDF</span>
+        </a>
         <a href="{% url 'jobs:lista' %}" class="nav-item"
            {% if seccion == 'historial' %}aria-current="page"{% endif %}>
           <svg class="nav-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-historial"></use></svg>

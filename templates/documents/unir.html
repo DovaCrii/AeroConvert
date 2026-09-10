@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block titulo %}Unir PDF · AeroConvert{% endblock %}
+
+{% block contenido %}
+
+{% comment %}
+  Toda la pantalla es **un solo formulario**. Cada botón —subir, bajar, quitar, girar,
+  generar— manda el mismo campo oculto con la receta y dice qué hacer con ella, así que no
+  hay estado en el servidor: la pantalla es una función de lo que hay escrito en ella.
+
+  Sin arrastrar y soltar, y no por pereza: reordenar arrastrando necesita JavaScript propio,
+  no funciona con teclado si no se hace con mucho cuidado, y en una lista larga hay que
+  desplazarse mientras se arrastra. Dos botones por fila funcionan siempre, se pueden
+  tabular, y dicen lo que hacen.
+{% endcomment %}
+<form method="post" action="{% url 'documents:componer' %}">
+  {% csrf_token %}
+
+  <div class="tarjeta tarjeta-acento" style="margin-bottom:14px;">
+    <div class="eyebrow">Los archivos</div>
+    <h2 style="font-size:1.1rem;">¿Qué PDF hay que juntar?</h2>
+    <p class="tenue" style="margin:6px 0 10px;">
+      Una ruta por línea, en el orden en que van. En el Explorador:
+      clic derecho con <kbd>Mayús</kbd> → «Copiar como ruta».
+    </p>
+
+    <label class="visually-hidden" for="id_archivos">Rutas de los PDF</label>
+    <textarea name="archivos_texto" id="id_archivos" class="form-control ruta" rows="4"
+              spellcheck="false"
+              placeholder="D:\obras\entrega\memoria.pdf&#10;D:\obras\entrega\planos.pdf">{{ rutas_texto }}</textarea>
+
+    <button type="submit" name="accion" value="analizar" class="boton" style="margin-top:12px;">
+      Ver las páginas
+    </button>
+  </div>
+
+  {% if filas %}
+    <input type="hidden" name="receta" value="{{ receta }}">
+
+    <div class="tarjeta" style="margin-bottom:14px;">
+      <div class="cabecera-tarjeta">
+        <div>
+          <div class="eyebrow">El resultado</div>
+          <h2>{{ filas|length }} página(s), en este orden</h2>
+        </div>
+        <button type="submit" name="accion" value="generar" class="boton">
+          Generar el PDF
+        </button>
+      </div>
+
+      <p class="tenue" style="margin:0 0 12px;">
+        Girar una lámina no vuelve a dibujarla: no se pierde nada y el archivo no engorda.
+        Los originales no se tocan.
+      </p>
+
+      <ol class="paginas">
+        {% for fila in filas %}
+          <li class="pagina {% if fila.girada %}pagina-girada{% endif %}">
+            <span class="pagina-orden">{{ forloop.counter }}</span>
+
+            <div class="pagina-quees">
+              <strong>{{ fila.nombre_archivo }}</strong>
+              <span class="tenue">
+                página {{ fila.numero }}{% if fila.etiqueta %} · {{ fila.etiqueta }}{% endif %}
+                {% if fila.girada %}· girada {{ fila.giro }}°{% endif %}
+              </span>
+            </div>
+
+            {% comment %}
+              Los botones llevan el índice en el propio valor. Y todos dicen de qué fila
+              son en un texto sólo para lectores de pantalla: «subir» a secas, repetido
+              cuarenta veces, no le sirve a nadie que no vea la lista.
+            {% endcomment %}
+            <div class="pagina-acciones">
+              <button type="submit" name="accion" value="subir:{{ fila.indice }}"
+                      class="boton-icono" {% if forloop.first %}disabled{% endif %}>
+                <span aria-hidden="true">↑</span>
+                <span class="visually-hidden">Subir la página {{ forloop.counter }}</span>
+              </button>
+              <button type="submit" name="accion" value="bajar:{{ fila.indice }}"
+                      class="boton-icono" {% if forloop.last %}disabled{% endif %}>
+                <span aria-hidden="true">↓</span>
+                <span class="visually-hidden">Bajar la página {{ forloop.counter }}</span>
+              </button>
+              <button type="submit" name="accion" value="girar:{{ fila.indice }}"
+                      class="boton-icono">
+                <span aria-hidden="true">⟳</span>
+                <span class="visually-hidden">Girar la página {{ forloop.counter }}</span>
+              </button>
+              <button type="submit" name="accion" value="quitar:{{ fila.indice }}"
+                      class="boton-icono boton-icono-quitar">
+                <span aria-hidden="true">×</span>
+                <span class="visually-hidden">Quitar la página {{ forloop.counter }}</span>
+              </button>
+            </div>
+          </li>
+        {% endfor %}
+      </ol>
+    </div>
+  {% endif %}
+</form>
+
+{% if generado %}
+  <div class="tarjeta tarjeta-acento">
+    <div class="eyebrow">Hecho</div>
+    <div class="recibo">
+      <strong style="color:var(--av-ok);">✓ {{ resultado.paginas_escritas }} páginas escritas</strong>
+      <dl style="margin-top:8px;">
+        <dt>Archivo</dt>
+        <dd style="font-family:ui-monospace, Consolas, monospace; font-size:.85rem;">
+          {{ generado }}
+        </dd>
+
+        <dt>Tamaño</dt>
+        <dd>{{ resultado.bytes_escritos|filesizeformat }}</dd>
+
+        <dt>De dónde salió</dt>
+        <dd>
+          {% for nombre, cuantas in resultado.por_archivo %}
+            {{ nombre }} ({{ cuantas }}){% if not forloop.last %} · {% endif %}
+          {% endfor %}
+        </dd>
+      </dl>
+    </div>
+  </div>
+{% endif %}
+{% endblock %}

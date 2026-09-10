@@ -252,21 +252,34 @@
     Pero callar del todo dejaría a alguien mirando una ficha sin nada que hacer, así que se
     dice qué sí se puede hacer con esto.
   {% endcomment %}
-  <div class="tarjeta" style="margin-bottom:14px;">
+  <div class="tarjeta tarjeta-acento" style="margin-bottom:14px;">
     <div class="eyebrow">Qué se puede hacer con esto</div>
-    <p style="margin:6px 0 0;">
-      {% if i.pdf %}
+    {% if i.pdf %}
+      <p style="margin:6px 0 12px;">
         Un PDF abre en cualquier parte, así que no hay nada que diagnosticar. Lo que se le
         hace es <strong>componerlo</strong>: unir varios, elegir qué páginas entran, en qué
         orden, y girar las láminas que lo necesiten.
-      {% else %}
+      </p>
+      <a class="boton" style="display:inline-block; text-decoration:none; line-height:42px;"
+         href="{% url 'documents:unir' %}?ruta={{ i.ruta|urlencode }}">Unir PDF</a>
+    {% else %}
+      <p style="margin:6px 0 0;">
         Este formato todavía no tiene ningún destino preparado. Está en la
         <a href="{% url 'engines:matriz' %}">matriz de compatibilidad</a>, con el motivo.
-      {% endif %}
-    </p>
+      </p>
+    {% endif %}
   </div>
 {% endif %}
 
+{% comment %}
+  El formulario de conversión solo se pinta si hay a dónde convertir.
+
+  Con un PDF o con un IFC la familia existe en el catálogo pero ningún motor declara
+  todavía un par que salga de ahí. Enseñar el selector y el botón ofrecía un camino que
+  terminaba en «ningún motor sabe hacer esa conversión»: un callejón sin salida con forma
+  de botón, que es peor que no ofrecer nada.
+{% endcomment %}
+{% if hay_conversion %}
 <div class="tarjeta">
   <div class="eyebrow">Convertir</div>
   <h2 style="font-size:1.1rem;">¿Dónde tiene que abrir?</h2>
@@ -369,6 +382,7 @@
     </details>
   </form>
 </div>
+{% endif %}
 
 {% else %}
   <div class="vacio">Indica una ruta y pulsa «Inspeccionar».</div>
