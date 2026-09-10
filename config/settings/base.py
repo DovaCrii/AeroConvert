@@ -97,6 +97,7 @@ INSTALLED_APPS = [
     "apps.pointcloud",
     "apps.vector",
     "apps.mesh",
+    "apps.documents",
     "apps.dashboard",
 ]
 

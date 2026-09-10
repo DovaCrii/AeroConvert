@@ -26,6 +26,14 @@ dependencies = [
     # dependencia de ejecucion que solo esta por casualidad es una dependencia que
     # desaparece el dia que se cambia esa herramienta.
     "defusedxml>=0.7,<1",
+    # pypdf lee y compone PDF: paginas, tamanos, giro y union. Es Python puro y
+    # **licencia BSD-3**, que es lo que permite enlazarlo sin contagiar nada.
+    #
+    # No es PyMuPDF a proposito, aunque sea mas rapido y ademas dibuje: es AGPL-3
+    # o comercial, y esa es exactamente la razon por la que ya se descarto
+    # LibreDWG en la fase vectorial. La regla no cambia porque la biblioteca sea
+    # comoda.
+    "pypdf>=5,<7",
 ]
 
 # GDAL, PDAL y el conversor de ECW **no van aca a proposito**. Son herramientas

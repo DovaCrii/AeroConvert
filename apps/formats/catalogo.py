@@ -25,12 +25,18 @@ RASTER = "raster"
 NUBE = "nube"
 VECTOR = "vector"
 MALLA = "malla"
+#: Documentos de oficina. **No es una familia geoespacial**, y por eso no encaja en la
+#: pregunta que ordena el resto de la aplicacion -- «en que programa tiene que abrir» --:
+#: un PDF abre en todas partes. Lo que se le hace a un PDF es componerlo, y eso tiene su
+#: propia pantalla.
+DOCUMENTO = "documento"
 
 FAMILIAS = {
     RASTER: "Raster geoespacial",
     NUBE: "Nube de puntos",
     VECTOR: "Vectorial, CAD y topografia",
     MALLA: "BIM y malla 3D",
+    DOCUMENTO: "Documentos",
 }
 
 
@@ -444,6 +450,33 @@ FORMATOS: dict[str, Formato] = {
         extensiones=frozenset({".gltf", ".glb"}),
         firmas=(b"glTF",),
         lleva_crs_incrustado=False,
+    ),
+    # --- Documentos --------------------------------------------------------
+    "pdf": _f(
+        codigo="pdf",
+        familia=DOCUMENTO,
+        nombre="PDF",
+        extensiones=frozenset({".pdf"}),
+        firmas=(b"%PDF-",),
+        lleva_crs_incrustado=False,
+        nota=(
+            "Se compone, no se convierte: elegir paginas, ordenarlas y girar laminas. "
+            "Un PDF geoespacial es otra cosa y va en la familia raster."
+        ),
+    ),
+    "docx": _f(
+        codigo="docx",
+        familia=DOCUMENTO,
+        nombre="Word (DOCX)",
+        extensiones=frozenset({".docx"}),
+        # Un DOCX es un ZIP, igual que un KMZ. La extension es lo que los separa.
+        firmas=(b"PK\x03\x04",),
+        lleva_crs_incrustado=False,
+        admite_escritura=False,
+        nota=(
+            "Se lee para pasarlo a PDF. Escribirlo desde un PDF se puede, pero con un "
+            "documento maquetado el resultado es un mosaico de cuadros de texto."
+        ),
     ),
     "tiles3d": _f(
         codigo="tiles3d",

@@ -27,6 +27,7 @@ from . import catalogo, tiff
 from . import crs as crs_mod
 from . import landxml as landxml_mod
 from . import las as las_mod
+from . import pdf as pdf_mod
 from . import puntos as puntos_mod
 
 #: Cuanto se lee para reconocer la firma.
@@ -79,6 +80,8 @@ class Inspeccion:
     puntos: puntos_mod.CabeceraPuntos | None = None
     #: Presente solo cuando el archivo es un LandXML.
     landxml: landxml_mod.CabeceraLandXml | None = None
+    #: Presente solo cuando el archivo es un PDF.
+    pdf: pdf_mod.CabeceraPdf | None = None
     avisos: tuple[str, ...] = ()
     detalles: dict = field(default_factory=dict)
 
@@ -104,24 +107,78 @@ class Inspeccion:
         return tuple(a for a in self.acompanantes if a.imprescindible and not a.presente)
 
 
-def por_firma(cabecera: bytes) -> str | None:
+def por_firma(cabecera: bytes, nombre: str = "") -> str | None:
     """El codigo de formato que dice la firma, o `None`.
 
     El orden importa: BigTIFF y TIFF clasico se diferencian en un solo byte, asi que se
     comparan las firmas completas y no un prefijo.
+
+    ## Una firma puede ser de varios formatos, y ahi decide la extension
+
+    Un GeoPackage, un MBTiles y un GeoPackage raster **son los tres una base SQLite**, con
+    los mismos dieciseis bytes al principio. Un KMZ y un DOCX **son los dos un ZIP**. Sin
+    mirar el nombre, gana el que este antes en el catalogo: un `.gpkg` vectorial se
+    reconocia como `gpkg_raster` -- familia equivocada, veredictos equivocados y destinos
+    equivocados -- y eso le pasaba a los GeoPackage que produce esta misma aplicacion.
+
+    Cuando varios candidatos empatan, se prefiere el que ademas cuadre con la extension.
+    No es adivinar: es usar el segundo dato que hay. Y si ni asi se decide, gana el
+    primero, que es lo que se hacia antes.
     """
     for codigo in ("bigtiff", "geotiff"):
         for firma in catalogo.FORMATOS[codigo].firmas:
             if cabecera.startswith(firma):
                 return codigo
 
-    for formato in catalogo.FORMATOS.values():
-        if formato.codigo in ("bigtiff", "geotiff", "cog"):
-            continue
-        for firma in formato.firmas:
-            if cabecera.startswith(firma):
-                return formato.codigo
-    return None
+    candidatos = [
+        formato
+        for formato in catalogo.FORMATOS.values()
+        if formato.codigo not in ("bigtiff", "geotiff", "cog")
+        and any(cabecera.startswith(firma) for firma in formato.firmas)
+    ]
+    if not candidatos:
+        return None
+    if len(candidatos) == 1:
+        return candidatos[0].codigo
+
+    sufijo = Path(nombre).suffix.lower()
+    por_nombre = [f for f in candidatos if sufijo and sufijo in f.extensiones]
+    if len(por_nombre) == 1:
+        return por_nombre[0].codigo
+
+    # Siguen empatados -- `.gpkg` lo reclaman el vectorial y el raster -- asi que decide
+    # quien mire dentro. Ver `_afinar_gpkg()`.
+    return (por_nombre or candidatos)[0].codigo
+
+
+def _afinar_gpkg(ruta: Path, supuesto: str) -> str:
+    """Vectorial o raster: eso solo lo dice mirar dentro.
+
+    Un GeoPackage es una base SQLite con una tabla `gpkg_contents` que declara qué guarda:
+    `features` es vectorial y `tiles` es raster. La extensión es la misma para los dos, así
+    que sin esta consulta hay que elegir a ciegas — y elegir mal cambia la familia entera:
+    los destinos que se ofrecen, los veredictos y hasta el motor.
+
+    Si no se puede abrir, se queda lo que dijera la firma. Un archivo ilegible no es motivo
+    para negarse a inspeccionarlo: para eso está la confianza.
+    """
+    import sqlite3
+
+    try:
+        # Solo lectura y sin crear nada: `mode=ro` falla si el archivo no existe en vez de
+        # inventar una base vacía.
+        with sqlite3.connect(f"file:{ruta}?mode=ro", uri=True, timeout=2) as conexion:
+            tipos = {
+                fila[0] for fila in conexion.execute("SELECT DISTINCT data_type FROM gpkg_contents")
+            }
+    except sqlite3.Error:
+        return supuesto
+
+    if "features" in tipos:
+        return "gpkg"
+    if tipos & {"tiles", "2d-gridded-coverage"}:
+        return "gpkg_raster"
+    return supuesto
 
 
 def por_extension(nombre: str) -> str | None:
@@ -229,8 +286,11 @@ def inspeccionar(ruta: str | Path) -> Inspeccion:
         ) from fallo
 
     avisos: list[str] = []
-    codigo = por_firma(cabecera)
+    codigo = por_firma(cabecera, ruta.name)
     confianza = CONFIANZA_FIRMA
+
+    if codigo in ("gpkg", "gpkg_raster"):
+        codigo = _afinar_gpkg(ruta, codigo)
 
     if codigo is None:
         codigo = por_extension(ruta.name)
@@ -319,6 +379,15 @@ def inspeccionar(ruta: str | Path) -> Inspeccion:
         else:
             avisos.extend(_avisos_de_puntos(cabecera_puntos))
 
+    cabecera_pdf = None
+    if codigo == "pdf":
+        try:
+            cabecera_pdf = pdf_mod.leer_cabecera(ruta)
+        except pdf_mod.NoEsPdf as fallo:
+            avisos.append(f"Empieza como un PDF pero no se pudo leer: {fallo}")
+        else:
+            avisos.extend(_avisos_de_pdf(cabecera_pdf))
+
     cabecera_landxml = None
     if codigo == "landxml":
         try:
@@ -357,9 +426,34 @@ def inspeccionar(ruta: str | Path) -> Inspeccion:
         las=cabecera_las,
         puntos=cabecera_puntos,
         landxml=cabecera_landxml,
+        pdf=cabecera_pdf,
         avisos=tuple(avisos),
         detalles=detalles,
     )
+
+
+def _avisos_de_pdf(cabecera: pdf_mod.CabeceraPdf) -> list[str]:
+    """Lo que hay que decir de un PDF.
+
+    El que importa es el del PDF cifrado: se reconoce, se cuenta como PDF, y no se puede
+    hacer nada con él. Decirlo aquí evita que alguien lo componga y descubra el problema
+    al final.
+    """
+    if cabecera.cifrado:
+        return [
+            "Pide contraseña, así que no se puede leer ni componer. Ábrelo con la clave y "
+            "guárdalo sin ella."
+        ]
+
+    avisos = [f"Contiene {cabecera.resumen}."]
+    if cabecera.mezcla_orientaciones:
+        avisos.append(
+            "Mezcla hojas verticales y apaisadas. Al unirlo con otros conviene mirar la "
+            "lista de páginas antes: girar una lámina no pierde nada, pero dejarla al "
+            "revés se ve en el papel."
+        )
+    avisos.extend(cabecera.avisos)
+    return avisos
 
 
 def _avisos_de_landxml(cabecera: landxml_mod.CabeceraLandXml) -> list[str]:

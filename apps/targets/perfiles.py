@@ -64,6 +64,14 @@ class PerfilDeDestino:
     formatos_aceptados: tuple[str, ...] = ()
     #: El formato al que se convierte cuando se elige este perfil.
     formato_destino: str = ""
+    #: Las familias de archivo a las que este perfil tiene algo que decir.
+    #:
+    #: Vacio = todas, que es lo que valia hasta que entraron los documentos. Un PDF no
+    #: tiene «programa de destino»: abre en todas partes, y lo que se le hace es
+    #: componerlo. Sin esto, soltar un PDF pintaba seis botones apagados -- Civil 3D,
+    #: QGIS, ArcGIS... -- diciendo que no se puede convertir a GeoTIFF, que es una
+    #: respuesta correcta a una pregunta que nadie hizo.
+    familias: frozenset[str] = field(default_factory=frozenset)
     #: Y el que se usa cuando la entrada es de otra familia.
     #:
     #: Un perfil es «donde tiene que abrir», no «a qué formato». Civil 3D quiere un GeoTIFF
@@ -86,11 +94,16 @@ class PerfilDeDestino:
         """El formato al que lleva este perfil una entrada de esa familia."""
         return self.destinos_por_familia.get(familia, self.formato_destino)
 
+    def aplica_a(self, familia: str) -> bool:
+        """`False` cuando este perfil no tiene nada que decir de esa familia."""
+        return not self.familias or familia in self.familias
+
 
 # --- Los perfiles ----------------------------------------------------------
 
 CIVIL3D = PerfilDeDestino(
     id="civil3d",
+    familias=frozenset({catalogo.RASTER, catalogo.NUBE, catalogo.VECTOR, catalogo.MALLA}),
     nombre="Civil 3D / AutoCAD",
     descripcion="Lo que abre en cualquier puesto con Civil 3D, tenga o no Raster Design.",
     # TIFF clasico primero: es lo que abre AutoCAD base, sin complementos.
@@ -124,6 +137,7 @@ CIVIL3D = PerfilDeDestino(
 
 QGIS = PerfilDeDestino(
     id="qgis",
+    familias=frozenset({catalogo.RASTER, catalogo.NUBE, catalogo.VECTOR, catalogo.MALLA}),
     nombre="QGIS",
     descripcion="Lee practicamente todo. El destino recomendado es COG.",
     formatos_preferidos=("cog", "geotiff", "bigtiff", "gpkg"),
@@ -155,6 +169,7 @@ QGIS = PerfilDeDestino(
 
 ARCGIS = PerfilDeDestino(
     id="arcgis",
+    familias=frozenset({catalogo.RASTER, catalogo.NUBE, catalogo.VECTOR, catalogo.MALLA}),
     nombre="ArcGIS Pro",
     descripcion="Lee BigTIFF y la mayoria de los raster; prefiere GeoTIFF o CRF.",
     formatos_preferidos=("geotiff", "bigtiff", "cog", "img", "gpkg"),
@@ -172,6 +187,7 @@ ARCGIS = PerfilDeDestino(
 
 GOOGLE_EARTH = PerfilDeDestino(
     id="google-earth",
+    familias=frozenset({catalogo.RASTER, catalogo.NUBE, catalogo.VECTOR, catalogo.MALLA}),
     nombre="Google Earth",
     descripcion="Solo KMZ con superposicion teselada, y en EPSG:4326.",
     formatos_preferidos=("kmz",),
@@ -182,6 +198,7 @@ GOOGLE_EARTH = PerfilDeDestino(
 
 WEB = PerfilDeDestino(
     id="web",
+    familias=frozenset({catalogo.RASTER, catalogo.NUBE, catalogo.VECTOR, catalogo.MALLA}),
     nombre="Visor web",
     descripcion="COG servido por rangos HTTP: se ve el trozo que se mira, no el archivo.",
     formatos_preferidos=("cog",),
@@ -195,6 +212,7 @@ WEB = PerfilDeDestino(
 
 AEROBIM = PerfilDeDestino(
     id="aerobim",
+    familias=frozenset({catalogo.RASTER, catalogo.NUBE, catalogo.VECTOR, catalogo.MALLA}),
     nombre="AeroBim",
     descripcion="La aplicacion hermana: COG para raster, COPC para nubes, DXF para planos.",
     formatos_preferidos=("cog", "copc", "dxf", "ifc"),
@@ -496,6 +514,11 @@ def veredictos(inspeccion) -> tuple[Veredicto, ...]:
     """
     salida = []
     for identificador, perfil_destino in PERFILES.items():
+        # Los que no tienen nada que decir de esta familia, callan. Seis «no abre» delante
+        # de un PDF no informan de nada: un PDF abre en todas partes, y la pregunta de esta
+        # tira -- donde abre y donde no -- no es la suya.
+        if not perfil_destino.aplica_a(inspeccion.familia):
+            continue
         regla = REGLAS.get(identificador)
         salida.append(
             regla(inspeccion) if regla else _veredicto_generico(perfil_destino, inspeccion)

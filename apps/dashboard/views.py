@@ -47,6 +47,12 @@ class DestinoOfrecido:
 def _destinos_para(inspeccion) -> tuple[DestinoOfrecido, ...]:
     ofrecidos = []
     for perfil in perfiles_mod.PERFILES.values():
+        # Los que no tienen nada que decir de esta familia no salen. Un PDF no tiene
+        # «programa de destino»: seis botones apagados diciendo que no se puede convertir a
+        # GeoTIFF son una respuesta correcta a una pregunta que nadie hizo.
+        if not perfil.aplica_a(inspeccion.familia):
+            continue
+
         # Por familia: un perfil es «dónde tiene que abrir», no «a qué formato». Civil 3D
         # quiere un GeoTIFF si le llega una ortofoto y un LandXML si le llega una libreta.
         destino = perfil.destino_para(inspeccion.familia)
