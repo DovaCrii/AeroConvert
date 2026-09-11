@@ -204,8 +204,16 @@ def _ejecutar(job: ConversionJob) -> Resultado:
     job.engine_version = disponible.version[:200]
     job.save(update_fields=["engine_id", "engine_version", "updated_at"])
 
+    # **Antes de pedir el plan**, porque el motor lee `job.output_path` para construir su
+    # argv: si el nombre se decidiera despues, el motor escribiria en el viejo.
+    job.output_path = str(_destino_libre(job, Path(job.output_path)))
+    job.save(update_fields=["output_path", "updated_at"])
+
     plan = motor.plan(job)
     destino = Path(plan.ruta_de_salida)
+    # Y el parcial sale del destino, asi que un destino unico da un parcial unico sin tocar
+    # `ruta_parcial()`, que se llama desde catorce sitios y cuyo propio docstring avisa de
+    # lo que pasa cuando el runner y los motores se desincronizan.
     parcial = ruta_parcial(destino)
 
     _reservar_destino(destino)
@@ -387,6 +395,58 @@ def _crs_declarado_del_trabajo(job: ConversionJob):
         autoridad=job.source_crs_authority or "EPSG",
         codigo=job.source_crs_code,
         origen=job.source_crs_origin or crs_mod.DECLARADO,
+    )
+
+
+#: Cuantos nombres se prueban antes de rendirse. Cincuenta versiones del mismo entregable en
+#: la misma carpeta ya no es un caso legitimo: es un bucle o un malentendido.
+MAXIMO_VERSIONES = 50
+
+
+def _con_version(destino: Path, version: int) -> Path:
+    """`salida.tif` → `salida_2.tif`, y `nube.copc.laz` → `nube_2.copc.laz`.
+
+    Se corta en el **primer** punto por la misma razon que `ruta_parcial()`: las extensiones
+    compuestas son parte del formato, y media herramienta geoespacial deduce el formato de la
+    extension.
+    """
+    raiz, punto, extensiones = destino.name.partition(".")
+    if not punto:
+        return destino.with_name(f"{raiz}_{version}")
+    return destino.with_name(f"{raiz}_{version}.{extensiones}")
+
+
+def _destino_libre(job, destino: Path) -> Path:
+    """El primer nombre que no le pise la salida a **otra persona**.
+
+    Este es el arreglo de un fallo de confidencialidad, no una comodidad. La ruta de salida
+    se construye de forma determinista -- `ortofoto_civil3d.tif` -- y en una carpeta
+    compartida dos personas que conviertan cada una su `ortofoto.tif` con el mismo perfil
+    producian **exactamente la misma ruta**. La segunda sobrescribia a la primera, y la
+    descarga sirve lo que haya en `output_path`: alguien se bajaba el archivo de otro.
+
+    Lo que **no** hace es evitar que sobrescribas lo tuyo. Volver a convertir el mismo
+    archivo y encontrarse el resultado donde estaba es lo que uno espera; obligar a
+    `_2`, `_3`, `_4` cada vez seria cambiar un fallo por una molestia diaria. Por eso la
+    pregunta no es «¿existe el archivo?» sino «¿lo reclama el trabajo de otro?».
+    """
+    from .models import ConversionJob
+
+    for version in range(1, MAXIMO_VERSIONES + 1):
+        candidata = destino if version == 1 else _con_version(destino, version)
+        de_otro = (
+            ConversionJob.objects.filter(output_path=str(candidata))
+            .exclude(pk=job.pk)
+            .exclude(owner=job.owner)
+            .exists()
+        )
+        if not de_otro:
+            return candidata
+
+    raise TrabajoFallido(
+        "salida-bloqueada",
+        f"Hay {MAXIMO_VERSIONES} versiones de {destino.name} en esa carpeta. Revisa antes de "
+        "seguir generando.",
     )
 
 

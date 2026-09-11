@@ -178,6 +178,16 @@ USE_TZ = True
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_DIRS = [BASE_DIR / "static"]
+
+# Donde van los archivos que sube la gente. **Sin esto Django escribe relativo al directorio
+# de trabajo del proceso**, que es la raiz del repositorio: `ConversionJob.source_upload`
+# declara `upload_to="entradas/%Y/%m/"` y acababa creando `entradas/2026/09/` dentro del
+# arbol de codigo. De ahi al commit hay un `git add .`.
+#
+# No hay `MEDIA_URL` a proposito: **nada de esto se sirve por URL**. Un archivo subido es de
+# quien lo subio, y se entrega por una vista que comprueba el dueno, nunca por una ruta
+# publica que solo depende de acertar el nombre.
+MEDIA_ROOT = Path(config("AEROCONVERT_MEDIA", default=str(BASE_DIR / "entradas")))
 STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
     # El de whitenoise, pero sin perseguir los `.map` que no vendorizamos.
@@ -205,11 +215,100 @@ REST_FRAMEWORK = {
 
 AXES_FAILURE_LIMIT = 8
 AXES_COOLOFF_TIME = 1
-AXES_LOCKOUT_PARAMETERS = ["ip_address"]
+
+# Se bloquea la **pareja** usuario + IP, y no una de las dos por separado. Los corchetes
+# de dentro son los que lo dicen: axes trata una lista anidada como una combinacion.
+#
+# Ninguna de las dos opciones simples sirve en una oficina:
+#
+# - Solo por IP era lo que habia, y detras de nginx **todo el equipo comparte la IP del
+#   proxy**. Ocho intentos fallidos de cualquiera dejaban a los demas fuera una hora.
+# - Solo por usuario deja que alguien bloquee a otro a proposito, fallando ocho veces con
+#   su nombre.
+AXES_LOCKOUT_PARAMETERS = [["username", "ip_address"]]
+
+# Y para que «ip_address» signifique algo detras de nginx. Sin esto axes lee `REMOTE_ADDR`,
+# que con un proxy delante es siempre la direccion del proxy: todos comparten IP y la
+# pareja de arriba degenera otra vez en «solo usuario».
+#
+# **No se usan `AXES_IPWARE_*`**, aunque sea lo que sale al buscar: `axes/helpers.py:208`
+# solo mira esos ajustes si `django-ipware` esta instalado, y no lo esta -- axes 8.3.1
+# depende solo de `asgiref` y `django`. Ponerlos seria codigo muerto que ademas parece que
+# funciona. Este gancho es el primero que consulta (`helpers.py:193`) y no pide nada nuevo.
+AXES_CLIENT_IP_CALLABLE = "apps.core.ip.ip_del_cliente"
+
+# Entrar bien borra la cuenta de fallos. Por omision es `False`, asi que siete
+# equivocaciones repartidas en meses se acumulan y la octava, un dia cualquiera, bloquea.
+AXES_RESET_ON_SUCCESS = True
 
 CACHES = {
     "default": {
         "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
         "LOCATION": "aeroconvert",
     }
+}
+
+# --- Bitacora --------------------------------------------------------------
+# **Sin esto, un error 500 en produccion no deja rastro en ninguna parte.** No es una
+# exageracion: el manejador de consola que trae Django por omision lleva el filtro
+# `require_debug_true`, asi que con `DEBUG=False` no escribe nada; y `django.request` manda
+# los 500 a `mail_admins`, con `ADMINS` sin definir. Igual se pierden los
+# `registro.exception(...)` del despachador. La aplicacion falla en silencio.
+#
+# ## Va a la salida de error, no a un fichero
+#
+# Y no es por comodidad. El mismo fichero lo escribirian **cuatro procesos** -- dos obreros
+# de gunicorn, el despachador, y los `manage.py` que se corran a mano --, y
+# `RotatingFileHandler` no es seguro entre procesos: cuando dos cruzan el umbral a la vez,
+# los dos renombran y una rotacion se lleva por delante el fichero de la otra. Se pierde
+# justo el tramo con mas actividad, que es el que se iba a leer.
+#
+# Bajo systemd, la salida de error va a journald, que ya rota, ya es seguro con varios
+# procesos, y ademas junta en una sola linea de tiempo lo de la aplicacion, lo de gunicorn,
+# los reinicios del servicio y al matador por falta de memoria cuando se lleve a PDAL. Que
+# es exactamente la correlacion que hace falta cuando una conversion muere.
+#
+# Si algun dia hace falta un fichero -- para mandarlo fuera --, el manejador correcto es
+# `WatchedFileHandler` con logrotate en modo `copytruncate`, **no** el rotatorio.
+
+NIVEL_DE_REGISTRO = config("AEROCONVERT_LOG_LEVEL", default="INFO")
+
+LOGGING = {
+    "version": 1,
+    # **No** se desactivan los de las bibliotecas: pypdf y pyproj avisan de cosas que luego
+    # explican un resultado raro.
+    "disable_existing_loggers": False,
+    "formatters": {
+        # El numero de proceso no es decoracion: con dos obreros y el despachador, «quien
+        # escribio esto» se contesta con esa columna y con ninguna otra.
+        "aeroconvert": {
+            "format": "{asctime} {levelname:<7} {process:>6} {name} — {message}",
+            "datefmt": "%Y-%m-%d %H:%M:%S",
+            "style": "{",
+        },
+    },
+    "handlers": {
+        "consola": {
+            "class": "logging.StreamHandler",
+            "stream": "ext://sys.stderr",
+            "formatter": "aeroconvert",
+            "level": "DEBUG",
+        },
+    },
+    "loggers": {
+        # Todo lo nuestro de un golpe: los modulos usan `getLogger(__name__)`, que da
+        # `apps.jobs.despachador`, `apps.jobs.runner`... Un solo logger los cubre.
+        "apps": {"handlers": ["consola"], "level": NIVEL_DE_REGISTRO, "propagate": False},
+        "django": {"handlers": ["consola"], "level": "INFO", "propagate": False},
+        # ERROR y no WARNING **a proposito**: en WARNING, `django.request` escribe una linea
+        # por cada 404, y aqui el 404 es un camino normal -- una salida que ya caduco. El
+        # registro se llenaria de ruido justo donde hay que buscar la senal.
+        "django.request": {"handlers": ["consola"], "level": "ERROR", "propagate": False},
+        "django.security": {"handlers": ["consola"], "level": "WARNING", "propagate": False},
+        # Entradas bloqueadas y desbloqueos: el registro que se lee el dia que alguien dice
+        # «no puedo entrar».
+        "axes": {"handlers": ["consola"], "level": "INFO", "propagate": False},
+        # En DEBUG escupe una linea por consulta, y el despachador hace una cada dos segundos.
+        "django.db.backends": {"handlers": ["consola"], "level": "WARNING", "propagate": False},
+    },
 }

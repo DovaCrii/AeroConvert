@@ -10,10 +10,23 @@ desde el admin, esta funcion no.
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from pathlib import Path
 
 from django.conf import settings
+
+#: Hasta donde se admite una ruta, **y depende del sistema**.
+#:
+#: En Windows es el limite clasico: mas alla, GDAL y las herramientas externas fallan de
+#: formas raras, asi que se para antes y se dice por que.
+#:
+#: En Linux el limite del sistema son 4096, y poner 255 ahi **es un bloqueante silencioso**:
+#: una carpeta compartida con la estructura de una obra de verdad
+#: -- `/mnt/entregas/CC 716 - BHP/CC 716 NEHVTI BHP/Entrega/Vuelo cruce minero/...` --
+#: pasa de 255 sin esfuerzo, y el mensaje diria «mueve el archivo», que es el consejo
+#: equivocado sobre una carpeta que no se puede mover.
+LARGO_MAXIMO_DE_RUTA = 255 if os.name == "nt" else 4096
 
 
 class RutaNoPermitida(Exception):
@@ -72,7 +85,39 @@ def revisar_configuracion() -> tuple[str, ...]:
         for raiz in raices:
             if not raiz.exists():
                 problemas.append(f"La raiz permitida {raiz} no existe.")
+
+        # **Estas dos solo cuando llega gente de otras maquinas**, y la distincion importa:
+        # en una estacion de trabajo, dar `D:\` entero es exactamente lo que se quiere --
+        # es tu disco y eres la unica que entra. En una VM compartida, la misma linea
+        # convierte la sesion de cualquiera en lectura de todo el servidor.
+        if _es_compartida():
+            for raiz in raices:
+                if _es_demasiado_ancha(raiz):
+                    problemas.append(
+                        f"La raiz permitida {raiz} es un volumen entero o una carpeta de "
+                        "montaje, y a esta maquina entra gente desde otras. Apunta a la "
+                        "carpeta de trabajo concreta y no a la unidad: /mnt/entregas, no "
+                        "/mnt."
+                    )
+                if settings.BASE_DIR == raiz or raiz in Path(settings.BASE_DIR).parents:
+                    problemas.append(
+                        f"La raiz permitida {raiz} contiene el arbol de codigo de la propia "
+                        "aplicacion, asi que la configuracion y la base quedan legibles "
+                        "desde el formulario."
+                    )
     return tuple(problemas)
+
+
+def _es_demasiado_ancha(raiz: Path) -> bool:
+    """¿Es una unidad entera o una carpeta de montaje?
+
+    `C:\\` y `/` son la raiz de su arbol -- se reconocen porque su padre son ellas mismas --.
+    Y en Linux hace falta ademas atrapar `/mnt`, `/home`, `/srv`: tienen padre, pero dar una
+    de esas es dar todo lo que cuelgue de ahi, incluido lo que se monte manana.
+    """
+    if raiz.parent == raiz:
+        return True
+    return os.name != "nt" and len(raiz.parts) <= 2
 
 
 def comprobar_ruta(ruta: str | Path) -> Path:
@@ -91,12 +136,10 @@ def comprobar_ruta(ruta: str | Path) -> Path:
     if not texto:
         raise RutaNoPermitida("No se indico ninguna ruta.", "ruta-no-permitida")
 
-    # El limite clasico de Windows. Mas alla, GDAL y las herramientas externas fallan de
-    # formas raras, asi que se para antes y se dice por que.
-    if len(texto) > 255:
+    if len(texto) > LARGO_MAXIMO_DE_RUTA:
         raise RutaNoPermitida(
-            f"La ruta tiene {len(texto)} caracteres y el limite practico son 255. "
-            "Mueve el archivo a una carpeta con nombre mas corto.",
+            f"La ruta tiene {len(texto)} caracteres y el limite practico son "
+            f"{LARGO_MAXIMO_DE_RUTA}. Mueve el archivo a una carpeta con nombre mas corto.",
             "ruta-demasiado-larga",
         )
 
@@ -125,6 +168,19 @@ def comprobar_ruta(ruta: str | Path) -> Path:
     )
 
 
+#: Los nombres por los que se llega a una maquina que es de una sola persona. Cualquier otra
+#: cosa en `ALLOWED_HOSTS` -- un dominio, una IP de la red -- significa que hay mas gente.
+NOMBRES_LOCALES = frozenset({"localhost", "127.0.0.1", "[::1]", "testserver"})
+
+
+def _es_compartida() -> bool:
+    """¿Llega gente desde otras máquinas?"""
+    return any(
+        str(nombre).strip().lower() not in NOMBRES_LOCALES
+        for nombre in (settings.ALLOWED_HOSTS or ())
+    )
+
+
 @dataclass(frozen=True)
 class Chapa:
     """Lo que la interfaz pinta arriba, en todas las pantallas."""
@@ -136,6 +192,20 @@ class Chapa:
 
 def chapa() -> Chapa:
     if es_taller():
+        # **El texto depende de si la maquina es de uno o del equipo**, y eso lo dice el
+        # servidor: en la estacion de trabajo se escucha en `127.0.0.1`, y en la VM
+        # compartida hay un nombre de dominio en `ALLOWED_HOSTS`. Prometer «no salen de
+        # esta máquina» a cinco personas que comparten una carpeta seria mentir en todas
+        # las pantallas.
+        if _es_compartida():
+            return Chapa(
+                modo=settings.MODO_TALLER,
+                etiqueta="Equipo",
+                explicacion=(
+                    "Los archivos salen de la carpeta compartida, y lo que conviertas lo "
+                    "ve todo el equipo."
+                ),
+            )
         return Chapa(
             modo=settings.MODO_TALLER,
             etiqueta="Taller",

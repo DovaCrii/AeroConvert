@@ -211,17 +211,49 @@ def barrer() -> Barrido:
     return resultado
 
 
+def _en_curso() -> frozenset[str]:
+    """Los archivos de trabajo que **ahora mismo** esta escribiendo alguien.
+
+    Se pregunta a la base en vez de mirar la hora. Antes la unica salvaguarda era exigir que
+    el archivo tuviera mas de una hora, y el propio comentario admitia la debilidad: el
+    nombre no dice de quien es. Con `SEGUNDOS_POR_GB = 900`, una ortofoto de 5 GB pasa de la
+    hora sin despeinarse, asi que el barrido le borraba el parcial a un trabajo sano **y la
+    conversion moria al final**, despues de todo el trabajo. Con varios obreros era peor.
+
+    Son pocas filas: los trabajos en curso se cuentan con los dedos.
+    """
+    from apps.engines.base import ruta_parcial
+
+    from .models import EJECUTANDO, ConversionJob
+
+    vivos: set[str] = set()
+    for ruta in ConversionJob.objects.filter(status=EJECUTANDO).values_list(
+        "output_path", flat=True
+    ):
+        if not ruta:
+            continue
+        destino = Path(ruta)
+        vivos.add(str(destino))
+        vivos.add(str(ruta_parcial(destino)))
+    return frozenset(vivos)
+
+
 def _barrer_huerfanos() -> tuple[int, int]:
     """Archivos de trabajo que sobrevivieron a un proceso muerto.
 
-    Se exige que tengan mas de una hora **para no borrarle el parcial a un trabajo que esta
-    corriendo ahora mismo**. Es la unica salvaguarda que hay: el nombre no dice de quien es.
+    Dos condiciones, y la primera es la que importa: **que no lo este escribiendo nadie**. La
+    hora se conserva como red de seguridad para lo que ya no figura en la base -- un obrero
+    que murio sin dejar rastro --, pero ya no es lo unico que separa un huerfano de un
+    trabajo en marcha.
     """
     limite = timezone.now().timestamp() - 3600
+    vivos = _en_curso()
     contados = 0
     liberados = 0
     for hijo in carpeta_de_trabajo().rglob("*"):
         if not hijo.is_file() or not any(marca in hijo.name for marca in MARCAS_DE_TRABAJO):
+            continue
+        if str(hijo) in vivos:
             continue
         try:
             if hijo.stat().st_mtime > limite:

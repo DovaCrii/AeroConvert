@@ -166,6 +166,17 @@ def descargar(request, pk):
     if not ruta.exists():
         raise Http404("El archivo ya se borro.")
 
+    # **Que lo que hay ahi siga siendo lo que produjo este trabajo.** `_destino_libre()` en
+    # el runner impide que otra persona escriba encima, pero nada impide que alguien
+    # reemplace el archivo desde la carpeta compartida con el Explorador. Entregar entonces
+    # lo que haya, con el nombre y el recibo de este trabajo, seria entregar otra cosa
+    # diciendo que es esta.
+    if job.output_size_bytes and ruta.stat().st_size != job.output_size_bytes:
+        raise Http404(
+            "El archivo que hay en esa ruta ya no es el que generó esta conversión: "
+            "alguien lo reemplazó. Vuelve a convertir si lo necesitas."
+        )
+
     respuesta = RespuestaQueConsume(
         open(ruta, "rb"),  # noqa: SIM115 - FileResponse se encarga de cerrarlo
         as_attachment=True,

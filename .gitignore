@@ -12,6 +12,14 @@ db.sqlite3-*
 /media/
 .env
 
+# Lo que escribe la aplicacion al correr.
+#
+# `/entradas/` es lo que sube la gente. Hoy caia aqui dentro porque `MEDIA_ROOT` no estaba
+# definido y Django escribe relativo al directorio de trabajo; ya no, pero se ignora igual
+# para que un despliegue mal configurado no acabe con el PDF de un cliente en un commit.
+# Solo se libraba por casualidad: `*.tif` esta ignorado mas abajo, pero un `.pdf` no.
+/entradas/
+
 # Herramientas
 .pytest_cache/
 .ruff_cache/
