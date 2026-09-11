@@ -1,16 +1,17 @@
 # HANDOFF — dónde retomar
 
-**Última sesión: 2026-09-09.** Léelo antes que `MASTER_PLAN.md`.
+**Última sesión: 2026-09-11.** Léelo antes que `MASTER_PLAN.md`.
 
 ---
 
 ## En una frase
 
-**Ráster, nubes de puntos, libretas de puntos y LandXML funcionan de punta a punta, con
-interfaz.** Casi todo lo que queda **no espera código: espera algo de fuera** — un puesto con
-Civil 3D para dar por buena la salida LandXML, un LandXML de verdad para poder leer sus
-superficies, el conversor de ODA para DWG, la SDK de Hexagon para ECW. Lo único pendiente que
-solo depende de escribirlo es F2.6 (3D Tiles) y F4 (BIM y malla).
+**Ráster, nubes de puntos, libretas de puntos, LandXML y las herramientas de PDF funcionan de
+punta a punta, con interfaz.** Casi todo lo que queda en el terreno geoespacial **no espera
+código: espera algo de fuera** — un puesto con Civil 3D para dar por buena la salida LandXML,
+un LandXML de verdad para poder leer sus superficies, el conversor de ODA para DWG, la SDK de
+Hexagon para ECW. Lo único pendiente que solo depende de escribirlo es F2.6 (3D Tiles), F4
+(BIM y malla) y lo que falta de PDF (§ *PDF: lo que queda*).
 
 ## Lo que se cerró
 
@@ -23,8 +24,9 @@ solo depende de escribirlo es F2.6 (3D Tiles) y F4 (BIM y malla).
 | F3.1 | OGR vectorial: SHP, GPKG, GeoJSON, KML/KMZ, DXF entre sí |
 | F3.3 | **Libretas de puntos PNEZD/PENZD/NEZ/ENZ**, con detección del orden por rango UTM y vista previa dibujada antes de convertir |
 | F3.5 | **LandXML**: se escribe (CgPoints con número, descripción y epsgCode) y se lee (qué trae dentro; los puntos además se convierten) |
+| F5 | **PDF**: leer, unir con miniaturas y giro, dividir, imágenes ↔ PDF, proteger y desproteger |
 
-**642 pruebas**, 92,6 % de cobertura, verdes **sin GDAL ni PDAL instalados**.
+**832 pruebas**, 93,3 % de cobertura, verdes **sin GDAL ni PDAL instalados**.
 
 ### Lo verificado sobre archivos reales
 
@@ -75,6 +77,26 @@ pendiente de hacerse en un puesto con licencia; es un procedimiento manual, igua
 5. **F2.6 — 3D Tiles y Potree** con `py3dtiles`, para el visor web. Habría que añadir la
    dependencia.
 6. **F4 — BIM y malla** con `ifcopenshell`. Tampoco está instalada.
+
+## PDF: lo que queda
+
+Lo hecho está arriba. Lo que falta, con lo que cuesta cada cosa de verdad:
+
+- **Números de página y marca de agua.** Piden `reportlab` (BSD) para dibujar la capa y
+  `pypdf` para fusionarla, que ya está. Es la ampliación más barata de las que quedan.
+- **Word, Excel y PowerPoint → PDF.** **Solo en modo taller**, y por COM contra el Office
+  instalado: es la única vía que respeta el formato de verdad. Cualquier conversor propio
+  entrega un documento que se parece al original, y un anexo de contrato que «se parece» no
+  sirve. Implica que la herramienta aparezca apagada con su motivo cuando no hay Office,
+  igual que ECW — **no que desaparezca**.
+- **PDF → Word.** Se puede hacer, pero **hay que decir en la pantalla lo que se va a
+  recibir**: un PDF no guarda párrafos, guarda posiciones de letras. Lo que sale es editable
+  y *no* es el documento original. Prometerlo sin el aviso es lo que hace que estas
+  herramientas tengan mala fama.
+- **Comprimir PDF.** Requiere volver a codificar las imágenes de dentro; en un plano
+  escaneado la diferencia entre útil e ilegible es de un paso de calidad, así que necesita
+  vista previa antes de escribir.
+- **OCR.** Depende de Tesseract instalado fuera, como GDAL. Se sondea, no se declara.
 
 ## Ideas anotadas, sin decidir
 
@@ -166,6 +188,25 @@ desde cero, no como compromiso.
 - **Una libreta de puntos nunca trae CRS dentro**, así que `_exigir_crs` acepta el declarado
   a mano —validado contra pyproj y anotado en la bitácora con el nombre de quien lo
   declaró—. Sin eso, la fase vectorial no podría convertir nada.
+- **En un PDF, la orientación no es la caja: es la caja más `/Rotate`.** Una lámina con
+  `MediaBox` 594 × 841 —vertical— y `/Rotate 270` **se ve apaisada**, y lo que importa es lo
+  que se ve. Lo resuelve `_milimetros()` en `apps/formats/pdf.py` intercambiando los lados
+  cuando el giro es 90 o 270. Mi propia prueba nació al revés por esto.
+- **El giro que se pide al componer es relativo, no absoluto.** `pagina.rotate(90)` **suma**
+  al que la página ya traía. Es lo correcto —así no se pierde nada y no se redibuja— pero
+  significa que la etiqueta de la fila tiene que calcular la orientación resultante, no
+  leerla del archivo.
+- **pypdf avisa por `logging`, no por `warnings`.** Un `warnings.catch_warnings()` alrededor
+  no recoge nada. Por eso existe `_RecogerQuejas(logging.Handler)` en `apps/formats/pdf.py`.
+- **pypdf sin `cryptography` no cifra con AES: levanta `DependencyError`.** Y su alternativa
+  es RC4, roto desde hace veinte años. La dependencia no es opcional, y su piso es la **50**
+  por pip-audit; está razonado en `pyproject.toml`.
+- **Un PNG con transparencia guardado tal cual en un PDF sale con el fondo negro**, y el
+  JPEG no admite canal alfa en absoluto. Todo lo que entra o sale como imagen pasa por RGB
+  sobre blanco antes.
+- **Un PDF cifrado no se puede ni mirar**: ni miniatura, ni número de páginas, ni dividir.
+  Por eso `_mirar_pdf()` en `apps/documents/views.py` se niega y manda a «Proteger PDF» en
+  vez de dar un error genérico.
 - **El formulario de la ficha envía a `dashboard:encolar`, no a `dashboard:convertir`.** La
   segunda solo pinta la pantalla, y apuntar ahí deja el botón de convertir sin hacer nada y
   sin dar ningún error. Pasó al renombrar «Mesa» a «Convertir». Lo vigila

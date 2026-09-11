@@ -70,6 +70,33 @@ no un ejemplo inventado. Sus cifras están en
 | F4.1 | IFC con `ifcopenshell`, OBJ, glTF/GLB, 3D Tiles | ⬜ |
 | F4.2 | Integración con AeroBim, por archivo o API | ⬜ |
 
+## Fase 5 — Documentos de oficina
+
+No estaba en el plan original y **entró porque es el trabajo real de todos los días**: el
+entregable que sale de aquí acaba dentro de un informe, y juntar los PDF de una entrega se
+hace más veces por semana que convertir una ortofoto. La referencia de funciones es iLovePDF;
+la diferencia es que aquí el archivo **no sale del equipo**, que es justo lo que impide usar
+esas páginas con un plano bajo acuerdo de confidencialidad.
+
+Estas herramientas **no pasan por la cola de conversión** a propósito: se tocan muchas veces
+—subir, bajar, quitar, girar— y escriben en menos de un segundo. Meterlas en el despachador
+sería pedir que alguien espere a un proceso en segundo plano para reordenar tres hojas.
+
+| # | Entrega | Estado |
+| --- | --- | --- |
+| F5.0 | Leer un PDF: páginas, tamaño en mm, formato normalizado y orientación **con `/Rotate` aplicado** | ✅ 2026-09-10 |
+| F5.1 | Unir eligiendo páginas, orden y giro; receta sin estado en el servidor | ✅ 2026-09-10 |
+| F5.2 | Miniaturas con pypdfium2 y caché por `ETag` del navegador | ✅ 2026-09-10 |
+| F5.3 | Dividir por rangos o en hojas sueltas; imágenes → PDF en A4 o al tamaño del original | ✅ 2026-09-11 |
+| F5.4 | Índice de herramientas, una entrada en la barra y no seis | ✅ 2026-09-11 |
+| F5.5 | PDF → JPG/PNG con resolución elegida y tope de lado | ✅ 2026-09-11 |
+| F5.6 | Proteger y desproteger, **solo AES-256** | ✅ 2026-09-11 |
+| F5.7 | Números de página y marca de agua (pide `reportlab`) | ⬜ |
+| F5.8 | Word/Excel/PowerPoint → PDF por COM, **solo en taller** | ⬜ |
+| F5.9 | PDF → Word, con el aviso de qué se recibe de verdad | ⬜ |
+| F5.10 | Comprimir, con vista previa antes de escribir | ⬜ |
+| F5.11 | OCR con Tesseract sondeado, no declarado | ⬜ |
+
 ---
 
 ## Deuda conocida

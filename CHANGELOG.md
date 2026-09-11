@@ -5,6 +5,53 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Sin publicar]
 
+### Añadido — herramientas de PDF (fase F5)
+
+Una familia nueva, y la razón de que exista está escrita en la propia pantalla: las páginas
+que hacen esto en internet **suben tu archivo a su servidor**, y con un plano bajo acuerdo de
+confidencialidad eso no es una molestia, es lo que no se puede hacer. Aquí todo pasa en el
+equipo, el original nunca se toca, y la salida se escribe en un parcial que solo se pone en
+su sitio cuando ya salió bien — las mismas tres promesas que el resto de la aplicación.
+
+- **Leer un PDF sin abrirlo entero**: cuántas páginas, qué tamaño tiene cada una en
+  milímetros, su formato normalizado (A4, A1…) y si está vertical o apaisada. La orientación
+  tiene en cuenta el `/Rotate`, que es lo que la mayoría de las herramientas ignoran: una
+  lámina con caja 594 × 841 y giro 270 **se ve apaisada**, aunque su caja diga lo contrario.
+- **Unir PDF eligiendo qué páginas entran, en qué orden y cuáles van giradas.** Con
+  miniaturas de verdad, porque ordenar cincuenta y seis filas de texto no es ordenar: hay que
+  ver las hojas. El giro es **relativo y sin pérdida** — se suma al que la página ya traía y
+  no se redibuja nada.
+- **Sin estado en el servidor**: la receta de la composición viaja en un campo oculto del
+  propio formulario. No hay sesión que caducar ni fila que limpiar, y dos personas pueden
+  componer a la vez sin pisarse.
+- **Miniaturas con caché del navegador, no nuestra.** Llevan un `ETag` que depende del
+  archivo, la página, el giro y el ancho, así que al pulsar «bajar» las cincuenta y seis
+  vuelven con un 304. Guardarlas en disco traería una carpeta que crece, que hay que barrer y
+  que se queda obsoleta cuando el archivo cambia.
+- **Dividir**, por rangos escritos como se dicen —`1-5, 8, 12-14`, con los dos extremos
+  dentro— o en hojas sueltas. Lo que no se puede interpretar no se adivina: se dice **cuál**
+  de los cinco falla, porque «rangos no válidos» obliga a mirarlos a ojo.
+- **Imágenes a PDF** para monografías y anexos de fotos, en A4 —cada hoja toma la orientación
+  de su foto— o al tamaño de la imagen, que es lo que se quiere de un escaneo y no remuestrea
+  nada.
+- **PDF a imágenes** (JPG o PNG) para meter una lámina donde un PDF no se pega. La decisión
+  no es el formato sino la resolución, así que **no hay campo libre de ppp**: tres opciones
+  con para qué sirve cada una, y un tope de 12.000 píxeles de lado comprobado *antes* de
+  dibujar, porque un A1 a 300 ppp son casi 10.000 y varios cientos de megas de memoria.
+- **Proteger y desproteger**, y **solo con AES-256**. pypdf sabe cifrar de tres maneras y dos
+  de ellas —RC4 de 40 y de 128 bits— están rotas desde hace veinte años. Un PDF «protegido»
+  así es **peor** que uno sin proteger, porque quien lo manda cree que va cerrado. La
+  contraseña no se registra, no vuelve en la respuesta —ni cuando el intento falla, con
+  prueba de centinela— y no viaja en la URL; y el aviso de que no se recupera está en la
+  pantalla donde se decide, no en el recibo.
+- **Una entrada en la barra, no seis.** La barra es de secciones, y las de PDF son varias
+  cosas dentro de una. Hay un índice con una tarjeta por herramienta y lo que hace en una
+  línea, porque «Dividir PDF» a secas no dice si parte por hojas o por rangos.
+
+Todas las operaciones que escriben varios archivos son **todas o ninguna**: media entrega
+repartida por la carpeta, con nombres correlativos que parecen correctos, es peor que un
+error.
+
 ### Añadido — vectorial y libretas de puntos (fase F3, parcial)
 
 - **Libretas de puntos topográficos PNEZD, PENZD, NEZ, ENZ y sus variantes**, a GPKG, SHP,
