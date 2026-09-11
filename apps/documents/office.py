@@ -61,6 +61,19 @@ PROGRAMAS = {
 #: Como se llama cada uno para quien lee la pantalla.
 NOMBRES = {"word": "Word", "excel": "Excel", "powerpoint": "PowerPoint"}
 
+#: El camino de vuelta. No es un programa: es Word abriendo un PDF.
+PDF_A_WORD = "pdf-a-word"
+
+#: Cuantas paginas se miran para decidir si el PDF trae texto o es un escaneo. Cinco: un
+#: documento de texto lo demuestra en la primera, y recorrer quinientas para confirmarlo
+#: costaria mas que la conversion entera.
+PAGINAS_A_OLFATEAR = 5
+
+#: Por debajo de esto se considera que no hay texto. No es cero porque un escaneo suele
+#: traer una marca de agua o un pie del propio escaner -- veinte o treinta caracteres sueltos
+#: que no son el documento.
+MINIMO_DE_TEXTO = 80
+
 #: Cuanto se le da a Office antes de darlo por colgado. Un informe de doscientas paginas con
 #: imagenes tarda de verdad; cinco minutos es holgado y a la vez no deja una pestana girando
 #: para siempre.
@@ -178,13 +191,67 @@ def programa_de(origen: str | Path) -> str:
     return programa
 
 
+@dataclass(frozen=True)
+class QueTraeElPdf:
+    """Lo que hace falta saber **antes** de mandarle un PDF a Word."""
+
+    paginas: int
+    caracteres: int
+
+    @property
+    def es_un_escaneo(self) -> bool:
+        return self.caracteres < MINIMO_DE_TEXTO
+
+
+def mirar_pdf(origen: str | Path) -> QueTraeElPdf:
+    """Cuántas páginas trae y cuánto texto de verdad hay dentro.
+
+    **Es lo que decide si merece la pena convertirlo.** Un PDF escaneado no tiene texto: son
+    fotos de un papel. Word lo «convierte» igual, devuelve un documento de medio mega y sale
+    con código cero — y lo que hay dentro son las mismas fotos pegadas, sin una palabra
+    editable. Medido sobre una bitácora escaneada de esta oficina: **cero caracteres**.
+
+    Eso hay que decirlo antes, no después.
+    """
+    from apps.formats import pdf as lectura_pdf
+
+    origen = Path(origen)
+    try:
+        cabecera = lectura_pdf.leer_cabecera(origen)
+    except lectura_pdf.NoEsPdf as fallo:
+        raise ComposicionInvalida(str(fallo)) from fallo
+
+    if cabecera.cifrado:
+        raise ComposicionInvalida(
+            f"{origen.name} pide contraseña. Quítasela primero en «Proteger PDF»."
+        )
+
+    from pypdf import PdfReader
+
+    lector = PdfReader(str(origen))
+    caracteres = sum(_cuanto_texto(pagina) for pagina in lector.pages[:PAGINAS_A_OLFATEAR])
+    return QueTraeElPdf(paginas=cabecera.cuantas, caracteres=caracteres)
+
+
+def _cuanto_texto(pagina) -> int:
+    """Caracteres de texto de una página. Cero si no se deja leer.
+
+    Una página que revienta al extraer cuenta como **sin texto**, que es exactamente lo que
+    se va a ver: si Word tampoco puede sacar letras de ahí, lo que devuelve es una imagen.
+    """
+    try:
+        return len((pagina.extract_text() or "").strip())
+    except Exception:  # pragma: no cover -- una pagina rota no impide decidir
+        return 0
+
+
 def plan(origen: Path, destino: Path, programa: str, *, ajustar_ancho: bool = False) -> list[str]:
     """El `argv` exacto, sin ejecutar nada.
 
     Separado para poder comprobarlo en una máquina sin Office, que es la misma idea que hace
     testeable toda la capa de motores: el plan se describe y otro lo ejecuta.
     """
-    guion = Path(settings.BASE_DIR) / "scripts" / "office_a_pdf.ps1"
+    guion = Path(settings.BASE_DIR) / "scripts" / "office_convertir.ps1"
     argv = [
         "pwsh",
         "-NoProfile",
@@ -203,6 +270,39 @@ def plan(origen: Path, destino: Path, programa: str, *, ajustar_ancho: bool = Fa
     if ajustar_ancho and programa == "excel":
         argv.append("-AjustarAncho")
     return argv
+
+
+def a_word(
+    origen: str | Path,
+    destino: str | Path,
+    *,
+    tiempo_maximo_s: int = TIEMPO_MAXIMO_S,
+    argv: list[str] | None = None,
+) -> Path:
+    """El camino de vuelta: un PDF a `.docx`, convertido por el propio Word.
+
+    **Se comprueba antes que sea un PDF de verdad**, y no por pedantería: a Word le das un
+    archivo de texto con la extensión cambiada y lo abre tan contento, lo guarda como `.docx`
+    y sale con código cero. Probado. La extensión no es el formato, y aquí ya hay un lector
+    de firmas para decirlo.
+    """
+    origen, destino = Path(origen), Path(destino)
+
+    if not origen.is_file():
+        raise ComposicionInvalida(f"No existe {origen.name}.")
+
+    # Levanta si no es un PDF, o si pide contrasena. Se hace **aqui**, en Python, y no en el
+    # guion: es donde ya sabemos leer firmas.
+    mirar_pdf(origen)
+
+    disponible = sondar()
+    if not disponible.tiene("word"):
+        raise ComposicionInvalida(
+            f"Word no está disponible en este equipo. {disponible.motivo or ''}".strip()
+        )
+
+    orden = argv if argv is not None else plan(origen, destino, PDF_A_WORD)
+    return _lanzar(orden, destino, "Word", tiempo_maximo_s)
 
 
 def convertir(
@@ -230,6 +330,11 @@ def convertir(
     orden = (
         argv if argv is not None else plan(origen, destino, programa, ajustar_ancho=ajustar_ancho)
     )
+    return _lanzar(orden, destino, NOMBRES[programa], tiempo_maximo_s)
+
+
+def _lanzar(orden: list[str], destino: Path, nombre: str, tiempo_maximo_s: int) -> Path:
+    """Lanza el hijo y decide si salió bien. Lo comparten los dos sentidos."""
 
     try:
         # Lista y `shell=False`: la ruta la teclea una persona y trae tildes, espacios y
@@ -254,22 +359,20 @@ def convertir(
     except subprocess.TimeoutExpired as fallo:
         destino.unlink(missing_ok=True)
         raise ComposicionInvalida(
-            f"{NOMBRES[programa]} lleva {tiempo_maximo_s} segundos sin responder y se ha "
-            "cerrado. Suele pasar cuando el documento pide algo al abrirse: una contraseña, "
-            "una plantilla que ya no está, o una macro."
+            f"{nombre} lleva {tiempo_maximo_s} segundos sin responder y se ha cerrado. Suele "
+            "pasar cuando el documento pide algo al abrirse: una contraseña, una plantilla "
+            "que ya no está, o una macro."
         ) from fallo
 
     # **El codigo de salida no es la prueba de que funciono.** Office devuelve 0 sin escribir
     # nada mas veces de las que parece, asi que lo que decide es que el archivo este.
     if not destino.exists():
         raise ComposicionInvalida(
-            f"{NOMBRES[programa]} no llegó a escribir el PDF. {_queja(resultado)}".strip()
+            f"{nombre} no llegó a escribir el archivo. {_queja(resultado)}".strip()
         )
     if resultado.returncode != 0:
         destino.unlink(missing_ok=True)
-        raise ComposicionInvalida(
-            f"{NOMBRES[programa]} falló al exportar. {_queja(resultado)}".strip()
-        )
+        raise ComposicionInvalida(f"{nombre} falló al convertir. {_queja(resultado)}".strip())
 
     return destino
 

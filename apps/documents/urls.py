@@ -18,5 +18,6 @@ urlpatterns = [
     path("marca/", views.marca_vista, name="marca"),
     path("proteger/", views.proteger_vista, name="proteger"),
     path("office/", views.office_vista, name="office"),
+    path("a-word/", views.a_word_vista, name="a_word"),
     path("miniatura/", views.miniatura, name="miniatura"),
 ]

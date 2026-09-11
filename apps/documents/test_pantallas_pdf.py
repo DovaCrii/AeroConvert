@@ -473,6 +473,71 @@ class TestOfficeAPdf:
         assert "Hecho" not in cuerpo
 
 
+class TestPdfAWord:
+    def _con_texto(self, carpeta, nombre="memoria.pdf", cuantas=2):
+        from apps.documents.test_office import _pdf as fabricar
+
+        # Holgadamente por encima de `MINIMO_DE_TEXTO`: con una frase corta en dos hojas se
+        # queda en 74 caracteres y se clasifica como escaneo, **que es lo correcto**.
+        return fabricar(
+            carpeta,
+            nombre,
+            cuantas,
+            texto=(
+                "Informe de avance semanal del contrato, con el detalle de las partidas "
+                "ejecutadas y las observaciones levantadas en terreno durante el periodo."
+            ),
+        )
+
+    def test_avisa_de_lo_que_se_recibe_antes_de_convertir(self, sesion, con_office):
+        """El aviso va siempre y delante, no solo cuando falla."""
+        cuerpo = sesion.get(reverse("documents:a_word")).content.decode()
+        assert "no guarda párrafos" in cuerpo
+        assert "97,7 %" in cuerpo
+
+    def test_un_escaneo_se_detecta_y_no_se_ofrece_convertirlo(self, sesion, con_office, tmp_path):
+        escaneo = _pdf(tmp_path, "escaneo.pdf", 2)
+        cuerpo = sesion.post(
+            reverse("documents:a_word"), {"ruta": str(escaneo), "accion": "mirar"}
+        ).content.decode()
+        assert "Esto es un escaneo" in cuerpo
+        assert 'value="convertir"' not in cuerpo
+
+    def test_uno_con_texto_si(self, sesion, con_office, tmp_path):
+        memoria = self._con_texto(tmp_path)
+        cuerpo = sesion.post(
+            reverse("documents:a_word"), {"ruta": str(memoria), "accion": "mirar"}
+        ).content.decode()
+        assert "Trae texto de verdad" in cuerpo
+        assert 'value="convertir"' in cuerpo
+
+    def test_mirar_no_escribe_nada(self, sesion, con_office, tmp_path):
+        memoria = self._con_texto(tmp_path)
+        sesion.post(reverse("documents:a_word"), {"ruta": str(memoria), "accion": "mirar"})
+        assert not (tmp_path / "memoria.docx").exists()
+
+    def test_algo_que_no_es_un_pdf_lo_dice(self, sesion, con_office, tmp_path):
+        falso = tmp_path / "x.pdf"
+        falso.write_bytes(b"no soy un pdf")
+        respuesta = sesion.post(
+            reverse("documents:a_word"), {"ruta": str(falso), "accion": "convertir"}, follow=True
+        )
+        assert respuesta.status_code == 200
+        assert not (tmp_path / "x.docx").exists()
+
+    def test_sin_office_explica_en_vez_de_reventar(self, sesion, sin_office):
+        cuerpo = sesion.get(reverse("documents:a_word")).content.decode()
+        assert "No hay Microsoft Office instalado" in cuerpo
+
+    def test_una_ruta_fuera_de_las_raices(self, sesion, con_office):
+        cuerpo = sesion.post(
+            reverse("documents:a_word"),
+            {"ruta": "C:\\Windows\\System32\\config\\SAM", "accion": "convertir"},
+            follow=True,
+        ).content.decode()
+        assert "Hecho" not in cuerpo
+
+
 class TestProteger:
     CLAVE = "obra-2026-bhp"
 

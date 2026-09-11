@@ -117,7 +117,7 @@ class TestElPlan:
     def test_lleva_el_guion_el_origen_y_el_destino(self, tmp_path):
         argv = office.plan(tmp_path / "a.docx", tmp_path / "a.pdf", "word")
         assert argv[0] == "pwsh"
-        assert "office_a_pdf.ps1" in " ".join(argv)
+        assert "office_convertir.ps1" in " ".join(argv)
         assert "-Programa" in argv and "word" in argv
         assert str(tmp_path / "a.docx") in argv
         assert str(tmp_path / "a.pdf") in argv
@@ -164,7 +164,7 @@ class TestConvertir:
         origen.write_bytes(b"x")
         destino = tmp_path / "informe.pdf"
 
-        with pytest.raises(ComposicionInvalida, match="falló al exportar"):
+        with pytest.raises(ComposicionInvalida, match="falló al convertir"):
             office.convertir(
                 origen,
                 destino,
@@ -247,13 +247,115 @@ class TestConvertir:
         assert origen.read_bytes() == antes
 
 
+def _pdf(carpeta, nombre="memoria.pdf", cuantas=2, texto=""):
+    """Un PDF de verdad, con o sin texto dentro."""
+    from pypdf import PdfReader, PdfWriter
+    from reportlab.pdfgen import canvas
+
+    ruta = carpeta / nombre
+    escritor = PdfWriter()
+    for _ in range(cuantas):
+        pagina = escritor.add_blank_page(width=595, height=842)
+        if texto:
+            import io
+
+            memoria = io.BytesIO()
+            lienzo = canvas.Canvas(memoria, pagesize=(595, 842))
+            lienzo.setFont("Helvetica", 12)
+            lienzo.drawString(60, 700, texto)
+            lienzo.save()
+            memoria.seek(0)
+            pagina.merge_page(PdfReader(memoria).pages[0], over=True)
+    with open(ruta, "wb") as salida:
+        escritor.write(salida)
+    return ruta
+
+
+class TestMirarElPdfAntesDeMandarloAWord:
+    def test_cuenta_las_paginas_y_el_texto(self, tmp_path):
+        memoria = _pdf(tmp_path, cuantas=3, texto="Esto es un informe con texto de verdad dentro")
+        que_trae = office.mirar_pdf(memoria)
+        assert que_trae.paginas == 3
+        assert que_trae.caracteres > office.MINIMO_DE_TEXTO
+        assert not que_trae.es_un_escaneo
+
+    def test_uno_sin_texto_se_reconoce_como_escaneo(self, tmp_path):
+        """El fallo silencioso: Word «convierte» un escaneo, devuelve medio mega y sale con
+        código cero, y lo que hay dentro son las mismas fotos. Medido sobre una bitácora
+        real de esta oficina: cero caracteres."""
+        escaneo = _pdf(tmp_path, cuantas=2)
+        que_trae = office.mirar_pdf(escaneo)
+        assert que_trae.caracteres == 0
+        assert que_trae.es_un_escaneo
+
+    def test_algo_que_no_es_un_pdf_aunque_se_llame_pdf(self, tmp_path):
+        """A Word le das un archivo de texto con la extensión cambiada y lo abre tan
+        contento, lo guarda como .docx y sale con código cero. Probado."""
+        falso = tmp_path / "x.pdf"
+        falso.write_bytes(b"no soy un pdf")
+        with pytest.raises(ComposicionInvalida):
+            office.mirar_pdf(falso)
+
+    def test_uno_cifrado_manda_a_la_pantalla_que_corresponde(self, tmp_path):
+        from apps.documents import seguridad
+
+        memoria = _pdf(tmp_path, texto="hola")
+        cerrado = tmp_path / "cerrado.pdf"
+        seguridad.proteger(memoria, cerrado, "una-clave-larga")
+        with pytest.raises(ComposicionInvalida, match="Proteger PDF"):
+            office.mirar_pdf(cerrado)
+
+
+class TestAWord:
+    def test_lo_normal(self, con_office, tmp_path):
+        memoria = _pdf(tmp_path, texto="Un informe con texto suficiente para no ser un escaneo")
+        destino = tmp_path / "memoria.docx"
+
+        escrito = office.a_word(
+            memoria,
+            destino,
+            argv=_hijo_que(f"open({str(destino)!r}, 'wb').write(b'PK finge que soy un docx')"),
+        )
+        assert escrito == destino
+
+    def test_el_plan_usa_el_modo_de_vuelta(self, tmp_path):
+        argv = office.plan(tmp_path / "a.pdf", tmp_path / "a.docx", office.PDF_A_WORD)
+        assert office.PDF_A_WORD in argv
+
+    def test_no_se_le_manda_a_word_algo_que_no_es_un_pdf(self, con_office, tmp_path):
+        falso = tmp_path / "x.pdf"
+        falso.write_bytes(b"no soy un pdf")
+        with pytest.raises(ComposicionInvalida):
+            office.a_word(falso, tmp_path / "x.docx", argv=_hijo_que("pass"))
+
+    def test_un_archivo_que_no_esta(self, con_office, tmp_path):
+        with pytest.raises(ComposicionInvalida, match="No existe"):
+            office.a_word(tmp_path / "fantasma.pdf", tmp_path / "fantasma.docx")
+
+    def test_sin_word_no_se_intenta(self, tmp_path, monkeypatch, settings):
+        settings.MODO = "taller"
+        monkeypatch.setattr(office, "_registrado", lambda _prog: False)
+        memoria = _pdf(tmp_path, texto="texto suficiente para que no parezca un escaneo")
+        with pytest.raises(ComposicionInvalida, match="Word no está disponible"):
+            office.a_word(memoria, tmp_path / "memoria.docx")
+
+    def test_el_original_no_se_toca(self, con_office, tmp_path):
+        memoria = _pdf(tmp_path, texto="texto suficiente para que no parezca un escaneo")
+        antes = memoria.read_bytes()
+        destino = tmp_path / "memoria.docx"
+        office.a_word(
+            memoria, destino, argv=_hijo_que(f"open({str(destino)!r}, 'wb').write(b'PK')")
+        )
+        assert memoria.read_bytes() == antes
+
+
 class TestElGuionDePowerShell:
     def test_esta_donde_el_plan_dice(self):
         from pathlib import Path
 
         from django.conf import settings
 
-        assert (Path(settings.BASE_DIR) / "scripts" / "office_a_pdf.ps1").is_file()
+        assert (Path(settings.BASE_DIR) / "scripts" / "office_convertir.ps1").is_file()
 
     def test_cierra_office_pase_lo_que_pase(self):
         """Un WINWORD.EXE huérfano se queda con el archivo bloqueado y el intento siguiente
@@ -262,7 +364,7 @@ class TestElGuionDePowerShell:
 
         from django.conf import settings
 
-        guion = (Path(settings.BASE_DIR) / "scripts" / "office_a_pdf.ps1").read_text(
+        guion = (Path(settings.BASE_DIR) / "scripts" / "office_convertir.ps1").read_text(
             encoding="utf-8"
         )
         assert "finally" in guion
@@ -273,7 +375,18 @@ class TestElGuionDePowerShell:
 
         from django.conf import settings
 
-        guion = (Path(settings.BASE_DIR) / "scripts" / "office_a_pdf.ps1").read_text(
+        guion = (Path(settings.BASE_DIR) / "scripts" / "office_convertir.ps1").read_text(
             encoding="utf-8"
         )
         assert "Test-Path -LiteralPath $Destino" in guion
+
+    def test_sabe_ir_en_los_dos_sentidos(self):
+        from pathlib import Path
+
+        from django.conf import settings
+
+        guion = (Path(settings.BASE_DIR) / "scripts" / "office_convertir.ps1").read_text(
+            encoding="utf-8"
+        )
+        for modo in ("'word'", "'excel'", "'powerpoint'", f"'{office.PDF_A_WORD}'"):
+            assert modo in guion

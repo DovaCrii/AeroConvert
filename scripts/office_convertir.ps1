@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Exporta un documento de Office a PDF usando el Office instalado.
+    Convierte entre Office y PDF usando el Office instalado, en los dos sentidos.
 
 .DESCRIPTION
     Lo lanza `apps/documents/office.py`, **siempre como proceso hijo**. Esa no es una
@@ -27,7 +27,7 @@
 param(
     [Parameter(Mandatory = $true)][string]$Origen,
     [Parameter(Mandatory = $true)][string]$Destino,
-    # word | excel | powerpoint
+    # word | excel | powerpoint | pdf-a-word
     [Parameter(Mandatory = $true)][string]$Programa,
     # Solo para Excel: encajar cada hoja a lo ancho de una pagina.
     [switch]$AjustarAncho
@@ -122,6 +122,36 @@ try {
             # se guarda una copia en la ruta nueva y se cierra sin guardar.
             $documento.SaveAs($Destino, 32)
             $documento.Close()
+            $documento = $null
+        }
+
+        'pdf-a-word' {
+            # El camino de vuelta, y lo hace **Word**, no nosotros.
+            #
+            # Word 2013 y posteriores convierten un PDF al abrirlo -- lo llaman PDF Reflow --
+            # reconstruyendo parrafos, tablas y estilos a partir de las posiciones de las
+            # letras. Es lo mejor que hay: la alternativa de Python es pdf2docx, que por
+            # dentro es PyMuPDF, **AGPL-3**, y esa puerta ya se cerro dos veces en este
+            # proyecto.
+            $app = New-Object -ComObject Word.Application
+            $app.Visible = $false
+            # Sin esto, Word para a preguntar «voy a convertir tu PDF en un documento
+            # editable, ¿sigo?» y el proceso se queda esperando una respuesta que no va a
+            # llegar nunca.
+            $app.DisplayAlerts = 0
+            $app.AutomationSecurity = 3
+
+            # **Sin ReadOnly**, al reves que en los demas: aqui abrir es convertir, y un
+            # documento de solo lectura no se puede convertir.
+            $documento = $app.Documents.Open(
+                $Origen,
+                [ref]$false,   # ConfirmConversions
+                [ref]$false,   # ReadOnly
+                [ref]$false    # AddToRecentFiles
+            )
+            # wdFormatXMLDocument = 12, que es .docx
+            $documento.SaveAs2($Destino, 12)
+            $documento.Close(0)
             $documento = $null
         }
 

@@ -197,6 +197,13 @@ HERRAMIENTAS = (
         # saliendo**, apagada y con el motivo: ocultarla haria parecer que nunca existio.
         "exige_office": True,
     },
+    {
+        "id": "a_word",
+        "url": "documents:a_word",
+        "nombre": "PDF a Word",
+        "que_hace": "El camino de vuelta, para poder editarlo. Con lo que eso significa.",
+        "exige_office": True,
+    },
 )
 
 
@@ -784,6 +791,57 @@ def office_vista(request):
 
     contexto["generado"] = destino
     return render(request, "documents/office.html", contexto)
+
+
+@login_required
+def a_word_vista(request):
+    """PDF a Word, y **con el aviso delante**.
+
+    De dos pasos a propósito, porque lo que hay que decir antes de convertir no se puede
+    decir sin mirar el archivo: un PDF escaneado no tiene texto dentro, así que lo que vuelve
+    son las mismas fotos pegadas en un documento de Word. Y eso Word lo hace sin quejarse,
+    devolviendo medio mega y un código de salida cero.
+    """
+    office = office_mod.sondar()
+    contexto = {
+        "seccion": "pdf",
+        "etiqueta_seccion": "PDF",
+        "titulo_pagina": "PDF a Word",
+        "proposito": "Para poder editarlo. Mira antes lo que vas a recibir de verdad.",
+        "office": office,
+        "ruta_texto": (request.GET.get("ruta") or "").strip(),
+    }
+
+    if request.method != "POST" or not office.tiene("word"):
+        return render(request, "documents/a_word.html", contexto)
+
+    contexto["ruta_texto"] = (request.POST.get("ruta") or "").strip().strip('"')
+    try:
+        ruta = modo_mod.comprobar_ruta(contexto["ruta_texto"])
+        que_trae = office_mod.mirar_pdf(ruta)
+    except (modo_mod.RutaNoPermitida, ComposicionInvalida) as fallo:
+        messages.error(request, str(fallo))
+        return render(request, "documents/a_word.html", contexto)
+
+    contexto["ruta_texto"] = contexto["ruta"] = str(ruta)
+    contexto["que_trae"] = que_trae
+
+    if request.POST.get("accion") != "convertir":
+        return render(request, "documents/a_word.html", contexto)
+
+    destino = ruta.with_suffix(".docx")
+    parcial = destino.with_name(f"{destino.stem}.parcial.docx")
+    try:
+        office_mod.a_word(ruta, parcial)
+    except ComposicionInvalida as fallo:
+        parcial.unlink(missing_ok=True)
+        messages.error(request, str(fallo))
+        return render(request, "documents/a_word.html", contexto)
+
+    os.replace(parcial, destino)
+    messages.success(request, f"Hecho: {destino.name}.")
+    contexto["generado"] = destino
+    return render(request, "documents/a_word.html", contexto)
 
 
 def _entero(crudo, por_omision: int) -> int:
