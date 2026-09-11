@@ -38,6 +38,21 @@ su sitio cuando ya salió bien — las mismas tres promesas que el resto de la a
   no es el formato sino la resolución, así que **no hay campo libre de ppp**: tres opciones
   con para qué sirve cada una, y un tope de 12.000 píxeles de lado comprobado *antes* de
   dibujar, porque un A1 a 300 ppp son casi 10.000 y varios cientos de megas de memoria.
+- **Numerar las páginas**, distinguiendo dos cosas que se piden juntas y no son la misma:
+  **desde qué hoja** se numera —una portada no lleva número— y **con qué número se empieza**
+  —un anexo que continúa otro documento—. Y «de 56» es el último número que de verdad aparece
+  impreso, no el de hojas del archivo.
+- **Marca de agua** —«BORRADOR», «NO VÁLIDO PARA CONSTRUCCIÓN»— **encima** del contenido, que
+  es donde tiene que ir: una marca que el dibujo del plano tapa no marca nada. Su intensidad
+  son tres valores medidos y no un control deslizante, porque al 100 % tapa las cotas. El
+  ángulo es el de la diagonal de la hoja y no 45° fijos, que en un A1 apaisado dejarían el
+  texto cruzando por una esquina.
+- **La capa se dibuja por página y en el sistema de coordenadas de lo que se ve.** Una entrega
+  real mezcla A4 de memoria con A1 de planos, y una lámina con giro declarado pondría el
+  número **de canto en el borde equivocado** si la capa se colocara en el espacio de la caja.
+  Es un fallo que no da ningún error: el archivo abre, imprime, y está mal. Verificado sobre
+  una lámina escaneada de verdad —caja 593 × 764 pt vertical, giro 270, que se ve apaisada— y
+  sobre un documento de 59 páginas de tamaños mezclados.
 - **Proteger y desproteger**, y **solo con AES-256**. pypdf sabe cifrar de tres maneras y dos
   de ellas —RC4 de 40 y de 128 bits— están rotas desde hace veinte años. Un PDF «protegido»
   así es **peor** que uno sin proteger, porque quien lo manda cree que va cerrado. La

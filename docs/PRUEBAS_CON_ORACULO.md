@@ -185,6 +185,98 @@ conversiones.
 
 ---
 
+## Corrida del 2026-09-11 — las herramientas de PDF, sobre documentos de oficina
+
+Aquí el oráculo **no es otra herramienta de línea de comandos, es el dibujo**: se pinta la
+página con PDFium y se mira dónde cayó la tinta. Para la geometría no hay alternativa
+honesta —comprobar la posición contra el mismo cálculo que la produjo sería el código
+dándose la razón— y el fallo que se busca no se ve de ninguna otra forma: un número de
+página colocado en el sistema de coordenadas equivocado da un archivo que abre, imprime, y
+está mal.
+
+Lo que *dice* cada marca lo lee el extractor de texto de pypdf, que no sabe nada de cómo se
+escribió.
+
+### 1. Lo que traen dentro, medido sin abrirlos
+
+| Archivo | Lo que dice AeroConvert |
+| --- | --- |
+| `Xgrids Lixel L2 PRO - Puntos de control.pdf` | 5 páginas · **Carta** vertical |
+| `Organigrama 20261902.pdf` | 1 página · **866 × 802 mm apaisada** |
+| `LCD-0240-PP-GEN-11003_P1.pdf` | 1 página · Tabloide apaisada |
+| `4985-0240-GE-INF-001_B.pdf` | 59 páginas · **tamaños mezclados** |
+| `TOTAL_RASTREO.pdf` · `Monografia_5-6.pdf` | 1 página · A4 apaisada / A4 vertical |
+
+Dos cosas que confirman decisiones del catálogo: **Carta no es A4** y se distingue, y una
+hoja de 866 × 802 mm no se fuerza dentro de ningún formato con nombre — se dice en
+milímetros, porque inventarle un nombre sería mentir.
+
+### 2. PDF a imágenes, a 150 ppp
+
+Sobre la hoja Carta: **1275 × 1651 px**, que es exactamente lo que sale de 8,5 × 11 pulgadas
+a 150 ppp. El mismo dibujo en los dos formatos:
+
+| | Peso |
+| --- | ---: |
+| PNG | 289 KB |
+| JPG | 123 KB — el **42 %** |
+
+Esa proporción es la razón de que la pantalla ofrezca los dos y diga para qué sirve cada uno.
+
+### 3. Proteger, sobre un documento real
+
+Cifrado con AES-256 y comprobado **reabriéndolo**: pide clave, la correcta abre, otra no. La
+vuelta —quitar la contraseña— devuelve el mismo número de páginas, los mismos formatos y las
+mismas orientaciones, sobre una hoja de 866 × 802 mm.
+
+### 4. Numerar, sobre 59 páginas de tamaños mezclados
+
+`4985-0240-GE-INF-001_B.pdf`: **59 numeradas**, y los 59 tamaños y orientaciones idénticos
+antes y después. Es el caso para el que la capa se dibuja **por página**: una sola capa
+reutilizada dejaría el número fuera del papel en cuanto cambia el formato.
+
+### 5. El giro, sobre una lámina escaneada de verdad
+
+Lo importante, porque es donde falla en silencio. Una bitácora de vuelo escaneada:
+
+```
+caja (MediaBox)     593 x 764 pt   -- vertical
+/Rotate             270
+lo que se ve        269 x 209 mm   -- APAISADA
+```
+
+Es la trampa entera en tres líneas: la caja dice vertical y el documento **se ve apaisado**.
+
+Se numeró en «pie, a la derecha» y se comparó el centro de gravedad de la tinta con el de la
+misma página sin numerar:
+
+```
+tinta   (0,4814, 0,2732)  ->  (0,4834, 0,2764)
+         x +0,0020            y +0,0031
+```
+
+**Los dos signos positivos**: el número empujó la tinta hacia la derecha y hacia abajo de lo
+que se ve. El desplazamiento es pequeño porque el escaneo cubre casi toda la hoja, pero la
+dirección no es ambigua — si la capa hubiera caído de canto en un lateral, que es el fallo
+clásico, empujaría en otra.
+
+Las cuatro rotaciones están además cubiertas en el gate con páginas fabricadas
+(`apps/documents/test_marcas.py`), ocho casos, con el mismo oráculo de píxeles.
+
+### 6. Marca de agua
+
+Sobre los cuatro documentos: añadirla **acerca** el centro de gravedad de la tinta al centro
+de la hoja en todos, y en ninguno lo aleja. Y las tres intensidades dejan la hoja
+progresivamente menos clara —medido, no nombrado—, que es lo que hace que «suave», «normal»
+y «marcada» signifiquen algo.
+
+### 7. Los originales quedaron intactos
+
+Comprobado byte a byte en todas las operaciones anteriores. Las salidas se escribieron en la
+carpeta temporal de las pruebas, nunca junto a los originales.
+
+---
+
 ## Lo que sigue sin oráculo, y se dice
 
 **ECW no se puede verificar aquí.** El GDAL de QGIS 4.0.2 **no trae el controlador ECW**, ni

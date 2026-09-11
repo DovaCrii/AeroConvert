@@ -24,9 +24,9 @@ Hexagon para ECW. Lo único pendiente que solo depende de escribirlo es F2.6 (3D
 | F3.1 | OGR vectorial: SHP, GPKG, GeoJSON, KML/KMZ, DXF entre sí |
 | F3.3 | **Libretas de puntos PNEZD/PENZD/NEZ/ENZ**, con detección del orden por rango UTM y vista previa dibujada antes de convertir |
 | F3.5 | **LandXML**: se escribe (CgPoints con número, descripción y epsgCode) y se lee (qué trae dentro; los puntos además se convierten) |
-| F5 | **PDF**: leer, unir con miniaturas y giro, dividir, imágenes ↔ PDF, proteger y desproteger |
+| F5 | **PDF**: leer, unir con miniaturas y giro, dividir, imágenes ↔ PDF, numerar, marca de agua, proteger y desproteger |
 
-**832 pruebas**, 93,3 % de cobertura, verdes **sin GDAL ni PDAL instalados**.
+**883 pruebas**, 93,6 % de cobertura, verdes **sin GDAL ni PDAL instalados**.
 
 ### Lo verificado sobre archivos reales
 
@@ -82,8 +82,6 @@ pendiente de hacerse en un puesto con licencia; es un procedimiento manual, igua
 
 Lo hecho está arriba. Lo que falta, con lo que cuesta cada cosa de verdad:
 
-- **Números de página y marca de agua.** Piden `reportlab` (BSD) para dibujar la capa y
-  `pypdf` para fusionarla, que ya está. Es la ampliación más barata de las que quedan.
 - **Word, Excel y PowerPoint → PDF.** **Solo en modo taller**, y por COM contra el Office
   instalado: es la única vía que respeta el formato de verdad. Cualquier conversor propio
   entrega un documento que se parece al original, y un anexo de contrato que «se parece» no
@@ -191,7 +189,17 @@ desde cero, no como compromiso.
 - **En un PDF, la orientación no es la caja: es la caja más `/Rotate`.** Una lámina con
   `MediaBox` 594 × 841 —vertical— y `/Rotate 270` **se ve apaisada**, y lo que importa es lo
   que se ve. Lo resuelve `_milimetros()` en `apps/formats/pdf.py` intercambiando los lados
-  cuando el giro es 90 o 270. Mi propia prueba nació al revés por esto.
+  cuando el giro es 90 o 270. Mi propia prueba nació al revés por esto. Hay un archivo real
+  con el caso exacto: las bitácoras de vuelo escaneadas, caja 593 × 764 pt y `/Rotate 270`.
+- **Y una capa superpuesta hay que dibujarla en el sistema de lo que se ve, no en el de la
+  caja.** Es la misma trampa un paso más allá: `merge_page` pega la capa en el espacio sin
+  girar, así que un pie de página dibujado «abajo» aparece **de canto en un lateral**. Lo
+  resuelve `_encuadrar()` en `apps/documents/marcas.py` aplicándole al lienzo el giro
+  contrario. Y la capa se dibuja **por página**, porque una entrega mezcla A4 con A1.
+- **La posición de una marca solo se comprueba dibujándola.** Contrastarla con el mismo
+  cálculo que la produjo no prueba nada. `test_marcas.py` pinta con PDFium y mira dónde cayó
+  la tinta; y «tinta» es todo lo que no sea papel (umbral 250), no «negro»: una marca de agua
+  al 8 % da un gris de 235 y con umbral 128 sale una página en blanco.
 - **El giro que se pide al componer es relativo, no absoluto.** `pagina.rotate(90)` **suma**
   al que la página ya traía. Es lo correcto —así no se pierde nada y no se redibuja— pero
   significa que la etiqueta de la fila tiene que calcular la orientación resultante, no
