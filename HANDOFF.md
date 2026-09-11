@@ -87,6 +87,38 @@ Lo hecho está arriba. Lo que falta, con lo que cuesta cada cosa de verdad:
   vista previa antes de escribir.
 - **OCR.** Depende de Tesseract instalado fuera, como GDAL. Se sondea, no se declara.
 
+## Poner esto en una VM: qué falta de verdad
+
+Comprobado el **2026-09-11**. Resumen en una frase: **el modo taller está terminado y en uso;
+el modo nube arranca y no convierte nada.** El detalle está en `docs/DEPLOY.md`, que hasta
+hoy afirmaba cosas que no existían.
+
+Lo que sí funciona ya, medido y no supuesto:
+
+- `config.settings.nube` carga; `manage.py check --deploy` solo se queja de `ALLOWED_HOSTS`
+  vacío, que es una variable de entorno.
+- `manage.py migrate` sobre una base vacía aplica las 25 migraciones sin un error.
+- Whitenoise está listo y con su almacén propio.
+- El dimensionado de la VM está medido y fechado en `docs/DEPLOY.md` — **4 vCPU, 4 GB,
+  80 GB SSD** para lo normal.
+
+Lo que hay que escribir, en orden, y cada uno es condición del siguiente:
+
+1. **La subida de archivos.** Es *el* bloqueante: sin esto el modo nube no tiene entrada. No
+   existe ni un `request.FILES` en el repositorio. Incluye `MEDIA_ROOT`, el formulario, el
+   manejador en streaming, y que el runner sepa leer `source_upload` además de `source_path`.
+2. **Que `AEROCONVERT_TOPE_MB` valide.** Hoy solo se interpola en el texto de la chapa.
+3. **Apagar o explicar las herramientas de PDF en nube**, como ya hace «Office a PDF». Hoy
+   las otras nueve fallan con un error de ruta que no dice nada.
+4. **`revisar_configuracion()` para nube**, que hoy solo valida taller. Un despliegue sin
+   `ALLOWED_HOSTS` pasa `check` y luego da 400 a todo.
+5. **La infraestructura**: `gunicorn` como dependencia, unit de systemd, configuración de
+   nginx, y un equivalente de `run.ps1` para Linux que recolecte los estáticos — sin
+   `collectstatic` **todas** las páginas dan 500.
+6. **Decidir qué pasa con SQLite.** Con varios obreros de gunicorn escribiendo progreso, WAL
+   deja de ser suficiente. O un obrero, o PostgreSQL — y hoy no hay ni una mención de
+   PostgreSQL en el repositorio.
+
 ## Ideas anotadas, sin decidir
 
 Cosas que se han pensado y **no** se han hecho. Están aquí para que no se vuelvan a pensar

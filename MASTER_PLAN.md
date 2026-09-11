@@ -99,6 +99,24 @@ sería pedir que alguien espere a un proceso en segundo plano para reordenar tre
 
 ---
 
+## Fase 6 — Poner esto en una VM
+
+**No estaba en el plan y hace falta declararla**, porque `docs/DEPLOY.md` describía un
+despliegue diseñado y se leía como uno construido. Comprobado el 2026-09-11: el modo nube
+arranca, sirve páginas y autentica, y **no puede convertir ni un archivo**. El modo taller,
+que es el que está en uso, sí está terminado.
+
+| # | Entrega | Estado |
+| --- | --- | --- |
+| F6.1 | **La subida de archivos**: `MEDIA_ROOT`, formulario, manejador en streaming, y que el runner lea `source_upload` | ⬜ · **el bloqueante** |
+| F6.2 | Que `AEROCONVERT_TOPE_MB` valide de verdad, en nginx, en el manejador y en `clean()` | ⬜ |
+| F6.3 | Apagar o explicar las herramientas de PDF en nube, como ya hace «Office a PDF» | ⬜ |
+| F6.4 | `revisar_configuracion()` para nube — hoy solo valida taller | ⬜ |
+| F6.5 | Infraestructura: `gunicorn`, unit de systemd, nginx, arranque en Linux con `collectstatic` | ⬜ |
+| F6.6 | Decidir SQLite contra PostgreSQL con varios obreros | ⬜ |
+
+---
+
 ## Deuda conocida
 
 | Qué | Por qué está | Cuándo se paga |

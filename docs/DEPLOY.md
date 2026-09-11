@@ -31,12 +31,43 @@ arrancarían dos despachadores compitiendo por el mismo trabajo.
 
 ## Modo nube — VM propia
 
-Para conversiones livianas y para compartir resultados. **No** para las ortofotos de 40 GB:
-subirlas es el cuello de botella, y desplegar la SDK de ECW en un servidor exige la licencia
-cara.
+> ### ⚠ Hoy el modo nube **no convierte nada**. No lo despliegues todavía.
+>
+> Comprobado el **2026-09-11**, sobre el código, no de memoria. `config.settings.nube`
+> arranca, sirve páginas, autentica, redirige a HTTPS y pinta su chapa. Y no puede convertir
+> **ni un solo archivo**, porque la única vía de entrada que existe —escribir una ruta del
+> disco— está cerrada a propósito en nube (`apps/core/modo.py::comprobar_ruta`), y la vía
+> que la sustituye —la subida— **no está escrita**.
+>
+> Lo que falta, verificado por búsqueda en todo el repositorio:
+>
+> - **Cero `request.FILES`, cero `enctype="multipart/form-data"`, cero manejadores de
+>   subida.** El campo `ConversionJob.source_upload` existe y está huérfano: nada lo escribe,
+>   y el runner solo lee `source_path`.
+> - **No hay `MEDIA_ROOT` ni `MEDIA_URL`** en ningún fichero de ajustes, así que ese
+>   `FileField` no tendría dónde escribir.
+> - **`AEROCONVERT_TOPE_MB` no valida nada.** Se define y se interpola en el texto de la
+>   chapa. Nada más. (Este documento afirmaba que se comprobaba en tres sitios; eran cero.
+>   Corregido.)
+> - **Las herramientas de PDF fallan todas**, con un error de ruta genérico. Solo
+>   «Office a PDF» se apaga dando su motivo.
+> - **`revisar_configuracion()` no valida nada en modo nube**: un despliegue sin
+>   `ALLOWED_HOSTS` pasa `manage.py check` y luego da 400 a todo.
+>
+> Lo que **sí** está comprobado que funciona en nube (2026-09-11): los ajustes cargan,
+> `manage.py check --deploy` solo se queja de `ALLOWED_HOSTS` vacío, y `manage.py migrate`
+> sobre una base vacía aplica las 25 migraciones sin un solo error.
+>
+> **El modo taller es el que está terminado y en uso.** Ver arriba.
 
-Igual que AeroBim y AeroControl, se despliega en VM propia. No hay `render.yaml` ni Docker:
-no se ha necesitado.
+Cuando se escriba, para conversiones livianas y para compartir resultados. **No** para las
+ortofotos de 40 GB: subirlas es el cuello de botella, y desplegar la SDK de ECW en un
+servidor exige la licencia cara.
+
+Igual que AeroBim y AeroControl, iría en VM propia. No hay `render.yaml` ni Docker: no se ha
+necesitado. **Tampoco hay** unit de systemd, configuración de nginx, script de arranque para
+Linux, ni `gunicorn` entre las dependencias — nada de eso está en el repositorio, y lo de
+abajo es el diseño, no un procedimiento que se pueda seguir hoy.
 
 ```
 /opt/aeroconvert          el código
@@ -47,9 +78,15 @@ no se ha necesitado.
 - **gunicorn** con `config.wsgi`, `DJANGO_SETTINGS_MODULE=config.settings.nube`.
 - **systemd** para el servicio.
 
-El tope de tamaño se comprueba en **tres** sitios: nginx, el manejador de subida en
-streaming y `clean()` del modelo. Solo el último es inevadible, y solo los dos primeros dan
-un mensaje que se entiende.
+**Ojo con la última línea.** `config/wsgi.py` tiene como valor por omisión
+`config.settings.prod`, **no** `nube`. Si el servicio no exporta
+`DJANGO_SETTINGS_MODULE=config.settings.nube`, la VM arranca en modo **taller** —porque
+`prod.py` no toca `MODO`— con las cookies de HTTPS puestas y sin `RAICES_PERMITIDAS`. Es un
+fallo silencioso que se parece a un problema de configuración de nginx.
+
+El tope de tamaño **tendrá** que comprobarse en tres sitios: nginx, el manejador de subida en
+streaming y `clean()` del modelo. Solo el último sería inevadible, y solo los dos primeros
+darían un mensaje que se entiende. Hoy no está ninguno.
 
 ### Qué VM hace falta
 
