@@ -54,9 +54,38 @@ LATIDOS_PERDIDOS = 3
 #: como para no recorrer la carpeta a cada rato.
 CICLOS_ENTRE_BARRIDOS = 150
 
+#: Cada cuantos ciclos deja constancia de que sigue vivo. Veinte ciclos de 2 s son 40 s:
+#: suficiente para que `/salud/` note en menos de dos minutos que el obrero se cayo, y poco
+#: como para escribir en disco cada dos segundos.
+CICLOS_ENTRE_LATIDOS = 20
+
 _hilo: threading.Thread | None = None
 _parar = threading.Event()
 _ciclos = 0
+
+
+def latir() -> None:
+    """Deja constancia de que el despachador sigue en pie.
+
+    Un archivo y **no una fila de la base**: en la VM el despachador es otro proceso, y
+    `/salud/` tiene que poder contestar «el obrero esta vivo» sin una escritura en SQLite
+    cada cuarenta segundos compitiendo con el progreso de la conversion.
+
+    Que no se pueda tocar no es motivo para dejar de convertir.
+    """
+    from apps.core.salud import ARCHIVO_DE_LATIDO
+
+    from . import retencion
+
+    try:
+        (retencion.carpeta_de_trabajo() / ARCHIVO_DE_LATIDO).touch()
+    except OSError:  # pragma: no cover
+        pass
+
+
+def vivo() -> bool:
+    """`True` si el hilo de este proceso esta corriendo. Solo tiene sentido en taller."""
+    return _hilo is not None and _hilo.is_alive()
 
 
 def procesar_una_vez() -> int:
@@ -182,6 +211,8 @@ def _bucle() -> None:
             close_old_connections()
 
             _ciclos += 1
+            if _ciclos % CICLOS_ENTRE_LATIDOS == 1:
+                latir()
             if _ciclos % CICLOS_ENTRE_BARRIDOS == 0:
                 from . import retencion
 

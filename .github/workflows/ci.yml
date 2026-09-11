@@ -18,7 +18,7 @@ jobs:
   gate:
     runs-on: ubuntu-latest
     env:
-      SECRET_KEY: clave-solo-para-ci-no-se-usa-en-ningun-despliegue
+      SECRET_KEY: clave-solo-para-ci-no-se-usa-en-ningun-despliegue-y-larga-de-sobra
       DEBUG: "True"
       AEROCONVERT_MODO: taller
       # Obligatoria en modo taller: `manage.py check` falla sin ella, a proposito.
@@ -36,6 +36,34 @@ jobs:
 
       - name: manage.py check
         run: uv run python manage.py check
+
+      # **El gate de produccion, que faltaba.** `verify.ps1` lo corre desde siempre y el CI
+      # no, asi que un ajuste de despliegue roto pasaba el CI y se descubria en la VM.
+      #
+      # Y va con el modulo fijado a mano: sin `DJANGO_SETTINGS_MODULE`, `manage.py` cae en
+      # `config.settings.dev` -- con DEBUG=True -- y `--deploy` no comprueba nada de lo que
+      # importa. Es el mismo fallo que arrastraba `verify.ps1`.
+      - name: manage.py check --deploy (con los ajustes de produccion de verdad)
+        env:
+          DJANGO_SETTINGS_MODULE: config.settings.prod
+          ALLOWED_HOSTS: ci.example.org
+          CSRF_TRUSTED_ORIGINS: https://ci.example.org
+          AEROCONVERT_MODO: taller
+          AEROCONVERT_RAICES_PERMITIDAS: /tmp/entregas
+        run: |
+          mkdir -p /tmp/entregas
+          uv run python manage.py check --deploy
+
+      # `collectstatic` con el almacen con manifiesto descubre un `sourceMappingURL` sin su
+      # `.map`, un `integrity` desparejado o un estatico que falta. Aqui cuesta cinco
+      # segundos; en la VM, **todas** las paginas dan 500 y el sintoma parece un error de
+      # diseno. Ver apps/core/test_arranque.py.
+      - name: collectstatic (el manifiesto de verdad)
+        env:
+          DJANGO_SETTINGS_MODULE: config.settings.prod
+          ALLOWED_HOSTS: ci.example.org
+          AEROCONVERT_RAICES_PERMITIDAS: /tmp/entregas
+        run: uv run python manage.py collectstatic --noinput --clear
 
       - name: makemigrations --check
         run: uv run python manage.py makemigrations --check --dry-run

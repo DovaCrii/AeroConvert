@@ -27,4 +27,3 @@ from .base import MODO_NUBE
 from .prod import *  # noqa: F403
 
 MODO = MODO_NUBE
-CONVERSION_DISPATCHER_ENABLED = True

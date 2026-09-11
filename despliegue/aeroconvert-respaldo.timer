@@ -1,0 +1,11 @@
+[Unit]
+Description=AeroConvert — respaldo diario de la base
+
+[Timer]
+OnCalendar=*-*-* 03:15
+# Si la VM estuvo apagada a esa hora, se corre al arrancar en vez de saltarse el dia.
+Persistent=true
+RandomizedDelaySec=300
+
+[Install]
+WantedBy=timers.target

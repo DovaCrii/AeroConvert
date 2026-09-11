@@ -1,0 +1,71 @@
+[Unit]
+Description=AeroConvert — servidor web
+Documentation=file:///opt/aeroconvert/docs/DEPLOY.md
+After=network-online.target
+Wants=network-online.target
+# Si la carpeta compartida no esta montada, la aplicacion arranca y falla en cada conversion
+# con «ya no hay ningun archivo en ...», que parece culpa de quien la usa. Mejor esperar.
+RequiresMountsFor=/mnt/entregas
+
+[Service]
+Type=exec
+User=aeroconvert
+Group=aeroconvert
+WorkingDirectory=/opt/aeroconvert
+
+# **No hay EnvironmentFile a proposito.** `python-decouple` lee el `.env` desde el directorio
+# de trabajo, y systemd no interpreta las comillas ni las almohadillas igual que decouple: el
+# mismo archivo daria dos valores distintos segun quien lo leyera. Aqui van solo las dos que
+# decouple no puede saber por su cuenta.
+Environment=DJANGO_SETTINGS_MODULE=config.settings.prod
+# **Cero, y esto no es un detalle.** El despachador es `aeroconvert-obrero.service`. Con
+# varios obreros de gunicorn arrancarian varios despachadores, y aunque reclamar un trabajo
+# si es atomico, el tope de trabajos simultaneos se comprueba con un `count()` que no lo es:
+# dos leen cero a la vez y arrancan dos conversiones. Dos nubes de puntos suman sus techos de
+# memoria y se llevan la maquina.
+Environment=AEROCONVERT_DESPACHADOR=0
+
+RuntimeDirectory=aeroconvert
+RuntimeDirectoryMode=0750
+
+# El binario del entorno virtual, no `uv run`: `uv run` querria resolver dependencias y
+# escribir en su cache en cada arranque, y con ProtectSystem=strict no puede.
+#
+# `gthread` y no `sync`: el obrero `sync` solo avisa al arbitro **entre** peticiones, asi que
+# una descarga de varios gigabytes hace que gunicorn lo mate a mitad de la transferencia. El
+# sintoma -«la descarga se corta sola»- no se parece en nada a la causa. `gthread` avisa
+# desde su propio bucle mientras las peticiones corren en hilos.
+#
+# Dos procesos por cuatro hilos son ocho peticiones a la vez con ~360 MB, en vez de tres con
+# ~540 MB. Los 180 MB que sobran son la mitad del margen que necesita PDAL.
+ExecStart=/opt/aeroconvert/.venv/bin/gunicorn config.wsgi:application \
+    --bind unix:/run/aeroconvert/gunicorn.sock \
+    --worker-class gthread --workers 2 --threads 4 \
+    --timeout 120 --graceful-timeout 30 --keep-alive 5 \
+    --forwarded-allow-ips '*' \
+    --access-logfile - --error-logfile - --log-level info
+
+Restart=always
+RestartSec=3
+MemoryMax=1G
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=aeroconvert
+
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+# `/opt/aeroconvert` queda de solo lectura: el codigo no se puede modificar a si mismo.
+# `collectstatic` lo corre `desplegar.sh` fuera de esta unidad.
+ReadWritePaths=/var/lib/aeroconvert
+# El guion delante: si la carpeta compartida no esta, el servicio arranca igual en vez de
+# negarse a existir.
+ReadWritePaths=-/mnt/entregas
+
+[Install]
+WantedBy=multi-user.target

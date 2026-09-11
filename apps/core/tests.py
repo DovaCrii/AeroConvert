@@ -176,7 +176,9 @@ class TestSeguridad:
 
 
 class TestSalud:
-    def test_responde_para_que_run_ps1_sepa_cuando_abrir_el_navegador(self, rf):
+    def test_responde_para_que_run_ps1_sepa_cuando_abrir_el_navegador(self, rf, db):
+        """El contrato con `run.ps1` y con el guion de despliegue: los dos esperan a ver la
+        cadena `ok` antes de dar el servicio por arriba."""
         respuesta = views.salud(rf.get("/salud/"))
         assert respuesta.status_code == 200
         assert b"ok" in respuesta.content

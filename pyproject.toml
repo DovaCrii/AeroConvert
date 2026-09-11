@@ -92,6 +92,9 @@ dependencies = [
 # `AEROCONVERT_ECW_BIN` y `AEROCONVERT_ODA_CONVERTER`. Ver `INSTALL.md`.
 
 [dependency-groups]
+# Solo en la VM: `uv sync --group despliegue`. Fuera de `dependencies` a proposito, porque
+# la estacion de trabajo corre con `runserver` y no tiene por que bajarse un servidor WSGI.
+despliegue = ["gunicorn>=23,<24"]
 dev = [
     "bandit==1.9.4",
     "pip>=26.2",

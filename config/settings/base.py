@@ -49,6 +49,12 @@ RETENCION_HORAS = config("AEROCONVERT_RETENCION_HORAS", default=24, cast=int)
 #: de llenar el volumen. Un servidor sin disco no da un error: deja de funcionar entero.
 PRESUPUESTO_GB = config("AEROCONVERT_PRESUPUESTO_GB", default=20, cast=int)
 
+#: Donde van las copias de la base, y cuantos dias se guardan. Fuera del arbol de codigo en
+#: la VM, y **con al menos una copia fuera de la maquina**: un respaldo en el mismo disco
+#: que la base no protege del escenario que mas importa, que es que se muera el disco.
+CARPETA_DE_RESPALDOS = config("AEROCONVERT_RESPALDOS", default="")
+RESPALDOS_DIAS = config("AEROCONVERT_RESPALDOS_DIAS", default=14, cast=int)
+
 # --- Motores externos ------------------------------------------------------
 # Ninguno es dependencia del paquete: se sondean en tiempo de ejecucion y su ausencia
 # apaga una fila de la matriz de capacidades, no rompe la aplicacion.
@@ -71,7 +77,20 @@ SILENCIO_MAXIMO_S = config("AEROCONVERT_SILENCIO_MAXIMO_S", default=600, cast=in
 # El despachador arranca un hilo. Queda apagado por omision y **las pruebas nunca lo
 # encienden**: usan `manage.py procesar_trabajos --una-vez`, que corre el mismo bucle de
 # forma determinista.
-CONVERSION_DISPATCHER_ENABLED = False
+#
+# En la estacion de trabajo se enciende: `run.ps1` arranca **un** proceso con `--noreload`,
+# asi que hay un solo despachador y es lo comodo.
+#
+# **En la VM va apagado, tambien en el proceso web**, y ahi el despachador es una unidad de
+# systemd propia con `manage.py procesar_trabajos`. Con varios obreros de gunicorn
+# arrancarian varios despachadores, y aunque reclamar un trabajo si es atomico, el tope de
+# `TRABAJOS_SIMULTANEOS` se comprueba con un `count()` que **no** lo es: dos obreros leen
+# cero a la vez y arrancan dos conversiones. Dos nubes de puntos suman sus dos techos de
+# memoria y se llevan la maquina.
+#
+# La guarda que hay dentro (`RUN_MAIN`) no protege de esto: es especifica del recargador de
+# `runserver` y bajo gunicorn no vale nada.
+CONVERSION_DISPATCHER_ENABLED = config("AEROCONVERT_DESPACHADOR", default=False, cast=bool)
 
 INSTALLED_APPS = [
     "django.contrib.admin",

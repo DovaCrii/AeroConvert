@@ -5,8 +5,15 @@ Sirve para tres cosas, y las tres importan:
 1. **Las pruebas.** Con `--una-vez` el bucle es determinista: no hay hilo, no hay carrera,
    no hay que dormir esperando a que algo pase. Una prueba que arranca un hilo es una
    prueba que falla los martes.
-2. **Un servidor sin el hilo.** Si algun dia conviene separar el obrero del servidor web,
-   este comando ya lo es.
+2. **El obrero de la VM.** Ya no es un «si algun dia»: en el despliegue este comando **es**
+   el despachador, en su propia unidad de systemd, y el proceso web va con
+   `AEROCONVERT_DESPACHADOR=0`. Con varios obreros de gunicorn arrancarian varios
+   despachadores, y el tope de trabajos simultaneos se comprueba con un `count()` que no es
+   atomico: dos leen cero a la vez y arrancan dos conversiones.
+
+   Ojo: `_bucle()` **no** hace el barrido de arranque -- ese vive en `arrancar()` --, asi
+   que la unidad lo lanza aparte con `ExecStartPre`. Es el barrido importante: el unico
+   momento en que se sabe que ningun trabajo esta corriendo.
 3. **Desatascar a mano.** `--recoger` voltea los trabajos cuyo obrero desaparecio.
 """
 

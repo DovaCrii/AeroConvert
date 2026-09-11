@@ -1,0 +1,62 @@
+[Unit]
+Description=AeroConvert — despachador de conversiones
+Documentation=file:///opt/aeroconvert/docs/DEPLOY.md
+After=network-online.target
+Wants=network-online.target
+RequiresMountsFor=/mnt/entregas
+
+[Service]
+Type=exec
+User=aeroconvert
+Group=aeroconvert
+WorkingDirectory=/opt/aeroconvert
+Environment=DJANGO_SETTINGS_MODULE=config.settings.prod
+
+# **Uno, y solo aqui.** Este es el unico proceso de la maquina que convierte.
+Environment=AEROCONVERT_DESPACHADOR=1
+
+# `_bucle()` **no** hace el barrido de arranque: ese vive en `arrancar()`, que el comando no
+# llama. Y es el barrido que importa -- el unico momento en que se sabe con certeza que
+# ningun trabajo esta corriendo, o sea cuando se pueden recoger los restos que dejo un apagon
+# sin llevarse por delante un parcial vivo.
+ExecStartPre=/opt/aeroconvert/.venv/bin/python manage.py barrer
+ExecStart=/opt/aeroconvert/.venv/bin/python manage.py procesar_trabajos
+
+Restart=always
+RestartSec=5
+
+# Al parar, el grupo de control se lleva tambien al `gdal_translate` o al `pdal` hijo. Es lo
+# correcto: un motor huerfano seguiria escribiendo un parcial que ya no reclama nadie.
+KillMode=control-group
+TimeoutStopSec=60
+
+# **La linea que protege la maquina.** Una nube demasiado grande hace que el nucleo mate al
+# hijo de PDAL **dentro de este grupo**, en vez de dejar que el matador del sistema elija --
+# y el sistema suele elegir al servidor web o a la base. El runner ve el codigo de salida y
+# lo cuenta como fallo del motor; si ni eso, `recoger_muertos()` lo recoge.
+#
+# La aritmetica esta en `apps/jobs/estimacion.py`: 105 MB por millon de puntos, medido. Con
+# esto ademas la comprobacion previa de memoria y el limite del sistema dicen lo mismo.
+MemoryMax=3G
+MemorySwapMax=0
+
+# Una conversion de media hora no puede dejar la interfaz a tirones.
+Nice=5
+IOSchedulingClass=best-effort
+IOSchedulingPriority=6
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=aeroconvert-obrero
+
+NoNewPrivileges=yes
+# GDAL y PDAL usan /tmp para intermedios; aislarlo evita que un huerfano de una conversion
+# contamine la siguiente.
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/var/lib/aeroconvert
+ReadWritePaths=-/mnt/entregas
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,24 @@
+[Unit]
+Description=AeroConvert — respaldo de la base
+Documentation=file:///opt/aeroconvert/despliegue/README.md
+
+[Service]
+Type=oneshot
+User=aeroconvert
+Group=aeroconvert
+WorkingDirectory=/opt/aeroconvert
+Environment=DJANGO_SETTINGS_MODULE=config.settings.prod
+# Que este servicio no arranque un despachador: solo copia y sale.
+Environment=AEROCONVERT_DESPACHADOR=0
+
+ExecStart=/opt/aeroconvert/.venv/bin/python manage.py respaldar
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=aeroconvert-respaldo
+
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/var/lib/aeroconvert /var/backups/aeroconvert

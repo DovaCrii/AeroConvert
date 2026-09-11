@@ -26,7 +26,29 @@ function Invoke-Step {
 }
 
 Invoke-Step "manage.py check" @("run", "python", "manage.py", "check")
-Invoke-Step "manage.py check --deploy" @("run", "python", "manage.py", "check", "--deploy")
+# **Con el modulo de produccion fijado a mano.** Sin `DJANGO_SETTINGS_MODULE`, `manage.py`
+# cae en `config.settings.dev` -- con DEBUG=True -- y `--deploy` no comprueba nada de lo que
+# importa: llevaba pasando siempre por el modulo equivocado.
+$guardado = $env:DJANGO_SETTINGS_MODULE
+$guardadasRaices = $env:AEROCONVERT_RAICES_PERMITIDAS
+# Una raiz de mentira, y no la de tu `.env`: aqui se finge un servidor -- hay un nombre de
+# dominio en ALLOWED_HOSTS -- y sobre un servidor la comprobacion rechaza a proposito una
+# raiz que sea un disco entero. Mezclar el nombre falso con tus raices de verdad daria un
+# error que no significa nada.
+$raizDePrueba = Join-Path ([IO.Path]::GetTempPath()) "aeroconvert-verificacion"
+New-Item -ItemType Directory -Force $raizDePrueba | Out-Null
+$env:DJANGO_SETTINGS_MODULE = "config.settings.prod"
+$env:ALLOWED_HOSTS = "verificacion.example.org"
+$env:CSRF_TRUSTED_ORIGINS = "https://verificacion.example.org"
+$env:AEROCONVERT_RAICES_PERMITIDAS = $raizDePrueba
+try {
+    Invoke-Step "manage.py check --deploy (produccion de verdad)" @("run", "python", "manage.py", "check", "--deploy")
+} finally {
+    $env:DJANGO_SETTINGS_MODULE = $guardado
+    $env:AEROCONVERT_RAICES_PERMITIDAS = $guardadasRaices
+    Remove-Item Env:ALLOWED_HOSTS -ErrorAction SilentlyContinue
+    Remove-Item Env:CSRF_TRUSTED_ORIGINS -ErrorAction SilentlyContinue
+}
 Invoke-Step "makemigrations --check" @("run", "python", "manage.py", "makemigrations", "--check", "--dry-run")
 Invoke-Step "pytest" @("run", "pytest", "--cov=apps", "--cov-report=term-missing")
 Invoke-Step "ruff check" @("run", "ruff", "check", ".")

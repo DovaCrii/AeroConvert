@@ -18,4 +18,10 @@ SECURE_HSTS_PRELOAD = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = "DENY"
 
-CONVERSION_DISPATCHER_ENABLED = True
+# **Del entorno, y apagado por omision.** Detras de gunicorn el despachador es una unidad de
+# systemd propia: ver el razonamiento en `base.py`. `AEROCONVERT_DESPACHADOR=1` solo en esa
+# unidad, nunca en el servicio web.
+#
+# `/salud/` sin redirigir a HTTPS: con `SECURE_SSL_REDIRECT` puesto, un `curl` local a la
+# sonda recibe un 301 y el guion de despliegue se queda esperando un 200 que no llega.
+SECURE_REDIRECT_EXEMPT = [r"^salud/$"]
