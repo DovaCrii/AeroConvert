@@ -104,8 +104,21 @@ class TestRevisarConfiguracion:
         assert any("no existe" in p for p in problemas)
 
     def test_nube_no_exige_raices(self):
+        """Sigue sin exigirlas — pero ahora se queja de otra cosa, ver abajo."""
         with override_settings(MODO="nube", RAICES_PERMITIDAS=""):
-            assert modo.revisar_configuracion() == ()
+            problemas = modo.revisar_configuracion()
+        assert not any("RAICES_PERMITIDAS esta vacia" in p for p in problemas)
+
+    def test_el_modo_nube_se_niega_a_arrancar(self):
+        """Porque **no tiene por donde entrar un archivo**, y eso no es una variable que
+        falte: la subida no está escrita. Arranca, sirve páginas, autentica, y no convierte
+        nada. Enterarse al primer intento de conversión, con alguien esperando, es la peor
+        forma de descubrirlo."""
+        with override_settings(MODO="nube"):
+            problemas = modo.revisar_configuracion()
+        assert any("todavia no sirve" in p for p in problemas)
+        # Y dice cual es la configuracion correcta, que es la mitad util del mensaje.
+        assert any("MODO=taller" in p for p in problemas)
 
     def test_taller_bien_configurado_no_se_queja(self, tmp_path):
         with override_settings(MODO="taller", RAICES_PERMITIDAS=str(tmp_path)):

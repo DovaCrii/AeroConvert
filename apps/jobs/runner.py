@@ -191,6 +191,7 @@ def _ejecutar(job: ConversionJob) -> Resultado:
 
     _exigir_crs(job, inspeccion)
     _exigir_metros(job, inspeccion)
+    _exigir_memoria(job, inspeccion)
 
     # --- 3. Conversion ---------------------------------------------------
     par = ParDeFormatos(job.source_format_code, job.target_format_code)
@@ -263,6 +264,36 @@ def _ejecutar(job: ConversionJob) -> Resultado:
         )
 
     return Resultado(HECHO, "", "Convertido y verificado.")
+
+
+def _exigir_memoria(job: ConversionJob, inspeccion) -> None:
+    """Que la maquina pueda con esto. **Antes** de empezar, no a los veinte minutos.
+
+    Es la regla que faltaba para las nubes de puntos grandes. **PDAL carga los puntos en
+    memoria** y `GDAL_CACHEMAX` no le afecta, asi que el techo crece con el numero de puntos:
+    la regla medida son 105 MB por millon. Una nube de mil millones de puntos pide unos
+    100 GB, y eso no es «una VM mas grande», es ninguna VM.
+
+    Y lo que pasa sin esta comprobacion no es un error: el sistema mata el proceso por falta
+    de memoria, y con suerte se lleva solo la conversion. En un servidor compartido se lleva
+    lo que el nucleo decida, que suele ser el servidor web o la base.
+
+    No se comprueba en el formulario **y ya esta**: el formulario es evadible desde la API,
+    igual que con el CRS.
+    """
+    from .estimacion import Estimacion, _memoria_mb, memoria_total_mb
+
+    estimacion = Estimacion(
+        bytes_salida=0,
+        segundos=0.0,
+        memoria_mb=_memoria_mb(inspeccion),
+        libre_bytes=0,
+        memoria_total_mb=memoria_total_mb(),
+    )
+    if estimacion.cabe_en_memoria:
+        return
+
+    raise TrabajoFallido("memoria-insuficiente", estimacion.motivo_de_memoria)
 
 
 def _exigir_crs(job: ConversionJob, inspeccion) -> None:

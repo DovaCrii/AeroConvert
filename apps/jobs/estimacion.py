@@ -25,6 +25,7 @@ seca: es un orden de magnitud correcto, no una promesa.
 
 from __future__ import annotations
 
+import os
 import shutil
 from dataclasses import dataclass
 from pathlib import Path
@@ -81,6 +82,48 @@ MARGEN_DE_PROCESO_MB = 192
 #: número depende que la máquina aguante.
 MB_POR_MILLON_DE_PUNTOS = 105.0
 
+#: Que fraccion de la memoria de la maquina se deja usar a una conversion.
+#:
+#: No es 1,0 porque en la maquina viven ademas el servidor web, la base y el sistema. Y no
+#: es menos porque el numero de arriba ya es un techo generoso: apretarlo dos veces acabaria
+#: rechazando trabajos que caben.
+FRACCION_DE_MEMORIA_UTIL = 0.8
+
+
+def memoria_total_mb() -> int:
+    """Cuánta memoria tiene esta máquina. Cero si no se puede saber.
+
+    Sin dependencias: `psutil` sería una más para leer un número que los dos sistemas
+    ofrecen. Y devolver **cero** cuando no se sabe no es pereza — es lo que hace que la
+    comprobación se desactive sola en vez de rechazar trabajos por una lectura fallida.
+    """
+    try:
+        if os.name != "nt":
+            return int(os.sysconf("SC_PAGE_SIZE") * os.sysconf("SC_PHYS_PAGES") / 1_048_576)
+
+        import ctypes
+
+        class _Estado(ctypes.Structure):
+            _fields_ = [
+                ("dwLength", ctypes.c_ulong),
+                ("dwMemoryLoad", ctypes.c_ulong),
+                ("ullTotalPhys", ctypes.c_ulonglong),
+                ("ullAvailPhys", ctypes.c_ulonglong),
+                ("ullTotalPageFile", ctypes.c_ulonglong),
+                ("ullAvailPageFile", ctypes.c_ulonglong),
+                ("ullTotalVirtual", ctypes.c_ulonglong),
+                ("ullAvailVirtual", ctypes.c_ulonglong),
+                ("ullAvailExtendedVirtual", ctypes.c_ulonglong),
+            ]
+
+        estado = _Estado()
+        estado.dwLength = ctypes.sizeof(_Estado)
+        if not ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(estado)):
+            return 0
+        return int(estado.ullTotalPhys / 1_048_576)
+    except (OSError, ValueError, AttributeError):  # pragma: no cover
+        return 0
+
 
 @dataclass(frozen=True)
 class Estimacion:
@@ -93,11 +136,40 @@ class Estimacion:
     #: `False` cuando la estimación no se apoya en ninguna medida de esa combinación.
     medida: bool = True
     aviso: str = ""
+    #: Lo que tiene la máquina. Cero si no se pudo averiguar, y entonces no se comprueba.
+    memoria_total_mb: int = 0
 
     @property
     def cabe(self) -> bool:
         # Se pide el doble porque durante un instante conviven el parcial y el definitivo.
         return self.libre_bytes > self.bytes_salida * 2
+
+    @property
+    def memoria_util_mb(self) -> int:
+        return int(self.memoria_total_mb * FRACCION_DE_MEMORIA_UTIL)
+
+    @property
+    def cabe_en_memoria(self) -> bool:
+        """`False` cuando la conversión no puede terminar en esta máquina. **Nunca.**
+
+        No es «va a ir lenta»: PDAL carga los puntos en memoria, así que una nube que no
+        cabe **no se convierte**, y el síntoma es que el sistema mata el proceso. Sin esta
+        comprobación, el aviso llega en forma de VM que deja de responder.
+        """
+        if not self.memoria_total_mb:
+            return True
+        return self.memoria_mb <= self.memoria_util_mb
+
+    @property
+    def motivo_de_memoria(self) -> str:
+        """Qué decirle a la persona. Vacío si cabe."""
+        if self.cabe_en_memoria:
+            return ""
+        return (
+            f"Esta conversión necesita unos {self.memoria_mb / 1024:.1f} GB de memoria y la "
+            f"máquina tiene {self.memoria_total_mb / 1024:.1f} GB. No es que vaya a ir "
+            "lenta: no puede terminar."
+        )
 
     @property
     def crece(self) -> bool:
@@ -144,6 +216,7 @@ def estimar(
         libre_bytes=libre,
         medida=medida,
         aviso=aviso,
+        memoria_total_mb=memoria_total_mb(),
     )
 
 

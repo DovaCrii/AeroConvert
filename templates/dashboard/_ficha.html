@@ -321,6 +321,15 @@
                 {% if not p.estimacion.cabe %}
                   <br><span style="color:var(--av-danger);">No cabe en el disco de destino.</span>
                 {% endif %}
+                {% comment %}
+                  Y el otro techo, que es el que de verdad para una nube de puntos grande:
+                  PDAL los carga en memoria, así que si no caben la conversión **no puede
+                  terminar**. Sin esto, el aviso llegaría en forma de servidor que deja de
+                  responder.
+                {% endcomment %}
+                {% if not p.estimacion.cabe_en_memoria %}
+                  <br><span style="color:var(--av-danger);">{{ p.estimacion.motivo_de_memoria }}</span>
+                {% endif %}
               {% endif %}
             {% else %}
               {{ p.motivo }}

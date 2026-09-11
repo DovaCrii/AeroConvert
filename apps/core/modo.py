@@ -74,6 +74,23 @@ def revisar_configuracion() -> tuple[str, ...]:
     raices configuradas se note al arrancar y no al primer intento de conversion.
     """
     problemas: list[str] = []
+
+    if es_nube():
+        # **El modo nube no tiene por donde entrar un archivo, y eso no es una variable que
+        # falte: es una funcionalidad que no esta escrita.** `comprobar_ruta` lo cierra a
+        # proposito, y la via que lo sustituiria -- la subida -- no existe: no hay ni un
+        # `request.FILES` en todo el repositorio, `ConversionJob.source_upload` esta
+        # huerfano, y el runner solo lee `source_path`.
+        #
+        # Arranca, sirve paginas, autentica, y no convierte nada. Descubrirlo al primer
+        # intento de conversion, con alguien esperando, es la peor forma de enterarse.
+        problemas.append(
+            "AEROCONVERT_MODO=nube todavia no sirve para nada: es el modo de las subidas, y "
+            "la subida de archivos no esta escrita. Para una VM compartida usa "
+            "AEROCONVERT_MODO=taller con DJANGO_SETTINGS_MODULE=config.settings.prod, y "
+            "apunta AEROCONVERT_RAICES_PERMITIDAS a la carpeta compartida. Ver docs/DEPLOY.md."
+        )
+
     if es_taller():
         raices = raices_permitidas()
         if not raices:
