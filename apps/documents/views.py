@@ -39,9 +39,11 @@ from apps.core import modo as modo_mod
 from apps.engines.base import ruta_parcial
 from apps.formats import pdf as lectura_pdf
 
+from . import a_imagenes as a_imagenes_mod
 from . import dividir as dividir_mod
 from . import miniaturas
 from . import receta as receta_mod
+from . import seguridad as seguridad_mod
 from .composicion import GIROS, ComposicionInvalida, componer
 
 #: Cuántos PDF se admiten de una vez. Más que esto no es una entrega: es un lote, y para
@@ -159,6 +161,18 @@ HERRAMIENTAS = (
         "url": "documents:imagenes",
         "nombre": "Imágenes a PDF",
         "que_hace": "Fotos o escaneos en un solo documento, en A4 o al tamaño del original.",
+    },
+    {
+        "id": "a_imagenes",
+        "url": "documents:a_imagenes",
+        "nombre": "PDF a imágenes",
+        "que_hace": "Una lámina como JPG o PNG, para meterla en un informe o en una diapositiva.",
+    },
+    {
+        "id": "proteger",
+        "url": "documents:proteger",
+        "nombre": "Proteger PDF",
+        "que_hace": "Le pone contraseña, con AES-256. O se la quita, si la sabes.",
     },
 )
 
@@ -417,6 +431,168 @@ def imagenes_vista(request):
     messages.success(request, f"{cuantas} imagen(es) en {destino.name}.")
     contexto["generado"] = destino
     return render(request, "documents/imagenes.html", contexto)
+
+
+@login_required
+def a_imagenes_vista(request):
+    """Sacar páginas como JPG o PNG.
+
+    Mismo camino de dos pasos que dividir —mirar y después hacer—, y por la misma razón:
+    para escribir «3-7» hay que saber cuántas páginas hay.
+    """
+    contexto = {
+        "seccion": "pdf",
+        "etiqueta_seccion": "PDF",
+        "titulo_pagina": "PDF a imágenes",
+        "proposito": "Una lámina como imagen, para meterla donde un PDF no se pega.",
+        "ruta_texto": (request.GET.get("ruta") or "").strip(),
+        "formato": "png",
+        "ppp": a_imagenes_mod.RESOLUCIONES,
+        "ppp_elegido": 150,
+        "rangos": "",
+    }
+
+    if request.method != "POST":
+        return render(request, "documents/a_imagenes.html", contexto)
+
+    contexto["formato"] = request.POST.get("formato") or "png"
+    contexto["rangos"] = (request.POST.get("rangos") or "").strip()
+    try:
+        contexto["ppp_elegido"] = int(request.POST.get("ppp") or 150)
+    except ValueError:
+        contexto["ppp_elegido"] = 150
+
+    cabecera, ruta, error = _mirar_pdf(request.POST.get("ruta"))
+    if error:
+        messages.error(request, error)
+        return render(request, "documents/a_imagenes.html", contexto)
+
+    contexto["ruta_texto"] = str(ruta)
+    contexto["ruta"] = str(ruta)
+    contexto["cabecera"] = cabecera
+
+    if request.POST.get("accion") != "convertir":
+        return render(request, "documents/a_imagenes.html", contexto)
+
+    try:
+        trozos = (
+            dividir_mod.analizar_rangos(contexto["rangos"], cabecera.cuantas)
+            if contexto["rangos"]
+            else dividir_mod.una_por_pagina(cabecera.cuantas)
+        )
+        escritas = a_imagenes_mod.paginas_a_imagenes(
+            ruta,
+            trozos,
+            formato=contexto["formato"],
+            ppp=contexto["ppp_elegido"],
+        )
+    except ComposicionInvalida as fallo:
+        messages.error(request, str(fallo))
+        return render(request, "documents/a_imagenes.html", contexto)
+
+    messages.success(request, f"{len(escritas)} imagen(es) junto al original.")
+    contexto["escritas"] = escritas
+    return render(request, "documents/a_imagenes.html", contexto)
+
+
+@login_required
+def proteger_vista(request):
+    """Poner o quitar la contraseña.
+
+    **Aquí no hay paso de «mirar» con miniaturas**, a propósito: si el archivo ya está
+    cifrado no se puede dibujar nada de él sin la clave, y una pantalla que a veces enseña
+    las hojas y a veces no confunde más de lo que ayuda. Lo que sí se dice es en cuál de los
+    dos casos está el archivo, que es lo que decide qué botón pulsar.
+
+    La contraseña **no vuelve nunca al formulario**: el campo sale vacío en cada respuesta,
+    también cuando hubo un error, para que no se quede escrita en una pantalla que alguien
+    deja abierta. Ver el docstring de `seguridad.py`.
+    """
+    contexto = {
+        "seccion": "pdf",
+        "etiqueta_seccion": "PDF",
+        "titulo_pagina": "Proteger un PDF",
+        "proposito": "Ponle contraseña antes de mandarlo, o quítasela para poder componerlo.",
+        "ruta_texto": (request.GET.get("ruta") or "").strip(),
+        "minimo": seguridad_mod.MINIMO,
+        "algoritmo": seguridad_mod.ALGORITMO,
+    }
+
+    if request.method != "POST":
+        return render(request, "documents/proteger.html", contexto)
+
+    contexto["ruta_texto"] = (request.POST.get("ruta") or "").strip().strip('"')
+    try:
+        ruta = modo_mod.comprobar_ruta(contexto["ruta_texto"])
+    except modo_mod.RutaNoPermitida as fallo:
+        messages.error(request, str(fallo))
+        return render(request, "documents/proteger.html", contexto)
+
+    contexto["ruta_texto"] = str(ruta)
+    contexto["ruta"] = str(ruta)
+
+    try:
+        cabecera = lectura_pdf.leer_cabecera(ruta)
+    except lectura_pdf.NoEsPdf as fallo:
+        messages.error(request, str(fallo))
+        return render(request, "documents/proteger.html", contexto)
+
+    contexto["cifrado"] = cabecera.cifrado
+    contexto["cabecera"] = cabecera
+
+    accion = request.POST.get("accion")
+    if accion not in ("proteger", "quitar"):
+        return render(request, "documents/proteger.html", contexto)
+
+    sufijo = "_protegido" if accion == "proteger" else "_sin_clave"
+    destino = ruta.with_name(f"{ruta.stem}{sufijo}.pdf")
+    parcial = ruta_parcial(destino)
+    contrasena = request.POST.get("contrasena") or ""
+
+    try:
+        if accion == "proteger":
+            paginas = seguridad_mod.proteger(ruta, parcial, contrasena)
+        else:
+            paginas = seguridad_mod.quitar_contrasena(ruta, parcial, contrasena)
+    except ComposicionInvalida as fallo:
+        parcial.unlink(missing_ok=True)
+        messages.error(request, str(fallo))
+        return render(request, "documents/proteger.html", contexto)
+    finally:
+        # Que no quede viva en el marco de la excepcion mas de lo necesario.
+        contrasena = ""
+
+    os.replace(parcial, destino)
+    messages.success(request, f"{paginas} página(s) en {destino.name}.")
+    contexto["generado"] = destino
+    contexto["hecho"] = accion
+    return render(request, "documents/proteger.html", contexto)
+
+
+def _mirar_pdf(crudo):
+    """Ruta comprobada y cabecera leída, o el motivo por el que no.
+
+    Devuelve `(cabecera, ruta, error)`. Es el trozo que comparten dividir y PDF a imágenes:
+    comprobar la raíz permitida, leer la cabecera, y negarse si pide contraseña —porque sin
+    la clave no hay páginas que sacar—.
+    """
+    try:
+        ruta = modo_mod.comprobar_ruta((crudo or "").strip().strip('"'))
+    except modo_mod.RutaNoPermitida as fallo:
+        return None, None, str(fallo)
+
+    try:
+        cabecera = lectura_pdf.leer_cabecera(ruta)
+    except lectura_pdf.NoEsPdf as fallo:
+        return None, ruta, str(fallo)
+
+    if cabecera.cifrado:
+        return (
+            None,
+            ruta,
+            f"{ruta.name} pide contraseña. Quítasela primero en «Proteger PDF».",
+        )
+    return cabecera, ruta, None
 
 
 def _ruta_de_salida(primero: Path) -> Path:

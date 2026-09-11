@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+
+{% block titulo %}PDF a imágenes · AeroConvert{% endblock %}
+
+{% block contenido %}
+
+<form method="post">
+  {% csrf_token %}
+
+  <div class="tarjeta tarjeta-acento" style="margin-bottom:14px;">
+    <div class="eyebrow">El documento</div>
+    <h2 style="font-size:1.1rem;">¿De cuál sacamos las imágenes?</h2>
+    <p class="tenue" style="margin:6px 0 10px;">
+      En el Explorador: clic derecho con <kbd>Mayús</kbd> → «Copiar como ruta».
+    </p>
+
+    <div class="soltar-campo">
+      <label class="visually-hidden" for="id_ruta">Ruta del PDF</label>
+      <input type="text" name="ruta" id="id_ruta" class="form-control ruta"
+             value="{{ ruta_texto }}" autocomplete="off" spellcheck="false"
+             placeholder="D:\obras\entrega\lamina.pdf">
+      <button type="submit" name="accion" value="mirar" class="boton">Ver el documento</button>
+    </div>
+  </div>
+
+  {% if cabecera %}
+    <input type="hidden" name="ruta" value="{{ ruta }}">
+
+    <div class="tarjeta" style="margin-bottom:14px;">
+      <div class="cabecera-tarjeta">
+        <div>
+          <div class="eyebrow">Lo que hay dentro</div>
+          <h2>{{ cabecera.resumen }}</h2>
+        </div>
+        <button type="submit" name="accion" value="convertir" class="boton">Sacar imágenes</button>
+      </div>
+
+      {% if cabecera.paginas %}
+        <div class="tira">
+          {% for pagina in cabecera.paginas|slice:":12" %}
+            <figure class="tira-hoja">
+              <img loading="lazy" decoding="async"
+                   alt="Página {{ pagina.numero }}"
+                   src="{% url 'documents:miniatura' %}?ruta={{ ruta|urlencode }}&amp;pagina={{ pagina.numero }}&amp;ancho=120">
+              <figcaption>{{ pagina.numero }}</figcaption>
+            </figure>
+          {% endfor %}
+          {% if cabecera.cuantas > 12 %}
+            <p class="tenue" style="align-self:center; margin:0 0 0 6px;">
+              …y {{ cabecera.cuantas|add:"-12" }} más
+            </p>
+          {% endif %}
+        </div>
+      {% endif %}
+
+      <div style="margin:14px 0 0; max-width:22rem;">
+        <label class="eyebrow" for="id_rangos" style="display:block;">Qué páginas</label>
+        <input type="text" name="rangos" id="id_rangos" class="form-control"
+               value="{{ rangos }}" placeholder="1-5, 8, 12-14" autocomplete="off">
+        <p class="tenue" style="margin:4px 0 0; font-size:.85rem;">
+          Déjalo vacío y salen todas. Los dos extremos entran: <code>1-5</code> son cinco.
+        </p>
+      </div>
+
+      <fieldset style="border:0; padding:0; margin:16px 0 0;">
+        <legend class="eyebrow" style="padding:0;">En qué formato</legend>
+
+        <label class="opcion">
+          <input type="radio" name="formato" value="png" {% if formato != 'jpg' %}checked{% endif %}>
+          <span>
+            <strong>PNG</strong>
+            <span class="tenue">
+              Para planos y texto: las líneas finas salen limpias. Pesa más.
+            </span>
+          </span>
+        </label>
+
+        <label class="opcion">
+          <input type="radio" name="formato" value="jpg" {% if formato == 'jpg' %}checked{% endif %}>
+          <span>
+            <strong>JPG</strong>
+            <span class="tenue">
+              Para fotos y escaneos: pesa mucho menos, pero ensucia el borde de las líneas.
+            </span>
+          </span>
+        </label>
+      </fieldset>
+
+      <fieldset style="border:0; padding:0; margin:16px 0 0;">
+        <legend class="eyebrow" style="padding:0;">Con cuánto detalle</legend>
+        {% for valor, para_que in ppp.items %}
+          <label class="opcion">
+            <input type="radio" name="ppp" value="{{ valor }}"
+                   {% if valor == ppp_elegido %}checked{% endif %}>
+            <span>
+              <strong>{{ valor }} ppp</strong>
+              <span class="tenue">{{ para_que }}</span>
+            </span>
+          </label>
+        {% endfor %}
+      </fieldset>
+    </div>
+  {% endif %}
+</form>
+
+{% if escritas %}
+  <div class="tarjeta tarjeta-acento">
+    <div class="eyebrow">Hecho</div>
+    <div class="recibo">
+      <strong style="color:var(--av-ok);">✓ {{ escritas|length }} imagen(es)</strong>
+      <ul style="margin:8px 0 0; padding-left:18px; font-size:.9rem;">
+        {% for archivo in escritas %}
+          <li style="font-family:ui-monospace, Consolas, monospace;">{{ archivo.name }}</li>
+        {% endfor %}
+      </ul>
+      <p class="tenue" style="margin:10px 0 0;">Junto al original, que no se tocó.</p>
+    </div>
+  </div>
+{% endif %}
+{% endblock %}

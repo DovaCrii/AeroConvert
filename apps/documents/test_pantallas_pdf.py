@@ -168,3 +168,185 @@ class TestImagenesAPdf:
         memoria = _pdf(tmp_path, "memoria.pdf", 1)
         sesion.post(reverse("documents:imagenes"), {"archivos_texto": str(memoria), "tamano": "a4"})
         assert list(tmp_path.glob("*parcial*")) == []
+
+
+class TestPdfAImagenes:
+    def test_sin_rangos_salen_todas(self, sesion, tmp_path):
+        lamina = _pdf(tmp_path, "lamina.pdf", 3)
+        sesion.post(
+            reverse("documents:a_imagenes"),
+            {"ruta": str(lamina), "accion": "convertir", "formato": "png", "ppp": "96"},
+        )
+        assert len(list(tmp_path.glob("lamina_*.png"))) == 3
+
+    def test_con_rangos_salen_esas(self, sesion, tmp_path):
+        lamina = _pdf(tmp_path, "lamina.pdf", 6)
+        sesion.post(
+            reverse("documents:a_imagenes"),
+            {
+                "ruta": str(lamina),
+                "accion": "convertir",
+                "rangos": "2, 5",
+                "formato": "jpg",
+                "ppp": "96",
+            },
+        )
+        assert sorted(p.name for p in tmp_path.glob("lamina_*.jpg")) == [
+            "lamina_2.jpg",
+            "lamina_5.jpg",
+        ]
+
+    def test_mirar_no_escribe_nada(self, sesion, tmp_path):
+        """El primer botón enseña el documento; solo «convertir» toca el disco."""
+        lamina = _pdf(tmp_path, "lamina.pdf", 3)
+        cuerpo = sesion.post(
+            reverse("documents:a_imagenes"), {"ruta": str(lamina), "accion": "mirar"}
+        ).content.decode()
+        assert "3 página(s)" in cuerpo
+        assert list(tmp_path.glob("lamina_*.png")) == []
+
+    def test_un_rango_imposible_lo_dice(self, sesion, tmp_path):
+        lamina = _pdf(tmp_path, "lamina.pdf", 3)
+        cuerpo = sesion.post(
+            reverse("documents:a_imagenes"),
+            {"ruta": str(lamina), "accion": "convertir", "rangos": "9-12", "ppp": "96"},
+            follow=True,
+        ).content.decode()
+        assert "3 página(s)" in cuerpo
+        assert list(tmp_path.glob("lamina_*.png")) == []
+
+    def test_una_ruta_fuera_de_las_raices(self, sesion):
+        cuerpo = sesion.post(
+            reverse("documents:a_imagenes"),
+            {"ruta": "C:\\Windows\\System32\\config\\SAM", "accion": "convertir"},
+            follow=True,
+        ).content.decode()
+        assert "página(s)" not in cuerpo
+
+    def test_un_ppp_que_no_es_un_numero_cae_al_de_siempre(self, sesion, tmp_path):
+        lamina = _pdf(tmp_path, "lamina.pdf", 1)
+        respuesta = sesion.post(
+            reverse("documents:a_imagenes"),
+            {"ruta": str(lamina), "accion": "convertir", "ppp": "muchísimo"},
+        )
+        assert respuesta.status_code == 200
+        assert (tmp_path / "lamina_1.png").exists()
+
+
+class TestProteger:
+    CLAVE = "obra-2026-bhp"
+
+    def test_dice_que_este_se_abre_sin_nada(self, sesion, tmp_path):
+        informe = _pdf(tmp_path, "informe.pdf", 2)
+        cuerpo = sesion.post(
+            reverse("documents:proteger"), {"ruta": str(informe), "accion": "mirar"}
+        ).content.decode()
+        assert "Se abre sin nada" in cuerpo
+
+    def test_avisa_de_que_la_clave_no_se_recupera_antes_de_ponerla(self, sesion, tmp_path):
+        """El aviso va en la pantalla donde se decide, no en el recibo: después ya no
+        sirve de nada."""
+        informe = _pdf(tmp_path, "informe.pdf", 1)
+        cuerpo = sesion.post(
+            reverse("documents:proteger"), {"ruta": str(informe), "accion": "mirar"}
+        ).content.decode()
+        assert "No hay forma de recuperarla" in cuerpo
+
+    def test_protege_y_deja_el_original(self, sesion, tmp_path):
+        from pypdf import PdfReader
+
+        informe = _pdf(tmp_path, "informe.pdf", 2)
+        antes = informe.read_bytes()
+        sesion.post(
+            reverse("documents:proteger"),
+            {"ruta": str(informe), "accion": "proteger", "contrasena": self.CLAVE},
+        )
+
+        salida = tmp_path / "informe_protegido.pdf"
+        assert PdfReader(str(salida)).is_encrypted
+        assert informe.read_bytes() == antes
+
+    def test_la_contrasena_no_vuelve_en_la_respuesta(self, sesion, tmp_path):
+        """Prueba con clave centinela, igual que con la clave de ECW: no puede quedar
+        escrita en una pantalla que alguien deje abierta."""
+        informe = _pdf(tmp_path, "informe.pdf", 1)
+        cuerpo = sesion.post(
+            reverse("documents:proteger"),
+            {"ruta": str(informe), "accion": "proteger", "contrasena": self.CLAVE},
+        ).content.decode()
+        assert self.CLAVE not in cuerpo
+
+    def test_ni_cuando_falla(self, sesion, tmp_path):
+        # Corta -- para que la rechace -- y a la vez lo bastante rara como para que
+        # encontrarla en el HTML signifique que salio del campo y no de una ruta.
+        centinela = "Qzx9w"
+        informe = _pdf(tmp_path, "informe.pdf", 1)
+        cuerpo = sesion.post(
+            reverse("documents:proteger"),
+            {"ruta": str(informe), "accion": "proteger", "contrasena": centinela},
+            follow=True,
+        ).content.decode()
+        assert centinela not in cuerpo
+        assert not (tmp_path / "informe_protegido.pdf").exists()
+
+    def test_reconoce_uno_cifrado_y_ofrece_quitarla(self, sesion, tmp_path):
+        informe = _pdf(tmp_path, "informe.pdf", 1)
+        sesion.post(
+            reverse("documents:proteger"),
+            {"ruta": str(informe), "accion": "proteger", "contrasena": self.CLAVE},
+        )
+        cuerpo = sesion.post(
+            reverse("documents:proteger"),
+            {"ruta": str(tmp_path / "informe_protegido.pdf"), "accion": "mirar"},
+        ).content.decode()
+        assert "Pide contraseña" in cuerpo
+
+    def test_y_la_quita_con_la_clave_buena(self, sesion, tmp_path):
+        informe = _pdf(tmp_path, "informe.pdf", 3)
+        sesion.post(
+            reverse("documents:proteger"),
+            {"ruta": str(informe), "accion": "proteger", "contrasena": self.CLAVE},
+        )
+        sesion.post(
+            reverse("documents:proteger"),
+            {
+                "ruta": str(tmp_path / "informe_protegido.pdf"),
+                "accion": "quitar",
+                "contrasena": self.CLAVE,
+            },
+        )
+        salida = tmp_path / "informe_protegido_sin_clave.pdf"
+        assert lector.leer_cabecera(salida).cuantas == 3
+
+    def test_con_la_clave_mala_no_escribe_nada(self, sesion, tmp_path):
+        informe = _pdf(tmp_path, "informe.pdf", 1)
+        sesion.post(
+            reverse("documents:proteger"),
+            {"ruta": str(informe), "accion": "proteger", "contrasena": self.CLAVE},
+        )
+        sesion.post(
+            reverse("documents:proteger"),
+            {
+                "ruta": str(tmp_path / "informe_protegido.pdf"),
+                "accion": "quitar",
+                "contrasena": "la-que-no-es",
+            },
+        )
+        assert not (tmp_path / "informe_protegido_sin_clave.pdf").exists()
+        assert list(tmp_path.glob("*parcial*")) == []
+
+    def test_una_ruta_fuera_de_las_raices(self, sesion):
+        cuerpo = sesion.post(
+            reverse("documents:proteger"),
+            {"ruta": "C:\\Windows\\System32\\config\\SAM", "accion": "proteger"},
+            follow=True,
+        ).content.decode()
+        assert "Se abre sin nada" not in cuerpo
+
+    def test_algo_que_no_es_un_pdf(self, sesion, tmp_path):
+        falso = tmp_path / "x.pdf"
+        falso.write_bytes(b"no soy un pdf")
+        respuesta = sesion.post(
+            reverse("documents:proteger"), {"ruta": str(falso), "accion": "mirar"}, follow=True
+        )
+        assert respuesta.status_code == 200

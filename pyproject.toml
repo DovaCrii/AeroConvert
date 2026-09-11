@@ -49,6 +49,21 @@ dependencies = [
     # con que contrastarlo, para ahorrar una dependencia que ademas hace falta para
     # lo que viene (JPG a PDF, marcas de agua).
     "pillow>=11,<13",
+    # cryptography es lo que pypdf necesita para **AES-256**, y sin ella solo sabe
+    # cifrar con RC4 de 128 bits: un algoritmo roto desde hace veinte anos que se
+    # abre con herramientas que se descargan en un minuto.
+    #
+    # Un PDF «protegido» con eso da una sensacion de seguridad que no existe, y en
+    # un entregable bajo acuerdo de confidencialidad eso es peor que no protegerlo:
+    # quien lo manda cree que va cerrado. Licencia Apache-2.0.
+    #
+    # El piso es 50 y no 44 por pip-audit: las ramas 44-49 arrastran cuatro avisos
+    # -- restricciones de nombre en X.509, un oraculo de Bleichenbacher en PKCS#7,
+    # agotamiento de recursos validando cadenas, y el OpenSSL enlazado en la rueda --.
+    # **Ninguno toca lo que aqui se usa**, que es AES a secas dentro de pypdf. Pero
+    # pip-audit no analiza que se alcanza y que no, y bajar el piso para que pase una
+    # corrida roja es justo lo que no se hace.
+    "cryptography>=50,<51",
 ]
 
 # GDAL, PDAL y el conversor de ECW **no van aca a proposito**. Son herramientas

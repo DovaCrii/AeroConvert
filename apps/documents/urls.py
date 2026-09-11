@@ -13,5 +13,7 @@ urlpatterns = [
     path("unir/componer/", views.componer_vista, name="componer"),
     path("dividir/", views.dividir_vista, name="dividir"),
     path("imagenes/", views.imagenes_vista, name="imagenes"),
+    path("a-imagenes/", views.a_imagenes_vista, name="a_imagenes"),
+    path("proteger/", views.proteger_vista, name="proteger"),
     path("miniatura/", views.miniatura, name="miniatura"),
 ]

@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block titulo %}Proteger PDF · AeroConvert{% endblock %}
+
+{% block contenido %}
+
+<form method="post" autocomplete="off">
+  {% csrf_token %}
+
+  <div class="tarjeta tarjeta-acento" style="margin-bottom:14px;">
+    <div class="eyebrow">El documento</div>
+    <h2 style="font-size:1.1rem;">¿Cuál?</h2>
+    <p class="tenue" style="margin:6px 0 10px;">
+      En el Explorador: clic derecho con <kbd>Mayús</kbd> → «Copiar como ruta».
+    </p>
+
+    <div class="soltar-campo">
+      <label class="visually-hidden" for="id_ruta">Ruta del PDF</label>
+      <input type="text" name="ruta" id="id_ruta" class="form-control ruta"
+             value="{{ ruta_texto }}" autocomplete="off" spellcheck="false"
+             placeholder="D:\obras\entrega\informe.pdf">
+      <button type="submit" name="accion" value="mirar" class="boton">Ver el documento</button>
+    </div>
+  </div>
+
+  {% if cabecera or cifrado %}
+    <input type="hidden" name="ruta" value="{{ ruta }}">
+
+    <div class="tarjeta" style="margin-bottom:14px;">
+      <div class="eyebrow">Cómo está ahora</div>
+
+      {% if cifrado %}
+        <h2 style="font-size:1.1rem;">Pide contraseña</h2>
+        <p class="tenue" style="margin:6px 0 14px;">
+          Para componerlo con otros, dividirlo o sacar imágenes hay que quitársela primero,
+          y para eso hace falta saberla.
+        </p>
+
+        <div style="max-width:22rem;">
+          <label class="eyebrow" for="id_contrasena" style="display:block;">La contraseña</label>
+          <input type="password" name="contrasena" id="id_contrasena" class="form-control"
+                 autocomplete="off" spellcheck="false" value="">
+        </div>
+
+        <div style="margin-top:14px;">
+          <button type="submit" name="accion" value="quitar" class="boton">Quitar la contraseña</button>
+        </div>
+        <p class="tenue" style="margin:10px 0 0; font-size:.85rem;">
+          Sale una copia sin clave al lado. El original se queda como está.
+        </p>
+
+      {% else %}
+        <h2 style="font-size:1.1rem;">{{ cabecera.resumen }}</h2>
+        <p class="tenue" style="margin:6px 0 14px;">
+          Se abre sin nada. Ponle contraseña si va a salir de la oficina.
+        </p>
+
+        <div style="max-width:22rem;">
+          <label class="eyebrow" for="id_contrasena" style="display:block;">La contraseña</label>
+          <input type="password" name="contrasena" id="id_contrasena" class="form-control"
+                 autocomplete="new-password" spellcheck="false" value=""
+                 minlength="{{ minimo }}">
+          <p class="tenue" style="margin:4px 0 0; font-size:.85rem;">
+            Al menos {{ minimo }} caracteres. Se cifra con {{ algoritmo }}.
+          </p>
+        </div>
+
+        {% comment %}
+          El aviso va **antes** del botón, no en el recibo. Después ya no sirve de nada.
+        {% endcomment %}
+        <div class="aviso" style="margin:14px 0 0;">
+          <strong>No hay forma de recuperarla.</strong>
+          Si se pierde la contraseña, se pierde el archivo: eso es justo lo que significa que
+          el cifrado funcione. Apúntala donde la vayas a encontrar, y mándala por otro camino
+          distinto del documento.
+        </div>
+
+        <div style="margin-top:14px;">
+          <button type="submit" name="accion" value="proteger" class="boton">Poner la contraseña</button>
+        </div>
+      {% endif %}
+    </div>
+  {% endif %}
+</form>
+
+{% if generado %}
+  <div class="tarjeta tarjeta-acento">
+    <div class="eyebrow">Hecho</div>
+    <div class="recibo">
+      <strong style="color:var(--av-ok);">
+        ✓ {% if hecho == 'proteger' %}Protegido{% else %}Sin contraseña{% endif %}
+      </strong>
+      <p style="margin:8px 0 0; font-family:ui-monospace, Consolas, monospace; font-size:.9rem;">
+        {{ generado.name }}
+      </p>
+      <p class="tenue" style="margin:10px 0 0;">Junto al original, que no se tocó.</p>
+    </div>
+  </div>
+{% endif %}
+{% endblock %}
