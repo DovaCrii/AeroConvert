@@ -46,6 +46,18 @@ aparecen cuando hay más de una persona, que es por lo que llevaban ahí desde s
 - **`manage.py check` se niega en modo nube**, que es el de las subidas y no está escrito, y
   avisa de una raíz demasiado ancha **cuando la máquina es compartida** — en una estación de
   trabajo, dar el disco entero es exactamente lo que se quiere.
+- **Páginas de error propias**, que no había: con `DEBUG=False` salían las de texto plano de
+  Django. La del 500 va **suelta**, sin extender la base y sin `{% static %}`, porque Django
+  la renderiza sin `request` y porque la causa número uno de un 500 en todas las páginas es
+  justamente un manifiesto de estáticos ausente — la página que anuncia el fallo no puede
+  depender de lo que suele fallar. Y cada una habla de lo que va a pasar de verdad: la del
+  400 nombra `ALLOWED_HOSTS`, que es el 400 de todo despliegue nuevo.
+- **La descarga de una salida que ya no está pasa a 410, con su propia página.** Un 404 dice
+  «esto nunca existió»; aquí existió, se verificó y desapareció por una razón que se sabe
+  nombrar — barrida por retención, movida por alguien, o **reemplazada**, y entonces no se
+  entrega porque sería dar otra cosa diciendo que es esta. La página enseña **el recibo
+  entero** y ofrece rehacerla en un clic. Eso es lo que significa que el recibo sobreviva al
+  archivo.
 - **`check --deploy` miraba el módulo equivocado.** `verify.ps1` lo corría sin fijar
   `DJANGO_SETTINGS_MODULE`, así que caía en `dev` con `DEBUG=True` y no comprobaba nada.
   Corregido, y añadido al CI junto con `collectstatic`.

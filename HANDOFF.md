@@ -134,15 +134,9 @@ Lo que queda, en orden:
 
 1. **Instalar en la VM y hacer el paseo de aceptación.** Es lo único que separa esto de estar
    en uso, y solo depende de que exista la máquina. Procedimiento en `despliegue/README.md`.
-2. **Las páginas de error.** No hay `404.html`, `500.html`, `403.html` ni `400.html`, y con
-   `DEBUG=False` salen las de texto plano de Django. Aquí importa más de lo normal porque el
-   404 es un **camino corriente**: salta cuando la salida ya caducó. Detalle que decide el
-   diseño: `500.html` se renderiza **sin `request` y sin procesadores de contexto**, así que
-   no puede extender `base.html` ni usar `{% static %}` — si lo hiciera, un manifiesto roto
-   rompería también la página que lo anuncia.
-3. **La subida por navegador**, para los PDF pequeños. Ya no bloquea nada: lo grande llega por
+2. **La subida por navegador**, para los PDF pequeños. Ya no bloquea nada: lo grande llega por
    la carpeta compartida, que además es lo correcto para varios gigabytes.
-4. **Medir una nube real** con `pdal info --summary` sobre un archivo en disco local. La regla
+3. **Medir una nube real** con `pdal info --summary` sobre un archivo en disco local. La regla
    de 105 MB por millón está medida sobre **un** archivo de 9,6 M puntos; extrapolarla a mil
    millones es aritmética, no medición, y de eso depende si hace falta otro motor.
 
@@ -248,6 +242,12 @@ desde cero, no como compromiso.
 - **Una libreta de puntos nunca trae CRS dentro**, así que `_exigir_crs` acepta el declarado
   a mano —validado contra pyproj y anotado en la bitácora con el nombre de quien lo
   declaró—. Sin eso, la fase vectorial no podría convertir nada.
+- **`500.html` no puede extender `base.html` ni usar `{% static %}`.** Django la renderiza
+  con `loader.get_template(...).render()`, **sin `request` y sin procesadores de contexto**.
+  Y la causa número uno de un 500 en todas las páginas es un `staticfiles.json` ausente, así
+  que una `500.html` que dependiera de `{% static %}` reventaría justo en ese escenario y lo
+  que llegaría sería el texto plano de Django. La marca va incrustada; hay una prueba que lo
+  vigila. Las otras tres sí extienden la base, porque esas sí se renderizan con `request`.
 - **En un PDF, la orientación no es la caja: es la caja más `/Rotate`.** Una lámina con
   `MediaBox` 594 × 841 —vertical— y `/Rotate 270` **se ve apaisada**, y lo que importa es lo
   que se ve. Lo resuelve `_milimetros()` en `apps/formats/pdf.py` intercambiando los lados
