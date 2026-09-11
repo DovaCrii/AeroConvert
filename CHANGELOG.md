@@ -72,6 +72,14 @@ su sitio cuando ya salió bien — las mismas tres promesas que el resto de la a
 - **Y para Excel, encajar cada hoja a lo ancho de una página**, porque una hoja de cálculo no
   tiene tamaño de papel. Medido sobre un libro real: **68 páginas sin ajustar, 6 ajustado**.
   Esa cifra está escrita en la propia pantalla, junto a la casilla.
+- **Y PDF a Word**, el camino de vuelta, que también lo hace Word: abre el PDF y reconstruye
+  párrafos y tablas a partir de las posiciones de las letras. **Con la cifra medida en la
+  pantalla**: ida y vuelta sobre una minuta real, se conserva el 97,7 % de las palabras y las
+  6 páginas se convierten en 8. Sirve para reaprovechar el texto, no para reemplazar al
+  original, y eso se dice antes de convertir y siempre.
+- **Un PDF escaneado se detecta y no se ofrece convertirlo.** No tiene texto dentro: son
+  fotos. Word lo «convierte» igual —medio mega de imágenes pegadas y código de salida cero—,
+  así que se mira antes y se manda a «PDF a imágenes», que hace eso mismo mejor.
 - **Sin Office, la herramienta sale apagada y con el motivo**, nunca oculta — la misma regla
   que con ECW en la matriz de motores. Y en modo nube no existe, porque en un servidor no hay
   Office.

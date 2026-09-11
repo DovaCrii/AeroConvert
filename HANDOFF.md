@@ -24,9 +24,9 @@ Hexagon para ECW. Lo único pendiente que solo depende de escribirlo es F2.6 (3D
 | F3.1 | OGR vectorial: SHP, GPKG, GeoJSON, KML/KMZ, DXF entre sí |
 | F3.3 | **Libretas de puntos PNEZD/PENZD/NEZ/ENZ**, con detección del orden por rango UTM y vista previa dibujada antes de convertir |
 | F3.5 | **LandXML**: se escribe (CgPoints con número, descripción y epsgCode) y se lee (qué trae dentro; los puntos además se convierten) |
-| F5 | **PDF**: leer, unir con miniaturas y giro, dividir, imágenes ↔ PDF, numerar, marca de agua, proteger y desproteger |
+| F5 | **PDF**: leer, unir con miniaturas y giro, dividir, imágenes ↔ PDF, numerar, marca de agua, proteger, y Office ↔ PDF en los dos sentidos |
 
-**883 pruebas**, 93,6 % de cobertura, verdes **sin GDAL ni PDAL instalados**.
+**943 pruebas**, 93,6 % de cobertura, verdes **sin GDAL, sin PDAL y sin Office instalados**.
 
 ### Lo verificado sobre archivos reales
 
@@ -82,10 +82,6 @@ pendiente de hacerse en un puesto con licencia; es un procedimiento manual, igua
 
 Lo hecho está arriba. Lo que falta, con lo que cuesta cada cosa de verdad:
 
-- **PDF → Word.** Se puede hacer, pero **hay que decir en la pantalla lo que se va a
-  recibir**: un PDF no guarda párrafos, guarda posiciones de letras. Lo que sale es editable
-  y *no* es el documento original. Prometerlo sin el aviso es lo que hace que estas
-  herramientas tengan mala fama.
 - **Comprimir PDF.** Requiere volver a codificar las imágenes de dentro; en un plano
   escaneado la diferencia entre útil e ilegible es de un paso de calidad, así que necesita
   vista previa antes de escribir.
@@ -208,6 +204,12 @@ desde cero, no como compromiso.
 - **Una hoja de cálculo no tiene tamaño de papel.** Medido en este repositorio: el mismo
   libro sale en **68 páginas** sin ajustar y en **6** encajando cada hoja a lo ancho. No es
   un PDF peor, es inservible.
+- **Word abre lo que le eches y lo guarda como `.docx` con código cero.** Un archivo de texto
+  con la extensión cambiada a `.pdf` pasa sin quejarse. Por eso `mirar_pdf()` comprueba la
+  firma **en Python** antes de lanzar el hijo; la extensión no es el formato.
+- **Y un PDF escaneado «se convierte» a Word perfectamente**: medio mega de fotos pegadas,
+  cero palabras editables, código de salida cero. Medido: cero caracteres extraíbles. Se
+  detecta antes con `mirar_pdf()` y la pantalla no ofrece el botón.
 - **La posición de una marca solo se comprueba dibujándola.** Contrastarla con el mismo
   cálculo que la produjo no prueba nada. `test_marcas.py` pinta con PDFium y mira dónde cayó
   la tinta; y «tinta» es todo lo que no sea papel (umbral 250), no «negro»: una marca de agua

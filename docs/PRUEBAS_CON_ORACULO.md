@@ -320,6 +320,39 @@ el valor 2 de tipo int al tipo Object»*—. Se hace con `SaveAs($ruta, 32)`, qu
 firma simple. Word y Excel sí usan `ExportAsFixedFormat`, **y con los argumentos en orden
 distinto entre ellos**: Word `(ruta, tipo)`, Excel `(tipo, ruta)`.
 
+### 11. El camino de vuelta: cuánto sobrevive de un PDF a Word
+
+El mismo PDF de la minuta, a `.docx` (5,0 s) y de ahí otra vez a PDF para poder compararlo:
+
+| | Original | Ida y vuelta |
+| --- | --- | --- |
+| Páginas | 6 | **8** |
+| Caracteres de texto | 9.099 | 9.299 |
+| Palabras distintas | 698 | 722 |
+| **Se conservan** | | **682 — el 97,7 %** |
+
+Lo que se pierde son sobre todo códigos partidos y palabras pegadas a un signo
+(`LCD-0000-CL-TRE-`, `(shp/kmz)`, `11305)`), que es exactamente lo que cabe esperar de
+reconstruir párrafos a partir de posiciones de letras.
+
+**La paginación sí se mueve: 6 → 8.** Esa es la cifra que está escrita en la pantalla, y el
+motivo de que la herramienta se presente como «para reaprovechar el texto», no como «para
+recuperar el documento».
+
+### 12. Los dos fallos silenciosos que solo aparecen con archivos de verdad
+
+**Un PDF escaneado se «convierte» perfectamente.** La bitácora de vuelo: **cero caracteres**
+extraíbles, y aun así Word devuelve un `.docx` de **497 KB** con código de salida **0**.
+Dentro están las mismas fotos y ni una palabra editable. Se detecta antes de convertir
+—contando el texto de las primeras cinco páginas— y la pantalla no ofrece el botón.
+
+**Y a Word le vale cualquier cosa.** Un archivo con el contenido `no soy un pdf` y la
+extensión `.pdf` lo abre como texto plano, lo guarda como `.docx` y sale con **0**. La firma
+se comprueba ahora en Python, antes de lanzar el hijo.
+
+**No quedaron procesos huérfanos** tras ninguna de las conversiones: `tasklist` no encuentra
+ningún `WINWORD.EXE` vivo. El `finally` del guion hace su trabajo.
+
 ---
 
 ## Lo que sigue sin oráculo, y se dice
