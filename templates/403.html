@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block titulo %}No es tuyo · AeroConvert{% endblock %}
+
+{% block contenido %}
+<div class="tarjeta" style="max-width:38rem; margin:0 auto;">
+  <div class="eyebrow">403</div>
+  <h1 style="font-size:1.3rem; margin:6px 0 10px;">Esto no es tuyo</h1>
+
+  {% comment %}
+    **Sin decir si existe o no.** Las fichas de trabajo usan 404 en vez de 403 precisamente
+    para no confirmar que un identificador ajeno es válido; donde sí sale un 403 es en el
+    panel de administración y en un formulario cuyo testigo caducó, y esas dos cosas son lo
+    que explica el texto.
+  {% endcomment %}
+  <p style="margin:0 0 10px;">
+    Tu cuenta no puede hacer esto. Si crees que debería, díselo a quien administre el equipo.
+  </p>
+  <p class="tenue" style="margin:0 0 14px;">
+    También sale si el formulario llevaba mucho rato abierto: el testigo que lo protege
+    caduca. Vuelve atrás, recarga la página y repite lo que estabas haciendo.
+  </p>
+
+  <p style="margin:0;"><a href="{% url 'dashboard:convertir' %}">Volver al inicio</a></p>
+</div>
+{% endblock %}

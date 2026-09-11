@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block titulo %}Petición rechazada · AeroConvert{% endblock %}
+
+{% block contenido %}
+<div class="tarjeta" style="max-width:38rem; margin:0 auto;">
+  <div class="eyebrow">400</div>
+  <h1 style="font-size:1.3rem; margin:6px 0 10px;">La petición no se pudo aceptar</h1>
+
+  {% comment %}
+    **En un despliegue nuevo, el 400 casi siempre es lo mismo**: `ALLOWED_HOSTS` sin el
+    nombre por el que se está llegando. Con `DEBUG=False`, Django no lo dice, así que se
+    parece a un problema de red o de nginx y se buscan horas en el sitio equivocado.
+
+    Que lo diga esta página no es exponer nada: quien llega aquí ya conoce el nombre que
+    escribió en la barra.
+  {% endcomment %}
+  <p style="margin:0 0 10px;">
+    Algo en la petición no cuadra con lo que este servidor espera.
+  </p>
+  <p class="tenue" style="margin:0 0 14px;">
+    Si esto acaba de instalarse, lo más probable es que falte el nombre por el que estás
+    llegando en <code>ALLOWED_HOSTS</code>, o el mismo nombre con <code>https://</code>
+    delante en <code>CSRF_TRUSTED_ORIGINS</code>. Las dos van en el <code>.env</code>, y
+    <code>manage.py check</code> lo dice con el ejemplo puesto.
+  </p>
+
+  <p style="margin:0;"><a href="/">Volver al inicio</a></p>
+</div>
+{% endblock %}

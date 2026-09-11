@@ -253,10 +253,13 @@ class TestDescarga:
 
         assert not ruta.exists()
 
-    def test_una_salida_que_ya_se_barrio_da_404_y_no_un_error(self, usuario, carpeta, client):
+    def test_una_salida_que_ya_se_barrio_da_410_y_no_un_error(self, usuario, carpeta, client):
+        """**410 y no 404**, que era lo que devolvía antes. Un 404 dice «esto nunca existió»;
+        aquí existió, se verificó, y desapareció por una razón que se sabe nombrar — y el
+        recibo sigue ahí para poder rehacerla."""
         job = _trabajo(usuario, carpeta / "no-esta.tif")
         client.force_login(usuario)
-        assert client.get(f"/trabajos/{job.pk}/descargar/").status_code == 404
+        assert client.get(f"/trabajos/{job.pk}/descargar/").status_code == 410
 
     def test_nadie_descarga_el_trabajo_de_otro(self, usuario, carpeta, client):
         ruta = _salida(carpeta)

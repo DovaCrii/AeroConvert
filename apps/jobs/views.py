@@ -1,14 +1,17 @@
+import logging
 from pathlib import Path
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.http import FileResponse, Http404
+from django.http import FileResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from . import retencion
 from .models import ERROR, TERMINALES, ConversionJob
+
+registro = logging.getLogger(__name__)
 
 
 def _mio(request, pk) -> ConversionJob:
@@ -155,16 +158,43 @@ class RespuestaQueConsume(FileResponse):
             retencion.consumir(self._job)
 
 
+def _ya_no_esta(request, job, motivo: str):
+    """La salida se fue, pero el recibo sigue. **410 y no 404**, y con su propia pagina.
+
+    Un 404 dice «esto nunca existio». Aqui existio, se verifico, y desaparecio por una razon
+    que sabemos nombrar — y en una carpeta compartida ese camino no es raro: cualquiera puede
+    mover el archivo desde su Explorador.
+
+    Lo que se ensena es el recibo entero y un boton para rehacerla. Eso es lo que significa
+    la promesa de que **el recibo sobrevive al archivo**.
+    """
+    return render(
+        request,
+        "jobs/caducado.html",
+        {
+            "trabajo": job,
+            "motivo": motivo,
+            "carpeta": Path(job.output_path).parent.name if job.output_path else "",
+            "seccion": "historial",
+            "etiqueta_seccion": "Historial",
+            "titulo_pagina": "Ese archivo ya no está",
+        },
+        status=410,
+    )
+
+
 @login_required
 def descargar(request, pk):
     """Entrega la salida. Con politica efimera, esta es su ultima oportunidad."""
     job = _mio(request, pk)
     if not job.output_path:
-        raise Http404("Esta conversion ya no tiene archivo disponible.")
+        registro.info("Descarga de %s sin salida: la retencion ya se la llevo.", job.pk)
+        return _ya_no_esta(request, job, "barrida")
 
     ruta = Path(job.output_path)
     if not ruta.exists():
-        raise Http404("El archivo ya se borro.")
+        registro.warning("La salida de %s no esta en su sitio.", job.pk)
+        return _ya_no_esta(request, job, "desaparecida")
 
     # **Que lo que hay ahi siga siendo lo que produjo este trabajo.** `_destino_libre()` en
     # el runner impide que otra persona escriba encima, pero nada impide que alguien
@@ -172,10 +202,8 @@ def descargar(request, pk):
     # lo que haya, con el nombre y el recibo de este trabajo, seria entregar otra cosa
     # diciendo que es esta.
     if job.output_size_bytes and ruta.stat().st_size != job.output_size_bytes:
-        raise Http404(
-            "El archivo que hay en esa ruta ya no es el que generó esta conversión: "
-            "alguien lo reemplazó. Vuelve a convertir si lo necesitas."
-        )
+        registro.warning("La salida de %s cambio de tamano: alguien la reemplazo.", job.pk)
+        return _ya_no_esta(request, job, "reemplazada")
 
     respuesta = RespuestaQueConsume(
         open(ruta, "rb"),  # noqa: SIM115 - FileResponse se encarga de cerrarlo

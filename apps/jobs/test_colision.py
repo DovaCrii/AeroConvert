@@ -159,4 +159,6 @@ class TestLaDescarga:
 
         client.force_login(ana)
         respuesta = client.get(reverse("jobs:descargar", kwargs={"pk": trabajo.pk}))
-        assert respuesta.status_code == 404
+        # 410 y no 404: el recibo sigue, y la pagina lo ensena y ofrece rehacerla.
+        assert respuesta.status_code == 410
+        assert "no es el que se generó" in respuesta.content.decode()

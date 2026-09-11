@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% comment %}
+  Esta sí extiende la base: `page_not_found` renderiza con `RequestContext`, así que la barra
+  y la chapa salen bien. La que no puede es la 500 — ver el comentario de `500.html`.
+
+  Y aquí el 404 **no es una rareza**: salta cada vez que alguien abre el enlace de una salida
+  que ya caducó o que alguien movió desde la carpeta compartida. Por eso el texto habla de
+  eso y no de «la página no existe».
+{% endcomment %}
+
+{% block titulo %}No está · AeroConvert{% endblock %}
+
+{% block contenido %}
+<div class="tarjeta" style="max-width:38rem; margin:0 auto;">
+  <div class="eyebrow">404</div>
+  <h1 style="font-size:1.3rem; margin:6px 0 10px;">Aquí no hay nada</h1>
+
+  <p style="margin:0 0 10px;">
+    O la dirección no es la que era, o lo que había ya no está.
+  </p>
+  <p class="tenue" style="margin:0 0 14px;">
+    Lo más común es lo segundo: la salida de una conversión que ya caducó, o un archivo que
+    alguien movió o renombró en la carpeta compartida. <strong>El recibo de la conversión
+    sobrevive aunque el archivo no</strong>, así que en el historial sigue estando qué se
+    hizo, con qué motor y sobre qué original.
+  </p>
+
+  <p style="margin:0;">
+    <a href="{% url 'jobs:lista' %}">Ver el historial</a>
+    ·
+    <a href="{% url 'dashboard:convertir' %}">Convertir algo</a>
+  </p>
+</div>
+{% endblock %}

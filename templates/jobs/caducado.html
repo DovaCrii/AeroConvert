@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% comment %}
+  El archivo ya no está, pero **el recibo sí**, y esa es justamente la promesa de la
+  aplicación: «el recibo sobrevive aunque el archivo ya se haya borrado» (jobs/lista.html).
+
+  Por eso esta página hace tres cosas y no una: dice qué pasó, enseña el recibo entero, y
+  ofrece rehacerla en un clic. Un 404 pelado no hace ninguna de las tres.
+{% endcomment %}
+
+{% block titulo %}Ese archivo ya no está · AeroConvert{% endblock %}
+
+{% block contenido %}
+<div class="tarjeta" style="max-width:42rem; margin:0 auto 14px;">
+  <div class="eyebrow">410 · ya no está</div>
+
+  {% if motivo == "barrida" %}
+    <h2 style="font-size:1.15rem; margin:6px 0 10px;">La salida caducó y se barrió</h2>
+    <p style="margin:0 0 10px;">
+      Esta instalación guarda las salidas un tiempo limitado y luego libera el disco.
+      {% if trabajo.expires_at %}
+        Esta caducó el {{ trabajo.expires_at|date:"j \d\e F \a \l\a\s H:i" }}.
+      {% endif %}
+    </p>
+  {% elif motivo == "desaparecida" %}
+    <h2 style="font-size:1.15rem; margin:6px 0 10px;">El archivo ya no está donde quedó</h2>
+    <p style="margin:0 0 10px;">
+      No está en <code>{{ carpeta }}</code>. En una carpeta compartida lo habitual es que
+      alguien lo haya movido, renombrado o borrado desde su propio Explorador.
+    </p>
+  {% else %}
+    <h2 style="font-size:1.15rem; margin:6px 0 10px;">Ese archivo ya no es el que se generó</h2>
+    <p style="margin:0 0 10px;">
+      Hay un archivo con ese nombre, pero no tiene el tamaño que tenía al terminar esta
+      conversión: alguien lo reemplazó. <strong>No se entrega</strong>, porque sería darte
+      otra cosa diciendo que es esta.
+    </p>
+  {% endif %}
+
+  <p class="tenue" style="margin:0;">
+    El original <strong>no se tocó nunca</strong>: lo que falta es la copia convertida, y se
+    puede volver a hacer exactamente igual con lo que dice el recibo de abajo.
+  </p>
+</div>
+
+<div class="tarjeta" style="max-width:42rem; margin:0 auto;">
+  <div class="eyebrow">El recibo</div>
+  <div class="recibo">
+    <dl style="margin-top:8px;">
+      <dt>Original</dt>
+      <dd>{{ trabajo.source_name }} · {{ trabajo.source_size_bytes|filesizeformat }}</dd>
+
+      <dt>Destino</dt>
+      <dd>{{ trabajo.nombre_del_destino }}</dd>
+
+      {% if trabajo.output_size_bytes %}
+        <dt>Lo que salió</dt>
+        <dd>
+          {{ trabajo.output_size_bytes|filesizeformat }}
+          {% if trabajo.reduccion_pct %}<span class="tenue">(−{{ trabajo.reduccion_pct }} %)</span>{% endif %}
+        </dd>
+      {% endif %}
+
+      {% if trabajo.engine_version or trabajo.engine_id %}
+        <dt>Motor</dt>
+        <dd>{{ trabajo.engine_version|default:trabajo.engine_id }}</dd>
+      {% endif %}
+
+      {% if trabajo.source_sha256 %}
+        <dt>sha256 del original</dt>
+        <dd style="font-family:ui-monospace, Consolas, monospace; font-size:.8rem;">
+          {{ trabajo.source_sha256|slice:":32" }}…
+        </dd>
+      {% endif %}
+
+      {% if trabajo.verified_at %}
+        <dt>Se verificó</dt>
+        <dd>{{ trabajo.verified_at|date:"j \d\e F, H:i" }}</dd>
+      {% endif %}
+    </dl>
+
+    {% comment %}
+      Rehacerla es un clic y no un formulario desde cero: `reencolar` ya existe y crea una
+      fila nueva con `retry_of`, conservando el origen, el destino y las opciones.
+    {% endcomment %}
+    <form method="post" action="{% url 'jobs:reencolar' trabajo.pk %}" style="margin-top:12px;">
+      {% csrf_token %}
+      <button type="submit" class="boton">Volver a convertirla</button>
+    </form>
+  </div>
+</div>
+
+<p class="tenue" style="text-align:center; margin-top:14px;">
+  <a href="{% url 'jobs:ficha' trabajo.pk %}">Ver la ficha</a>
+  ·
+  <a href="{% url 'jobs:lista' %}">Ver el historial</a>
+</p>
+{% endblock %}
