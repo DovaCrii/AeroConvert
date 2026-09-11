@@ -62,9 +62,16 @@ class TestComprobarRuta:
             assert modo.comprobar_ruta(f'"{objetivo}"') == objetivo.resolve()
 
     def test_una_ruta_larguisima_da_su_propio_motivo(self, tmp_path):
+        """El tope **depende del sistema**, y la prueba tenía metido el de Windows.
+
+        Con 300 caracteres fijos pasaba aquí y fallaba en Linux, donde el límite son 4096 —
+        que es justo el motivo de que el tope se calcule y no sea una constante: en la VM,
+        una carpeta de obra de verdad pasa de 255 sin esfuerzo.
+        """
+        pasada = "x" * (modo.LARGO_MAXIMO_DE_RUTA + 1)
         with override_settings(MODO="taller", RAICES_PERMITIDAS=str(tmp_path)):
             with pytest.raises(modo.RutaNoPermitida) as fallo:
-                modo.comprobar_ruta(str(tmp_path / ("x" * 300)))
+                modo.comprobar_ruta(str(tmp_path / pasada))
         assert fallo.value.codigo == "ruta-demasiado-larga"
 
     def test_sin_raices_configuradas_no_se_lee_nada(self):
