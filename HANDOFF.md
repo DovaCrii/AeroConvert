@@ -87,7 +87,35 @@ Lo hecho está arriba. Lo que falta, con lo que cuesta cada cosa de verdad:
   vista previa antes de escribir.
 - **OCR.** Depende de Tesseract instalado fuera, como GDAL. Se sondea, no se declara.
 
-## Poner esto en una VM: qué falta de verdad
+## Poner esto en una VM: cómo se hace
+
+**Comprobado el 2026-09-11 y listo salvo la máquina.** El despliegue es
+`DJANGO_SETTINGS_MODULE=config.settings.prod` **con `AEROCONVERT_MODO=taller`** y las raíces
+apuntando a la carpeta Samba. El procedimiento entero está en `despliegue/README.md`; los
+ficheros que se copian a `/etc`, en `despliegue/`.
+
+**No uses `config.settings.nube`**: es el modo de las subidas, la subida no está escrita, y
+`manage.py check` se niega a arrancar con él.
+
+Lo que se arregló para poder hacerlo, y por qué ninguno daba un error:
+
+- **Dos personas podían acabar con la misma ruta de salida**, y la segunda descarga servía el
+  archivo de la primera. Ahora `_destino_libre()` en el runner pregunta «¿lo reclama el
+  trabajo de otro?» —pisar lo tuyo sigue permitido— y la descarga comprueba que el archivo
+  siga teniendo el tamaño que produjo ese trabajo.
+- **Ocho intentos fallidos de cualquiera bloqueaban a todo el equipo**, porque detrás de
+  nginx comparten la IP del proxy. Ahora es por la pareja usuario + IP, con
+  `AXES_CLIENT_IP_CALLABLE` propio (`apps/core/ip.py`) — los `AXES_IPWARE_*` **no harían
+  nada**: axes solo los mira si `django-ipware` está instalado, y no lo está.
+- **Un 500 no dejaba rastro en ninguna parte.** Ahora hay `LOGGING`, a la salida de error y
+  no a un fichero: con cuatro procesos escribiendo, `RotatingFileHandler` corrompe la
+  rotación y se pierde justo el tramo con más actividad.
+- **El tope de ruta eran 255 caracteres también en Linux**, donde son 4096. Una carpeta de
+  obra pasa de 255 sin esfuerzo: era un bloqueante silencioso.
+- **`verify.ps1` corría `check --deploy` sobre `config.settings.dev`** desde el primer día,
+  porque no fijaba `DJANGO_SETTINGS_MODULE`. Arreglado, y añadido al CI.
+
+## Lo que queda
 
 Comprobado el **2026-09-11**. Resumen en una frase: **el modo taller está terminado y en uso;
 el modo nube arranca y no convierte nada.** El detalle está en `docs/DEPLOY.md`, que hasta
@@ -102,27 +130,38 @@ Lo que sí funciona ya, medido y no supuesto:
 - El dimensionado de la VM está medido y fechado en `docs/DEPLOY.md` — **4 vCPU, 4 GB,
   80 GB SSD** para lo normal.
 
-Lo que hay que escribir, en orden, y cada uno es condición del siguiente:
+Lo que queda, en orden:
 
-1. **La subida de archivos.** Es *el* bloqueante: sin esto el modo nube no tiene entrada. No
-   existe ni un `request.FILES` en el repositorio. Incluye `MEDIA_ROOT`, el formulario, el
-   manejador en streaming, y que el runner sepa leer `source_upload` además de `source_path`.
-2. **Que `AEROCONVERT_TOPE_MB` valide.** Hoy solo se interpola en el texto de la chapa.
-3. **Apagar o explicar las herramientas de PDF en nube**, como ya hace «Office a PDF». Hoy
-   las otras nueve fallan con un error de ruta que no dice nada.
-4. **`revisar_configuracion()` para nube**, que hoy solo valida taller. Un despliegue sin
-   `ALLOWED_HOSTS` pasa `check` y luego da 400 a todo.
-5. **La infraestructura**: `gunicorn` como dependencia, unit de systemd, configuración de
-   nginx, y un equivalente de `run.ps1` para Linux que recolecte los estáticos — sin
-   `collectstatic` **todas** las páginas dan 500.
-6. **Decidir qué pasa con SQLite.** Con varios obreros de gunicorn escribiendo progreso, WAL
-   deja de ser suficiente. O un obrero, o PostgreSQL — y hoy no hay ni una mención de
-   PostgreSQL en el repositorio.
+1. **Instalar en la VM y hacer el paseo de aceptación.** Es lo único que separa esto de estar
+   en uso, y solo depende de que exista la máquina. Procedimiento en `despliegue/README.md`.
+2. **Las páginas de error.** No hay `404.html`, `500.html`, `403.html` ni `400.html`, y con
+   `DEBUG=False` salen las de texto plano de Django. Aquí importa más de lo normal porque el
+   404 es un **camino corriente**: salta cuando la salida ya caducó. Detalle que decide el
+   diseño: `500.html` se renderiza **sin `request` y sin procesadores de contexto**, así que
+   no puede extender `base.html` ni usar `{% static %}` — si lo hiciera, un manifiesto roto
+   rompería también la página que lo anuncia.
+3. **La subida por navegador**, para los PDF pequeños. Ya no bloquea nada: lo grande llega por
+   la carpeta compartida, que además es lo correcto para varios gigabytes.
+4. **Medir una nube real** con `pdal info --summary` sobre un archivo en disco local. La regla
+   de 105 MB por millón está medida sobre **un** archivo de 9,6 M puntos; extrapolarla a mil
+   millones es aritmética, no medición, y de eso depende si hace falta otro motor.
+
+**SQLite se queda, y ya no es una pregunta abierta:** con el despachador en su propia unidad
+hay un solo escritor pesado, y WAL con `busy_timeout=20000` cubre de sobra a 4-5 personas
+sondeando. Se cambia el día que aparezca `database is locked` en el registro, no antes.
 
 ## Ideas anotadas, sin decidir
 
 Cosas que se han pensado y **no** se han hecho. Están aquí para que no se vuelvan a pensar
 desde cero, no como compromiso.
+
+- ~~**Abrir el taller al resto de la oficina.**~~ **Resuelto el 2026-09-11**, y la respuesta
+  fue la que se apuntaba aquí: no se abre `run.ps1` en red, se despliega en la VM con
+  `config.settings.prod` y las raíces apuntando a la carpeta compartida. La preocupación
+  original —«una ruta es lectura del disco entero»— la cubre ahora `manage.py check`, que
+  rechaza una raíz demasiado ancha **cuando la máquina es compartida**, y la chapa detecta lo
+  mismo y deja de prometer que los archivos no salen de ahí. Se deja el texto original debajo
+  porque explica el razonamiento.
 
 - **Abrir el taller al resto de la oficina.** Hoy `run.ps1` escucha solo en `127.0.0.1` y
   `ALLOWED_HOSTS` son `localhost` y `127.0.0.1`: desde otro PC da un 400, a propósito.

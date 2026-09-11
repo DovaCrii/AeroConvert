@@ -5,6 +5,51 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Sin publicar]
 
+### Añadido y corregido — para que lo use un equipo en una VM (fase F6)
+
+Tres de estos **no son funcionalidad que faltara: son defectos**, y ninguno da un error. Solo
+aparecen cuando hay más de una persona, que es por lo que llevaban ahí desde siempre.
+
+- **Un usuario podía descargarse el archivo de otro.** La ruta de salida se construye de
+  forma determinista, así que en una carpeta compartida dos personas que convirtieran cada
+  una su `ortofoto.tif` con el mismo perfil producían **la misma ruta**: la segunda pisaba a
+  la primera y la descarga servía lo que hubiera. La pregunta ahora no es «¿existe el
+  archivo?» sino «¿lo reclama el trabajo de otro?» — pisar lo tuyo sigue permitido, porque
+  reconvertir y encontrar el resultado donde estaba es lo que uno espera. Y la descarga
+  comprueba además que el archivo siga teniendo el tamaño que produjo ese trabajo.
+- **Un bloqueo de sesión dejaba fuera a todo el equipo**, porque detrás de nginx todos
+  comparten la IP del proxy. Ahora es por la pareja usuario + IP.
+- **Un error 500 no dejaba rastro en ninguna parte.** El manejador de consola de Django lleva
+  `require_debug_true`, así que con `DEBUG=False` no escribía nada, y `django.request` iba a
+  `mail_admins` sin `ADMINS` definido.
+- **El tope de ruta eran 255 caracteres también en Linux**, donde el límite son 4096. Una
+  carpeta de obra pasa de 255 sin esfuerzo, y el mensaje decía «mueve el archivo» sobre una
+  carpeta compartida que nadie puede mover.
+- **El despachador sale del proceso web** a su propia unidad de systemd. Con varios obreros de
+  gunicorn arrancaban varios despachadores, y el tope de trabajos simultáneos se comprueba con
+  un `count()` que no es atómico.
+- **El techo de memoria de las nubes de puntos, dicho antes de empezar.** PDAL carga los
+  puntos en memoria: la regla medida son 105 MB por millón, así que una nube de mil millones
+  pide unos 100 GB. Sin comprobarlo, el sistema mata el proceso y en un servidor se lleva lo
+  que el núcleo decida.
+- **`/salud/` deja de decir «ok» sin mirar nada.** Ahora mira la base, el obrero, el disco, el
+  manifiesto de estáticos y —la que de verdad va a fallar— **si la carpeta compartida sigue
+  montada**: un CIFS caído deja un directorio vacío en su sitio y la aplicación empieza a
+  decir «ya no hay ningún archivo en …» sobre rutas que la persona tiene delante.
+- **Panel de administración**, que no existía: quien administra no veía ni un trabajo. El
+  recibo es de solo lectura entero; lo que se puede hacer son acciones.
+- **`manage.py respaldar`**, que tampoco existía, y no es un `cp`: con WAL, copiar el fichero
+  entrega la foto del último punto de control y le faltan las últimas horas sin decirlo. Usa
+  la API de respaldo en línea de SQLite y **verifica la copia abriéndola**.
+- **La infraestructura** en `despliegue/`: gunicorn, systemd, nginx, `desplegar.sh` y el
+  manual de instalación y operación.
+- **`manage.py check` se niega en modo nube**, que es el de las subidas y no está escrito, y
+  avisa de una raíz demasiado ancha **cuando la máquina es compartida** — en una estación de
+  trabajo, dar el disco entero es exactamente lo que se quiere.
+- **`check --deploy` miraba el módulo equivocado.** `verify.ps1` lo corría sin fijar
+  `DJANGO_SETTINGS_MODULE`, así que caía en `dev` con `DEBUG=True` y no comprobaba nada.
+  Corregido, y añadido al CI junto con `collectstatic`.
+
 ### Añadido — herramientas de PDF (fase F5)
 
 Una familia nueva, y la razón de que exista está escrita en la propia pantalla: las páginas

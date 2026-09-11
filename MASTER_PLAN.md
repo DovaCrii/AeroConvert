@@ -106,14 +106,26 @@ despliegue diseñado y se leía como uno construido. Comprobado el 2026-09-11: e
 arranca, sirve páginas y autentica, y **no puede convertir ni un archivo**. El modo taller,
 que es el que está en uso, sí está terminado.
 
+**El hallazgo que reordenó la fase:** al comprobarlo con los ajustes de la VM de verdad, el
+despliegue correcto resultó ser **`config.settings.prod` con `AEROCONVERT_MODO=taller`** y las
+raíces apuntando a la carpeta compartida. Eso ya funcionaba sin tocar una línea: la ruta
+dentro del recurso se acepta, la de fuera se rechaza, la salida va junto al original —que es
+lo que se quiere cuando el equipo tiene la unidad montada—, y la retención es permanente.
+
+O sea que la subida de archivos **no era el bloqueante**. Lo que hacía falta era impedir la
+elección equivocada y arreglar tres defectos que solo aparecen con más de una persona.
+
 | # | Entrega | Estado |
 | --- | --- | --- |
-| F6.1 | **La subida de archivos**: `MEDIA_ROOT`, formulario, manejador en streaming, y que el runner lea `source_upload` | ⬜ · **el bloqueante** |
-| F6.2 | Que `AEROCONVERT_TOPE_MB` valide de verdad, en nginx, en el manejador y en `clean()` | ⬜ |
-| F6.3 | Apagar o explicar las herramientas de PDF en nube, como ya hace «Office a PDF» | ⬜ |
-| F6.4 | `revisar_configuracion()` para nube — hoy solo valida taller | ⬜ |
-| F6.5 | Infraestructura: `gunicorn`, unit de systemd, nginx, arranque en Linux con `collectstatic` | ⬜ |
-| F6.6 | Decidir SQLite contra PostgreSQL con varios obreros | ⬜ |
+| F6.1 | **Los tres defectos de varias personas**: colisión de salidas, bloqueo de sesión por IP compartida, y un 500 sin rastro | ✅ 2026-09-11 |
+| F6.2 | El techo de memoria de las nubes, dicho antes de empezar | ✅ 2026-09-11 |
+| F6.3 | `manage.py check` se niega en modo nube, y avisa de una raíz demasiado ancha en una máquina compartida | ✅ 2026-09-11 |
+| F6.4 | El despachador fuera del proceso web, en su propia unidad | ✅ 2026-09-11 |
+| F6.5 | Infraestructura: `gunicorn`, systemd, nginx, `desplegar.sh`, `/salud/` de verdad, `admin.py`, respaldo | ✅ 2026-09-11 |
+| F6.6 | `check --deploy` y `collectstatic` en el CI, y con el módulo correcto | ✅ 2026-09-11 |
+| F6.7 | Páginas de error (`404`, `500`, `403`, `400`) y el 410 de la salida caducada | ⬜ |
+| F6.8 | Instalar en la VM y el paseo de aceptación | ⬜ · espera a la máquina |
+| F6.9 | La subida por navegador, para los PDF pequeños | ⬜ · ya no bloquea |
 
 ---
 
