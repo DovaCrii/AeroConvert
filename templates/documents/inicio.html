@@ -9,12 +9,27 @@
   nombre a secas: «Dividir PDF» no dice si parte por hojas o por rangos, y esa es
   justamente la duda de quien llega.
 {% endcomment %}
+{% comment %}
+  Y una que hoy no se puede usar **sigue saliendo**, apagada y con el motivo. Ocultarla
+  haría parecer que nunca existió, que es la misma regla que con ECW en la matriz.
+{% endcomment %}
 <div class="herramientas">
   {% for herramienta in herramientas %}
-    <a class="herramienta" href="{% url herramienta.url %}">
-      <strong>{{ herramienta.nombre }}</strong>
-      <span>{{ herramienta.que_hace }}</span>
-    </a>
+    {% if herramienta.disponible %}
+      <a class="herramienta" href="{% url herramienta.url %}">
+        <strong>{{ herramienta.nombre }}</strong>
+        <span>{{ herramienta.que_hace }}</span>
+      </a>
+    {% else %}
+      <div class="herramienta herramienta-apagada">
+        <strong>{{ herramienta.nombre }}</strong>
+        <span>{{ herramienta.que_hace }}</span>
+        <span class="motivo">
+          <span aria-hidden="true">⊘</span> {{ herramienta.motivo }}
+          {% if herramienta.sugerencia %}<br>{{ herramienta.sugerencia }}{% endif %}
+        </span>
+      </div>
+    {% endif %}
   {% endfor %}
 </div>
 

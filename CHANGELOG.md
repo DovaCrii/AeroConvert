@@ -59,6 +59,22 @@ su sitio cuando ya salió bien — las mismas tres promesas que el resto de la a
   contraseña no se registra, no vuelve en la respuesta —ni cuando el intento falla, con
   prueba de centinela— y no viaja en la URL; y el aviso de que no se recupera está en la
   pantalla donde se decide, no en el recibo.
+- **Word, Excel y PowerPoint a PDF**, con el Office instalado en el equipo. Es a propósito y
+  no por comodidad: cualquier conversor propio reescribe el documento con sus propias
+  métricas y su propio motor de saltos, y entrega algo plausible y distinto. **Un anexo de
+  contrato que «se parece» al original no sirve.** Comprobado contra el PDF que alguien
+  exportó desde Word a mano sobre el mismo documento: mismas páginas, mismo formato, y el
+  texto idéntico salvo un espacio que el extractor infiere distinto.
+- **Sin ninguna dependencia nueva, y siempre en un proceso hijo.** El trabajo lo hace
+  PowerShell, que ya habla COM. Eso da de regalo lo que más importa: Word se cuelga de verdad
+  —una macro, un vínculo a una plantilla que ya no está— y dentro de Django se llevaría el
+  servidor por delante. Aquí se mata al hijo a los cinco minutos y se dice qué pasó.
+- **Y para Excel, encajar cada hoja a lo ancho de una página**, porque una hoja de cálculo no
+  tiene tamaño de papel. Medido sobre un libro real: **68 páginas sin ajustar, 6 ajustado**.
+  Esa cifra está escrita en la propia pantalla, junto a la casilla.
+- **Sin Office, la herramienta sale apagada y con el motivo**, nunca oculta — la misma regla
+  que con ECW en la matriz de motores. Y en modo nube no existe, porque en un servidor no hay
+  Office.
 - **Una entrada en la barra, no seis.** La barra es de secciones, y las de PDF son varias
   cosas dentro de una. Hay un índice con una tarjeta por herramienta y lo que hace en una
   línea, porque «Dividir PDF» a secas no dice si parte por hojas o por rangos.

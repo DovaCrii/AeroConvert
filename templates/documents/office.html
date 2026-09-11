@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block titulo %}Office a PDF · AeroConvert{% endblock %}
+
+{% block contenido %}
+
+{% if not office %}
+  {% comment %}
+    Sin Office no se oculta la pantalla: se explica. Y se dice **por qué es a propósito** que
+    dependa de él, porque si no parece una limitación tonta.
+  {% endcomment %}
+  <div class="tarjeta">
+    <div class="eyebrow">Ahora mismo no se puede</div>
+    <h2 style="font-size:1.1rem;">{{ office.motivo }}</h2>
+    <p class="tenue" style="margin:8px 0 0;">{{ office.sugerencia }}</p>
+  </div>
+{% else %}
+
+<form method="post">
+  {% csrf_token %}
+
+  <div class="tarjeta tarjeta-acento" style="margin-bottom:14px;">
+    <div class="eyebrow">El documento</div>
+    <h2 style="font-size:1.1rem;">¿Cuál hay que pasar a PDF?</h2>
+    <p class="tenue" style="margin:6px 0 10px;">
+      Vale {% for nombre in office.nombres %}{{ nombre }}{% if not forloop.last %}, {% endif %}{% endfor %}:
+      <code>{{ office.extensiones|join:"</code> <code>" }}</code>
+    </p>
+
+    <div class="soltar-campo">
+      <label class="visually-hidden" for="id_ruta">Ruta del documento</label>
+      <input type="text" name="ruta" id="id_ruta" class="form-control ruta"
+             value="{{ ruta_texto }}" autocomplete="off" spellcheck="false"
+             placeholder="D:\obras\entrega\informe.docx">
+      <button type="submit" class="boton">Pasar a PDF</button>
+    </div>
+
+    <p class="tenue" style="margin:10px 0 0; font-size:.85rem;">
+      Tarda unos segundos: por detrás se abre {{ office.nombres.0 }} de verdad, sin ventana.
+      El PDF sale junto al original, con el mismo nombre.
+    </p>
+  </div>
+
+  <div class="tarjeta" style="margin-bottom:14px;">
+    <div class="eyebrow">Si es una hoja de cálculo</div>
+    <label class="opcion">
+      <input type="checkbox" name="ajustar_ancho" value="si" {% if ajustar_ancho %}checked{% endif %}>
+      <span>
+        <strong>Encajar cada hoja a lo ancho de una página</strong>
+        <span class="tenue">
+          Una hoja de cálculo no tiene tamaño de papel, así que sin esto un libro ancho sale
+          partido en columnas. Medido sobre un libro real de esta oficina:
+          <strong>68 páginas sin ajustar, 6 ajustado</strong>.
+        </span>
+      </span>
+    </label>
+  </div>
+</form>
+
+{% if generado %}
+  <div class="tarjeta tarjeta-acento">
+    <div class="eyebrow">Hecho</div>
+    <div class="recibo">
+      <strong style="color:var(--av-ok);">✓ {{ cabecera.resumen|default:"Convertido" }}</strong>
+      <p style="margin:8px 0 0; font-family:ui-monospace, Consolas, monospace; font-size:.9rem;">
+        {{ generado.name }}
+      </p>
+      <p class="tenue" style="margin:10px 0 0;">Junto al original, que no se tocó.</p>
+    </div>
+  </div>
+{% endif %}
+
+{% endif %}
+{% endblock %}

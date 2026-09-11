@@ -44,16 +44,50 @@ def sesion(client, tmp_path, settings):
     return client
 
 
+@pytest.fixture
+def con_office():
+    """Finge que hay Office. Ver `test_office.py`."""
+    from django.core.cache import cache
+
+    from apps.documents import office
+
+    office.olvidar()
+    cache.set(office.CLAVE_DE_CACHE, office.Disponible(frozenset({"word", "excel", "powerpoint"})))
+    yield
+    office.olvidar()
+
+
+@pytest.fixture
+def sin_office(monkeypatch, settings):
+    from apps.documents import office
+
+    settings.MODO = "taller"
+    office.olvidar()
+    monkeypatch.setattr(office, "_registrado", lambda _prog: False)
+    yield
+    office.olvidar()
+
+
 class TestElIndice:
-    def test_carga_y_lista_las_herramientas(self, sesion):
+    def test_carga_y_lista_las_herramientas(self, sesion, con_office):
         cuerpo = sesion.get(reverse("documents:inicio")).content.decode()
         for herramienta in views.HERRAMIENTAS:
             assert herramienta["nombre"] in cuerpo
 
-    def test_cada_una_lleva_a_su_pantalla(self, sesion):
+    def test_cada_una_lleva_a_su_pantalla(self, sesion, con_office):
         cuerpo = sesion.get(reverse("documents:inicio")).content.decode()
         for herramienta in views.HERRAMIENTAS:
             assert reverse(herramienta["url"]) in cuerpo
+
+    def test_sin_office_la_tarjeta_sigue_saliendo_apagada_y_con_el_motivo(self, sesion, sin_office):
+        """Regla de la familia: una capacidad ausente **no se oculta**. Ocultarla haría
+        parecer que nunca existió."""
+        cuerpo = sesion.get(reverse("documents:inicio")).content.decode()
+        assert "Word, Excel o PowerPoint a PDF" in cuerpo
+        assert "herramienta-apagada" in cuerpo
+        assert "No hay Microsoft Office instalado" in cuerpo
+        # Y sin enlace, porque no lleva a ninguna parte util.
+        assert f'href="{reverse("documents:office")}"' not in cuerpo
 
     def test_dice_por_que_no_se_usa_una_web(self, sesion):
         """Es la razón de que esto exista: un plano bajo acuerdo de confidencialidad no
@@ -397,6 +431,46 @@ class TestMarcaDeAgua:
             follow=True,
         ).content.decode()
         assert "página(s)" not in cuerpo
+
+
+class TestOfficeAPdf:
+    def test_sin_office_la_pantalla_explica_en_vez_de_dar_un_403(self, sesion, sin_office):
+        cuerpo = sesion.get(reverse("documents:office")).content.decode()
+        assert "No hay Microsoft Office instalado" in cuerpo
+        # Y dice **por que** se depende de Office, o parece una limitacion tonta.
+        assert "se parece" in cuerpo
+
+    def test_ni_intenta_convertir_sin_office(self, sesion, sin_office, tmp_path):
+        origen = tmp_path / "informe.docx"
+        origen.write_bytes(b"x")
+        sesion.post(reverse("documents:office"), {"ruta": str(origen)})
+        assert not (tmp_path / "informe.pdf").exists()
+
+    def test_con_office_dice_que_extensiones_valen(self, sesion, con_office):
+        cuerpo = sesion.get(reverse("documents:office")).content.decode()
+        assert ".docx" in cuerpo
+        assert ".xlsx" in cuerpo
+
+    def test_y_explica_lo_del_ancho_de_excel_con_la_cifra_medida(self, sesion, con_office):
+        """La razón de la casilla es una cifra real de esta oficina, no una opinión."""
+        cuerpo = sesion.get(reverse("documents:office")).content.decode()
+        assert "68 páginas sin ajustar, 6 ajustado" in cuerpo
+
+    def test_algo_que_no_es_de_office_lo_dice(self, sesion, con_office, tmp_path):
+        plano = tmp_path / "plano.dwg"
+        plano.write_bytes(b"x")
+        cuerpo = sesion.post(
+            reverse("documents:office"), {"ruta": str(plano)}, follow=True
+        ).content.decode()
+        assert "no es un documento de Office" in cuerpo
+
+    def test_una_ruta_fuera_de_las_raices(self, sesion, con_office):
+        cuerpo = sesion.post(
+            reverse("documents:office"),
+            {"ruta": "C:\\Windows\\System32\\config\\SAM"},
+            follow=True,
+        ).content.decode()
+        assert "Hecho" not in cuerpo
 
 
 class TestProteger:

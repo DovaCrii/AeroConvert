@@ -1027,6 +1027,30 @@ code {
   font-size: var(--av-fs-sm);
 }
 
+/*
+ * Una herramienta que hoy no se puede usar. **Se apaga, no se esconde**: ocultarla haría
+ * parecer que nunca existió. El motivo va escrito dentro, porque una tarjeta gris sin
+ * explicación se lee como un fallo de la aplicación.
+ *
+ * Y no basta con el color — regla de la familia: lleva además el símbolo ⊘ y el texto.
+ */
+.herramienta-apagada {
+  background: transparent;
+  border-style: dashed;
+  cursor: not-allowed;
+}
+
+.herramienta-apagada strong {
+  color: var(--av-text-secondary);
+  font-weight: 600;
+}
+
+.herramienta-apagada .motivo {
+  margin-top: 6px;
+  color: var(--av-warn);
+  font-size: var(--av-fs-sm);
+}
+
 /* --- La tira de miniaturas de un documento -------------------------------- */
 /*
  * Se desplaza en horizontal en vez de envolverse: son un vistazo para saber qué página es

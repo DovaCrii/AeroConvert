@@ -82,11 +82,6 @@ pendiente de hacerse en un puesto con licencia; es un procedimiento manual, igua
 
 Lo hecho está arriba. Lo que falta, con lo que cuesta cada cosa de verdad:
 
-- **Word, Excel y PowerPoint → PDF.** **Solo en modo taller**, y por COM contra el Office
-  instalado: es la única vía que respeta el formato de verdad. Cualquier conversor propio
-  entrega un documento que se parece al original, y un anexo de contrato que «se parece» no
-  sirve. Implica que la herramienta aparezca apagada con su motivo cuando no hay Office,
-  igual que ECW — **no que desaparezca**.
 - **PDF → Word.** Se puede hacer, pero **hay que decir en la pantalla lo que se va a
   recibir**: un PDF no guarda párrafos, guarda posiciones de letras. Lo que sale es editable
   y *no* es el documento original. Prometerlo sin el aviso es lo que hace que estas
@@ -196,6 +191,23 @@ desde cero, no como compromiso.
   girar, así que un pie de página dibujado «abajo» aparece **de canto en un lateral**. Lo
   resuelve `_encuadrar()` en `apps/documents/marcas.py` aplicándole al lienzo el giro
   contrario. Y la capa se dibuja **por página**, porque una entrega mezcla A4 con A1.
+- **Las tres aplicaciones de Office exportan a PDF de tres maneras distintas.** Word
+  `ExportAsFixedFormat(ruta, 17)`; Excel **invierte los argumentos**,
+  `ExportAsFixedFormat(0, ruta)`; y PowerPoint no traga ninguno de los dos desde PowerShell
+  —su firma tiene dieciséis parámetros opcionales y el enlace tardío no pasa el enum—, así
+  que va con `SaveAs(ruta, 32)`. Escribir esto de memoria falla.
+- **PowerPoint ignora `Visible = $false`.** La ventana se le abre en la cara a quien esté
+  usando el equipo si no se pasa `WithWindow = $false` al abrir la presentación.
+- **Hay que cerrar Office en un `finally`.** Un `WINWORD.EXE` huérfano se queda con el
+  archivo bloqueado y el intento siguiente falla sin decir por qué.
+- **`subprocess` con `text=True` decodifica con la página de códigos de Windows**, no con
+  UTF-8. Un Office en español devuelve «el documento pide una contraseÃ±a» — y el mensaje que
+  más falta hace es justo el que sale ilegible. Va con `encoding="utf-8", errors="replace"`.
+- **Bandit lee lo que sigue a `# nosec` como nombres de prueba.** Un `# nosec B404 -- porque
+  tal` suelta un aviso por cada palabra. La justificación va en la línea de arriba.
+- **Una hoja de cálculo no tiene tamaño de papel.** Medido en este repositorio: el mismo
+  libro sale en **68 páginas** sin ajustar y en **6** encajando cada hoja a lo ancho. No es
+  un PDF peor, es inservible.
 - **La posición de una marca solo se comprueba dibujándola.** Contrastarla con el mismo
   cálculo que la produjo no prueba nada. `test_marcas.py` pinta con PDFium y mira dónde cayó
   la tinta; y «tinta» es todo lo que no sea papel (umbral 250), no «negro»: una marca de agua

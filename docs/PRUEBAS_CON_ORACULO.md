@@ -275,6 +275,51 @@ y «marcada» signifiquen algo.
 Comprobado byte a byte en todas las operaciones anteriores. Las salidas se escribieron en la
 carpeta temporal de las pruebas, nunca junto a los originales.
 
+### 8. Office a PDF, contra el PDF que exportó Word a mano
+
+Este tiene **el mejor oráculo de toda la corrida**, y fue suerte: en la carpeta de una minuta
+está el `.docx` y, al lado, el PDF que alguien exportó desde Word en su día. Si lo que sale
+por la aplicación coincide con eso, lo que se entrega es lo mismo que se entregaría a mano.
+
+`Minuta 002 Reunión Tecnico Contractual 05-11-2025.docx` → PDF, en **16,7 s**:
+
+| | Mío | El exportado a mano |
+| --- | --- | --- |
+| Páginas | 6 | 6 |
+| Formato y orientación | Carta vertical ×6 | Carta vertical ×6 |
+| Páginas idénticas palabra por palabra | 1, 2, 3, 4, 6 | |
+| Texto total | 9.100 caracteres | 9.099 |
+
+**La diferencia es un solo espacio**, en la página 5. Ignorando los espacios, los dos textos
+son idénticos carácter por carácter — así que no es contenido ni maquetación: es el
+extractor de pypdf infiriendo un espacio donde el otro no lo pone. (El `.docx` además se
+guardó cuatro segundos *después* de exportarse aquel PDF, así que ni siquiera es seguro que
+sean la misma revisión.)
+
+### 9. Excel, y por qué el ajuste de ancho no es un capricho
+
+El mismo libro de curvas de avance, exportado de las dos maneras:
+
+| | Páginas | Tiempo |
+| --- | ---: | ---: |
+| Tal cual | **68** | 7,5 s |
+| Encajando cada hoja a lo ancho de una página | **6** | 2,9 s |
+
+Una hoja de cálculo **no tiene tamaño de papel**. Sin ajustar, el libro sale partido en
+columnas por sesenta y ocho hojas, que no es un PDF peor: es un PDF inservible. Esa cifra
+—68 contra 6— es la que está escrita en la propia pantalla, junto a la casilla.
+
+### 10. PowerPoint, y la trampa de su firma
+
+`Organigrama CC 716.pptx` → 3 páginas de **339 × 190 mm apaisadas**, que es una presentación
+16:9. En 5,3 s.
+
+Costó un intento: `ExportAsFixedFormat` de PowerPoint tiene dieciséis parámetros opcionales y
+el enlace tardío de PowerShell no consigue pasarle el enum —responde *«no se puede convertir
+el valor 2 de tipo int al tipo Object»*—. Se hace con `SaveAs($ruta, 32)`, que tiene una
+firma simple. Word y Excel sí usan `ExportAsFixedFormat`, **y con los argumentos en orden
+distinto entre ellos**: Word `(ruta, tipo)`, Excel `(tipo, ruta)`.
+
 ---
 
 ## Lo que sigue sin oráculo, y se dice

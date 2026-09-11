@@ -43,6 +43,7 @@ from . import a_imagenes as a_imagenes_mod
 from . import dividir as dividir_mod
 from . import marcas as marcas_mod
 from . import miniaturas
+from . import office as office_mod
 from . import receta as receta_mod
 from . import seguridad as seguridad_mod
 from .composicion import GIROS, ComposicionInvalida, componer
@@ -187,12 +188,37 @@ HERRAMIENTAS = (
         "nombre": "Proteger PDF",
         "que_hace": "Le pone contraseña, con AES-256. O se la quita, si la sabes.",
     },
+    {
+        "id": "office",
+        "url": "documents:office",
+        "nombre": "Word, Excel o PowerPoint a PDF",
+        "que_hace": "Con el Office de tu equipo, así que sale idéntico al original.",
+        # La unica que depende de algo de fuera. Cuando no esta, la tarjeta **sigue
+        # saliendo**, apagada y con el motivo: ocultarla haria parecer que nunca existio.
+        "exige_office": True,
+    },
 )
 
 
 @login_required
 def inicio(request):
-    """El índice de herramientas de PDF."""
+    """El índice de herramientas de PDF.
+
+    Una herramienta que hoy no se puede usar **no desaparece**: sale apagada y diciendo por
+    qué. Es la misma regla que con ECW en la matriz de motores.
+    """
+    office = office_mod.sondar()
+    herramientas = []
+    for herramienta in HERRAMIENTAS:
+        fila = dict(herramienta)
+        if herramienta.get("exige_office"):
+            fila["disponible"] = bool(office)
+            fila["motivo"] = office.motivo
+            fila["sugerencia"] = office.sugerencia
+        else:
+            fila["disponible"] = True
+        herramientas.append(fila)
+
     return render(
         request,
         "documents/inicio.html",
@@ -204,7 +230,7 @@ def inicio(request):
                 "Todo pasa en tu equipo: los archivos no se copian, no se suben, y el "
                 "original nunca se toca."
             ),
-            "herramientas": HERRAMIENTAS,
+            "herramientas": herramientas,
         },
     )
 
@@ -703,6 +729,61 @@ def marca_vista(request):
     messages.success(request, f"{resultado.marcadas} página(s) marcadas en {destino.name}.")
     contexto["generado"] = destino
     return render(request, "documents/marca.html", contexto)
+
+
+@login_required
+def office_vista(request):
+    """Word, Excel o PowerPoint a PDF, con el Office instalado.
+
+    De un solo paso, a diferencia de las demás: no hay nada que previsualizar de un `.docx`
+    sin abrirlo, y abrirlo ya es la conversión.
+    """
+    office = office_mod.sondar()
+    contexto = {
+        "seccion": "pdf",
+        "etiqueta_seccion": "PDF",
+        "titulo_pagina": "Word, Excel o PowerPoint a PDF",
+        "proposito": (
+            "Lo convierte el Office de tu equipo, así que el PDF sale idéntico al original."
+        ),
+        "office": office,
+        "ruta_texto": (request.GET.get("ruta") or "").strip(),
+        "ajustar_ancho": True,
+    }
+
+    if request.method != "POST" or not office:
+        return render(request, "documents/office.html", contexto)
+
+    contexto["ruta_texto"] = (request.POST.get("ruta") or "").strip().strip('"')
+    contexto["ajustar_ancho"] = request.POST.get("ajustar_ancho") == "si"
+
+    try:
+        ruta = modo_mod.comprobar_ruta(contexto["ruta_texto"])
+    except modo_mod.RutaNoPermitida as fallo:
+        messages.error(request, str(fallo))
+        return render(request, "documents/office.html", contexto)
+
+    contexto["ruta_texto"] = str(ruta)
+    destino = ruta.with_suffix(".pdf")
+    parcial = ruta_parcial(destino)
+
+    try:
+        office_mod.convertir(ruta, parcial, ajustar_ancho=contexto["ajustar_ancho"])
+    except ComposicionInvalida as fallo:
+        parcial.unlink(missing_ok=True)
+        messages.error(request, str(fallo))
+        return render(request, "documents/office.html", contexto)
+
+    os.replace(parcial, destino)
+    try:
+        cabecera = lectura_pdf.leer_cabecera(destino)
+        contexto["cabecera"] = cabecera
+        messages.success(request, f"{cabecera.resumen} en {destino.name}.")
+    except lectura_pdf.NoEsPdf:  # pragma: no cover -- Office acaba de escribirlo
+        messages.success(request, f"Hecho: {destino.name}.")
+
+    contexto["generado"] = destino
+    return render(request, "documents/office.html", contexto)
 
 
 def _entero(crudo, por_omision: int) -> int:

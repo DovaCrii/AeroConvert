@@ -92,7 +92,7 @@ sería pedir que alguien espere a un proceso en segundo plano para reordenar tre
 | F5.5 | PDF → JPG/PNG con resolución elegida y tope de lado | ✅ 2026-09-11 |
 | F5.6 | Proteger y desproteger, **solo AES-256** | ✅ 2026-09-11 |
 | F5.7 | Números de página y marca de agua, con la geometría del giro resuelta | ✅ 2026-09-11 |
-| F5.8 | Word/Excel/PowerPoint → PDF por COM, **solo en taller** | ⬜ |
+| F5.8 | Word/Excel/PowerPoint → PDF por COM, **solo en taller** | ✅ 2026-09-11 |
 | F5.9 | PDF → Word, con el aviso de qué se recibe de verdad | ⬜ |
 | F5.10 | Comprimir, con vista previa antes de escribir | ⬜ |
 | F5.11 | OCR con Tesseract sondeado, no declarado | ⬜ |
