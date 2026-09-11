@@ -41,6 +41,7 @@ from apps.formats import pdf as lectura_pdf
 
 from . import a_imagenes as a_imagenes_mod
 from . import dividir as dividir_mod
+from . import marcas as marcas_mod
 from . import miniaturas
 from . import receta as receta_mod
 from . import seguridad as seguridad_mod
@@ -167,6 +168,18 @@ HERRAMIENTAS = (
         "url": "documents:a_imagenes",
         "nombre": "PDF a imágenes",
         "que_hace": "Una lámina como JPG o PNG, para meterla en un informe o en una diapositiva.",
+    },
+    {
+        "id": "numerar",
+        "url": "documents:numerar",
+        "nombre": "Numerar páginas",
+        "que_hace": ("Pone «3 / 56» en cada hoja. Sin numerar la portada, si no quieres."),
+    },
+    {
+        "id": "marca",
+        "url": "documents:marca",
+        "nombre": "Marca de agua",
+        "que_hace": "Estampa «BORRADOR» o «CONFIDENCIAL» cruzando cada página.",
     },
     {
         "id": "proteger",
@@ -567,6 +580,138 @@ def proteger_vista(request):
     contexto["generado"] = destino
     contexto["hecho"] = accion
     return render(request, "documents/proteger.html", contexto)
+
+
+@login_required
+def numerar_vista(request):
+    """Poner el número de página.
+
+    Es lo que casi siempre hace falta **justo después de unir**: una entrega hecha de cinco
+    PDF no tiene numeración, porque cada uno traía la suya.
+    """
+    contexto = {
+        "seccion": "pdf",
+        "etiqueta_seccion": "PDF",
+        "titulo_pagina": "Numerar las páginas",
+        "proposito": "Pone el número en cada hoja, respetando el tamaño y el giro de cada una.",
+        "ruta_texto": (request.GET.get("ruta") or "").strip(),
+        "posiciones": marcas_mod.POSICIONES,
+        "formatos": marcas_mod.FORMATOS,
+        "posicion": "pie-derecha",
+        "formato": "{n} / {total}",
+        "desde": 1,
+        "empezar_en": 1,
+    }
+
+    if request.method != "POST":
+        return render(request, "documents/numerar.html", contexto)
+
+    contexto["posicion"] = request.POST.get("posicion") or "pie-derecha"
+    contexto["formato"] = request.POST.get("formato") or "{n} / {total}"
+    contexto["desde"] = _entero(request.POST.get("desde"), 1)
+    contexto["empezar_en"] = _entero(request.POST.get("empezar_en"), 1)
+
+    cabecera, ruta, error = _mirar_pdf(request.POST.get("ruta"))
+    if error:
+        messages.error(request, error)
+        return render(request, "documents/numerar.html", contexto)
+
+    contexto["ruta_texto"] = contexto["ruta"] = str(ruta)
+    contexto["cabecera"] = cabecera
+
+    if request.POST.get("accion") != "numerar":
+        return render(request, "documents/numerar.html", contexto)
+
+    destino = ruta.with_name(f"{ruta.stem}_numerado.pdf")
+    parcial = ruta_parcial(destino)
+    try:
+        resultado = marcas_mod.numerar(
+            ruta,
+            parcial,
+            posicion=contexto["posicion"],
+            formato=contexto["formato"],
+            desde=contexto["desde"],
+            empezar_en=contexto["empezar_en"],
+        )
+    except ComposicionInvalida as fallo:
+        parcial.unlink(missing_ok=True)
+        messages.error(request, str(fallo))
+        return render(request, "documents/numerar.html", contexto)
+
+    os.replace(parcial, destino)
+    messages.success(request, f"{resultado.marcadas} página(s) numeradas en {destino.name}.")
+    contexto["generado"] = destino
+    contexto["resultado"] = resultado
+    return render(request, "documents/numerar.html", contexto)
+
+
+@login_required
+def marca_vista(request):
+    """Estampar un texto cruzando cada página.
+
+    Un plano que se emite para revisión tiene que ir marcado: uno sin marca que circula por
+    correo acaba en obra como si estuviera aprobado.
+    """
+    contexto = {
+        "seccion": "pdf",
+        "etiqueta_seccion": "PDF",
+        "titulo_pagina": "Marca de agua",
+        "proposito": "Estampa un texto en todas las páginas, sin tapar lo que hay debajo.",
+        "ruta_texto": (request.GET.get("ruta") or "").strip(),
+        "opacidades": marcas_mod.OPACIDADES,
+        "sugerencias": ("BORRADOR", "CONFIDENCIAL", "NO VÁLIDO PARA CONSTRUCCIÓN", "COPIA"),
+        "texto": "",
+        "opacidad": "normal",
+        "diagonal": True,
+        "maximo": marcas_mod.MAXIMO_TEXTO,
+    }
+
+    if request.method != "POST":
+        return render(request, "documents/marca.html", contexto)
+
+    contexto["texto"] = (request.POST.get("texto") or "").strip()
+    contexto["opacidad"] = request.POST.get("opacidad") or "normal"
+    contexto["diagonal"] = request.POST.get("orientacion") != "horizontal"
+
+    cabecera, ruta, error = _mirar_pdf(request.POST.get("ruta"))
+    if error:
+        messages.error(request, error)
+        return render(request, "documents/marca.html", contexto)
+
+    contexto["ruta_texto"] = contexto["ruta"] = str(ruta)
+    contexto["cabecera"] = cabecera
+
+    if request.POST.get("accion") != "marcar":
+        return render(request, "documents/marca.html", contexto)
+
+    destino = ruta.with_name(f"{ruta.stem}_marcado.pdf")
+    parcial = ruta_parcial(destino)
+    try:
+        resultado = marcas_mod.marca_de_agua(
+            ruta,
+            parcial,
+            contexto["texto"],
+            opacidad=contexto["opacidad"],
+            diagonal=contexto["diagonal"],
+        )
+    except ComposicionInvalida as fallo:
+        parcial.unlink(missing_ok=True)
+        messages.error(request, str(fallo))
+        return render(request, "documents/marca.html", contexto)
+
+    os.replace(parcial, destino)
+    messages.success(request, f"{resultado.marcadas} página(s) marcadas en {destino.name}.")
+    contexto["generado"] = destino
+    return render(request, "documents/marca.html", contexto)
+
+
+def _entero(crudo, por_omision: int) -> int:
+    """Un entero del formulario, sin reventar. Un campo numérico es evadible desde fuera."""
+    try:
+        valor = int(crudo)
+    except (TypeError, ValueError):
+        return por_omision
+    return valor if valor >= 1 else por_omision
 
 
 def _mirar_pdf(crudo):

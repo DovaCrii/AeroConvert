@@ -1083,6 +1083,17 @@ code {
   font-size: var(--av-fs-sm);
 }
 
+/*
+ * Dos campos que se leen juntos — «desde la hoja N» y «poniendo el número M» —, uno al lado
+ * del otro porque separados invitan a rellenar solo uno. Se apilan en cuanto no caben: el
+ * mínimo de 14rem es lo que necesita la etiqueta sin partirse en tres líneas.
+ */
+.rejilla-dos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: 14px;
+}
+
 /* --- La lista de páginas de un PDF --------------------------------------- */
 /*
  * Una fila por página, con su orden a la izquierda y sus cuatro botones a la derecha.

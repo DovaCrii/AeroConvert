@@ -64,6 +64,17 @@ dependencies = [
     # pip-audit no analiza que se alcanza y que no, y bajar el piso para que pase una
     # corrida roja es justo lo que no se hace.
     "cryptography>=50,<51",
+    # reportlab **dibuja** la capa que se superpone: el numero de pagina y la marca de agua.
+    # pypdf sabe fusionar dos paginas, pero no sabe crear contenido nuevo, y pypdfium2
+    # dibuja mapas de bits -- convertir un plano vectorial en imagen para ponerle «3 / 56»
+    # abajo seria destruir el documento para anotarlo. Licencia **BSD**.
+    #
+    # La alternativa era escribir el flujo de contenido a mano: son unas sesenta lineas de
+    # `BT /F1 10 Tf ... Tj ET` y no compensa. El escapado del texto y las metricas de la
+    # fuente -- que es lo que permite centrar una cadena o ajustarla a la diagonal de la
+    # hoja -- habria que hacerlos tambien, y ahi es donde falla en silencio: un parentesis
+    # sin escapar en el texto de la marca rompe el PDF entero.
+    "reportlab>=4.2,<6",
 ]
 
 # GDAL, PDAL y el conversor de ECW **no van aca a proposito**. Son herramientas

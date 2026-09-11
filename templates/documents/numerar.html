@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block titulo %}Numerar páginas · AeroConvert{% endblock %}
+
+{% block contenido %}
+
+<form method="post">
+  {% csrf_token %}
+
+  <div class="tarjeta tarjeta-acento" style="margin-bottom:14px;">
+    <div class="eyebrow">El documento</div>
+    <h2 style="font-size:1.1rem;">¿Cuál hay que numerar?</h2>
+    <p class="tenue" style="margin:6px 0 10px;">
+      En el Explorador: clic derecho con <kbd>Mayús</kbd> → «Copiar como ruta».
+    </p>
+
+    <div class="soltar-campo">
+      <label class="visually-hidden" for="id_ruta">Ruta del PDF</label>
+      <input type="text" name="ruta" id="id_ruta" class="form-control ruta"
+             value="{{ ruta_texto }}" autocomplete="off" spellcheck="false"
+             placeholder="D:\obras\entrega\memoria.pdf">
+      <button type="submit" name="accion" value="mirar" class="boton">Ver el documento</button>
+    </div>
+  </div>
+
+  {% if cabecera %}
+    <input type="hidden" name="ruta" value="{{ ruta }}">
+
+    <div class="tarjeta" style="margin-bottom:14px;">
+      <div class="cabecera-tarjeta">
+        <div>
+          <div class="eyebrow">Lo que hay dentro</div>
+          <h2>{{ cabecera.resumen }}</h2>
+        </div>
+        <button type="submit" name="accion" value="numerar" class="boton">Numerar</button>
+      </div>
+
+      <fieldset style="border:0; padding:0; margin:14px 0 0;">
+        <legend class="eyebrow" style="padding:0;">Cómo se escribe</legend>
+        {% for patron, ejemplo in formatos.items %}
+          <label class="opcion">
+            <input type="radio" name="formato" value="{{ patron }}"
+                   {% if patron == formato %}checked{% endif %}>
+            <span>
+              <strong>{{ ejemplo }}</strong>
+            </span>
+          </label>
+        {% endfor %}
+      </fieldset>
+
+      <div style="margin:16px 0 0; max-width:26rem;">
+        <label class="eyebrow" for="id_posicion" style="display:block;">Dónde va</label>
+        <select name="posicion" id="id_posicion" class="form-control">
+          {% for clave, para_que in posiciones.items %}
+            <option value="{{ clave }}" {% if clave == posicion %}selected{% endif %}>
+              {{ para_que }}
+            </option>
+          {% endfor %}
+        </select>
+        <p class="tenue" style="margin:4px 0 0; font-size:.85rem;">
+          El número se coloca contra la hoja <strong>tal y como se ve</strong>, así que en una
+          lámina girada sale donde tiene que salir, no de canto en un lateral.
+        </p>
+      </div>
+
+      <div class="rejilla-dos" style="margin:16px 0 0; max-width:26rem;">
+        <div>
+          <label class="eyebrow" for="id_desde" style="display:block;">Empezar a numerar en la hoja</label>
+          <input type="number" name="desde" id="id_desde" class="form-control"
+                 value="{{ desde }}" min="1" max="{{ cabecera.cuantas }}">
+          <p class="tenue" style="margin:4px 0 0; font-size:.85rem;">
+            Pon 2 y la portada se queda sin número.
+          </p>
+        </div>
+        <div>
+          <label class="eyebrow" for="id_empezar_en" style="display:block;">Y que ahí ponga</label>
+          <input type="number" name="empezar_en" id="id_empezar_en" class="form-control"
+                 value="{{ empezar_en }}" min="1">
+          <p class="tenue" style="margin:4px 0 0; font-size:.85rem;">
+            Para un anexo que continúa otro documento.
+          </p>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+</form>
+
+{% if generado %}
+  <div class="tarjeta tarjeta-acento">
+    <div class="eyebrow">Hecho</div>
+    <div class="recibo">
+      <strong style="color:var(--av-ok);">✓ {{ resultado.marcadas }} de {{ resultado.paginas }} página(s)</strong>
+      <p style="margin:8px 0 0; font-family:ui-monospace, Consolas, monospace; font-size:.9rem;">
+        {{ generado.name }}
+      </p>
+      <p class="tenue" style="margin:10px 0 0;">Junto al original, que no se tocó.</p>
+    </div>
+  </div>
+{% endif %}
+{% endblock %}

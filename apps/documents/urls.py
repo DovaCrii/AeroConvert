@@ -14,6 +14,8 @@ urlpatterns = [
     path("dividir/", views.dividir_vista, name="dividir"),
     path("imagenes/", views.imagenes_vista, name="imagenes"),
     path("a-imagenes/", views.a_imagenes_vista, name="a_imagenes"),
+    path("numerar/", views.numerar_vista, name="numerar"),
+    path("marca/", views.marca_vista, name="marca"),
     path("proteger/", views.proteger_vista, name="proteger"),
     path("miniatura/", views.miniatura, name="miniatura"),
 ]

@@ -233,6 +233,172 @@ class TestPdfAImagenes:
         assert (tmp_path / "lamina_1.png").exists()
 
 
+class TestNumerar:
+    def _texto(self, ruta, pagina=1):
+        from pypdf import PdfReader
+
+        return PdfReader(str(ruta)).pages[pagina - 1].extract_text()
+
+    def test_numera_de_punta_a_punta(self, sesion, tmp_path):
+        memoria = _pdf(tmp_path, "memoria.pdf", 4)
+        sesion.post(
+            reverse("documents:numerar"),
+            {
+                "ruta": str(memoria),
+                "accion": "numerar",
+                "formato": "{n} / {total}",
+                "posicion": "pie-derecha",
+                "desde": "1",
+                "empezar_en": "1",
+            },
+        )
+        salida = tmp_path / "memoria_numerado.pdf"
+        assert "1 / 4" in self._texto(salida, 1)
+        assert "4 / 4" in self._texto(salida, 4)
+
+    def test_saltando_la_portada(self, sesion, tmp_path):
+        memoria = _pdf(tmp_path, "memoria.pdf", 4)
+        sesion.post(
+            reverse("documents:numerar"),
+            {
+                "ruta": str(memoria),
+                "accion": "numerar",
+                "formato": "{n}",
+                "posicion": "pie-centro",
+                "desde": "2",
+                "empezar_en": "1",
+            },
+        )
+        salida = tmp_path / "memoria_numerado.pdf"
+        assert self._texto(salida, 1).strip() == ""
+        assert "1" in self._texto(salida, 2)
+
+    def test_mirar_no_escribe_nada(self, sesion, tmp_path):
+        memoria = _pdf(tmp_path, "memoria.pdf", 4)
+        cuerpo = sesion.post(
+            reverse("documents:numerar"), {"ruta": str(memoria), "accion": "mirar"}
+        ).content.decode()
+        assert "4 página(s)" in cuerpo
+        assert not (tmp_path / "memoria_numerado.pdf").exists()
+
+    def test_un_numero_disparatado_en_el_campo_no_revienta(self, sesion, tmp_path):
+        """Un campo numérico es evadible desde fuera del navegador."""
+        memoria = _pdf(tmp_path, "memoria.pdf", 3)
+        respuesta = sesion.post(
+            reverse("documents:numerar"),
+            {
+                "ruta": str(memoria),
+                "accion": "numerar",
+                "desde": "pepe",
+                "empezar_en": "-4",
+                "formato": "{n}",
+            },
+        )
+        assert respuesta.status_code == 200
+        assert (tmp_path / "memoria_numerado.pdf").exists()
+
+    def test_empezar_mas_alla_del_final_lo_dice_y_no_escribe(self, sesion, tmp_path):
+        memoria = _pdf(tmp_path, "memoria.pdf", 3)
+        cuerpo = sesion.post(
+            reverse("documents:numerar"),
+            {"ruta": str(memoria), "accion": "numerar", "desde": "40", "formato": "{n}"},
+            follow=True,
+        ).content.decode()
+        assert "no se puede empezar" in cuerpo
+        assert not (tmp_path / "memoria_numerado.pdf").exists()
+        assert list(tmp_path.glob("*parcial*")) == []
+
+    def test_el_original_no_se_toca(self, sesion, tmp_path):
+        memoria = _pdf(tmp_path, "memoria.pdf", 3)
+        antes = memoria.read_bytes()
+        sesion.post(
+            reverse("documents:numerar"),
+            {"ruta": str(memoria), "accion": "numerar", "formato": "{n}"},
+        )
+        assert memoria.read_bytes() == antes
+
+    def test_una_ruta_fuera_de_las_raices(self, sesion):
+        cuerpo = sesion.post(
+            reverse("documents:numerar"),
+            {"ruta": "C:\\Windows\\System32\\config\\SAM", "accion": "numerar"},
+            follow=True,
+        ).content.decode()
+        assert "página(s)" not in cuerpo
+
+
+class TestMarcaDeAgua:
+    def _texto(self, ruta, pagina=1):
+        from pypdf import PdfReader
+
+        return PdfReader(str(ruta)).pages[pagina - 1].extract_text()
+
+    def test_marca_todas_las_paginas(self, sesion, tmp_path):
+        plano = _pdf(tmp_path, "plano.pdf", 3)
+        sesion.post(
+            reverse("documents:marca"),
+            {
+                "ruta": str(plano),
+                "accion": "marcar",
+                "texto": "BORRADOR",
+                "opacidad": "normal",
+                "orientacion": "diagonal",
+            },
+        )
+        salida = tmp_path / "plano_marcado.pdf"
+        for numero in (1, 2, 3):
+            assert "BORRADOR" in self._texto(salida, numero)
+
+    def test_horizontal_tambien(self, sesion, tmp_path):
+        plano = _pdf(tmp_path, "plano.pdf", 1)
+        sesion.post(
+            reverse("documents:marca"),
+            {
+                "ruta": str(plano),
+                "accion": "marcar",
+                "texto": "COPIA",
+                "opacidad": "suave",
+                "orientacion": "horizontal",
+            },
+        )
+        assert "COPIA" in self._texto(tmp_path / "plano_marcado.pdf")
+
+    def test_sin_texto_lo_dice_y_no_escribe(self, sesion, tmp_path):
+        plano = _pdf(tmp_path, "plano.pdf", 1)
+        cuerpo = sesion.post(
+            reverse("documents:marca"),
+            {"ruta": str(plano), "accion": "marcar", "texto": "   "},
+            follow=True,
+        ).content.decode()
+        assert "No escribiste" in cuerpo
+        assert not (tmp_path / "plano_marcado.pdf").exists()
+        assert list(tmp_path.glob("*parcial*")) == []
+
+    def test_mirar_no_escribe_nada(self, sesion, tmp_path):
+        plano = _pdf(tmp_path, "plano.pdf", 2)
+        cuerpo = sesion.post(
+            reverse("documents:marca"), {"ruta": str(plano), "accion": "mirar"}
+        ).content.decode()
+        assert "2 página(s)" in cuerpo
+        assert not (tmp_path / "plano_marcado.pdf").exists()
+
+    def test_el_original_no_se_toca(self, sesion, tmp_path):
+        plano = _pdf(tmp_path, "plano.pdf", 2)
+        antes = plano.read_bytes()
+        sesion.post(
+            reverse("documents:marca"),
+            {"ruta": str(plano), "accion": "marcar", "texto": "CONFIDENCIAL"},
+        )
+        assert plano.read_bytes() == antes
+
+    def test_una_ruta_fuera_de_las_raices(self, sesion):
+        cuerpo = sesion.post(
+            reverse("documents:marca"),
+            {"ruta": "C:\\Windows\\System32\\config\\SAM", "accion": "marcar", "texto": "COPIA"},
+            follow=True,
+        ).content.decode()
+        assert "página(s)" not in cuerpo
+
+
 class TestProteger:
     CLAVE = "obra-2026-bhp"
 

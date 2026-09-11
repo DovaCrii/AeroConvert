@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+
+{% block titulo %}Marca de agua · AeroConvert{% endblock %}
+
+{% block contenido %}
+
+<form method="post">
+  {% csrf_token %}
+
+  <div class="tarjeta tarjeta-acento" style="margin-bottom:14px;">
+    <div class="eyebrow">El documento</div>
+    <h2 style="font-size:1.1rem;">¿Cuál hay que marcar?</h2>
+    <p class="tenue" style="margin:6px 0 10px;">
+      En el Explorador: clic derecho con <kbd>Mayús</kbd> → «Copiar como ruta».
+    </p>
+
+    <div class="soltar-campo">
+      <label class="visually-hidden" for="id_ruta">Ruta del PDF</label>
+      <input type="text" name="ruta" id="id_ruta" class="form-control ruta"
+             value="{{ ruta_texto }}" autocomplete="off" spellcheck="false"
+             placeholder="D:\obras\entrega\plano.pdf">
+      <button type="submit" name="accion" value="mirar" class="boton">Ver el documento</button>
+    </div>
+  </div>
+
+  {% if cabecera %}
+    <input type="hidden" name="ruta" value="{{ ruta }}">
+
+    <div class="tarjeta" style="margin-bottom:14px;">
+      <div class="cabecera-tarjeta">
+        <div>
+          <div class="eyebrow">Lo que hay dentro</div>
+          <h2>{{ cabecera.resumen }}</h2>
+        </div>
+        <button type="submit" name="accion" value="marcar" class="boton">Marcar</button>
+      </div>
+
+      <div style="margin:14px 0 0; max-width:26rem;">
+        <label class="eyebrow" for="id_texto" style="display:block;">Qué tiene que decir</label>
+        <input type="text" name="texto" id="id_texto" class="form-control"
+               value="{{ texto }}" maxlength="{{ maximo }}" autocomplete="off"
+               placeholder="BORRADOR">
+        <p class="tenue" style="margin:6px 0 0; font-size:.85rem;">
+          Lo habitual:
+          {% for sugerencia in sugerencias %}<code>{{ sugerencia }}</code>{% if not forloop.last %} · {% endif %}{% endfor %}
+        </p>
+      </div>
+
+      <fieldset style="border:0; padding:0; margin:16px 0 0;">
+        <legend class="eyebrow" style="padding:0;">Cuánto se tiene que ver</legend>
+        {% comment %}
+          Tres valores medidos y no un deslizador: al 100 % la marca tapa las cotas del plano,
+          que es exactamente lo que no se puede hacer con un documento técnico.
+        {% endcomment %}
+        <label class="opcion">
+          <input type="radio" name="opacidad" value="suave" {% if opacidad == 'suave' %}checked{% endif %}>
+          <span>
+            <strong>Suave</strong>
+            <span class="tenue">Se intuye. Para un documento que se va a leer con detalle.</span>
+          </span>
+        </label>
+        <label class="opcion">
+          <input type="radio" name="opacidad" value="normal" {% if opacidad == 'normal' %}checked{% endif %}>
+          <span>
+            <strong>Normal</strong>
+            <span class="tenue">Se lee de un vistazo y deja ver lo que hay debajo.</span>
+          </span>
+        </label>
+        <label class="opcion">
+          <input type="radio" name="opacidad" value="marcada" {% if opacidad == 'marcada' %}checked{% endif %}>
+          <span>
+            <strong>Marcada</strong>
+            <span class="tenue">No hay forma de pasarla por alto. Puede molestar sobre cotas.</span>
+          </span>
+        </label>
+      </fieldset>
+
+      <fieldset style="border:0; padding:0; margin:16px 0 0;">
+        <legend class="eyebrow" style="padding:0;">Cómo se cruza</legend>
+        <label class="opcion">
+          <input type="radio" name="orientacion" value="diagonal" {% if diagonal %}checked{% endif %}>
+          <span>
+            <strong>En diagonal</strong>
+            <span class="tenue">
+              Por la diagonal de la hoja, así que ocupa lo mismo en un A4 que en un A1 apaisado.
+            </span>
+          </span>
+        </label>
+        <label class="opcion">
+          <input type="radio" name="orientacion" value="horizontal" {% if not diagonal %}checked{% endif %}>
+          <span>
+            <strong>Horizontal</strong>
+            <span class="tenue">Recta, de lado a lado.</span>
+          </span>
+        </label>
+      </fieldset>
+    </div>
+  {% endif %}
+</form>
+
+{% if generado %}
+  <div class="tarjeta tarjeta-acento">
+    <div class="eyebrow">Hecho</div>
+    <div class="recibo">
+      <strong style="color:var(--av-ok);">✓ Marcado</strong>
+      <p style="margin:8px 0 0; font-family:ui-monospace, Consolas, monospace; font-size:.9rem;">
+        {{ generado.name }}
+      </p>
+      <p class="tenue" style="margin:10px 0 0;">Junto al original, que no se tocó.</p>
+    </div>
+  </div>
+{% endif %}
+{% endblock %}
