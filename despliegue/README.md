@@ -160,8 +160,13 @@ Y el entorno virtual, con el Python de `/opt` y **no** con el de `/home`:
 sudo -u aeroconvert env UV_PYTHON_INSTALL_DIR=/opt/python \
      /home/levdigital01/.local/bin/uv venv --python 3.12 /opt/aeroconvert/.venv
 sudo -u aeroconvert env VIRTUAL_ENV=/opt/aeroconvert/.venv \
-     /home/levdigital01/.local/bin/uv sync --frozen --no-dev
+     /home/levdigital01/.local/bin/uv sync --frozen --no-dev --group despliegue
 ```
+
+**`--group despliegue` no es opcional: ahí vive `gunicorn`.** Está fuera de `dependencies`
+porque la estación de trabajo corre con `runserver` y no tiene por qué bajarse un servidor
+WSGI. Sin ese grupo, `uv sync` termina en verde, instala las veinte dependencias normales y
+el servicio falla al arrancar con un `ExecStart` que no existe.
 
 Lo que **no** puede faltar, porque sin ello el sitio devuelve 400 a todo y no dice por qué:
 `ALLOWED_HOSTS`, `CSRF_TRUSTED_ORIGINS`, `SECRET_KEY`.
