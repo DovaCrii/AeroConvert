@@ -35,9 +35,17 @@ TimeoutStopSec=60
 # y el sistema suele elegir al servidor web o a la base. El runner ve el codigo de salida y
 # lo cuenta como fallo del motor; si ni eso, `recoger_muertos()` lo recoge.
 #
-# La aritmetica esta en `apps/jobs/estimacion.py`: 105 MB por millon de puntos, medido. Con
-# esto ademas la comprobacion previa de memoria y el limite del sistema dicen lo mismo.
-MemoryMax=3G
+# La aritmetica esta en `apps/jobs/estimacion.py`: 105 MB por millon de puntos, medido. 8 GB
+# son unos 76 millones de puntos, que cubre de sobra lo que entra por la puerta.
+#
+# **Y la comprobacion previa lee este numero, no la RAM de la maquina.** `memoria_total_mb()`
+# mira el techo del grupo de control precisamente para eso: mirando los 22 GB fisicos
+# aceptaria un trabajo que este limite mata a media conversion, veinte minutos despues y sin
+# motivo escrito. Si se cambia este valor, la aplicacion se entera sola.
+#
+# El reparto de los 22 GB: ~2 el sistema, ~1,5 AeroControl, ~6 AeroLink con su PostgreSQL y
+# su MinIO, 2 el web de aqui y 8 este. No se reserva nada: es un techo, no una reserva.
+MemoryMax=8G
 MemorySwapMax=0
 
 # Una conversion de media hora no puede dejar la interfaz a tirones.

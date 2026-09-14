@@ -31,10 +31,13 @@ están más abajo.
 **Y Funnel admite tres puertos: 443, 8443 y 10000.** Eso evita el problema de montar varias
 aplicaciones Django bajo prefijos de ruta, que rompe todas las URL generadas:
 
+Comprobado el 2026-09-14, el reparto real —el tailnet es **`tailccd107`**—:
+
 ```
-https://p340.<tailnet>.ts.net          → AeroControl
-https://p340.<tailnet>.ts.net:8443     → AeroConvert
-https://p340.<tailnet>.ts.net:10000    → AeroBim, cuando toque
+https://p340.tailccd107.ts.net            → AeroControl   (127.0.0.1:8000)
+https://p340.tailccd107.ts.net/aerolink   → AeroLink      (127.0.0.1:8092)
+https://p340.tailccd107.ts.net:8443       → AeroConvert   (127.0.0.1:8001)   ← libre
+https://p340.tailccd107.ts.net:10000      → AeroBim, cuando toque
 ```
 
 Cada una montada en `/`, sin `FORCE_SCRIPT_NAME` y sin reescribir estáticos.
@@ -46,12 +49,20 @@ tailscale funnel --bg --https=8443 http://127.0.0.1:8001
 tailscale funnel status
 ```
 
+**Esto no toca lo que ya está publicado.** Cada puerto de Funnel es una entrada
+independiente: el 443 de AeroControl sigue igual, y quitar el 8443 mañana
+(`tailscale funnel --https=8443 off`) tampoco lo toca.
+
 Y en el `.env`, con el puerto:
 
 ```
-ALLOWED_HOSTS=p340.<tailnet>.ts.net
-CSRF_TRUSTED_ORIGINS=https://p340.<tailnet>.ts.net:8443
+ALLOWED_HOSTS=p340.tailccd107.ts.net
+CSRF_TRUSTED_ORIGINS=https://p340.tailccd107.ts.net:8443
 ```
+
+**`ALLOWED_HOSTS` sin el puerto y `CSRF_TRUSTED_ORIGINS` con él.** No es un descuido: Django
+compara el primero contra el nombre a secas y el segundo contra el origen entero. Puesto al
+revés, la pantalla de entrada acepta la contraseña y devuelve 403 al enviar el formulario.
 
 ### Lo que cambia por estar en internet abierto
 
@@ -71,11 +82,31 @@ CSRF_TRUSTED_ORIGINS=https://p340.<tailnet>.ts.net:8443
 
 ```bash
 sudo apt update
-sudo apt install -y python3.12 python3.12-venv gdal-bin pdal nginx cifs-utils
+sudo apt install -y gdal-bin nginx cifs-utils
 ```
 
 **Nunca `pip install gdal`**: la rueda de PyPI no trae los controladores que la aplicación
 sondea, y la matriz de compatibilidad saldría medio apagada sin decir por qué.
+
+**Dos ausencias en Ubuntu 26.04**, comprobadas el 2026-09-14:
+
+- **`python3.12` no está** — la distribución trae 3.14, y la aplicación pide `>=3.12,<3.13`.
+- **`pdal` tampoco está empaquetado.** Sin él las nubes de puntos salen apagadas con su
+  motivo escrito, como las dos de Office; las once herramientas de PDF, el ráster, el
+  vectorial y LandXML funcionan igual. **No bloquea el despliegue.** Si hace falta, se trae
+  de conda-forge, que es la vía que no arrastra medio sistema de compilación.
+
+Python lo pone `uv`, pero **fuera de `/home`**:
+
+```bash
+sudo mkdir -p /opt/python
+sudo env UV_PYTHON_INSTALL_DIR=/opt/python /home/levdigital01/.local/bin/uv python install 3.12
+```
+
+**El `/opt` importa.** Las dos unidades llevan `ProtectHome=yes`, así que para el usuario
+`aeroconvert` la carpeta `/home` sencillamente no existe. Un entorno virtual creado con el
+Python que `uv` guarda en `/home/levdigital01/.local/share/uv/` arranca perfectamente a mano
+y **falla al iniciar el servicio**, con un error que no menciona `/home` por ninguna parte.
 
 ```bash
 sudo useradd --system --home /opt/aeroconvert --shell /usr/sbin/nologin aeroconvert
@@ -102,12 +133,34 @@ ruta es un primitivo de lectura del disco.
 
 ## 3. El código y la configuración
 
+El repositorio es **privado**, y AeroControl ya resolvió esto con una clave SSH
+(`git@github.com:DovaCrii/AeroControl.git`). Aquí conviene **una clave propia y no la misma**:
+una clave de despliegue por aplicación se revoca sola el día que haga falta, sin dejar a las
+otras dos fuera.
+
 ```bash
-sudo -u aeroconvert git clone <el repositorio> /opt/aeroconvert
+sudo -u aeroconvert ssh-keygen -t ed25519 -f /opt/aeroconvert/.ssh/id_ed25519 -N ""
+sudo -u aeroconvert cat /opt/aeroconvert/.ssh/id_ed25519.pub
+```
+
+Esa clave pública se pega en GitHub, en **Settings → Deploy keys** del repositorio
+AeroConvert, **sin marcar «Allow write access»**: el servidor solo tiene que leer.
+
+```bash
+sudo -u aeroconvert git clone git@github.com:DovaCrii/AeroConvert.git /opt/aeroconvert
 cd /opt/aeroconvert
 sudo -u aeroconvert cp .env.example .env
 sudo -u aeroconvert nano .env      # descomenta el bloque «LA VM COMPARTIDA»
 sudo chmod 600 .env
+```
+
+Y el entorno virtual, con el Python de `/opt` y **no** con el de `/home`:
+
+```bash
+sudo -u aeroconvert env UV_PYTHON_INSTALL_DIR=/opt/python \
+     /home/levdigital01/.local/bin/uv venv --python 3.12 /opt/aeroconvert/.venv
+sudo -u aeroconvert env VIRTUAL_ENV=/opt/aeroconvert/.venv \
+     /home/levdigital01/.local/bin/uv sync --frozen --no-dev
 ```
 
 Lo que **no** puede faltar, porque sin ello el sitio devuelve 400 a todo y no dice por qué:

@@ -62,12 +62,24 @@ class TestElServicioWeb:
     def test_el_tiempo_maximo_es_explicito(self, web: str):
         assert "--timeout" in web
 
-    def test_escucha_en_un_socket_unix(self, web: str):
-        """**Es la premisa de seguridad de `apps/core/ip.py`.** Con un socket unix, la única
-        forma de llegar a la aplicación es a través de nginx, y por eso se puede confiar en
-        la cabecera que dice de dónde viene la petición. Con un puerto TCP, cualquiera en la
-        red puede mandarla a mano y el bloqueo por intentos fallidos se vuelve evadible."""
-        assert "--bind unix:" in web
+    def test_escucha_solo_en_el_bucle_local(self, web: str):
+        """**Es la premisa de seguridad de `apps/core/ip.py`.**
+
+        Las cabeceras que dicen de dónde viene una petición —`X-Forwarded-For` y
+        `Tailscale-Funnel-Request`— solo son creíbles si quien las pone es de confianza. En
+        `0.0.0.0` cualquiera de la red de la oficina las manda a mano y el bloqueo por
+        intentos fallidos se vuelve evadible; en `127.0.0.1` hay que estar **dentro** de la
+        máquina, y quien lo está ya tiene más poder que falsificar una cabecera.
+
+        Antes esto se conseguía con un socket de Unix, que además daba permisos de fichero.
+        Se cambió a TCP porque **Tailscale no sabe hablarle a un socket**: con él, nginx
+        dejaba de ser opcional y pasaba a ser obligatorio para que el sitio existiera
+        siquiera. Lo que se pierde es la defensa frente a un proceso ya dentro de la máquina
+        —por ejemplo un contenedor de AeroLink con `network_mode: host`—, y ahí sí habría que
+        volver al socket.
+        """
+        assert "--bind 127.0.0.1:" in web
+        assert "--bind 0.0.0.0" not in web
 
     def test_fija_el_modulo_de_ajustes(self, web: str):
         assert "DJANGO_SETTINGS_MODULE=config.settings.prod" in web

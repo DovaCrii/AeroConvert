@@ -8,6 +8,8 @@ Sin esta comprobación, una nube que no cabe no da un error: el sistema mata el 
 falta de memoria, y en un servidor compartido se lleva lo que el núcleo decida.
 """
 
+import os
+
 import pytest
 
 from apps.jobs import estimacion as est
@@ -43,6 +45,82 @@ class TestCuantaMemoriaTieneLaMaquina:
     def test_y_es_una_cifra_creible(self):
         # Entre 1 GB y 2 TB. Fuera de eso, la lectura esta mal.
         assert 1024 <= est.memoria_total_mb() <= 2_097_152
+
+
+class TestElTechoDelGrupoDeControl:
+    """En el servidor compartido manda `MemoryMax=`, no la RAM de la máquina.
+
+    Sin esto, la comprobación previa acepta un trabajo mirando los 22 GB de la máquina y el
+    grupo lo mata a los 8. El trabajo muere igual, pero **veinte minutos después y sin
+    motivo escrito**, que es exactamente lo que `_exigir_memoria` existe para evitar.
+    """
+
+    def _fingir(self, monkeypatch, tmp_path, ruta, topes):
+        """Finge /proc/self/cgroup y el arbol de /sys/fs/cgroup, de la hoja hacia la raiz.
+
+        No se toca `os.name`: leer el grupo no depende del sistema, solo de que existan los
+        ficheros. Asi estas pruebas corren igual en Windows y en Linux.
+        """
+        base = tmp_path / "cgroup"
+        self_cgroup = tmp_path / "self-cgroup"
+        self_cgroup.write_text(f"0::/{ruta}\n", encoding="utf-8")
+
+        actual = base / ruta
+        for tope in topes:
+            actual.mkdir(parents=True, exist_ok=True)
+            (actual / "memory.max").write_text(tope, encoding="utf-8")
+            actual = actual.parent
+
+        real = est.Path
+        sustitutos = {"/proc/self/cgroup": self_cgroup, "/sys/fs/cgroup": base}
+        monkeypatch.setattr(
+            est, "Path", lambda c, *a, **k: sustitutos.get(str(c)) or real(c, *a, **k)
+        )
+
+    def test_se_lee_el_tope_de_la_unidad(self, monkeypatch, tmp_path):
+        self._fingir(
+            monkeypatch, tmp_path, "system.slice/aeroconvert-obrero.service", ["8589934592", "max"]
+        )
+        assert est.limite_del_grupo_mb() == 8192
+
+    def test_gana_el_menor_de_la_cadena(self, monkeypatch, tmp_path):
+        """Una unidad puede pedir 8 GB dentro de un `.slice` que solo da 4."""
+        self._fingir(
+            monkeypatch,
+            tmp_path,
+            "system.slice/aeroconvert-obrero.service",
+            ["8589934592", "4294967296"],
+        )
+        assert est.limite_del_grupo_mb() == 4096
+
+    def test_sin_tope_no_dice_nada(self, monkeypatch, tmp_path):
+        """«max» en todos los niveles es lo normal fuera de systemd: entonces manda la RAM."""
+        self._fingir(monkeypatch, tmp_path, "user.slice", ["max", "max"])
+        assert est.limite_del_grupo_mb() == 0
+
+    def test_y_si_no_hay_cgroup_v2_no_se_adivina(self, monkeypatch, tmp_path):
+        """Mejor no mirar que mirar mal: en la v1 el formato es otro."""
+        v1 = tmp_path / "v1"
+        v1.write_text("7:memory:/system.slice/algo.service\n", encoding="utf-8")
+        real = est.Path
+        monkeypatch.setattr(
+            est,
+            "Path",
+            lambda c, *a, **k: v1 if str(c) == "/proc/self/cgroup" else real(c, *a, **k),
+        )
+        assert est.limite_del_grupo_mb() == 0
+
+    @pytest.mark.skipif(os.name == "nt", reason="Windows no tiene grupos de control")
+    def test_el_total_se_recorta_al_tope(self, monkeypatch):
+        """Lo que importa: `memoria_total_mb` devuelve el techo real, no la RAM."""
+        monkeypatch.setattr(est, "limite_del_grupo_mb", lambda: 8192)
+        assert est.memoria_total_mb() == 8192
+
+    @pytest.mark.skipif(os.name == "nt", reason="Windows no tiene grupos de control")
+    def test_pero_nunca_por_encima_de_la_maquina(self, monkeypatch):
+        """Un `MemoryMax` mayor que la RAM no crea memoria."""
+        monkeypatch.setattr(est, "limite_del_grupo_mb", lambda: 99_999_999)
+        assert est.memoria_total_mb() < 99_999_999
 
 
 class TestElTecho:

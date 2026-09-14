@@ -25,11 +25,15 @@ Environment=DJANGO_SETTINGS_MODULE=config.settings.prod
 # memoria y se llevan la maquina.
 Environment=AEROCONVERT_DESPACHADOR=0
 
-RuntimeDirectory=aeroconvert
-RuntimeDirectoryMode=0750
-
 # El binario del entorno virtual, no `uv run`: `uv run` querria resolver dependencias y
 # escribir en su cache en cada arranque, y con ProtectSystem=strict no puede.
+#
+# **TCP en el bucle local y no un socket de Unix.** El socket aisla mejor por permisos de
+# fichero, pero Tailscale no sabe hablarle: `tailscale funnel ... http://127.0.0.1:8001` es
+# lo unico que entiende. Con el socket, nginx dejaba de ser opcional y pasaba a ser
+# obligatorio -- y una pieza obligatoria mas es una pieza mas que puede faltar el dia de la
+# instalacion. En 127.0.0.1 no escucha nadie de la red de la oficina: la unica puerta sigue
+# siendo Funnel.
 #
 # `gthread` y no `sync`: el obrero `sync` solo avisa al arbitro **entre** peticiones, asi que
 # una descarga de varios gigabytes hace que gunicorn lo mate a mitad de la transferencia. El
@@ -39,7 +43,7 @@ RuntimeDirectoryMode=0750
 # Dos procesos por cuatro hilos son ocho peticiones a la vez con ~360 MB, en vez de tres con
 # ~540 MB. Los 180 MB que sobran son la mitad del margen que necesita PDAL.
 ExecStart=/opt/aeroconvert/.venv/bin/gunicorn config.wsgi:application \
-    --bind unix:/run/aeroconvert/gunicorn.sock \
+    --bind 127.0.0.1:8001 \
     --worker-class gthread --workers 2 --threads 4 \
     --timeout 120 --graceful-timeout 30 --keep-alive 5 \
     --forwarded-allow-ips '*' \
@@ -47,7 +51,11 @@ ExecStart=/opt/aeroconvert/.venv/bin/gunicorn config.wsgi:application \
 
 Restart=always
 RestartSec=3
-MemoryMax=1G
+
+# Ocho peticiones a la vez con ~360 MB, mas el margen de una subida de 200 MB que se escribe
+# a disco por trozos. 2G es holgado sin ser una invitacion: si el web empieza a rozar el
+# techo, algo pasa y es mejor que se reinicie a que crezca hasta molestar a los vecinos.
+MemoryMax=2G
 
 StandardOutput=journal
 StandardError=journal

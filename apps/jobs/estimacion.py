@@ -90,8 +90,53 @@ MB_POR_MILLON_DE_PUNTOS = 105.0
 FRACCION_DE_MEMORIA_UTIL = 0.8
 
 
+def limite_del_grupo_mb() -> int:
+    """El techo que impone systemd a **este** proceso. Cero si no hay ninguno.
+
+    ## Por qué no basta con la RAM de la máquina
+
+    En el servidor compartido, el obrero corre con `MemoryMax=` en su unidad. La memoria
+    física son 22 GB, pero el techo de su grupo de control puede ser 8: preguntar por la
+    primera **acepta un trabajo que el segundo mata a media conversión**, que es justo lo que
+    `_exigir_memoria` existe para evitar. La comprobación previa y el límite del sistema
+    tienen que decir lo mismo, y el único que lo sabe es el grupo.
+
+    Se recorre hacia arriba porque el techo efectivo es el **menor** de la cadena: una unidad
+    puede pedir 8 GB y estar dentro de un `.slice` que solo da 4.
+    """
+    try:
+        crudo = Path("/proc/self/cgroup").read_text(encoding="utf-8").strip()
+    except OSError:
+        return 0
+
+    # cgroup v2 escribe una sola línea, «0::/system.slice/lo-que-sea.service». La v1 escribe
+    # varias y con otro formato: ahí no se mira nada, que es mejor que mirar mal.
+    if not crudo.startswith("0::"):
+        return 0
+
+    base = Path("/sys/fs/cgroup")
+    actual = base / crudo.partition("0::")[2].strip().lstrip("/")
+    tope = 0
+    while actual == base or base in actual.parents:
+        try:
+            valor = (actual / "memory.max").read_text(encoding="utf-8").strip()
+        except OSError:
+            valor = ""
+        # «max» significa sin límite, y es lo normal en los niveles de arriba.
+        if valor.isdigit():
+            mb = int(valor) // 1_048_576
+            tope = mb if tope == 0 else min(tope, mb)
+        if actual == base:
+            break
+        actual = actual.parent
+    return tope
+
+
 def memoria_total_mb() -> int:
-    """Cuánta memoria tiene esta máquina. Cero si no se puede saber.
+    """Con cuánta memoria se puede contar aquí. Cero si no se puede saber.
+
+    No es «la RAM de la máquina»: es el menor entre esa y el techo del grupo de control, que
+    en el servidor compartido es el que manda. Ver `limite_del_grupo_mb`.
 
     Sin dependencias: `psutil` sería una más para leer un número que los dos sistemas
     ofrecen. Y devolver **cero** cuando no se sabe no es pereza — es lo que hace que la
@@ -99,7 +144,9 @@ def memoria_total_mb() -> int:
     """
     try:
         if os.name != "nt":
-            return int(os.sysconf("SC_PAGE_SIZE") * os.sysconf("SC_PHYS_PAGES") / 1_048_576)
+            fisica = int(os.sysconf("SC_PAGE_SIZE") * os.sysconf("SC_PHYS_PAGES") / 1_048_576)
+            techo = limite_del_grupo_mb()
+            return min(fisica, techo) if techo else fisica
 
         import ctypes
 

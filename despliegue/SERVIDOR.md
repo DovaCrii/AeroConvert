@@ -70,11 +70,14 @@ privada. Es una decisión tomada a propósito —acceso desde terreno— y tiene
 Funnel admite **tres puertos: 443, 8443 y 10000**. Eso evita montar varias aplicaciones Django
 bajo prefijos de ruta, que rompería todas las URL generadas:
 
+El tailnet es **`tailccd107`**. Reparto comprobado el 2026-09-14 con `tailscale funnel status`:
+
 | Aplicación | Interna | Pública |
 | --- | --- | --- |
-| **AeroControl** | `127.0.0.1:8000` | `https://p340.<tailnet>.ts.net` |
-| **AeroConvert** | `127.0.0.1:8001` | `https://p340.<tailnet>.ts.net:8443` |
-| **AeroBim** | `127.0.0.1:8002` *(previsto)* | `https://p340.<tailnet>.ts.net:10000` |
+| **AeroControl** | `127.0.0.1:8000` | `https://p340.tailccd107.ts.net` |
+| **AeroLink** | `127.0.0.1:8092` | `https://p340.tailccd107.ts.net/aerolink` |
+| **AeroConvert** | `127.0.0.1:8001` | `https://p340.tailccd107.ts.net:8443` |
+| **AeroBim** | `127.0.0.1:8002` *(previsto)* | `https://p340.tailccd107.ts.net:10000` |
 
 Cada una montada en `/`, sin `FORCE_SCRIPT_NAME` y sin reescribir estáticos.
 
@@ -120,8 +123,42 @@ Conviven **dos patrones**, y conviene saberlo antes de añadir el tercero:
 Puertos ocupados: `8000, 8081, 8090, 8092, 9000, 9001`. **Libres para lo siguiente: 8001,
 8002.**
 
-`uv` está en `/home/levdigital01/.local/bin/uv`, y **Python 3.12.13 ya está instalado por
-uv** — importante, porque Ubuntu 26.04 solo trae 3.14 y AeroConvert pide `>=3.12,<3.13`.
+`uv` está en `/home/levdigital01/.local/bin/uv`. **Ubuntu 26.04 solo trae Python 3.14**, y
+AeroConvert pide `>=3.12,<3.13`, así que el intérprete lo pone `uv` — pero **en `/opt/python`,
+no en `/home`**: las unidades llevan `ProtectHome=yes` y para el usuario de servicio `/home`
+no existe. Un entorno virtual apuntando al Python de `/home` arranca a mano y falla como
+servicio, con un error que no menciona `/home` por ningún lado.
+
+**PDAL no está empaquetado en 26.04** (`apt-cache policy pdal` no devuelve nada). Sin él las
+nubes de puntos salen apagadas con su motivo, igual que las dos herramientas de Office; el
+ráster, el vectorial, LandXML y las once de PDF funcionan. No bloquea nada.
+
+---
+
+## Qué separa a una aplicación de las otras
+
+Tres aplicaciones en una máquina comparten cuatro cosas —CPU, memoria, disco y red— y cada una
+es una forma distinta de que el fallo de una se lleve a las demás. Esto es lo que hay puesto,
+y lo que cada aplicación nueva debería copiar.
+
+| Recurso | Cómo se separa | Qué pasaría sin ello |
+| --- | --- | --- |
+| **Usuario** | Cada una corre como el suyo, de sistema y con `nologin`. `/opt/<app>` es de solo lectura para ella misma (`ProtectSystem=strict` + `ReadWritePaths` explícitos) | Un fallo de ruta en una escribiría en los datos de otra. Y el código no puede modificarse a sí mismo |
+| **Memoria** | `MemoryMax=` en cada unidad, y `MemorySwapMax=0` en el obrero | **Es el riesgo real de esta máquina.** Una nube de puntos grande sin techo hace que el matador del núcleo elija víctima, y suele elegir al servidor web o a PostgreSQL — o sea, a un vecino |
+| **CPU y disco** | `Nice=5` e `IOSchedulingPriority=6` en el obrero | Una conversión de media hora dejaría la interfaz de las otras dos a tirones |
+| **Procesos hijos** | `KillMode=control-group` | Al parar el obrero, un `gdal_translate` huérfano seguiría escribiendo un parcial que ya no reclama nadie |
+| **Puerto** | Cada una en `127.0.0.1:<suyo>`, **nunca en `0.0.0.0`** | Una segunda puerta sin TLS por la red de la oficina, esquivando Funnel |
+| **Publicación** | Un puerto de Funnel por aplicación | Bajar una tiraría a las otras. Así, `tailscale funnel --https=8443 off` solo apaga AeroConvert |
+| **Base de datos** | AeroConvert lleva su propio SQLite en `/var/lib/aeroconvert` | Compartir el PostgreSQL de AeroLink haría que su mantenimiento fuera parada de las tres |
+| **Reinicio** | `Restart=always` con `RestartSec` | Un cuelgue exigiría que alguien se dé cuenta |
+
+**Y la pieza que cierra el círculo:** `memoria_total_mb()` (`apps/jobs/estimacion.py`) lee el
+techo del **grupo de control**, no la RAM de la máquina. Sin eso, la comprobación previa miraba
+los 22 GB físicos y aceptaba un trabajo que `MemoryMax=8G` mata a media conversión — veinte
+minutos después y sin motivo escrito. Con eso, cambiar el número en la unidad basta: la
+aplicación se entera sola y rechaza por adelantado lo que no cabe, diciendo por qué.
+
+> **AeroBim, cuando entre:** copia la tabla. Lo único que no es opcional es `MemoryMax=`.
 
 ---
 
