@@ -28,8 +28,17 @@ MODO = config("AEROCONVERT_MODO", default=MODO_TALLER)
 # al arrancar, no aca, para poder dar un mensaje que se entienda.
 RAICES_PERMITIDAS = config("AEROCONVERT_RAICES_PERMITIDAS", default="")
 
-# Solo aplica en modo nube.
-TOPE_MB = config("AEROCONVERT_TOPE_MB", default=2048, cast=int)
+# El tope de lo que se sube por el navegador. **Los archivos grandes no suben**: llegan por
+# la carpeta compartida, que es reanudable y no pasa por HTTP. Esto es para los PDF y poco
+# mas, asi que 200 MB y no dos gigas: un tope bajo hace que una subida desbocada no pueda
+# importar.
+#
+# Se comprueba en tres sitios, y solo el ultimo es inevadible: `client_max_body_size` en
+# nginx, `apps/core/manejador.py` mientras llega, y `ArchivoSubido.clean()`.
+TOPE_MB = config("AEROCONVERT_TOPE_MB", default=200, cast=int)
+
+# El nuestro, que cuenta lo que llega y corta. Ver `apps/core/manejador.py`.
+FILE_UPLOAD_HANDLERS = ["apps.core.manejador.SubidaConTope"]
 
 # --- Retencion y disco -----------------------------------------------------
 # GDAL necesita un archivo de verdad, con acceso aleatorio: **algo toca disco siempre**. Lo

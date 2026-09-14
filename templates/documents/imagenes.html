@@ -4,20 +4,26 @@
 
 {% block contenido %}
 
-<form method="post">
+<form method="post" enctype="multipart/form-data">
   {% csrf_token %}
 
   <div class="tarjeta tarjeta-acento" style="margin-bottom:14px;">
     <div class="eyebrow">Las imágenes</div>
     <h2 style="font-size:1.1rem;">¿Cuáles y en qué orden?</h2>
     <p class="tenue" style="margin:6px 0 10px;">
-      Una ruta por línea. Cada imagen es una página, en el orden de la lista.
-      Se admiten {{ extensiones }}.
+      Cada imagen es una página, en el orden de la lista. Se admiten {{ extensiones }}.
     </p>
 
-    <label class="visually-hidden" for="id_imagenes">Rutas de las imágenes</label>
+    <label class="visually-hidden" for="id_subir">Elegir imágenes del equipo</label>
+    <input type="file" name="archivos" id="id_subir" class="form-control" multiple accept="image/*">
+    <p class="tenue" style="margin:6px 0 14px; font-size:.85rem;">
+      Se añaden a la lista de abajo, en el orden en que las elijas.
+    </p>
+
+    <label class="eyebrow" for="id_imagenes" style="display:block;">O pega sus rutas</label>
     <textarea name="archivos_texto" id="id_imagenes" class="form-control ruta" rows="5"
               spellcheck="false"
+              style="margin-top:4px;"
               placeholder="D:\obras\monografia\P1.jpg&#10;D:\obras\monografia\P2.jpg">{{ rutas_texto }}</textarea>
 
     <fieldset style="border:0; padding:0; margin:14px 0 0;">
@@ -57,8 +63,14 @@
     <div class="eyebrow">Hecho</div>
     <div class="recibo">
       <strong style="color:var(--av-ok);">✓ {{ generado.name }}</strong>
-      <p class="tenue" style="margin:8px 0 0; font-family:ui-monospace, Consolas, monospace;
-                              font-size:.85rem;">{{ generado }}</p>
+      {% if not solo_descarga %}
+        <p class="tenue" style="margin:8px 0 0; font-family:ui-monospace, Consolas, monospace;
+                                font-size:.85rem;">{{ generado }}</p>
+      {% endif %}
+      {% if descarga %}
+        <a class="boton" style="margin-top:10px; display:inline-block;"
+           href="{% url 'documents:descargar' descarga.pk %}">Descargar</a>
+      {% endif %}
     </div>
   </div>
 {% endif %}

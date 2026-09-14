@@ -31,11 +31,14 @@ from pathlib import Path
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import ValidationError
 from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseNotModified
 from django.shortcuts import redirect, render
 from django.views.decorators.http import require_POST
 
+from apps.core import entrada as entrada_mod
 from apps.core import modo as modo_mod
+from apps.core import subidas as subidas_mod
 from apps.engines.base import ruta_parcial
 from apps.formats import pdf as lectura_pdf
 
@@ -70,28 +73,23 @@ class Fila:
     girada: bool
 
 
-def _rutas_pedidas(texto: str) -> list[Path]:
-    """Una ruta por línea, comprobadas contra las raíces permitidas.
+def _origenes_pedidos(texto: str, usuario) -> list:
+    """Un origen por línea: una ruta del disco **o** un archivo subido.
+
+    Los dos conviven en el mismo campo de texto, y cuál es cuál lo dice el prefijo — nunca se
+    adivina. Ver `apps/core/entrada.py`.
 
     Se admiten comillas alrededor porque «Copiar como ruta» del Explorador las pone, y
     quitarlas a mano cada vez es exactamente el tipo de fricción que sobra.
     """
-    rutas: list[Path] = []
-    for linea in (texto or "").splitlines():
-        limpia = linea.strip().strip('"')
-        if not limpia:
-            continue
-        rutas.append(modo_mod.comprobar_ruta(limpia))
-        if len(rutas) >= MAXIMO_ARCHIVOS:
-            break
-    return rutas
+    return entrada_mod.resolver_varios(texto, usuario=usuario, maximo=MAXIMO_ARCHIVOS)
 
 
-def _filas(entradas, archivos: list[Path], cabeceras: dict[Path, object]) -> list[Fila]:
+def _filas(entradas, origenes: list, cabeceras: dict) -> list[Fila]:
     filas = []
     for indice, entrada in enumerate(entradas):
-        archivo = archivos[entrada.archivo]
-        cabecera = cabeceras.get(archivo)
+        origen = origenes[entrada.archivo]
+        cabecera = cabeceras.get(origen.ruta)
         etiqueta = ""
         if cabecera is not None and entrada.pagina <= len(cabecera.paginas):
             pagina = cabecera.paginas[entrada.pagina - 1]
@@ -103,8 +101,11 @@ def _filas(entradas, archivos: list[Path], cabeceras: dict[Path, object]) -> lis
         filas.append(
             Fila(
                 indice=indice,
-                nombre_archivo=archivo.name,
-                ruta=str(archivo),
+                nombre_archivo=origen.nombre,
+                # **El identificador, no la ruta.** Es lo que la plantilla mete en la URL de
+                # la miniatura, y devolver la ruta real de un archivo subido dejaría que el
+                # navegador la usara como si fuera una ruta del disco.
+                ruta=origen.token,
                 numero=entrada.pagina,
                 giro=entrada.giro,
                 etiqueta=etiqueta,
@@ -114,13 +115,13 @@ def _filas(entradas, archivos: list[Path], cabeceras: dict[Path, object]) -> lis
     return filas
 
 
-def _contexto(rutas: list[Path], entradas, extra: dict | None = None) -> dict:
-    cabeceras: dict[Path, object] = {}
-    for ruta in rutas:
+def _contexto(origenes: list, entradas, extra: dict | None = None) -> dict:
+    cabeceras: dict = {}
+    for origen in origenes:
         try:
-            cabeceras[ruta] = lectura_pdf.leer_cabecera(ruta)
+            cabeceras[origen.ruta] = lectura_pdf.leer_cabecera(origen.ruta)
         except lectura_pdf.NoEsPdf:
-            cabeceras[ruta] = None
+            cabeceras[origen.ruta] = None
 
     contexto = {
         "seccion": "pdf",
@@ -129,11 +130,13 @@ def _contexto(rutas: list[Path], entradas, extra: dict | None = None) -> dict:
         "proposito": (
             "Elige qué páginas entran, en qué orden, y gira las láminas que lo necesiten."
         ),
-        "archivos": [str(r) for r in rutas],
-        "nombres": [r.name for r in rutas],
+        "nombres": [o.nombre for o in origenes],
         "receta": receta_mod.a_texto(entradas),
-        "filas": _filas(entradas, rutas, cabeceras),
-        "rutas_texto": "\n".join(str(r) for r in rutas),
+        "filas": _filas(entradas, origenes, cabeceras),
+        # **Los identificadores, no las rutas.** Es la única línea de esta pantalla donde
+        # equivocarse sería una fuga: si aquí volviera la ruta de un archivo subido, el POST
+        # siguiente la trataría como una ruta del disco del servidor.
+        "rutas_texto": "\n".join(o.token for o in origenes),
     }
     contexto.update(extra or {})
     return contexto
@@ -256,33 +259,90 @@ def unir(request):
 @login_required
 @require_POST
 def componer_vista(request):
-    """Todas las acciones de la pantalla. Cuál se pidió lo dice `accion`."""
+    """Todas las acciones de la pantalla. Cuál se pidió lo dice `accion`.
+
+    **Los archivos subidos se añaden a la lista de texto y ahí se acaba su particularidad.**
+    Desde el segundo POST, la pantalla es exactamente tan sin estado como era: la lista viaja
+    entera en el campo, la receta indexa posiciones de esa lista, y `receta.py` no se entera
+    de que existen las subidas. Que el módulo cuyo docstring entero trata de la ausencia de
+    estado no haya tenido que cambiar es la mejor señal de que la costura está en su sitio.
+    """
+    texto = request.POST.get("archivos_texto", "")
+
+    # Con `enctype="multipart/form-data"`, **todos** los POST son multipart -- tambien los de
+    # subir, bajar y girar --, asi que aqui casi siempre no hay nada y hay que aguantarlo.
+    llegados = request.FILES.getlist("archivos")
+    if llegados:
+        try:
+            nuevas = subidas_mod.guardar_varios(llegados, usuario=request.user)
+        except ValidationError as fallo:
+            messages.error(request, "; ".join(fallo.messages))
+            return redirect("documents:unir")
+        texto = "\n".join(filter(None, [texto.strip(), *(s.token for s in nuevas)]))
+
     try:
-        rutas = _rutas_pedidas(request.POST.get("archivos_texto", ""))
+        origenes = _origenes_pedidos(texto, request.user)
     except modo_mod.RutaNoPermitida as fallo:
         messages.error(request, str(fallo))
         return redirect("documents:unir")
 
-    if not rutas:
+    if not origenes:
         messages.error(request, "No indicaste ningún archivo.")
         return redirect("documents:unir")
 
-    entradas = receta_mod.desde_texto(request.POST.get("receta", ""), len(rutas))
+    entradas = receta_mod.desde_texto(request.POST.get("receta", ""), len(origenes))
     accion, _, argumento = (request.POST.get("accion") or "").partition(":")
 
-    if accion == "analizar" or not entradas:
+    # Al añadir archivos, la receta anterior ya no describe la lista: se rehace.
+    if accion == "analizar" or llegados or not entradas:
         try:
-            entradas = _receta_inicial(rutas)
+            entradas = _receta_inicial(origenes)
         except ComposicionInvalida as fallo:
             messages.error(request, str(fallo))
-            return render(request, "documents/unir.html", _contexto(rutas, []))
+            return render(request, "documents/unir.html", _contexto(origenes, []))
     elif accion in ("subir", "bajar", "quitar", "girar"):
         indice = int(argumento) if argumento.isdigit() else -1
         entradas = getattr(receta_mod, accion)(entradas, indice)
     elif accion == "generar":
-        return _generar(request, rutas, entradas)
+        return _generar(request, origenes, entradas)
 
-    return render(request, "documents/unir.html", _contexto(rutas, entradas))
+    return render(request, "documents/unir.html", _contexto(origenes, entradas))
+
+
+@login_required
+def descargar(request, pk):
+    """Entrega un archivo que una de estas pantallas escribió.
+
+    **Por identificador y no por ruta**, y esa es toda la razón de que exista una fila. Una
+    vista que aceptara `?ruta=<absoluta>` convertiría una herramienta que escribe en lectura
+    de cualquier cosa del recurso compartido, por GET y sin testigo: pasaría la comprobación
+    de raíces —y por tanto sería «permitida»— y bastaría un enlace en un correo para sacar un
+    archivo a través del navegador de otra persona.
+
+    404 y no 403 cuando es de otro, por lo mismo que las fichas de trabajo: no confirmar que
+    un identificador ajeno es válido.
+    """
+    from django.http import FileResponse
+    from django.shortcuts import get_object_or_404
+
+    from apps.core.models import Resultado
+
+    fila = get_object_or_404(Resultado, pk=pk, owner=request.user)
+    ruta = Path(fila.ruta)
+
+    if not ruta.exists():
+        messages.error(
+            request,
+            f"{fila.nombre} ya no está donde se dejó. Puede que alguien lo haya movido desde "
+            "la carpeta compartida, o que ya se barriera.",
+        )
+        return redirect("documents:inicio")
+
+    return FileResponse(
+        open(ruta, "rb"),  # noqa: SIM115 - FileResponse se encarga de cerrarlo
+        as_attachment=True,
+        filename=fila.nombre,
+    )
 
 
 @login_required
@@ -295,13 +355,16 @@ def miniatura(request):
     ninguna otra vez. Guardarlas en disco traería una carpeta que crece, que hay que
     barrer, y que se queda obsoleta cuando el archivo cambia.
 
-    La ruta pasa por la misma puerta que la inspección: en taller, una ruta es lectura del
-    disco entero, y una vista que sirve imágenes no es excepción.
+    El origen pasa por la misma puerta que la inspección: una ruta es lectura del disco, y
+    una vista que sirve imágenes no es excepción. Con un archivo subido hay además algo que
+    antes no se podía hacer: **comprobar el dueño**, porque una subida sí tiene uno.
     """
     try:
-        ruta = modo_mod.comprobar_ruta((request.GET.get("ruta") or "").strip())
+        origen = entrada_mod.resolver(request.GET.get("ruta") or "", usuario=request.user)
     except modo_mod.RutaNoPermitida:
         return HttpResponseBadRequest("Ruta no permitida.")
+
+    ruta = origen.ruta
 
     try:
         pagina = int(request.GET.get("pagina", "1"))
@@ -331,31 +394,31 @@ def miniatura(request):
     return respuesta
 
 
-def _receta_inicial(rutas: list[Path]):
+def _receta_inicial(origenes: list):
     """Todas las páginas de todos los archivos, en el orden en que se pegaron."""
     entradas = []
-    for indice, ruta in enumerate(rutas):
+    for indice, origen in enumerate(origenes):
         try:
-            cabecera = lectura_pdf.leer_cabecera(ruta)
+            cabecera = lectura_pdf.leer_cabecera(origen.ruta)
         except lectura_pdf.NoEsPdf as fallo:
-            raise ComposicionInvalida(f"{ruta.name}: {fallo}") from fallo
+            raise ComposicionInvalida(f"{origen.nombre}: {fallo}") from fallo
         if cabecera.cifrado:
             raise ComposicionInvalida(
-                f"{ruta.name} pide contraseña. Ábrelo con ella y guárdalo sin ella."
+                f"{origen.nombre} pide contraseña. Ábrelo con ella y guárdalo sin ella."
             )
         entradas.extend(receta_mod.Entrada(indice, pagina.numero) for pagina in cabecera.paginas)
     return entradas
 
 
-def _generar(request, rutas: list[Path], entradas):
-    destino = _ruta_de_salida(rutas[0])
+def _generar(request, origenes: list, entradas):
+    destino = _ruta_de_salida(origenes[0])
     parcial = ruta_parcial(destino)
 
     try:
-        resultado = componer(receta_mod.a_paginas(entradas, rutas), parcial)
+        resultado = componer(receta_mod.a_paginas(entradas, [o.ruta for o in origenes]), parcial)
     except ComposicionInvalida as fallo:
         messages.error(request, str(fallo))
-        return render(request, "documents/unir.html", _contexto(rutas, entradas))
+        return render(request, "documents/unir.html", _contexto(origenes, entradas))
 
     # Igual que en el runner: se escribe en el parcial y solo se pone en su sitio cuando
     # ya salió bien. Un fallo a mitad no deja un PDF a medias con nombre de entregable.
@@ -368,7 +431,20 @@ def _generar(request, rutas: list[Path], entradas):
     return render(
         request,
         "documents/unir.html",
-        _contexto(rutas, entradas, {"generado": destino, "resultado": resultado}),
+        _contexto(
+            origenes,
+            entradas,
+            {
+                "generado": destino,
+                "resultado": resultado,
+                "descarga": subidas_mod.anotar_resultado(
+                    destino, usuario=request.user, herramienta="unir"
+                ),
+                # Si el origen era una subida, la ruta que se enseña es la de la VM y no
+                # sirve para pegarla en ningun sitio: lo unico util es el boton.
+                "solo_descarga": origenes[0].es_subida,
+            },
+        ),
     )
 
 
@@ -450,24 +526,39 @@ def imagenes_vista(request):
     if request.method != "POST":
         return render(request, "documents/imagenes.html", contexto)
 
-    contexto["rutas_texto"] = request.POST.get("archivos_texto", "")
+    texto = request.POST.get("archivos_texto", "")
     contexto["tamano"] = request.POST.get("tamano") or "a4"
 
+    llegadas = request.FILES.getlist("archivos")
+    if llegadas:
+        try:
+            nuevas = subidas_mod.guardar_varios(llegadas, usuario=request.user)
+        except ValidationError as fallo:
+            messages.error(request, "; ".join(fallo.messages))
+            return render(request, "documents/imagenes.html", contexto)
+        texto = "\n".join(filter(None, [texto.strip(), *(s.token for s in nuevas)]))
+
     try:
-        rutas = _rutas_pedidas(contexto["rutas_texto"])
+        origenes = _origenes_pedidos(texto, request.user)
     except modo_mod.RutaNoPermitida as fallo:
+        contexto["rutas_texto"] = texto
         messages.error(request, str(fallo))
         return render(request, "documents/imagenes.html", contexto)
 
-    if not rutas:
+    # Los identificadores, no las rutas: ver `_contexto` de unir.
+    contexto["rutas_texto"] = "\n".join(o.token for o in origenes)
+
+    if not origenes:
         messages.error(request, "No indicaste ninguna imagen.")
         return render(request, "documents/imagenes.html", contexto)
 
-    destino = rutas[0].with_name(f"{rutas[0].stem}_imagenes.pdf")
+    destino = _ruta_de_salida_de(origenes[0], "_imagenes.pdf")
     parcial = ruta_parcial(destino)
 
     try:
-        cuantas = dividir_mod.desde_imagenes(rutas, parcial, tamano=contexto["tamano"])
+        cuantas = dividir_mod.desde_imagenes(
+            [o.ruta for o in origenes], parcial, tamano=contexto["tamano"]
+        )
     except ComposicionInvalida as fallo:
         parcial.unlink(missing_ok=True)
         messages.error(request, str(fallo))
@@ -476,6 +567,10 @@ def imagenes_vista(request):
     os.replace(parcial, destino)
     messages.success(request, f"{cuantas} imagen(es) en {destino.name}.")
     contexto["generado"] = destino
+    contexto["descarga"] = subidas_mod.anotar_resultado(
+        destino, usuario=request.user, herramienta="imagenes"
+    )
+    contexto["solo_descarga"] = origenes[0].es_subida
     return render(request, "documents/imagenes.html", contexto)
 
 
@@ -879,10 +974,24 @@ def _mirar_pdf(crudo):
     return cabecera, ruta, None
 
 
-def _ruta_de_salida(primero: Path) -> Path:
-    """Junto al primer archivo, con un sufijo que dice qué es.
+def _ruta_de_salida_de(primero, sufijo: str) -> Path:
+    """Dónde se escribe el resultado. **La salida va donde estaba la entrada.**
 
-    El mismo criterio que el resto de la aplicación: quien compone una entrega la quiere
-    al lado de sus archivos, no perdida en un directorio del programa.
+    Si el primer archivo venía de una carpeta —la compartida o el disco de uno—, el
+    resultado va **al lado**: quien compone una entrega la quiere junto a sus archivos, no
+    perdida en un directorio del programa, y en la unidad de red ya la tiene montada.
+
+    Si venía de una subida, no hay «al lado» que valga: se escribe en la carpeta de trabajo y
+    se entrega por la vista de descarga, que comprueba el dueño.
     """
-    return primero.with_name(f"{primero.stem}_unido.pdf")
+    nombre = f"{Path(primero.nombre).stem}{sufijo}"
+    if primero.es_subida:
+        from apps.jobs import retencion
+
+        return retencion.carpeta_de_trabajo() / nombre
+    return primero.ruta.with_name(nombre)
+
+
+def _ruta_de_salida(primero) -> Path:
+    """La de «unir»."""
+    return _ruta_de_salida_de(primero, "_unido.pdf")

@@ -15,18 +15,36 @@
   desplazarse mientras se arrastra. Dos botones por fila funcionan siempre, se pueden
   tabular, y dicen lo que hacen.
 {% endcomment %}
-<form method="post" action="{% url 'documents:componer' %}">
+{% comment %}
+  `enctype` aunque casi ningún envío traiga archivos: con él, **todos** los POST son
+  multipart —también los de subir, bajar y girar—, y la vista lo aguanta. Sin él, el
+  `<input type="file">` no manda nada y el fallo es silencioso.
+{% endcomment %}
+<form method="post" action="{% url 'documents:componer' %}" enctype="multipart/form-data">
   {% csrf_token %}
 
   <div class="tarjeta tarjeta-acento" style="margin-bottom:14px;">
     <div class="eyebrow">Los archivos</div>
     <h2 style="font-size:1.1rem;">¿Qué PDF hay que juntar?</h2>
-    <p class="tenue" style="margin:6px 0 10px;">
-      Una ruta por línea, en el orden en que van. En el Explorador:
-      clic derecho con <kbd>Mayús</kbd> → «Copiar como ruta».
+
+    {% comment %}
+      Dos vías, y el orden importa: **primero la de elegir del equipo**, que es la que
+      espera quien llega, y después la de pegar rutas, que es la de los archivos que ya
+      están en la carpeta compartida.
+    {% endcomment %}
+    <label class="visually-hidden" for="id_subir">Elegir PDF del equipo</label>
+    <input type="file" name="archivos" id="id_subir" class="form-control"
+           multiple accept="application/pdf,.pdf">
+    <p class="tenue" style="margin:6px 0 14px; font-size:.85rem;">
+      Se añaden a la lista de abajo. Para un plano grande es mejor la otra vía: subir tarda,
+      y si ya está en la carpeta compartida no hace falta moverlo.
     </p>
 
-    <label class="visually-hidden" for="id_archivos">Rutas de los PDF</label>
+    <label class="eyebrow" for="id_archivos" style="display:block;">O pega sus rutas</label>
+    <p class="tenue" style="margin:4px 0 6px; font-size:.85rem;">
+      Una por línea, en el orden en que van. En el Explorador: clic derecho con
+      <kbd>Mayús</kbd> → «Copiar como ruta».
+    </p>
     <textarea name="archivos_texto" id="id_archivos" class="form-control ruta" rows="4"
               spellcheck="false"
               placeholder="D:\obras\entrega\memoria.pdf&#10;D:\obras\entrega\planos.pdf">{{ rutas_texto }}</textarea>
@@ -119,7 +137,12 @@
       <dl style="margin-top:8px;">
         <dt>Archivo</dt>
         <dd style="font-family:ui-monospace, Consolas, monospace; font-size:.85rem;">
-          {{ generado }}
+          {% comment %}
+            Si salió de archivos subidos, la ruta es la del servidor y no sirve para pegarla
+            en ninguna parte: el navegador está en el equipo de la persona. Ahí lo único útil
+            es el botón.
+          {% endcomment %}
+          {% if solo_descarga %}{{ generado.name }}{% else %}{{ generado }}{% endif %}
         </dd>
 
         <dt>Tamaño</dt>
@@ -132,6 +155,11 @@
           {% endfor %}
         </dd>
       </dl>
+
+      {% if descarga %}
+        <a class="boton" style="margin-top:10px; display:inline-block;"
+           href="{% url 'documents:descargar' descarga.pk %}">Descargar</a>
+      {% endif %}
     </div>
   </div>
 {% endif %}
