@@ -35,6 +35,8 @@
       <button type="submit" class="boton">Pasar a PDF</button>
     </div>
 
+    {% include "dashboard/_buscador.html" with destino="#id_ruta" %}
+
     <p class="tenue" style="margin:10px 0 0; font-size:.85rem;">
       Tarda unos segundos: por detrás se abre {{ office.nombres.0 }} de verdad, sin ventana.
       El PDF sale junto al original, con el mismo nombre.

@@ -1,0 +1,61 @@
+{% load static %}
+{% comment %}
+  La carpeta compartida, andada en vez de tecleada.
+
+  Cada carpeta es un botón de htmx que reemplaza este mismo fragmento, así que navegar no
+  recarga la página ni pierde lo que haya abajo. Cada archivo lleva su ruta en un
+  `data-ruta`, y quién la recibe lo decide el panel que envuelve esto — ver
+  `_buscador.html` y `static/js/explorador.js`.
+
+  **Nada de `onclick` aquí.** La CSP es `script-src 'self'` sin `unsafe-inline`: un manejador
+  en el atributo no se ejecuta y no avisa, que es el peor fallo posible.
+{% endcomment %}
+
+{% if sin_raices %}
+  <p class="tenue" style="margin:0;">
+    No hay ninguna carpeta compartida configurada en este equipo.
+  </p>
+{% elif error %}
+  <p class="error" style="margin:0;">{{ error }}</p>
+{% else %}
+
+  <nav class="migas" aria-label="Dónde estás">
+    {% for miga in migas %}
+      {% if not forloop.last %}
+        <button type="button" class="miga"
+                hx-get="{% url 'dashboard:explorar' %}?en={{ miga.ruta|urlencode }}"
+                hx-target="closest .explorador" hx-swap="innerHTML">{{ miga.nombre }}</button>
+        <span class="miga-sep" aria-hidden="true">/</span>
+      {% else %}
+        <span class="miga miga-actual" aria-current="location">{{ miga.nombre }}</span>
+      {% endif %}
+    {% endfor %}
+  </nav>
+
+  {% if vacia %}
+    <p class="tenue" style="margin:10px 0 0;">Esta carpeta está vacía.</p>
+  {% else %}
+    <ul class="listado">
+      {% for carpeta in carpetas %}
+        <li>
+          <button type="button" class="entrada entrada-carpeta"
+                  hx-get="{% url 'dashboard:explorar' %}?en={{ carpeta.ruta|urlencode }}"
+                  hx-target="closest .explorador" hx-swap="innerHTML">
+            <svg class="entrada-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-carpeta"></use></svg>
+            <span class="entrada-nombre">{{ carpeta.nombre }}</span>
+          </button>
+        </li>
+      {% endfor %}
+
+      {% for archivo in archivos %}
+        <li>
+          <button type="button" class="entrada entrada-archivo" data-ruta="{{ archivo.ruta }}">
+            <svg class="entrada-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-archivo"></use></svg>
+            <span class="entrada-nombre">{{ archivo.nombre }}</span>
+            <span class="entrada-peso cifra">{{ archivo.bytes|filesizeformat }}</span>
+          </button>
+        </li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+{% endif %}

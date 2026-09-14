@@ -1,0 +1,34 @@
+{% load static %}
+{% comment %}
+  El panel para elegir un archivo **sin teclear su ruta**, reutilizable en todas las
+  pantallas que piden uno: la de convertir y las nueve de PDF.
+
+  Quien lo incluya dice tres cosas:
+
+    {% include "dashboard/_buscador.html" with destino="#id_ruta" modo="reemplazar" %}
+
+  - `destino`  — el selector del campo donde se escribe la ruta elegida. Obligatorio.
+  - `modo`     — «reemplazar» (por omisión) o «anadir», que es lo que necesita «unir»:
+                 esa pantalla acumula archivos en un textarea, las demás sustituyen uno.
+  - `enviar`   — opcional, el selector de un formulario que se envía al elegir. La pantalla
+                 de convertir lo usa para inspeccionar en el mismo gesto; las de PDF no,
+                 porque ahí todavía faltan opciones por rellenar.
+
+  **Va plegado.** Quien ya tiene la ruta en el portapapeles no necesita ver un árbol de
+  carpetas, y quien no la tiene lo abre una vez y lo deja abierto — `<details>` recuerda su
+  estado mientras no se recargue.
+{% endcomment %}
+<details class="buscador" data-destino="{{ destino }}" data-modo="{{ modo|default:'reemplazar' }}"
+         {% if enviar %}data-enviar="{{ enviar }}"{% endif %}>
+  <summary class="buscador-resumen">
+    <svg class="buscador-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-carpeta"></use></svg>
+    <span>Buscar en la carpeta compartida</span>
+  </summary>
+
+  <div class="explorador"
+       hx-get="{% url 'dashboard:explorar' %}"
+       hx-trigger="intersect once"
+       hx-swap="innerHTML">
+    <p class="tenue" style="margin:0;">Abriendo la carpeta…</p>
+  </div>
+</details>

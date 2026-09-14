@@ -261,7 +261,7 @@
         orden, y girar las láminas que lo necesiten.
       </p>
       <a class="boton" style="display:inline-block; text-decoration:none; line-height:42px;"
-         href="{% url 'documents:unir' %}?ruta={{ i.ruta|urlencode }}">Unir PDF</a>
+         href="{% url 'documents:unir' %}?ruta={{ token|urlencode }}">Unir PDF</a>
     {% else %}
       <p style="margin:6px 0 0;">
         Este formato todavía no tiene ningún destino preparado. Está en la
@@ -295,7 +295,13 @@
   {% endcomment %}
   <form id="forma-destino" method="post" action="{% url 'dashboard:encolar' %}">
     {% csrf_token %}
-    <input type="hidden" name="ruta" value="{{ i.ruta }}">
+    {% comment %}
+      **El token, no `i.ruta`.** Para un archivo subido son cosas distintas: `i.ruta` es
+      dónde quedó en el servidor, y devolver eso al formulario dejaría que el POST siguiente
+      lo tratara como una ruta del disco — que es justo la vía que `entrada.py` existe para
+      mantener separada.
+    {% endcomment %}
+    <input type="hidden" name="ruta" value="{{ token }}">
 
     <div class="destinos" style="margin-bottom:14px;">
       {% for p in perfiles %}

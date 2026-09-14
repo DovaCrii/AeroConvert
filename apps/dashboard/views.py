@@ -11,10 +11,13 @@ from pathlib import Path
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import ValidationError
 from django.shortcuts import redirect, render
 from django.views.decorators.http import require_POST
 
+from apps.core import entrada as entrada_mod
 from apps.core import modo as modo_mod
+from apps.core import subidas as subidas_mod
 from apps.dashboard import vista_previa as vista_previa_mod
 from apps.engines import formulario as formulario_mod
 from apps.engines import registry
@@ -142,16 +145,28 @@ def inspeccionar(request):
     petición aparte de la conversión a propósito — inspeccionar es barato y no cambia nada,
     así que puede pasar mientras la persona todavía decide.
     """
-    ruta_pedida = (request.GET.get("ruta") or "").strip()
-    if not ruta_pedida:
+    return _ficha(
+        request,
+        (request.GET.get("ruta") or "").strip(),
+        (request.GET.get("formato") or "").strip(),
+    )
+
+
+def _ficha(request, token_pedido: str, formato_pedido: str = ""):
+    """El fragmento de la ficha, ya con el origen resuelto.
+
+    Vive aparte de `inspeccionar` porque `subir` necesita lo mismo y no tiene el token en la
+    cadena de consulta: lo acaba de crear.
+    """
+    if not token_pedido:
         return render(request, "dashboard/_ficha.html", {})
 
-    inspeccion, error = _inspeccionar(ruta_pedida)
+    inspeccion, origen, error = _inspeccionar(token_pedido, usuario=request.user)
     if error:
         return render(request, "dashboard/_ficha.html", error)
 
     escribibles = catalogo.escribibles(inspeccion.familia or catalogo.RASTER)
-    experto = (request.GET.get("formato") or "").strip()
+    experto = formato_pedido
     if experto not in {f.codigo for f in escribibles}:
         experto = escribibles[0].codigo if escribibles else ""
 
@@ -162,6 +177,11 @@ def inspeccionar(request):
         "dashboard/_ficha.html",
         {
             "i": inspeccion,
+            # **Lo que viaja al formulario, y nunca `i.ruta`.** Para una subida es su
+            # identificador; para una ruta, la ruta. Es la única línea de esta vista donde
+            # equivocarse sería una fuga.
+            "token": origen.token,
+            "nombre": origen.nombre,
             # El dibujo de la libreta, cuando lo es. Es lo que convierte «elige el orden de
             # columnas» en una decisión que se toma mirando.
             "dibujo": (
@@ -196,13 +216,149 @@ def inspeccionar(request):
 
 
 @login_required
+@require_POST
+def subir(request):
+    """Un archivo del equipo de quien lo manda, y su ficha de vuelta.
+
+    Es la vía que faltaba. La otra —pegar una ruta— solo sirve para lo que el **servidor**
+    ve, y en la instalación compartida eso es la carpeta de la obra y nada más. Un archivo
+    que está en el portátil de alguien no tiene forma de llegar si no es subiéndolo.
+
+    Devuelve el mismo fragmento que `inspeccionar`, así que la pantalla se comporta igual
+    venga de donde venga el archivo. La diferencia queda dentro: el formulario lleva un
+    identificador en vez de una ruta.
+    """
+    archivo = request.FILES.get("archivo")
+    if archivo is None:
+        return render(
+            request,
+            "dashboard/_ficha.html",
+            {"error": "No llegó ningún archivo.", "codigo_error": "ruta-no-permitida"},
+        )
+
+    try:
+        subida = subidas_mod.guardar(archivo, usuario=request.user)
+    except ValidationError as fallo:
+        # El tope de tamaño. El mensaje sale del modelo y dice cuántos megas caben, que es
+        # lo único accionable: reintentar con el mismo archivo no va a funcionar.
+        return render(
+            request,
+            "dashboard/_ficha.html",
+            {"error": "; ".join(fallo.messages), "codigo_error": "ruta-no-permitida"},
+        )
+
+    return _ficha(request, f"{entrada_mod.PREFIJO}{subida.pk}")
+
+
+@login_required
+def explorar(request):
+    """La carpeta compartida, para andarla en vez de teclearla.
+
+    **Escribir una ruta a mano es la peor forma de elegir un archivo**: hay que saberla,
+    copiarla sin el salto de línea, y en Windows viene con comillas. Y para la carpeta de la
+    obra —que es de donde salen las ortofotos y las nubes— no hay ninguna razón para
+    teclear: el servidor la ve entera y puede enseñarla.
+
+    Solo lista **dentro de las raíces permitidas**: la comprobación es la misma de siempre,
+    `comprobar_ruta`, así que este explorador no abre ni un milímetro más que lo que ya
+    estaba abierto.
+    """
+    raices = modo_mod.raices_permitidas()
+    pedida = (request.GET.get("en") or "").strip()
+
+    if not pedida:
+        # Sin nada pedido, la primera raíz. Si hay varias, se ofrecen todas.
+        if not raices:
+            return render(request, "dashboard/_explorador.html", {"sin_raices": True})
+        actual = raices[0]
+    else:
+        try:
+            actual = modo_mod.comprobar_ruta(pedida)
+        except modo_mod.RutaNoPermitida as fallo:
+            return render(request, "dashboard/_explorador.html", {"error": str(fallo)})
+
+    if not actual.is_dir():
+        return render(request, "dashboard/_explorador.html", {"error": "Eso no es una carpeta."})
+
+    carpetas, archivos = _listar(actual)
+    return render(
+        request,
+        "dashboard/_explorador.html",
+        {
+            "actual": str(actual),
+            "migas": _migas(actual, raices),
+            "carpetas": carpetas,
+            "archivos": archivos,
+            "raices": [str(r) for r in raices],
+            "vacia": not carpetas and not archivos,
+        },
+    )
+
+
+#: Cuantas entradas se pintan por carpeta. Una carpeta de obra con dos mil fotos convertiria
+#: la pagina en una lista infinita que no ayuda a nadie a encontrar nada.
+TOPE_DE_ENTRADAS = 300
+
+
+def _listar(carpeta: Path):
+    """Las subcarpetas y los archivos que la aplicación sabe abrir.
+
+    Lo que no reconoce **no se lista**: un `.docx` o un `.zip` en medio de la obra solo son
+    ruido cuando lo que se busca es la ortofoto. La extensión aquí es un filtro para mirar,
+    no un veredicto — el veredicto lo sigue dando la inspección, que abre el archivo.
+    """
+    conocidas = {e.lower() for f in catalogo.FORMATOS.values() for e in f.extensiones}
+    carpetas, archivos = [], []
+    try:
+        entradas = sorted(carpeta.iterdir(), key=lambda p: (not p.is_dir(), p.name.lower()))
+    except OSError:
+        return [], []
+
+    for entrada in entradas[:TOPE_DE_ENTRADAS]:
+        try:
+            if entrada.is_dir():
+                carpetas.append({"nombre": entrada.name, "ruta": str(entrada)})
+            elif entrada.suffix.lower() in conocidas:
+                archivos.append(
+                    {
+                        "nombre": entrada.name,
+                        "ruta": str(entrada),
+                        "bytes": entrada.stat().st_size,
+                    }
+                )
+        except OSError:  # pragma: no cover -- un enlace roto, o permisos
+            continue
+    return carpetas, archivos
+
+
+def _migas(actual: Path, raices) -> list[dict]:
+    """El rastro desde la raíz permitida hasta aquí, para poder volver atrás.
+
+    **No se sube por encima de la raíz**, ni siquiera visualmente: un `..` que lleva a un
+    sitio donde luego se recibe un «fuera de las carpetas permitidas» es peor que no tenerlo.
+    """
+    for raiz in raices:
+        try:
+            relativa = actual.relative_to(raiz)
+        except ValueError:
+            continue
+        migas = [{"nombre": raiz.name or str(raiz), "ruta": str(raiz)}]
+        acumulada = raiz
+        for parte in relativa.parts:
+            acumulada = acumulada / parte
+            migas.append({"nombre": parte, "ruta": str(acumulada)})
+        return migas
+    return []
+
+
+@login_required
 def ajustes(request):
     """Los campos del modo experto para el formato elegido.
 
     Endpoint propio porque cambiar el formato de destino cambia los ajustes: JP2 tiene
     calidad y GeoTIFF tiene tamaño de tesela. htmx lo pide al cambiar el `<select>`.
     """
-    inspeccion, error = _inspeccionar(request.GET.get("ruta") or "")
+    inspeccion, _origen, error = _inspeccionar(request.GET.get("ruta") or "", usuario=request.user)
     if error:
         return render(request, "dashboard/_ajustes.html", {})
 
@@ -218,19 +374,30 @@ def ajustes(request):
     )
 
 
-def _inspeccionar(ruta_pedida: str):
-    ruta_pedida = (ruta_pedida or "").strip()
-    if not ruta_pedida:
-        return None, {"error": "No se indicó ninguna ruta.", "codigo_error": "ruta-no-permitida"}
+def _inspeccionar(crudo: str, *, usuario):
+    """El archivo del que se parte, venga de una ruta o de una subida.
+
+    **Antes solo aceptaba rutas**, y en el servidor eso era una trampa: la pantalla invitaba
+    a pegar la ruta del Explorador, alguien pegaba `C:\\Users\\...\\OF-220kv.tif` desde su
+    equipo, y la aplicación contestaba que esa ruta está fuera de las carpetas permitidas.
+    El mensaje era cierto y completamente inútil: el servidor no ve el disco de nadie.
+
+    Ahora pasa por `entrada.resolver`, que es la puerta que ya usaban las pantallas de PDF y
+    que distingue las dos vías por un prefijo en vez de adivinarlas.
+
+    Devuelve tambien el `Origen`, porque lo que va al formulario es su `token` y **nunca** la
+    ruta: para una subida, devolver la ruta del servidor dejaría que el POST siguiente la
+    usara como si fuera una ruta del disco.
+    """
     try:
-        ruta = modo_mod.comprobar_ruta(ruta_pedida)
+        origen = entrada_mod.resolver(crudo, usuario=usuario)
     except modo_mod.RutaNoPermitida as fallo:
-        return None, {"error": str(fallo), "codigo_error": fallo.codigo}
+        return None, None, {"error": str(fallo), "codigo_error": fallo.codigo}
 
     try:
-        return deteccion.inspeccionar(ruta), None
+        return deteccion.inspeccionar(origen.ruta), origen, None
     except deteccion.OrigenIlegible as fallo:
-        return None, {"error": str(fallo), "codigo_error": fallo.codigo}
+        return None, None, {"error": str(fallo), "codigo_error": fallo.codigo}
 
 
 @login_required
@@ -242,7 +409,7 @@ def encolar(request):
     esta vista tiene que devolver en milisegundos — si esperara, el navegador agotaría el
     tiempo en cualquier archivo de verdad.
     """
-    inspeccion, error = _inspeccionar(request.POST.get("ruta") or "")
+    inspeccion, origen, error = _inspeccionar(request.POST.get("ruta") or "", usuario=request.user)
     if error:
         messages.error(request, error["error"])
         return redirect("dashboard:convertir")
@@ -262,11 +429,14 @@ def encolar(request):
         messages.error(request, str(fallo))
         return redirect("dashboard:convertir")
 
-    origen = Path(inspeccion.ruta)
+    ruta_origen = Path(inspeccion.ruta)
     job = ConversionJob.objects.create(
         owner=request.user,
-        source_path=str(origen),
-        source_name=origen.name,
+        source_path=str(ruta_origen),
+        # **El nombre que la persona reconoce, no el que quedó en el servidor.** Para una
+        # subida son distintos: en el disco vive con un nombre que no eligió nadie, y ver ese
+        # en el historial sería no reconocer el propio trabajo.
+        source_name=origen.nombre,
         source_size_bytes=inspeccion.bytes_totales,
         source_format_code=inspeccion.codigo_formato,
         source_format_confidence=inspeccion.confianza,
@@ -276,7 +446,7 @@ def encolar(request):
         target_format_code=formato,
         target_profile_id=perfil_id,
         options=opciones,
-        output_path=str(_ruta_de_salida(origen, formato, perfil_id)),
+        output_path=str(_ruta_de_salida(ruta_origen, formato, perfil_id)),
     )
 
     if crs.es_declarado:

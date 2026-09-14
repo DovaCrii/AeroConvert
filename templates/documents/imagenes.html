@@ -26,6 +26,9 @@
               style="margin-top:4px;"
               placeholder="D:\obras\monografia\P1.jpg&#10;D:\obras\monografia\P2.jpg">{{ rutas_texto }}</textarea>
 
+    {# Acumula, como «unir»: aquí también entran varios archivos en un orden. #}
+    {% include "dashboard/_buscador.html" with destino="#id_imagenes" modo="anadir" %}
+
     <fieldset style="border:0; padding:0; margin:14px 0 0;">
       <legend class="eyebrow" style="padding:0;">Tamaño de la hoja</legend>
 

@@ -21,6 +21,11 @@
              placeholder="D:\obras\entrega\memoria.pdf">
       <button type="submit" name="accion" value="mirar" class="boton">Ver el documento</button>
     </div>
+    {% comment %}
+      El mismo buscador que la pantalla de convertir: pinchar un archivo escribe su ruta
+      arriba, sin teclearla ni copiarla del Explorador.
+    {% endcomment %}
+    {% include "dashboard/_buscador.html" with destino="#id_ruta" %}
   </div>
 
   {% if cabecera %}

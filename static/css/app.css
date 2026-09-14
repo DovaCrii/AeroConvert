@@ -664,6 +664,198 @@ td.cifra,
   text-wrap: pretty;
 }
 
+/* --- Las dos vías de entrada --------------------------------------------- */
+/*
+ * Lado a lado y con el mismo peso visual: no hay una principal. Cuál sirve depende del
+ * archivo, no de una preferencia, y eso se decide en un vistazo comparándolas.
+ */
+.origenes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(24rem, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+  align-items: start;
+}
+
+.origen-cabeza {
+  display: grid;
+  grid-template-columns: 2.6rem 1fr;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.origen-marca {
+  display: grid;
+  place-items: center;
+  width: 2.6rem;
+  height: 2.6rem;
+  border-radius: 11px;
+  color: var(--marca-color, var(--av-primary));
+  background: var(--marca-fondo, var(--av-primary-soft));
+  box-shadow: inset 0 0 0 1px rgb(127 127 127 / 20%);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--marca-color, var(--av-primary)) 24%, transparent);
+}
+
+.origen-icono {
+  width: 1.45rem;
+  height: 1.45rem;
+}
+
+.origen-titulo {
+  font-size: 1.02rem;
+  font-weight: 650;
+  letter-spacing: -0.008em;
+  margin: 0;
+}
+
+.origen-nota {
+  color: var(--av-text-secondary);
+  font-size: var(--av-fs-sm);
+  margin: 1px 0 0;
+}
+
+/* --- El buscador plegable, en las pantallas de PDF ----------------------- */
+
+.buscador {
+  margin-top: 12px;
+  border: 1px solid var(--av-border);
+  border-radius: var(--av-radius-sm);
+  background: var(--av-surface-alt);
+}
+
+.buscador-resumen {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  cursor: pointer;
+  font-size: var(--av-fs-sm);
+  font-weight: 600;
+  color: var(--av-primary);
+}
+
+.buscador-icono {
+  width: 1.05rem;
+  height: 1.05rem;
+}
+
+.buscador[open] .buscador-resumen {
+  border-bottom: 1px solid var(--av-border);
+}
+
+.buscador .explorador {
+  padding: 12px;
+}
+
+/* --- El explorador de la carpeta compartida ------------------------------ */
+
+.migas {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+  font-size: var(--av-fs-sm);
+  margin-bottom: 8px;
+}
+
+.miga {
+  background: none;
+  border: 0;
+  padding: 2px 4px;
+  border-radius: 6px;
+  color: var(--av-primary);
+  cursor: pointer;
+  font: inherit;
+}
+
+.miga:hover {
+  background: var(--av-primary-soft);
+}
+
+.miga-actual {
+  color: var(--av-text);
+  font-weight: 600;
+  padding: 2px 4px;
+}
+
+.miga-sep {
+  color: var(--av-text-muted);
+}
+
+/* Altura acotada y con desplazamiento propio: una carpeta de obra con doscientas entradas no
+ * puede empujar la ficha del archivo fuera de la pantalla. */
+.listado {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 18rem;
+  overflow-y: auto;
+  border: 1px solid var(--av-border);
+  border-radius: var(--av-radius-sm);
+}
+
+.listado li + li {
+  border-top: 1px solid var(--av-border);
+}
+
+.entrada {
+  display: grid;
+  grid-template-columns: 1.4rem 1fr auto;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 12px;
+  background: none;
+  border: 0;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+}
+
+.entrada:hover,
+.entrada:focus-visible {
+  background: var(--av-primary-soft);
+}
+
+.entrada-icono {
+  width: 1.15rem;
+  height: 1.15rem;
+}
+
+.entrada-carpeta .entrada-icono {
+  color: var(--av-fam-proteger);
+}
+
+.entrada-archivo .entrada-icono {
+  color: var(--av-text-muted);
+}
+
+.entrada-nombre {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.entrada-peso {
+  color: var(--av-text-muted);
+  font-size: var(--av-fs-xs);
+}
+
+/* La tercera vía, plegada: quien se sabe la ruta no tiene por qué navegar hasta ella, y
+ * quien no, no necesita verla. */
+.por-ruta {
+  margin-bottom: 18px;
+  padding: 14px 18px;
+}
+
+.por-ruta summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--av-text-secondary);
+}
+
 /* --- La zona de soltar ---------------------------------------------------- */
 
 .soltar {
@@ -678,6 +870,12 @@ td.cifra,
 .soltar.encima {
   border-color: var(--av-magenta);
   background: var(--av-primary-soft);
+}
+
+/* Dentro de una tarjeta que ya tiene su cabecera, la zona de soltar no necesita el mismo
+ * aire que cuando ocupaba ella sola media pantalla. */
+.soltar-compacto {
+  padding: 18px 16px 16px;
 }
 
 .soltar-icono {

@@ -65,6 +65,25 @@
     <path d="M4 16v2.5A2 2 0 0 0 6 20.5h12a2 2 0 0 0 2-2V16" />
   </symbol>
 
+  <symbol id="icon-carpeta" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3 6.5A1.5 1.5 0 0 1 4.5 5h4l2 2.5h9A1.5 1.5 0 0 1 21 9v8.5a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5z"
+          fill="currentColor" fill-opacity=".16" />
+  </symbol>
+
+  <symbol id="icon-archivo" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M5.5 3h8L18.5 8v13h-13z" fill="currentColor" fill-opacity=".16" />
+    <path d="M13.5 3v5h5" />
+  </symbol>
+
+  <symbol id="icon-equipo" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Un portatil: «de mi equipo», frente a la carpeta compartida del servidor. -->
+    <rect x="3.5" y="4.5" width="17" height="11" rx="1.6" fill="currentColor" fill-opacity=".16" />
+    <path d="M2 19.5h20" />
+  </symbol>
+
   <symbol id="icon-personas" viewBox="0 0 24 24" fill="none" stroke="currentColor"
           stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
     <!-- Dos personas: la administracion de esta aplicacion es, sobre todo, dar de alta al

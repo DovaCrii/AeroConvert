@@ -49,6 +49,13 @@
               spellcheck="false"
               placeholder="D:\obras\entrega\memoria.pdf&#10;D:\obras\entrega\planos.pdf">{{ rutas_texto }}</textarea>
 
+    {% comment %}
+      **`modo="anadir"`, que es lo que distingue esta pantalla.** Aquí se juntan varios
+      documentos, así que pinchar un archivo lo **añade** al final de la lista en vez de
+      sustituir lo que ya había. En las demás, que trabajan sobre uno solo, reemplaza.
+    {% endcomment %}
+    {% include "dashboard/_buscador.html" with destino="#id_archivos" modo="anadir" %}
+
     <button type="submit" name="accion" value="analizar" class="boton" style="margin-top:12px;">
       Ver las páginas
     </button>

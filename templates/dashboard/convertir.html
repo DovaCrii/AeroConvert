@@ -62,34 +62,107 @@
   </li>
 </ol>
 
-<div class="tarjeta tarjeta-acento" style="margin-bottom:18px;">
+{% comment %}
+  **Dos vías, y se dicen por su nombre.**
+
+  Antes había una sola caja de texto que pedía «pega su ruta», y en el servidor eso era una
+  trampa: alguien pegaba la ruta de su OneDrive y recibía «esa ruta está fuera de las carpetas
+  permitidas». El mensaje era cierto e inútil — el servidor no ve el disco de nadie.
+
+  Ahora se elige de dónde viene el archivo, que es la pregunta de verdad:
+
+  - **De tu equipo** → el selector del navegador, y se sube. Es lo que sirve para lo que está
+    en el portátil de cada uno.
+  - **De la carpeta compartida** → un explorador que la anda. Es lo que sirve para una
+    ortofoto de 20 GB, porque copiarla ahí con el Explorador es reanudable y subirla no.
+
+  La caja de texto sigue existiendo, abajo y como tercera opción: quien ya se sabe la ruta no
+  tiene por qué navegar hasta ella.
+{% endcomment %}
+<div class="origenes">
+  <div class="tarjeta tarjeta-acento origen">
+    <div class="origen-cabeza">
+      <span class="origen-marca fam-transformar" aria-hidden="true">
+        <svg class="origen-icono"><use href="{% static 'img/icons.svg' %}#icon-equipo"></use></svg>
+      </span>
+      <div>
+        <h2 class="origen-titulo">Desde tu equipo</h2>
+        <p class="origen-nota">Se sube al servidor y se borra solo en un día.</p>
+      </div>
+    </div>
+
+    <form hx-post="{% url 'dashboard:subir' %}"
+          hx-target="#ficha" hx-swap="innerHTML"
+          hx-encoding="multipart/form-data"
+          hx-indicator="#mirando">
+      {% csrf_token %}
+      <div class="soltar soltar-compacto" id="zona">
+        <svg class="soltar-icono" aria-hidden="true">
+          <use href="{% static 'img/icons.svg' %}#icon-soltar"></use>
+        </svg>
+        <p class="soltar-titulo">Arrastra el archivo aquí</p>
+        {% comment %}
+          `data-envia-solo` y no un `onchange=`: la CSP es `script-src 'self'` sin
+          `unsafe-inline`, así que un manejador en el atributo no se ejecutaría — y no
+          avisaría. Lo recoge `static/js/explorador.js`.
+        {% endcomment %}
+        <label class="visually-hidden" for="archivo">Elegir un archivo de tu equipo</label>
+        <input type="file" id="archivo" name="archivo" class="form-control" data-envia-solo>
+        <p class="soltar-ayuda" style="margin:10px 0 0;">
+          Para un archivo de varios gigabytes usa la carpeta compartida: copiarlo ahí con el
+          Explorador es reanudable, y subirlo por el navegador no.
+        </p>
+      </div>
+    </form>
+  </div>
+
+  <div class="tarjeta origen">
+    <div class="origen-cabeza">
+      <span class="origen-marca fam-proteger" aria-hidden="true">
+        <svg class="origen-icono"><use href="{% static 'img/icons.svg' %}#icon-carpeta"></use></svg>
+      </span>
+      <div>
+        <h2 class="origen-titulo">De la carpeta compartida</h2>
+        <p class="origen-nota">Lo que ve todo el equipo. Pincha para entrar.</p>
+      </div>
+    </div>
+
+    {% comment %}
+      Aquí va desplegado y sin el `<details>`: en esta pantalla es una de las dos vías
+      principales, no un extra. En las de PDF va plegado, porque allí lo primero es elegir
+      qué se le va a hacer al documento.
+    {% endcomment %}
+    <div class="explorador" data-destino="#ruta" data-enviar="#forma-inspeccion"
+         hx-get="{% url 'dashboard:explorar' %}"
+         hx-trigger="load"
+         hx-swap="innerHTML">
+      <p class="tenue" style="margin:0;">Abriendo la carpeta…</p>
+    </div>
+  </div>
+</div>
+
+<details class="tarjeta por-ruta">
+  <summary>O pega la ruta, si ya te la sabes</summary>
   <form id="forma-inspeccion"
         hx-get="{% url 'dashboard:inspeccionar' %}"
         hx-target="#ficha"
         hx-swap="innerHTML"
         hx-indicator="#mirando">
-    <div class="soltar" id="zona">
-      <svg class="soltar-icono" aria-hidden="true">
-        <use href="{% static 'img/icons.svg' %}#icon-soltar"></use>
-      </svg>
-
-      <p class="soltar-titulo">Arrastra el archivo aquí, o pega su ruta</p>
-      <p class="soltar-ayuda">
-        En el Explorador: clic derecho con <kbd>Mayús</kbd> → «Copiar como ruta»
-      </p>
-
-      <div class="soltar-campo">
-        <label class="visually-hidden" for="ruta">Ruta del archivo</label>
-        <input type="text" id="ruta" name="ruta" class="form-control ruta"
-               placeholder="D:\obras\vuelo\ortofoto.tif"
-               autocomplete="off" spellcheck="false">
-        <button type="submit" class="boton">Inspeccionar</button>
-      </div>
-
-      <p id="mirando" class="tenue htmx-indicator" style="margin:12px 0 0;">Mirando el archivo…</p>
+    <p class="soltar-ayuda" style="margin:10px 0 8px;">
+      Tiene que ser una ruta que vea <strong>el servidor</strong>, no tu equipo. En el
+      Explorador: clic derecho con <kbd>Mayús</kbd> → «Copiar como ruta».
+    </p>
+    <div class="soltar-campo">
+      <label class="visually-hidden" for="ruta">Ruta del archivo</label>
+      <input type="text" id="ruta" name="ruta" class="form-control ruta"
+             placeholder="/mnt/entregas/CC716/ortofoto.tif"
+             autocomplete="off" spellcheck="false">
+      <button type="submit" class="boton">Inspeccionar</button>
     </div>
   </form>
-</div>
+</details>
+
+<p id="mirando" class="tenue htmx-indicator" style="margin:12px 0 0;">Mirando el archivo…</p>
 
 <div id="ficha"></div>
 

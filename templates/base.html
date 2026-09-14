@@ -143,6 +143,8 @@
           integrity="sha384-H5SrcfygHmAuTDZphMHqBJLc3FhssKjG7w/CeCpFReSfwBWDTKpkzPP8c+cLsK+V"
           crossorigin="anonymous"></script>
   <script src="{% static 'js/tema.js' %}"></script>
+  {# El buscador de archivos lo usan la pantalla de convertir y las nueve de PDF. #}
+  <script src="{% static 'js/explorador.js' %}"></script>
   {% block scripts %}{% endblock %}
 </body>
 </html>
