@@ -81,6 +81,44 @@ Comprueba que PROJ encuentre su base de datos. Si `sondear.ps1` reporta
 PROJ_DATA=C:\Program Files\QGIS 4.0.2\share\proj
 ```
 
+### En el servidor: Ubuntu 26.04
+
+GDAL sí está empaquetado y basta con `apt`:
+
+```bash
+sudo apt install -y gdal-bin
+```
+
+**PDAL no está** — `apt-cache policy pdal` no devuelve nada en 26.04. Sin él, las nubes de
+puntos salen apagadas con su motivo escrito, que es lo correcto, pero son 30 conversiones
+menos. La vía que no arrastra medio sistema de compilación es conda-forge, en un prefijo
+aparte:
+
+```bash
+curl -Ls https://micro.mamba.pm/api/micromamba/linux-64/latest | sudo tar -xvj -C /usr/local bin/micromamba
+sudo micromamba create -y -p /opt/geo -c conda-forge pdal
+/opt/geo/bin/pdal --version
+```
+
+Y en el `.env`:
+
+```
+AEROCONVERT_PDAL_BIN=/opt/geo/bin
+```
+
+**Un prefijo aparte y no el sistema, a propósito.** conda-forge trae su propio GDAL y su
+propio PROJ; instalarlo por encima dejaría dos de cada uno mezclados, y eso **no falla
+limpiamente**: reproyecta con datos equivocados y entrega un archivo que parece bien. Con
+`/opt/geo` separado, cada proceso hijo ve solo lo suyo.
+
+Después hay que **reiniciar los servicios**: la lista de controladores se cachea dentro de
+cada proceso y sin caducidad (`apps/engines/sondas.py`), así que hasta reiniciar la pantalla
+de compatibilidad seguirá diciendo que falta lo que acabas de instalar.
+
+```bash
+sudo systemctl restart aeroconvert aeroconvert-obrero
+```
+
 ### ECW — opcional y de pago
 
 Escribir ECW exige la **ERDAS ECW/JP2 SDK de Hexagon con clave OEM**, comercial. GDAL solo
@@ -106,6 +144,27 @@ aplicación propone COG o JPEG 2000.
 (`docs/PRUEBAS_CON_ORACULO.md`): 13 % del peso del original, error máximo de 4 niveles
 sobre 255, georreferencia dentro del archivo sin acompañantes, y Civil 3D con Raster Design
 lo lee. No necesita licencia de nadie.
+
+#### ECW en Linux, si aun así hace falta
+
+En Ubuntu **no hay atajo**: ni `apt` ni conda-forge traen ECW, por la licencia. La única vía
+es compilar GDAL contra la SDK de Hexagon, y conviene saber qué se gana en cada escalón antes
+de empezar:
+
+| Lo que quieres | Qué hace falta | Coste |
+| --- | --- | --- |
+| **Leer** ECW que manda un cliente | SDK de solo lectura + GDAL compilado con ella | Gratis, previo registro y aceptar su licencia. Medio día de trabajo |
+| **Escribir** ECW | Además, clave OEM de Hexagon | **Comercial**, y la clave va atada a la empresa |
+
+La compilación no es un `./configure` y a correr: hay que bajar la SDK, descomprimirla,
+compilar GDAL entero con `-DECW_ROOT=`, y **reemplazar o convivir con el `gdal-bin` de
+Ubuntu**, que es justo la mezcla de dos GDAL contra la que avisa la sección anterior. Un
+prefijo aparte, como con PDAL, es la forma de que eso no muerda.
+
+**La recomendación, con la aritmética delante:** ECW cuesta medio día y una licencia para
+resolver 10 conversiones de las que 8 ya tienen una salida abierta y medida. Si un cliente
+manda un ECW y hay que leerlo, se abre una vez en QGIS —que sí lo lee en Windows— y se guarda
+como COG. Si el día que lo pidan es todos los días, entonces sí sale a cuenta.
 
 ### ODA File Converter — opcional, para DWG y DGN
 
