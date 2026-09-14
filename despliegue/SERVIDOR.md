@@ -17,29 +17,36 @@ pero ya hospeda a las tres— sobre un anfitrión Windows.
 | --- | --- |
 | Anfitrión | `DSK0006CC210` · Intel **i7-10700** (8 núcleos, 16 hilos) · **48 GB** de RAM |
 | Disco del anfitrión | un solo **NVMe Kingston SNV2S1000G**, 932 GB, SSD |
-| Invitado | `p340` · **Ubuntu 26.04.1 LTS** |
-| Red | LAN-External · `172.22.10.51` · Tailscale `100.121.16.118` |
+| Invitado | `p340` · **Ubuntu 26.04.1 LTS** (núcleo 7.0.0-31) |
+| Red | LAN-External · `172.22.10.143` **por DHCP** · Tailscale `100.121.16.118` |
+
+La dirección de la LAN **cambia sola**: era `.51` y hoy es `.143`. Como la puerta principal es
+el nombre de Tailscale, que sí es estable, no rompe nada; pero conviene reservarla en el router
+antes de que algo quede apuntando a la vieja.
 
 ### Lo que se cambió el 2026-09-14, y por qué
 
 | Ajuste | Antes | Ahora | Motivo |
 | --- | --- | --- | --- |
-| Procesadores | 12 | **6** | 12 dejaba 4 hilos al anfitrión, y más vCPU de los que se usan cuesta planificación. No es más rápido |
-| Memoria | 8 GB | **24 GB** | Tres aplicaciones más PostgreSQL y MinIO. Sin memoria dinámica **a propósito**: con ella, un pico de PDAL puede quedarse sin servir y el núcleo mata el proceso |
+| Procesadores | 12 | **8** (`nproc` lo confirma dentro) | 12 dejaba solo 4 hilos al anfitrión. 8 le dejan la mitad de los 16 y dan margen a las tres aplicaciones a la vez. Subir de ahí no acelera nada: más vCPU de los que se usan solo cuesta planificación |
+| Memoria | 8 GB | **24 GB** (el invitado ve 22 Gi) | Tres aplicaciones más PostgreSQL y MinIO. Sin memoria dinámica **a propósito**: con ella, un pico de PDAL puede quedarse sin servir y el núcleo mata el proceso |
 | Disco virtual | 100 GB | **350 GB** (dinámico, ocupa 16) | Una nube de 20 GB necesita 40 para convertirse: el parcial y el definitivo conviven un instante |
-| Volumen lógico | 48,5 GB de 96,9 | **ampliado al 100 %** | El instalador de Ubuntu deja media mitad sin asignar y casi nadie se da cuenta |
+| Volumen lógico | 96,9 GB | **342 GB**, 317 libres | El `.vhdx` mayor no toca ninguna de las cuatro capas de dentro: hubo que crecerlas a mano |
 | Acción al detener | `Apagar` | **`Cerrar el sistema operativo invitado`** | `Apagar` es **corte de corriente**. Cada reinicio del anfitrión se lo hacía a PostgreSQL y a los SQLite en WAL |
 | Ubicación | `C:\Users\ldigitales\Documents\...` | **`C:\VMs\AeroControl-Prod\`** | Estaba en un perfil de usuario, con OneDrive corriendo en la máquina. Hoy `Documents` no está redirigido, pero basta con que se active la copia de carpetas conocidas para que empiece a sincronizar un `.vhdx` de decenas de gigabytes |
 | Antivirus | sin exclusión | **`C:\VMs` excluida** | Defender escaneando el `.vhdx` en tiempo real cuesta justo el recurso que es el cuello de botella: el disco |
 
-**Pendiente dentro de la VM** tras ampliar el disco — son cuatro capas y hay que crecerlas en
-orden:
+**Hecho el 2026-09-14**, en caliente y sin desmontar nada. Ampliar el `.vhdx` desde Hyper-V no
+toca ninguna de las cuatro capas de dentro —partición, volumen físico, volumen lógico, sistema
+de archivos— y hay que crecerlas **en ese orden**:
 
 ```bash
 sudo growpart /dev/sda 3 && sudo pvresize /dev/sda3 \
   && sudo lvextend -l +100%FREE /dev/ubuntu-vg/ubuntu-lv \
   && sudo resize2fs /dev/ubuntu-vg/ubuntu-lv && df -h /
 ```
+
+Queda anotado por si hay que repetirlo al volver a ampliar el `.vhdx`.
 
 ### Lo que se decidió **no** hacer
 
@@ -142,11 +149,15 @@ uv** — importante, porque Ubuntu 26.04 solo trae 3.14 y AeroConvert pide `>=3.
 5. **Los puntos de control no son un respaldo.** Están en «solo producción», que es lo
    correcto, pero viven en el mismo disco y crecen. Hoy no hay ninguno colgando.
 
+6. **La dirección de la LAN es DHCP y ya cambió una vez** (`.51` → `.143`). Una reserva en el
+   router cuesta un minuto y evita perseguirla el día que algo la tenga escrita.
+
 ---
 
 ## Aritmética de capacidad, para cuando entre AeroBim
 
-Con 6 vCPU, 24 GB y 350 GB de disco hay sitio para las tres. Los dos límites reales:
+Con 8 vCPU, 24 GB y 342 GB de disco —**317 libres**— hay sitio para las tres. Los dos límites
+reales:
 
 - **Disco.** Los 350 GB de la VM salen de los 494 libres del anfitrión. Si la VM los llenara,
   a Windows le quedarían 144. Y si la carpeta compartida con ortofotos y nubes vive dentro,
