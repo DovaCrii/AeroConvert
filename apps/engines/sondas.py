@@ -344,6 +344,45 @@ def sondar_ecw() -> Disponibilidad:
     return Disponibilidad.si(gdal.version)
 
 
+def sondar_lectura_gdal(
+    controlador: str, *, formato: str, de_donde: str, alternativas: tuple[str, ...] = ()
+) -> Disponibilidad:
+    """Si **este** GDAL sabe *leer* ese formato.
+
+    ## Por qué hace falta, y qué se prometía sin ella
+
+    `sondar_gdal()` contesta «GDAL esta», y con eso el motor raster daba por buenas las diez
+    columnas para **todos** sus origenes, ECW y MrSID incluidos. Pero esos dos no vienen en
+    ninguna compilacion corriente: son de terceros y con su licencia.
+
+    El resultado era una promesa falsa. La matriz pintaba `ecw → cog` en verde, alguien lo
+    pedia, y la conversion moria con un error de GDAL sobre un controlador desconocido — que
+    es justo lo que esta pantalla existe para evitar. Una capacidad ausente tiene que verse
+    distinta de una presente, y el verde decia lo contrario.
+
+    Ojo: esto pregunta por **lectura**. Escribir ECW es otra cosa y la contesta `sondar_ecw`.
+    """
+    gdal = sondar_gdal()
+    if not gdal.disponible:
+        return Disponibilidad.no(
+            "motor-no-disponible",
+            gdal.motivo,
+            sugerencia="Revisa INSTALL.md.",
+            alternativas=alternativas,
+        )
+
+    if controlador not in gdal.controladores:
+        return Disponibilidad.no(
+            f"sin-driver-{formato}",
+            f"Esta instalacion de GDAL no trae el controlador {controlador}, ni para leer.",
+            sugerencia=de_donde,
+            alternativas=alternativas,
+            version=gdal.version,
+        )
+
+    return Disponibilidad.si(gdal.version)
+
+
 def sondar_pdal() -> Disponibilidad:
     ejecutable = _ejecutable("pdal", getattr(settings, "PDAL_BIN", ""))
     if ejecutable is None:

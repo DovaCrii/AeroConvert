@@ -1,85 +1,148 @@
 {% extends "base.html" %}
+{% load static %}
 
-{% block titulo %}Motores · AeroConvert{% endblock %}
+{% block titulo %}Compatibilidad · AeroConvert{% endblock %}
 
 {% block contenido %}
-<div class="tarjeta" style="margin-bottom:14px;">
-  <div class="eyebrow">Herramientas</div>
-  <table class="table table-sm" style="margin:0;">
-    <tbody>
-      {% for m in motores %}
-        <tr>
-          <td style="width:12rem;"><strong>{{ m.id }}</strong><br><span class="tenue">{{ m.nombre }}</span></td>
-          <td style="width:8rem;">
-            {% if m.estado.disponible %}
-              <span class="pildora pildora-done">disponible</span>
-            {% else %}
-              <span class="pildora pildora-error">apagado</span>
-            {% endif %}
-          </td>
-          <td>
-            {% if m.estado.disponible %}
-              <span class="tenue">{{ m.estado.version }}</span>
-            {% else %}
-              {{ m.estado.mensaje }}
-              {% if m.estado.sugerencia %}
-                <br><span class="tenue">{{ m.estado.sugerencia }}</span>
-              {% endif %}
-              {% if m.estado.alternativas %}
-                <br><span class="tenue">En su lugar sirven: {{ m.estado.alternativas|join:", " }}</span>
-              {% endif %}
-            {% endif %}
-          </td>
-          <td class="cifra text-end tenue" style="width:6rem;">{{ m.pares }} pares</td>
-        </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+
+{% comment %}
+  El orden de esta pantalla responde a la pregunta con la que se llega, que nunca es «¿qué
+  hay instalado?» sino «¿por qué no puedo hacer esto?».
+
+  1. El resumen, para saber en dos segundos si la máquina está entera.
+  2. **Lo que falta**, que es lo único sobre lo que hay algo que hacer.
+  3. Lo que funciona, para confirmar.
+  4. Y la matriz, que es la consulta fina.
+
+  Antes las tres primeras eran una tabla sola, con las apagadas mezcladas entre las que
+  funcionan y a media pantalla de ancho.
+{% endcomment %}
+
+<div class="resumen-tiras">
+  <div class="tira-dato">
+    <span class="tira-cifra">{{ listas|length }}<span class="tira-de">/{{ motores|length }}</span></span>
+    <span class="tira-que">herramientas listas</span>
+  </div>
+  <div class="tira-dato">
+    <span class="tira-cifra">{{ conversiones_posibles }}<span class="tira-de">/{{ conversiones_totales }}</span></span>
+    <span class="tira-que">conversiones posibles hoy</span>
+  </div>
+  {% if apagadas %}
+    <div class="tira-dato tira-dato-ojo">
+      <span class="tira-cifra">{{ apagadas|length }}</span>
+      <span class="tira-que">apagadas, con su motivo abajo</span>
+    </div>
+  {% endif %}
 </div>
 
-<div class="tarjeta">
-  <div class="eyebrow">Matriz de capacidades</div>
-  <p class="tenue" style="margin-bottom:12px;">
+{% if apagadas %}
+  <section class="bloque">
+    <h2 class="bloque-titulo">Lo que falta, y qué haría falta para tenerlo</h2>
+    <p class="bloque-nota">
+      Nada de esto impide usar el resto. Cada una dice qué le falta y qué sirve en su lugar.
+    </p>
+
+    <div class="motores motores-apagados">
+      {% for m in apagadas %}
+        <article class="motor motor-apagado">
+          <header class="motor-cabeza">
+            <span class="motor-marca fam-marcar" aria-hidden="true">
+              <svg class="motor-icono"><use href="{% static 'img/icons.svg' %}#icon-veredicto-reparos"></use></svg>
+            </span>
+            <div class="motor-nombre">
+              <strong>{{ m.id }}</strong>
+              <span class="tenue">{{ m.nombre }}</span>
+            </div>
+            <span class="pildora pildora-error">apagado</span>
+          </header>
+
+          <p class="motor-motivo">{{ m.estado.mensaje }}</p>
+          {% if m.estado.sugerencia %}
+            <p class="motor-remedio"><strong>Qué hace falta:</strong> {{ m.estado.sugerencia }}</p>
+          {% endif %}
+          {% if m.estado.alternativas %}
+            <p class="motor-alternativa">
+              <strong>En su lugar sirven:</strong> {{ m.estado.alternativas|join:", " }}
+            </p>
+          {% endif %}
+          <footer class="motor-pie cifra">{{ m.pares }} conversiones en espera</footer>
+        </article>
+      {% endfor %}
+    </div>
+  </section>
+{% endif %}
+
+<section class="bloque">
+  <h2 class="bloque-titulo">Listas para usar</h2>
+
+  <div class="motores">
+    {% for m in listas %}
+      <article class="motor">
+        <header class="motor-cabeza">
+          <span class="motor-marca fam-proteger" aria-hidden="true">
+            <svg class="motor-icono"><use href="{% static 'img/icons.svg' %}#icon-veredicto-abre"></use></svg>
+          </span>
+          <div class="motor-nombre">
+            <strong>{{ m.id }}</strong>
+            <span class="tenue">{{ m.nombre }}</span>
+          </div>
+          <span class="pildora pildora-done">disponible</span>
+        </header>
+        <p class="motor-version">{{ m.estado.version }}</p>
+        <footer class="motor-pie cifra">{{ m.pares }} conversiones</footer>
+      </article>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="bloque">
+  <h2 class="bloque-titulo">Matriz de capacidades</h2>
+  <p class="bloque-nota">
     <span class="pildora pildora-done">disponible</span> funciona ahora ·
     <span class="pildora pildora-running">instalable</span> funcionaría con algo ·
     <span class="pildora pildora-cancelled">no soportado</span> nadie sabe hacerlo
   </p>
 
-  <div style="overflow-x:auto;">
-    <table class="matriz">
-      <thead>
-        <tr>
-          <th scope="col">origen ↓ / destino →</th>
-          {% for d in destinos %}<th scope="col">{{ d }}</th>{% endfor %}
-        </tr>
-      </thead>
-      <tbody>
-        {% for fila in filas %}
+  <div class="tarjeta" style="padding:14px;">
+    <div style="overflow-x:auto;">
+      <table class="matriz">
+        <thead>
           <tr>
-            <th scope="row">{{ fila.origen }}</th>
-            {% for c in fila.celdas %}
-              <td class="celda-{{ c.estado }}"
-                  {% if c.mensaje %}title="{{ c.mensaje }}{% if c.sugerencia %} — {{ c.sugerencia }}{% endif %}"{% endif %}>
-                {% if c.estado == 'disponible' %}✓
-                {% elif c.estado == 'instalable' %}!
-                {% else %}·{% endif %}
-              </td>
-            {% endfor %}
+            <th scope="col">origen ↓ / destino →</th>
+            {% for d in destinos %}<th scope="col">{{ d }}</th>{% endfor %}
           </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-
-  {% if motivos %}
-    <div style="margin-top:14px;">
-      <strong>Lo que falta, y por qué</strong>
-      <ul style="margin:6px 0 0;">
-        {% for m in motivos %}
-          <li><code>{{ m.codigo }}</code> — {{ m.mensaje }} <span class="tenue">({{ m.cuantas }} conversiones)</span></li>
-        {% endfor %}
-      </ul>
+        </thead>
+        <tbody>
+          {% for fila in filas %}
+            <tr>
+              <th scope="row">{{ fila.origen }}</th>
+              {% for c in fila.celdas %}
+                <td class="celda-{{ c.estado }}"
+                    {% if c.mensaje %}title="{{ c.mensaje }}{% if c.sugerencia %} — {{ c.sugerencia }}{% endif %}"{% endif %}>
+                  {% if c.estado == 'disponible' %}✓
+                  {% elif c.estado == 'instalable' %}!
+                  {% else %}·{% endif %}
+                </td>
+              {% endfor %}
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
-  {% endif %}
-</div>
+
+    {% if motivos %}
+      <div class="motivos">
+        <strong>Por qué faltan, agrupado</strong>
+        <ul>
+          {% for m in motivos %}
+            <li>
+              <code>{{ m.codigo }}</code> — {{ m.mensaje }}
+              <span class="tenue">({{ m.cuantas }} conversiones)</span>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% endif %}
+  </div>
+</section>
 {% endblock %}

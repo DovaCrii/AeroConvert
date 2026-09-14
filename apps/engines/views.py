@@ -41,6 +41,16 @@ def matriz(request):
         for m in registry.todos()
     )
 
+    # **Separadas, y las apagadas primero en su propio bloque.** Mezcladas en una tabla, las
+    # dos o tres que necesitan algo se perdian entre las siete que funcionan, y son justo las
+    # unicas sobre las que hay algo que hacer. Se parte aqui y no en la plantilla con un `if`
+    # dentro del bucle: dos recorridos de la misma lista dejan el orden a merced de quien
+    # edite el HTML.
+    listas = tuple(m for m in motores if m["estado"].disponible)
+    apagadas = tuple(m for m in motores if not m["estado"].disponible)
+
+    conversiones_posibles = sum(1 for c in celdas.values() if c.estado == "disponible")
+
     # Lo que falta, agrupado por motivo. Repetir el mismo mensaje en cuarenta celdas no
     # ayuda a nadie; verlo una vez con su cuenta, sí.
     por_motivo: dict[str, dict] = {}
@@ -60,6 +70,10 @@ def matriz(request):
             "filas": filas,
             "destinos": destinos,
             "motores": motores,
+            "listas": listas,
+            "apagadas": apagadas,
+            "conversiones_posibles": conversiones_posibles,
+            "conversiones_totales": len(celdas),
             "motivos": sorted(por_motivo.values(), key=lambda m: -m["cuantas"]),
             "seccion": "compatibilidad",
             "etiqueta_seccion": "Compatibilidad",

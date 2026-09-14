@@ -34,8 +34,33 @@ from apps.engines.base import (
 )
 from apps.engines.entorno import entorno_de_gdal
 
-#: Origenes raster que GDAL sabe leer.
-ORIGENES = ("geotiff", "bigtiff", "cog", "jp2", "img", "asc", "png", "jpeg", "mrsid", "ecw")
+#: Origenes raster que **cualquier** compilacion de GDAL sabe leer.
+ORIGENES = ("geotiff", "bigtiff", "cog", "jp2", "img", "asc", "png", "jpeg")
+
+#: Los que solo se leen si su controlador, que es de un tercero y con su licencia, esta
+#: compilado dentro. Van aparte **a proposito**, cada uno con su motor y su sonda: mezclados
+#: en `ORIGENES`, el motor general daba por buenas sus ocho columnas con solo comprobar que
+#: GDAL existe, y la matriz pintaba en verde una conversion que moria al pedirla.
+#:
+#: La clave es el codigo del catalogo; el valor, como se llama el controlador en GDAL y de
+#: donde sale.
+ORIGENES_PROPIETARIOS = {
+    "ecw": (
+        "ECW",
+        "El plugin ECW de GISInternals lo trae en Windows (winget install "
+        "GISInternals.GDAL.ECW). La compilacion de QGIS y la de conda-forge no.",
+    ),
+    "mrsid": (
+        "MRSID",
+        "Hace falta una compilacion de GDAL con la SDK de LizardTech. La de QGIS y la de "
+        "conda-forge no la traen.",
+    ),
+}
+
+#: Todos los origenes, para quien necesite la lista entera — la sonda de ECW de escritura,
+#: por ejemplo, que ofrece convertir a ECW desde cualquiera de ellos.
+TODOS_LOS_ORIGENES = ORIGENES + tuple(ORIGENES_PROPIETARIOS)
+
 #: Destinos que GDAL escribe sin licencia de nadie.
 DESTINOS_LIBRES = ("geotiff", "bigtiff", "cog", "jp2", "img", "asc", "png", "webp")
 
@@ -382,7 +407,7 @@ class MotorEcw(Motor):
     prioridad = 20
 
     def pares(self) -> frozenset[ParDeFormatos]:
-        return frozenset(ParDeFormatos(origen, "ecw") for origen in ORIGENES)
+        return frozenset(ParDeFormatos(origen, "ecw") for origen in TODOS_LOS_ORIGENES)
 
     def disponibilidad(self) -> Disponibilidad:
         from apps.engines import sondas
@@ -481,6 +506,55 @@ def _epsg_de(info: dict) -> str:
     return encontrados[-1] if encontrados else ""
 
 
+class MotorLecturaPropietaria(Motor):
+    """Leer un formato cuyo controlador no viene en GDAL de serie.
+
+    **Uno por formato, no uno para todos.** Un solo motor tendria que contestar con una sola
+    disponibilidad para ECW y MrSID a la vez, y son dos instalaciones distintas: con el plugin
+    de ECW puesto y el de MrSID no, la respuesta unica mentiria sobre uno de los dos.
+
+    Escribir el formato es otra cosa y tiene su propio motor -- `MotorEcw` -- porque el arreglo
+    tambien es otro: leer ECW es gratis, escribirlo necesita una clave OEM de pago.
+    """
+
+    familia = "raster"
+    #: Por debajo del general: cuando los dos sirven para un par, gana el que no necesita nada.
+    prioridad = 15
+
+    def __init__(self, formato: str, controlador: str, de_donde: str):
+        self.formato = formato
+        self.controlador = controlador
+        self.de_donde = de_donde
+        self.id = f"gdal-leer-{formato}"
+        self.nombre = f"GDAL con el controlador {controlador}"
+
+    def pares(self) -> frozenset[ParDeFormatos]:
+        return frozenset(ParDeFormatos(self.formato, destino) for destino in DESTINOS_LIBRES)
+
+    def disponibilidad(self) -> Disponibilidad:
+        from apps.engines import sondas
+
+        return sondas.sondar_lectura_gdal(
+            self.controlador,
+            formato=self.formato,
+            de_donde=self.de_donde,
+            # Lo unico honesto que se puede sugerir: el archivo se abre en el programa que
+            # si lo lee y se guarda en algo abierto. No hay alternativa dentro de aqui.
+            alternativas=(),
+        )
+
+    def opciones(self, par: ParDeFormatos) -> tuple[OpcionDeMotor, ...]:
+        return MotorGdalRaster().opciones(par)
+
+    def plan(self, trabajo) -> PlanDeEjecucion:
+        return MotorGdalRaster().plan(trabajo)
+
+    def verificar(self, trabajo, plan):
+        return MotorGdalRaster().verificar(trabajo, plan)
+
+
 def registrar_todos() -> None:
     registry.registrar(MotorGdalRaster())
     registry.registrar(MotorEcw())
+    for formato, (controlador, de_donde) in ORIGENES_PROPIETARIOS.items():
+        registry.registrar(MotorLecturaPropietaria(formato, controlador, de_donde))

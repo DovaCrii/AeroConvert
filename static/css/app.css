@@ -113,15 +113,20 @@
   --av-warn-soft: #3d2f14;
   --av-danger-soft: #3d1a1e;
 
-  /* Las familias, subidas de luz y con el fondo hundido: en oscuro el par se invierte. */
+  /* Las familias, subidas de luz y con el fondo hundido: en oscuro el par se invierte.
+   *
+   * **Los fondos suben cuatro escalones respecto al primer intento.** A #10243f la baldosa
+   * quedaba casi al nivel de la tarjeta (#1c2634) y el icono flotaba sobre nada: se veía el
+   * dibujo, no la pieza. El color de familia se reconoce por la mancha de fondo, no por el
+   * trazo, así que si la mancha no existe el color no comunica y sobra. */
   --av-fam-componer: var(--av-primary);
-  --av-fam-componer-soft: var(--av-primary-soft);
-  --av-fam-transformar: #8fbdf5;
-  --av-fam-transformar-soft: #10243f;
-  --av-fam-marcar: #c4a8f5;
-  --av-fam-marcar-soft: #241540;
-  --av-fam-proteger: #6fd0d8;
-  --av-fam-proteger-soft: #0e2e33;
+  --av-fam-componer-soft: #46143a;
+  --av-fam-transformar: #9cc6f8;
+  --av-fam-transformar-soft: #17325a;
+  --av-fam-marcar: #cdb4f8;
+  --av-fam-marcar-soft: #2f1d5c;
+  --av-fam-proteger: #7ddbe3;
+  --av-fam-proteger-soft: #14444b;
 
   --av-shadow: 0 10px 30px rgb(0 0 0 / 35%);
   --av-shadow-alto: 0 14px 34px rgb(0 0 0 / 50%);
@@ -179,28 +184,41 @@ body::before {
     radial-gradient(900px 520px at 96% 4%, rgb(46 196 182 / 4%), transparent 60%);
 }
 
+/*
+ * 1200 px dejaban un tercio de pantalla en negro en los monitores de la oficina, y la rejilla
+ * de herramientas se quedaba en tres columnas cuando cabían cuatro. 1440 aprovecha el ancho
+ * **sin** alargar las líneas de texto: eso lo sigue impidiendo el `max-width` en caracteres
+ * de cada párrafo, que es donde tiene que estar el límite — una medida de lectura no se
+ * defiende estrechando la página entera.
+ */
 .envoltorio {
-  max-width: 1200px;
+  max-width: 1440px;
   margin: 0 auto;
-  padding: 22px 18px 56px;
+  padding: 26px 24px 64px;
 }
 
 /* --- La cabecera de página: dónde estás y para qué sirve esto ------------- */
 
 .cabecera-pagina {
-  margin-bottom: 20px;
+  margin-bottom: 26px;
 }
 
+/* 1,5 rem competía de tú a tú con los nombres de las tarjetas y la pantalla se leía como una
+ * lista sin encabezar. A 1,95 hay jerarquía, que es de lo que se trata. */
 .cabecera-pagina h1 {
-  font-size: 1.5rem;
-  margin: 0 0 4px;
-  letter-spacing: -0.01em;
+  font-size: clamp(1.6rem, 1.25rem + 1.1vw, 1.95rem);
+  line-height: 1.2;
+  margin: 2px 0 6px;
+  letter-spacing: -0.02em;
 }
 
 .cabecera-pagina .proposito {
   color: var(--av-text-secondary);
   margin: 0;
-  max-width: 62ch;
+  max-width: 68ch;
+  font-size: 0.95rem;
+  line-height: 1.55;
+  text-wrap: pretty;
 }
 
 /* Esta aplicación es cifras de punta a punta: sin `tabular-nums` las columnas bailan al
@@ -580,21 +598,21 @@ td.cifra,
 /* El cuadro del dibujo, con el número colgando de la esquina. Mismo relieve y mismas
  * variables de familia que las tarjetas de PDF: es la misma idea en otra pantalla. */
 .paso-marca {
-  --marca-color: var(--av-primary);
-  --marca-fondo: var(--av-primary-soft);
-
   position: relative;
   display: grid;
   place-items: center;
   width: 2.9rem;
   height: 2.9rem;
   border-radius: 12px;
-  color: var(--marca-color);
+  color: var(--marca-color, var(--av-primary));
   background:
     linear-gradient(160deg, rgb(255 255 255 / 10%), rgb(0 0 0 / 6%)),
-    var(--marca-fondo);
+    var(--marca-fondo, var(--av-primary-soft));
   box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 16%),
+    inset 0 0 0 1px rgb(127 127 127 / 20%),
+    0 1px 2px rgb(18 34 59 / 10%);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--marca-color, var(--av-primary)) 24%, transparent),
     0 1px 2px rgb(18 34 59 / 10%);
 }
 
@@ -612,7 +630,7 @@ td.cifra,
   width: 1.25rem;
   height: 1.25rem;
   border-radius: 50%;
-  background: var(--marca-color);
+  background: var(--marca-color, var(--av-primary));
   color: var(--av-surface);
   /* Contra el fondo de la tarjeta, no contra el del cuadro: es lo que lo despega. */
   border: 2px solid var(--av-surface);
@@ -1073,10 +1091,17 @@ code {
 
 /* --- El índice de herramientas de PDF ------------------------------------ */
 
+/*
+ * `align-items: start` y no el `stretch` de fábrica. **Es lo que arregla la tarjeta hueca**:
+ * «Proteger PDF» cabe en tres líneas, pero compartía fila con las dos de Office, que llevan
+ * dentro el párrafo entero de por qué están apagadas. Estirada a esa altura, dejaba un
+ * agujero de medio palmo que se leía como si le faltara algo.
+ */
 .herramientas {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(18.5rem, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(19.5rem, 1fr));
+  align-items: start;
+  gap: 14px;
 }
 
 /*
@@ -1118,21 +1143,34 @@ code {
  * sobre un plano. Son cuatro puntos de luminancia: se notan cuando están y no se ven cuando
  * se miran, que es justo lo que tiene que hacer un relieve.
  */
+/*
+ * **El valor por omisión va dentro del `var()`, no como declaración.** Escrito como
+ * `--marca-color: var(--av-primary)` aquí, esta regla y `.fam-proteger` tienen la misma
+ * especificidad y decide cuál va después en la hoja: las clases de familia dejaban de pintar
+ * y todas las baldosas salían magenta. Con el respaldo en el `var()` no hay competencia —
+ * la familia declara la variable o no la declara, y el respaldo entra solo si falta.
+ */
 .herramienta-marca {
-  --marca-color: var(--av-primary);
-  --marca-fondo: var(--av-primary-soft);
-
   display: grid;
   place-items: center;
   width: 2.6rem;
   height: 2.6rem;
   border-radius: 11px;
-  color: var(--marca-color);
+  color: var(--marca-color, var(--av-primary));
   background:
     linear-gradient(160deg, rgb(255 255 255 / 10%), rgb(0 0 0 / 6%)),
-    var(--marca-fondo);
+    var(--marca-fondo, var(--av-primary-soft));
+  /* El aro interior en el color de la propia familia, no en blanco: en oscuro un filo blanco
+   * se lee como brillo de plástico, y en claro desaparece. Del mismo tono que el dibujo, la
+   * pieza se recorta sola contra la tarjeta.
+   *
+   * La primera línea es el respaldo para quien no entienda `color-mix`: un aro neutro, que es
+   * peor pero no es nada raro. */
   box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 16%),
+    inset 0 0 0 1px rgb(127 127 127 / 20%),
+    0 1px 2px rgb(18 34 59 / 10%);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--marca-color, var(--av-primary)) 24%, transparent),
     0 1px 2px rgb(18 34 59 / 10%);
   transition: transform 0.12s ease, box-shadow 0.12s ease;
 }
@@ -1140,8 +1178,8 @@ code {
 .herramienta:hover .herramienta-marca {
   transform: scale(1.04);
   box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 22%),
-    0 3px 8px rgb(18 34 59 / 16%);
+    inset 0 0 0 1px color-mix(in srgb, var(--marca-color, var(--av-primary)) 45%, transparent),
+    0 3px 8px rgb(18 34 59 / 18%);
 }
 
 /* --- Las cuatro familias -------------------------------------------------- */
@@ -1205,19 +1243,17 @@ code {
 }
 
 .nota-privacidad-marca {
-  --marca-color: var(--av-primary);
-  --marca-fondo: var(--av-primary-soft);
-
   display: grid;
   place-items: center;
   width: 2.6rem;
   height: 2.6rem;
   border-radius: 11px;
-  color: var(--marca-color);
+  color: var(--marca-color, var(--av-primary));
   background:
     linear-gradient(160deg, rgb(255 255 255 / 10%), rgb(0 0 0 / 6%)),
-    var(--marca-fondo);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 16%);
+    var(--marca-fondo, var(--av-primary-soft));
+  box-shadow: inset 0 0 0 1px rgb(127 127 127 / 20%);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--marca-color, var(--av-primary)) 24%, transparent);
 }
 
 /*
@@ -1252,6 +1288,183 @@ code {
   margin-top: 6px;
   color: var(--av-warn);
   font-size: var(--av-fs-sm);
+}
+
+/* --- La pantalla de compatibilidad ---------------------------------------- */
+/*
+ * Tres bloques con título propio en vez de dos tarjetas seguidas. El título de sección es lo
+ * que permite saltar directo a «lo que falta» sin leer lo demás, que es a lo que se viene.
+ */
+.bloque {
+  margin-bottom: 30px;
+}
+
+.bloque-titulo {
+  font-size: 1.12rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  margin: 0 0 4px;
+}
+
+.bloque-nota {
+  color: var(--av-text-secondary);
+  font-size: var(--av-fs-sm);
+  margin: 0 0 12px;
+  max-width: 72ch;
+}
+
+/* La tira de cifras de cabecera: el estado de la máquina en dos segundos. */
+.resumen-tiras {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: 12px;
+  margin-bottom: 30px;
+}
+
+.tira-dato {
+  display: grid;
+  gap: 2px;
+  padding: 14px 18px;
+  border: 1px solid var(--av-border);
+  border-left: 3px solid var(--av-ok);
+  border-radius: var(--av-radius);
+  background: var(--av-surface);
+}
+
+/* La que pide atención. Color **y** posición: es la única con el borde ámbar y va la última,
+ * donde la vista acaba. */
+.tira-dato-ojo {
+  border-left-color: var(--av-warn);
+}
+
+.tira-cifra {
+  font-size: 1.7rem;
+  font-weight: 700;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+/* El denominador, medio tono más bajo: «7 de 9» se lee de un golpe y el 9 no compite. */
+.tira-de {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--av-text-muted);
+}
+
+.tira-que {
+  color: var(--av-text-secondary);
+  font-size: var(--av-fs-sm);
+}
+
+.motores {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
+  align-items: start;
+  gap: 14px;
+}
+
+/* Las apagadas piden más sitio: llevan motivo, remedio y alternativa. */
+.motores-apagados {
+  grid-template-columns: repeat(auto-fit, minmax(26rem, 1fr));
+}
+
+.motor {
+  padding: 16px 18px;
+  border: 1px solid var(--av-border);
+  border-radius: var(--av-radius);
+  background: var(--av-surface);
+}
+
+.motor-apagado {
+  border-style: dashed;
+  border-color: var(--av-border-control);
+}
+
+.motor-cabeza {
+  display: grid;
+  grid-template-columns: 2.2rem 1fr auto;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.motor-marca {
+  display: grid;
+  place-items: center;
+  width: 2.2rem;
+  height: 2.2rem;
+  border-radius: 9px;
+  color: var(--marca-color, var(--av-primary));
+  background: var(--marca-fondo, var(--av-primary-soft));
+  box-shadow: inset 0 0 0 1px rgb(127 127 127 / 20%);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--marca-color, var(--av-primary)) 24%, transparent);
+}
+
+.motor-icono {
+  width: 1.15rem;
+  height: 1.15rem;
+}
+
+.motor-nombre {
+  display: grid;
+  min-width: 0;
+}
+
+.motor-nombre strong {
+  font-size: 0.98rem;
+  letter-spacing: -0.005em;
+}
+
+.motor-nombre span {
+  font-size: var(--av-fs-sm);
+}
+
+.motor-version,
+.motor-motivo,
+.motor-remedio,
+.motor-alternativa {
+  margin: 0 0 6px;
+  font-size: var(--av-fs-sm);
+  line-height: 1.5;
+  text-wrap: pretty;
+}
+
+.motor-version {
+  color: var(--av-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.motor-motivo {
+  color: var(--av-text);
+}
+
+.motor-remedio {
+  color: var(--av-warn);
+}
+
+.motor-alternativa {
+  color: var(--av-text-secondary);
+}
+
+.motor-pie {
+  color: var(--av-text-muted);
+  font-size: var(--av-fs-xs);
+  padding-top: 8px;
+  border-top: 1px solid var(--av-border);
+}
+
+.motivos {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--av-border);
+  font-size: var(--av-fs-sm);
+}
+
+.motivos ul {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 4px;
 }
 
 /* --- La tira de miniaturas de un documento -------------------------------- */
