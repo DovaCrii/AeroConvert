@@ -16,7 +16,10 @@ def lista(request):
         "presets/lista.html",
         {
             "de_fabrica": ConversionPreset.objects.filter(de_fabrica=True),
-            "propios": ConversionPreset.objects.filter(de_fabrica=False),
+            # **Los de quien pregunta, no los de todos.** Un preajuste lleva el nombre del
+            # cliente y del contrato — «Entrega cliente BHP» — así que la lista de otro dice
+            # con quién está trabajando. En un servidor compartido eso no es un detalle.
+            "propios": ConversionPreset.propios_de(request.user),
             "formatos": {f.codigo: f.nombre for f in catalogo.FORMATOS.values()},
             "seccion": "preajustes",
             "etiqueta_seccion": "Preajustes",
@@ -38,7 +41,9 @@ def copiar(request, slug):
     dejaría a alguien sin referencia. Copiarlos sí, y eso cubre el caso real — «como el de
     Civil 3D, pero con la compresión cambiada».
     """
-    original = get_object_or_404(ConversionPreset, slug=slug)
+    # De fábrica o suyo. El de otro devuelve 404 y no 403: además de correcto, no confirma
+    # que exista, que es la misma regla que en `jobs/views.py::_mio`.
+    original = get_object_or_404(ConversionPreset.visibles_para(request.user), slug=slug)
 
     base = slugify(f"{original.slug}-copia")
     candidato = base
@@ -65,7 +70,17 @@ def copiar(request, slug):
 @login_required
 @require_POST
 def borrar(request, slug):
-    preajuste = get_object_or_404(ConversionPreset, slug=slug)
+    """Borra un preajuste **propio**.
+
+    Antes bastaba con conocer el `slug` para borrar el de cualquiera, y era un POST de un
+    clic. No era una fuga de información: era destruir el trabajo de otro sin dejar rastro y
+    sin que se enterase, que es peor.
+
+    La búsqueda va contra `visibles_para` y no contra los propios a secas para que el intento
+    de borrar uno de fábrica siga contestando lo que explica —«cópialos y cambia la copia»—
+    en vez de un 404 que no enseña nada.
+    """
+    preajuste = get_object_or_404(ConversionPreset.visibles_para(request.user), slug=slug)
     if preajuste.de_fabrica:
         messages.error(
             request, "Los preajustes de fábrica no se borran; cópialos y cambia la copia."

@@ -180,11 +180,16 @@ def inspeccionar(request):
             # motor sabe hacer esa conversión» — un callejón sin salida con forma de
             # botón, que es peor que no ofrecer nada.
             "hay_conversion": _hay_algun_destino(inspeccion, escribibles),
-            # **Solo los propios.** Los de fábrica salen de los perfiles, y los perfiles ya
-            # están arriba como botones de destino: enseñarlos otra vez era una segunda
-            # fila de botones con los mismos nombres haciendo lo mismo.
-            "preajustes": ConversionPreset.objects.filter(
-                de_fabrica=False, target_format_code__in=[f.codigo for f in escribibles]
+            # **Solo los propios, y «propios» quiere decir de quien mira.** Los de fábrica
+            # salen de los perfiles, y los perfiles ya están arriba como botones de destino:
+            # enseñarlos otra vez era una segunda fila de botones con los mismos nombres
+            # haciendo lo mismo.
+            #
+            # El comentario decía «solo los propios» desde el principio y la consulta solo
+            # excluía los de fábrica: en una máquina de una persona las dos cosas coinciden,
+            # y en el servidor compartido ya no.
+            "preajustes": ConversionPreset.propios_de(request.user).filter(
+                target_format_code__in=[f.codigo for f in escribibles]
             )[:12],
         },
     )

@@ -58,6 +58,22 @@ class ConversionPreset(BaseModel):
     def __str__(self) -> str:
         return self.nombre
 
+    @classmethod
+    def visibles_para(cls, usuario):
+        """Los de fábrica, más los de quien pregunta. **Y nada más.**
+
+        Está aquí y no repetido en cada vista a propósito: la regla se olvidó en tres sitios
+        —la lista, el desplegable de la pantalla de convertir y el borrado— y en uno de ellos
+        dejaba que cualquiera borrase el preajuste de otro. Una regla escrita cuatro veces es
+        una regla que alguien va a escribir mal.
+        """
+        return cls.objects.filter(models.Q(de_fabrica=True) | models.Q(owner=usuario))
+
+    @classmethod
+    def propios_de(cls, usuario):
+        """Solo los suyos: los de fábrica no son de nadie."""
+        return cls.objects.filter(de_fabrica=False, owner=usuario)
+
     @property
     def editable(self) -> bool:
         return not self.de_fabrica
