@@ -1,10 +1,69 @@
 # Instalar AeroConvert en la VM
 
-Ubuntu 24.04, para un equipo pequeño. Los ficheros de esta carpeta se **copian** a `/etc`;
-el que se ejecuta desde el repositorio es `scripts/desplegar.sh`.
+Ubuntu, para un equipo pequeño. Los ficheros de esta carpeta se **copian** a `/etc`; el que
+se ejecuta desde el repositorio es `scripts/desplegar.sh`.
 
 **El dimensionado está medido, no estimado**: 4 vCPU, 4 GB de RAM, 80 GB SSD. Las cifras y de
 dónde salen están en `docs/DEPLOY.md`.
+
+---
+
+## La máquina de la oficina, que no está vacía
+
+Comprobado el **2026-09-14** sobre `p340` (Ubuntu 26.04.1, VM de Hyper-V sobre una
+ThinkStation P340). **Ya es el servidor Aero de la oficina**, y AeroConvert es el tercer
+inquilino:
+
+| | Cómo corre | Puerto |
+| --- | --- | --- |
+| **AeroControl** | systemd + `uv run gunicorn`, `/opt/aerocontrol` | 8000 |
+| **AeroLink** | Docker compose — API, dos pilotos, PostgreSQL 16, MinIO | 8081, 8090, 8092, 9000, 9001 |
+| **AeroConvert** | systemd + `uv run gunicorn`, `/opt/aeroconvert` | **8001** |
+| AeroBim | *(previsto)* | 8002 |
+
+Dos cosas que no son como el manual genérico da por hecho:
+
+**No hay nginx, ni caddy, ni traefik.** Quien termina TLS y publica es **Tailscale**, con
+Funnel encendido: el sitio es alcanzable **desde todo internet**, no solo desde la red
+privada. Es una decisión tomada a propósito —acceso desde terreno— y tiene consecuencias que
+están más abajo.
+
+**Y Funnel admite tres puertos: 443, 8443 y 10000.** Eso evita el problema de montar varias
+aplicaciones Django bajo prefijos de ruta, que rompe todas las URL generadas:
+
+```
+https://p340.<tailnet>.ts.net          → AeroControl
+https://p340.<tailnet>.ts.net:8443     → AeroConvert
+https://p340.<tailnet>.ts.net:10000    → AeroBim, cuando toque
+```
+
+Cada una montada en `/`, sin `FORCE_SCRIPT_NAME` y sin reescribir estáticos.
+
+### Publicarlo
+
+```bash
+tailscale funnel --bg --https=8443 http://127.0.0.1:8001
+tailscale funnel status
+```
+
+Y en el `.env`, con el puerto:
+
+```
+ALLOWED_HOSTS=p340.<tailnet>.ts.net
+CSRF_TRUSTED_ORIGINS=https://p340.<tailnet>.ts.net:8443
+```
+
+### Lo que cambia por estar en internet abierto
+
+- **El bloqueo por intentos fallidos tiene que funcionar.** Tailscale pone la dirección real
+  en `X-Forwarded-For` y `apps/core/ip.py` la lee. Sin eso, todos compartirían `127.0.0.1` y
+  ocho equivocaciones de cualquiera dejarían fuera a toda la oficina.
+- **Cada entrada y cada intento fallido quedan en el registro**, diciendo si vinieron de
+  internet o de la red privada — se distinguen por la cabecera `Tailscale-Funnel-Request`, y
+  no hay otra forma de saberlo porque llegan por el mismo puerto.
+- **nginx deja de ser opcional y pasa a ser recomendable**, por el límite de peticiones sobre
+  la pantalla de entrada. Ver `aeroconvert.nginx.conf`, que trae la trampa de `real_ip`
+  explicada.
 
 ---
 

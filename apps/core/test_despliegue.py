@@ -95,14 +95,46 @@ class TestElObrero:
 
 
 class TestNginx:
-    def test_sobrescribe_la_cabecera_de_origen(self, nginx: str):
-        """Con `$proxy_add_x_forwarded_for`, que es lo habitual, quien mande su propia
-        cabecera produce «9.9.9.9, <la de verdad>» y basta con leer mal la lista para que el
-        bloqueo sea evadible. Ver `apps/core/ip.py`."""
+    def test_recupera_la_direccion_de_verdad_antes_de_nada(self, nginx: str):
+        """**La trampa de tener Tailscale delante, y ya se coló una vez.**
+
+        `proxy_set_header X-Forwarded-For $remote_addr` es lo correcto cuando nginx es el
+        primer salto. Aquí el primero es Tailscale, así que `$remote_addr` sería `127.0.0.1`
+        para todo el mundo y el bloqueo por intentos fallidos volvería a ser «todos comparten
+        una IP». `real_ip_header` es lo que lo arregla.
+        """
+        assert "real_ip_header" in nginx
+        assert "set_real_ip_from" in nginx
+
+    def test_reenvia_la_cabecera_de_origen(self, nginx: str):
         import re
 
         assert re.search(r"proxy_set_header\s+X-Forwarded-For\s+\$remote_addr;", nginx)
         assert "$proxy_add_x_forwarded_for" not in nginx
+
+    def test_frena_los_intentos_de_entrada(self, nginx: str):
+        """Contra un extremo público, sin esto alguien prueba contraseñas tan rápido como
+        aguante la máquina. django-axes bloquea por usuario, que es otra cosa: no frena el
+        chorro."""
+        assert "limit_req_zone" in nginx
+        assert "limit_req zone=entrar" in nginx
+
+    def test_el_tope_de_cuerpo_deja_pasar_una_subida(self, nginx: str):
+        """Si va por debajo de `AEROCONVERT_TOPE_MB`, nginx corta antes y la persona ve un
+        error del servidor en vez del mensaje que explica qué hacer."""
+        import re
+
+        from django.conf import settings
+
+        hallado = re.search(r"client_max_body_size\s+(\d+)m", nginx)
+        assert hallado, "falta client_max_body_size"
+        assert int(hallado.group(1)) > settings.TOPE_MB
+
+    def test_no_escucha_fuera_del_bucle_local(self, nginx: str):
+        """Quien publica es Tailscale. Escuchar en 0.0.0.0 abriría una segunda puerta sin
+        TLS por la red de la oficina."""
+        assert "listen 127.0.0.1:" in nginx
+        assert "listen 0.0.0.0" not in nginx
 
     def test_no_bufa_las_descargas(self, nginx: str):
         """Con el bufado por omisión, nginx escribe la respuesta entera en disco antes de
@@ -113,6 +145,10 @@ class TestNginx:
         """Los serviría sin el `Cache-Control: immutable` de whitenoise, y eso reabre el
         fallo de `test_arranque.py`: HTML nuevo con la hoja de estilos vieja."""
         assert "location /static/" not in nginx
+
+    def test_ni_lo_que_sube_la_gente(self, nginx: str):
+        """Si `MEDIA_ROOT` se sirviera por URL, la URL sería el permiso."""
+        assert "location /media/" not in nginx
 
 
 class TestElGuionDeDespliegue:

@@ -6,6 +6,7 @@ class CoreConfig(AppConfig):
     verbose_name = "Nucleo"
 
     def ready(self):
-        # Registra las comprobaciones de `manage.py check`. El import tiene el efecto
-        # secundario a proposito: es como Django espera que se registren.
-        from . import checks  # noqa: F401
+        # Los dos imports tienen efecto secundario **a proposito**: es como Django espera
+        # que se registren tanto las comprobaciones de `manage.py check` como los receptores
+        # de senales.
+        from . import checks, senales  # noqa: F401

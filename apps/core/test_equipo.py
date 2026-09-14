@@ -39,6 +39,21 @@ class TestDeDondeVieneLaPeticion:
         assert len(ip_mod.ip_del_cliente(peticion)) <= ip_mod.MAXIMO
 
 
+class TestDeInternetODeLaRedPrivada:
+    """Las dos llegan por el mismo puerto, y la única forma de distinguirlas es la cabecera
+    que pone Tailscale cuando la petición entró por Funnel."""
+
+    def test_una_de_internet_se_reconoce(self, rf):
+        assert ip_mod.viene_de_internet(rf.get("/", HTTP_TAILSCALE_FUNNEL_REQUEST="?1"))
+
+    def test_una_de_la_red_privada_no(self, rf):
+        assert not ip_mod.viene_de_internet(rf.get("/"))
+
+    def test_y_sin_tailscale_delante_tampoco(self, rf):
+        """Sin Funnel no hay internet abierto del que venir."""
+        assert not ip_mod.viene_de_internet(rf.get("/", REMOTE_ADDR="10.0.0.7"))
+
+
 class TestElBloqueo:
     def test_no_es_solo_por_ip(self, settings):
         """La prueba que impide volver atrás. Con `["ip_address"]` a secas y un nginx
