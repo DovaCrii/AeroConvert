@@ -132,11 +132,12 @@ Lo que sí funciona ya, medido y no supuesto:
 
 Lo que queda, en orden:
 
-1. **Instalar en la VM y hacer el paseo de aceptación.** Es lo único que separa esto de estar
-   en uso, y solo depende de que exista la máquina. Procedimiento en `despliegue/README.md`.
-2. **La subida por navegador**, para los PDF pequeños. Ya no bloquea nada: lo grande llega por
-   la carpeta compartida, que además es lo correcto para varios gigabytes.
-3. **Medir una nube real** con `pdal info --summary` sobre un archivo en disco local. La regla
+1. **Instalar en la VM.** Es lo único que separa esto de estar en uso, y solo depende de que
+   exista la máquina. Procedimiento en `despliegue/README.md`. **El paseo de aceptación ya
+   está hecho** sobre una instalación limpia —base vacía, `collectstatic`, usuario nuevo,
+   subir dos PDF por HTTP, componerlos y bajarse el resultado—; las cifras están en
+   `docs/PRUEBAS_CON_ORACULO.md`, corrida del 2026-09-14.
+2. **Medir una nube real** con `pdal info --summary` sobre un archivo en disco local. La regla
    de 105 MB por millón está medida sobre **un** archivo de 9,6 M puntos; extrapolarla a mil
    millones es aritmética, no medición, y de eso depende si hace falta otro motor.
 

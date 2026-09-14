@@ -125,7 +125,8 @@ elección equivocada y arreglar tres defectos que solo aparecen con más de una 
 | F6.6 | `check --deploy` y `collectstatic` en el CI, y con el módulo correcto | ✅ 2026-09-11 |
 | F6.7 | Páginas de error (`404`, `500`, `403`, `400`) y el 410 de la salida caducada, con su recibo | ✅ 2026-09-11 |
 | F6.8 | Instalar en la VM y el paseo de aceptación | ⬜ · espera a la máquina |
-| F6.9 | La subida por navegador, para los PDF pequeños | ⬜ · ya no bloquea |
+| F6.9 | La subida por navegador y la descarga del resultado | ✅ 2026-09-14 |
+| F6.10 | Paseo de aceptación sobre base limpia, por HTTP | ✅ 2026-09-14 |
 
 ---
 

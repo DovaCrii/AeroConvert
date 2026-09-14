@@ -58,6 +58,24 @@ aparecen cuando hay más de una persona, que es por lo que llevaban ahí desde s
   entrega porque sería dar otra cosa diciendo que es esta. La página enseña **el recibo
   entero** y ofrece rehacerla en un clic. Eso es lo que significa que el recibo sobreviva al
   archivo.
+- **Subir archivos desde el equipo**, para lo pequeño. Los planos y las nubes siguen llegando
+  por la carpeta compartida —reanudable y sin pasar por HTTP—, pero obligar a montar una
+  unidad de red para juntar dos PDF del escritorio es fricción sin motivo. Las dos vías
+  conviven en el mismo campo, y **cuál es cuál lo dice un prefijo, no una adivinanza**.
+- **Y la pantalla de unir sigue sin estado en el servidor.** Un `<input type="file">` rompía
+  esa invariante, porque el navegador no reenvía los bytes al pulsar «bajar». Lo que la
+  arregla es que en la lista viajen identificadores en vez de rutas: `receta.py` —el módulo
+  cuyo docstring entero trata de la ausencia de estado— **no ha tenido que cambiar ni una
+  línea**.
+- **El tope de tamaño ahora vale de verdad**, en tres sitios y solo uno inevadible.
+  `DATA_UPLOAD_MAX_MEMORY_SIZE` no servía: limita los datos del formulario que *no* son
+  archivos, así que un cuerpo de veinte gigabytes se escribía entero en el temporal del
+  sistema antes de que nadie lo rechazara. Y baja de 2048 MB a **200**: lo grande no sube.
+- **Descarga de los resultados**, que hacía falta **aunque haya carpeta compartida**: el
+  navegador está en el equipo de la persona y el recurso está montado en la VM, así que la
+  ruta que se enseñaba era la del servidor y como texto no servía para nada. Va por
+  identificador y **nunca por ruta**: una vista con `?ruta=` convertiría una herramienta que
+  escribe en lectura de todo el recurso compartido, por GET y sin testigo.
 - **`check --deploy` miraba el módulo equivocado.** `verify.ps1` lo corría sin fijar
   `DJANGO_SETTINGS_MODULE`, así que caía en `dev` con `DEBUG=True` y no comprobaba nada.
   Corregido, y añadido al CI junto con `collectstatic`.

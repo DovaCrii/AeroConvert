@@ -355,6 +355,74 @@ ningún `WINWORD.EXE` vivo. El `finally` del guion hace su trabajo.
 
 ---
 
+## Corrida del 2026-09-14 — el paseo de aceptación, sobre una instalación limpia
+
+No es una prueba de conversión: es la comprobación de que **una instalación nueva funciona de
+punta a punta por HTTP**. Base vacía, carpetas vacías, usuario recién creado.
+
+### 1. La instalación
+
+| Paso | Resultado |
+| --- | --- |
+| `migrate` sobre base vacía | 26 migraciones, sin un error |
+| `check --deploy` con `config.settings.prod` | **sin una sola queja** |
+| `collectstatic --clear` | 167 archivos, **483 post-procesados** |
+| `createsuperuser --noinput` | ✅ |
+
+### 2. La sonda de salud, con todo en verde
+
+```json
+{"estado": "ok", "modo": "taller",
+ "base": {"ok": true, "encolados": 0, "ejecutando": 0},
+ "despachador": {"ok": true, "dentro_del_web": true},
+ "origenes": {"ok": true, "raices": 1, "legibles": 1},
+ "disco": {"ok": true, "libre_gb": 485.9},
+ "estaticos": {"ok": true, "manifiesto": true}}
+```
+
+Las cinco comprobaciones contestan, y el despachador dejó su latido en la carpeta de trabajo.
+
+### 3. El manifiesto de estáticos, que es lo que más ha costado históricamente
+
+```
+hoja: /static/css/app.7c07e66279c4.css
+      200 · 27.483 bytes · Cache-Control: public, max-age=315360000, immutable
+```
+
+**Con huella de contenido y `immutable`.** Es el arreglo del fallo que se disfrazaba de error
+de diseño —HTML nuevo con la hoja vieja— funcionando en una instalación nueva.
+
+### 4. Subir, componer y descargar, por HTTP de verdad
+
+Dos PDF de 3 y 2 páginas subidos con `multipart/form-data`:
+
+| | |
+| --- | --- |
+| Identificadores devueltos | **2** |
+| Receta generada | `0:1:0,0:2:0,0:3:0,1:1:0,1:2:0` — las cinco páginas, en orden |
+| **¿Se ve la ruta del servidor en el HTML?** | **No** |
+| Enlace de descarga | `/documentos/descargar/1a6af9c0-…/` |
+| La descarga | 200 · 981 bytes · `filename="uno_unido.pdf"` |
+| El PDF resultante | **5 páginas, A4 vertical** |
+
+La cuarta fila es la prueba de la fuga hecha contra el servidor real: si el campo devolviera
+la ruta de `MEDIA_ROOT`, el POST siguiente la trataría como una ruta del disco del servidor.
+
+### 5. Y dónde quedó cada cosa
+
+```
+medios/subidas/21f5831a-…/uno.pdf     713 B
+medios/subidas/d9bd3058-…/dos.pdf     579 B
+trabajo/uno_unido.pdf                 981 B
+trabajo/.despachador                    0 B
+```
+
+Cada subida **en su propia carpeta y con su nombre intacto** — que es el motivo de que el
+identificador esté en la ruta y no en el nombre del archivo. Y los dos originales de la
+carpeta compartida, con sus 3 y 2 páginas, **sin tocar**.
+
+---
+
 ## Lo que sigue sin oráculo, y se dice
 
 **ECW no se puede verificar aquí.** El GDAL de QGIS 4.0.2 **no trae el controlador ECW**, ni
