@@ -23,23 +23,38 @@
   toca lo comprueba una prueba en cada camino de fallo, y que el formato lo pone el destino
   es lo que hacen los perfiles.
 {% endcomment %}
+{% comment %}
+  El número **y** el dibujo. El número dice que hay un orden —primero esto, luego lo otro—
+  y el dibujo dice de qué va el paso sin leerlo. Quitar cualquiera de los dos pierde una de
+  las dos cosas: tres iconos sueltos no se leen como una secuencia, y tres números sueltos
+  son lo que había antes.
+{% endcomment %}
 <ol class="pasos">
   <li>
-    <span class="paso-numero">1</span>
+    <span class="paso-marca fam-componer" aria-hidden="true">
+      <svg class="paso-icono"><use href="{% static 'img/icons.svg' %}#icon-soltar"></use></svg>
+      <span class="paso-numero">1</span>
+    </span>
     <div>
       <strong>Suelta cualquier archivo</strong>
       <span>No se copia ni se sube: se queda en tu equipo, y el original no se toca.</span>
     </div>
   </li>
   <li>
-    <span class="paso-numero">2</span>
+    <span class="paso-marca fam-transformar" aria-hidden="true">
+      <svg class="paso-icono"><use href="{% static 'img/icons.svg' %}#icon-mirar"></use></svg>
+      <span class="paso-numero">2</span>
+    </span>
     <div>
       <strong>Mira qué es en realidad</strong>
       <span>Sin abrirlo: qué formato tiene de verdad y qué trae dentro.</span>
     </div>
   </li>
   <li>
-    <span class="paso-numero">3</span>
+    <span class="paso-marca fam-proteger" aria-hidden="true">
+      <svg class="paso-icono"><use href="{% static 'img/icons.svg' %}#icon-destino"></use></svg>
+      <span class="paso-numero">3</span>
+    </span>
     <div>
       <strong>Elige dónde tiene que abrir</strong>
       <span>Dices el programa, no la extensión. Los ajustes se ponen solos.</span>

@@ -19,6 +19,27 @@ def _leer(ruta: Path) -> str:
     return ruta.read_text(encoding="utf-8")
 
 
+class TestLasCookiesLlevanApellido:
+    """Tres aplicaciones en un nombre, separadas solo por el puerto. **Las cookies no
+    distinguen el puerto.**
+
+    AeroControl está en `p340.<tailnet>.ts.net` y AeroConvert en el mismo nombre con `:8443`:
+    para el navegador es el mismo sitio. Con los nombres de fábrica, las dos escriben
+    `sessionid` y cada una borra la sesión de la otra. El síntoma —«me pide entrar otra vez al
+    cambiar de pantalla»— no se parece en nada a la causa, y por eso esto se fija aquí.
+    """
+
+    def test_la_sesion_no_usa_el_nombre_de_fabrica(self):
+        assert settings.SESSION_COOKIE_NAME != "sessionid"
+        assert "aeroconvert" in settings.SESSION_COOKIE_NAME
+
+    def test_ni_el_csrf(self):
+        """Y este colisiona peor: da un 403 al enviar el formulario, no una pantalla de
+        entrada, así que parece que la contraseña está mal."""
+        assert settings.CSRF_COOKIE_NAME != "csrftoken"
+        assert "aeroconvert" in settings.CSRF_COOKIE_NAME
+
+
 @pytest.fixture(scope="module")
 def web() -> str:
     return _leer(DESPLIEGUE / "aeroconvert.service")

@@ -145,10 +145,16 @@ def _contexto(origenes: list, entradas, extra: dict | None = None) -> dict:
 #: Las herramientas, para el indice y para el titulo de cada pantalla. Una lista y no seis
 #: entradas en la barra: la barra es de secciones, y esto es una seccion con varias cosas
 #: dentro. Ademas asi entra la siguiente sin rediscutir donde ponerla.
+#:
+#: El `icono` es el identificador dentro de `static/img/icons.svg`. Va aqui y no en la
+#: plantilla porque la plantilla recorre la lista: con un `if` por herramienta, anadir la
+#: decima obligaria a tocar dos sitios y el segundo se olvida.
 HERRAMIENTAS = (
     {
         "id": "unir",
         "url": "documents:unir",
+        "icono": "icon-pdf-unir",
+        "familia": "componer",
         "nombre": "Unir PDF",
         "que_hace": (
             "Junta varios en uno. Eliges qué páginas entran, en qué orden, y giras las "
@@ -157,42 +163,56 @@ HERRAMIENTAS = (
     },
     {
         "id": "dividir",
+        "icono": "icon-pdf-dividir",
+        "familia": "componer",
         "url": "documents:dividir",
         "nombre": "Dividir PDF",
         "que_hace": "Saca una parte, o parte uno grande en hojas sueltas.",
     },
     {
         "id": "imagenes",
+        "icono": "icon-pdf-a-pdf",
+        "familia": "transformar",
         "url": "documents:imagenes",
         "nombre": "Imágenes a PDF",
         "que_hace": "Fotos o escaneos en un solo documento, en A4 o al tamaño del original.",
     },
     {
         "id": "a_imagenes",
+        "icono": "icon-pdf-a-imagen",
+        "familia": "transformar",
         "url": "documents:a_imagenes",
         "nombre": "PDF a imágenes",
         "que_hace": "Una lámina como JPG o PNG, para meterla en un informe o en una diapositiva.",
     },
     {
         "id": "numerar",
+        "icono": "icon-pdf-numerar",
+        "familia": "marcar",
         "url": "documents:numerar",
         "nombre": "Numerar páginas",
         "que_hace": ("Pone «3 / 56» en cada hoja. Sin numerar la portada, si no quieres."),
     },
     {
         "id": "marca",
+        "icono": "icon-pdf-marca",
+        "familia": "marcar",
         "url": "documents:marca",
         "nombre": "Marca de agua",
         "que_hace": "Estampa «BORRADOR» o «CONFIDENCIAL» cruzando cada página.",
     },
     {
         "id": "proteger",
+        "icono": "icon-pdf-proteger",
+        "familia": "proteger",
         "url": "documents:proteger",
         "nombre": "Proteger PDF",
         "que_hace": "Le pone contraseña, con AES-256. O se la quita, si la sabes.",
     },
     {
         "id": "office",
+        "icono": "icon-pdf-office",
+        "familia": "transformar",
         "url": "documents:office",
         "nombre": "Word, Excel o PowerPoint a PDF",
         "que_hace": "Con el Office de tu equipo, así que sale idéntico al original.",
@@ -202,6 +222,8 @@ HERRAMIENTAS = (
     },
     {
         "id": "a_word",
+        "icono": "icon-pdf-a-word",
+        "familia": "transformar",
         "url": "documents:a_word",
         "nombre": "PDF a Word",
         "que_hace": "El camino de vuelta, para poder editarlo. Con lo que eso significa.",

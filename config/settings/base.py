@@ -232,6 +232,20 @@ LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "dashboard:convertir"
 LOGOUT_REDIRECT_URL = "login"
 
+# --- Las cookies llevan apellido ------------------------------------------
+#
+# **Las cookies no distinguen el puerto.** En el servidor compartido, AeroControl vive en
+# `p340.<tailnet>.ts.net` y AeroConvert en `p340.<tailnet>.ts.net:8443`: para el navegador es
+# **el mismo sitio**. Con el nombre que Django trae de fabrica, las dos escriben `sessionid`
+# y `csrftoken` y cada una borra la sesion de la otra -- entrar en una te echa de la otra, y
+# el sintoma es «me pide entrar otra vez al cambiar de pantalla», que no se parece en nada a
+# la causa.
+#
+# Lo mismo pasa en la estacion de trabajo con dos aplicaciones en `localhost:8000` y
+# `localhost:8001`, asi que esto va en la configuracion comun y no solo en la del servidor.
+SESSION_COOKIE_NAME = "aeroconvert_sesion"
+CSRF_COOKIE_NAME = "aeroconvert_csrf"
+
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "rest_framework.authentication.SessionAuthentication",

@@ -6,9 +6,13 @@
  * NUNCA para texto ni para el relleno de un botón. El color de acción es #A3176F, que da
  * 7,2:1 — y en tema oscuro #F5A8D3, que da 8,9:1 sobre la superficie.
  *
- * Es la misma disciplina de AeroBim y AeroControl, y hay una prueba que lee este archivo,
- * calcula los contrastes con la fórmula de WCAG 2.1 y falla si alguno baja del piso. Los
- * números de arriba no son una afirmación: son una prueba.
+ * Es la misma disciplina de AeroBim y AeroControl, y `apps/core/test_paleta.py` lee este
+ * archivo, calcula los contrastes con la fórmula de WCAG 2.1 y falla si alguno baja del piso.
+ * Los números de arriba no son una afirmación: son una prueba.
+ *
+ * Esa prueba también vigila lo contrario: que el magenta **siga sin llegar** al piso de
+ * texto. Si alguien lo «arreglara» para que pasara AA, la regla se habría perdido sin que
+ * nadie se diera cuenta.
  *
  * ## Y la que ordena la interacción: nada se esconde en hover
  *
@@ -46,6 +50,26 @@
   --av-ok-soft: #e4f6ea;
   --av-warn-soft: #fdf1dc;
   --av-danger-soft: #fce4e6;
+
+  /* --- Las familias de herramientas ---------------------------------------
+   *
+   * Cuatro colores para cuatro clases de operación: componer, transformar, marcar y
+   * proteger. **No son adorno**: en una rejilla de nueve tarjetas, el color agrupa antes de
+   * que se lea un solo nombre, y «unir» y «dividir» se reconocen como parientes.
+   *
+   * Y **no se reutilizan `--av-ok` ni `--av-warn`**, aunque el verde y el ámbar estaban ahí.
+   * Esos dos significan «salió bien» y «cuidado» en toda la aplicación; un icono ámbar
+   * porque toca numerar páginas diría algo que no es. Verde, ámbar y rojo se quedan para los
+   * estados, y las familias usan azul, violeta y turquesa, que no colisionan con ninguno.
+   */
+  --av-fam-componer: var(--av-primary);
+  --av-fam-componer-soft: var(--av-primary-soft);
+  --av-fam-transformar: #1b5fb8;
+  --av-fam-transformar-soft: #e6eefb;
+  --av-fam-marcar: #6b3fbf;
+  --av-fam-marcar-soft: #ede8fb;
+  --av-fam-proteger: #0f6d78;
+  --av-fam-proteger-soft: #ddf1f3;
 
   --av-radius: 12px;
   --av-radius-sm: 8px;
@@ -88,6 +112,16 @@
   --av-ok-soft: #14361f;
   --av-warn-soft: #3d2f14;
   --av-danger-soft: #3d1a1e;
+
+  /* Las familias, subidas de luz y con el fondo hundido: en oscuro el par se invierte. */
+  --av-fam-componer: var(--av-primary);
+  --av-fam-componer-soft: var(--av-primary-soft);
+  --av-fam-transformar: #8fbdf5;
+  --av-fam-transformar-soft: #10243f;
+  --av-fam-marcar: #c4a8f5;
+  --av-fam-marcar-soft: #241540;
+  --av-fam-proteger: #6fd0d8;
+  --av-fam-proteger-soft: #0e2e33;
 
   --av-shadow: 0 10px 30px rgb(0 0 0 / 35%);
   --av-shadow-alto: 0 14px 34px rgb(0 0 0 / 50%);
@@ -534,35 +568,76 @@ td.cifra,
 
 .pasos li {
   display: grid;
-  grid-template-columns: 1.9rem 1fr;
-  gap: 12px;
+  grid-template-columns: 2.9rem 1fr;
+  gap: 14px;
   align-items: start;
-  padding: 14px 16px;
+  padding: 16px 18px;
   border-radius: var(--av-radius);
   background: var(--av-surface);
   border: 1px solid var(--av-border);
 }
 
-.paso-numero {
+/* El cuadro del dibujo, con el número colgando de la esquina. Mismo relieve y mismas
+ * variables de familia que las tarjetas de PDF: es la misma idea en otra pantalla. */
+.paso-marca {
+  --marca-color: var(--av-primary);
+  --marca-fondo: var(--av-primary-soft);
+
+  position: relative;
   display: grid;
   place-items: center;
-  width: 1.9rem;
-  height: 1.9rem;
+  width: 2.9rem;
+  height: 2.9rem;
+  border-radius: 12px;
+  color: var(--marca-color);
+  background:
+    linear-gradient(160deg, rgb(255 255 255 / 10%), rgb(0 0 0 / 6%)),
+    var(--marca-fondo);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 16%),
+    0 1px 2px rgb(18 34 59 / 10%);
+}
+
+.paso-icono {
+  width: 1.6rem;
+  height: 1.6rem;
+}
+
+.paso-numero {
+  position: absolute;
+  top: -6px;
+  left: -6px;
+  display: grid;
+  place-items: center;
+  width: 1.25rem;
+  height: 1.25rem;
   border-radius: 50%;
-  background: var(--av-primary-soft);
-  color: var(--av-primary);
+  background: var(--marca-color);
+  color: var(--av-surface);
+  /* Contra el fondo de la tarjeta, no contra el del cuadro: es lo que lo despega. */
+  border: 2px solid var(--av-surface);
+  font-size: 0.7rem;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
+  line-height: 1;
 }
 
 .pasos strong {
   display: block;
-  margin-bottom: 1px;
+  margin-bottom: 2px;
+  font-size: 1.02rem;
+  font-weight: 650;
+  letter-spacing: -0.008em;
+  line-height: 1.3;
 }
 
-.pasos span {
+/* `.pasos div span` y no `.pasos span`: el segundo alcanzaría también al número dentro de
+ * `.paso-marca` y le ganaría por especificidad, dejándolo gris y pequeño. */
+.pasos div span {
   color: var(--av-text-secondary);
   font-size: var(--av-fs-sm);
+  line-height: 1.5;
+  text-wrap: pretty;
 }
 
 /* --- La zona de soltar ---------------------------------------------------- */
@@ -1000,20 +1075,27 @@ code {
 
 .herramientas {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(18.5rem, 1fr));
   gap: 12px;
 }
 
+/*
+ * Icono a la izquierda, texto a la derecha. **La fila de arriba no se estira**: `start` en
+ * lugar del `stretch` de fábrica, o el cuadro del icono crecería hasta la altura de la
+ * tarjeta más alta de la fila y las nueve dejarían de parecer hermanas.
+ */
 .herramienta {
   display: grid;
-  gap: 4px;
+  grid-template-columns: 2.6rem 1fr;
+  gap: 14px;
+  align-items: start;
   padding: 16px 18px;
   border: 1px solid var(--av-border);
   border-radius: var(--av-radius);
   background: var(--av-surface);
   color: inherit;
   text-decoration: none;
-  transition: border-color 0.12s ease, background 0.12s ease;
+  transition: border-color 0.12s ease, background 0.12s ease, transform 0.12s ease;
 }
 
 .herramienta:hover,
@@ -1022,9 +1104,120 @@ code {
   background: var(--av-primary-soft);
 }
 
-.herramienta span {
+/* Un empujón de un píxel. Suficiente para que la tarjeta se sienta pulsable, y poco para
+ * que no salte nada de sitio en una rejilla de nueve. */
+.herramienta:hover {
+  transform: translateY(-1px);
+}
+
+/*
+ * La baldosa del icono. **Su color lo pone la familia**, no esta regla: aquí solo viven la
+ * forma y el relieve, y cada `.fam-*` sustituye las dos variables locales.
+ *
+ * El degradado y el filo claro de arriba son lo que quita la sensación de calcomanía pegada
+ * sobre un plano. Son cuatro puntos de luminancia: se notan cuando están y no se ven cuando
+ * se miran, que es justo lo que tiene que hacer un relieve.
+ */
+.herramienta-marca {
+  --marca-color: var(--av-primary);
+  --marca-fondo: var(--av-primary-soft);
+
+  display: grid;
+  place-items: center;
+  width: 2.6rem;
+  height: 2.6rem;
+  border-radius: 11px;
+  color: var(--marca-color);
+  background:
+    linear-gradient(160deg, rgb(255 255 255 / 10%), rgb(0 0 0 / 6%)),
+    var(--marca-fondo);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 16%),
+    0 1px 2px rgb(18 34 59 / 10%);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.herramienta:hover .herramienta-marca {
+  transform: scale(1.04);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 22%),
+    0 3px 8px rgb(18 34 59 / 16%);
+}
+
+/* --- Las cuatro familias -------------------------------------------------- */
+
+.fam-componer {
+  --marca-color: var(--av-fam-componer);
+  --marca-fondo: var(--av-fam-componer-soft);
+}
+
+.fam-transformar {
+  --marca-color: var(--av-fam-transformar);
+  --marca-fondo: var(--av-fam-transformar-soft);
+}
+
+.fam-marcar {
+  --marca-color: var(--av-fam-marcar);
+  --marca-fondo: var(--av-fam-marcar-soft);
+}
+
+.fam-proteger {
+  --marca-color: var(--av-fam-proteger);
+  --marca-fondo: var(--av-fam-proteger-soft);
+}
+
+.herramienta-icono {
+  width: 1.45rem;
+  height: 1.45rem;
+}
+
+.herramienta-texto {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+/* El nombre un punto por encima del cuerpo y con el interletraje cerrado: en una rejilla de
+ * nueve, el nombre es lo que se busca y la explicación lo que se lee después. */
+.herramienta-texto strong {
+  font-size: 1.02rem;
+  font-weight: 650;
+  letter-spacing: -0.008em;
+  line-height: 1.3;
+  color: var(--av-text);
+}
+
+.herramienta-que {
   color: var(--av-text-secondary);
   font-size: var(--av-fs-sm);
+  line-height: 1.5;
+  text-wrap: pretty;
+}
+
+/* --- La nota de por que esto no es una web de internet -------------------- */
+
+.nota-privacidad {
+  display: grid;
+  grid-template-columns: 2.6rem 1fr;
+  gap: 14px;
+  align-items: start;
+  margin-top: 16px;
+}
+
+.nota-privacidad-marca {
+  --marca-color: var(--av-primary);
+  --marca-fondo: var(--av-primary-soft);
+
+  display: grid;
+  place-items: center;
+  width: 2.6rem;
+  height: 2.6rem;
+  border-radius: 11px;
+  color: var(--marca-color);
+  background:
+    linear-gradient(160deg, rgb(255 255 255 / 10%), rgb(0 0 0 / 6%)),
+    var(--marca-fondo);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 16%);
 }
 
 /*
@@ -1038,6 +1231,16 @@ code {
   background: transparent;
   border-style: dashed;
   cursor: not-allowed;
+}
+
+/* El icono también se apaga: si se quedara en color de familia, la tarjeta gris con una
+ * mancha viva se leería como «cargando», no como «hoy no». */
+.herramienta-apagada .herramienta-marca {
+  --marca-color: var(--av-text-secondary);
+
+  background: transparent;
+  border: 1px dashed var(--av-border-control);
+  box-shadow: none;
 }
 
 .herramienta-apagada strong {

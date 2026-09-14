@@ -65,6 +65,145 @@
     <path d="M4 16v2.5A2 2 0 0 0 6 20.5h12a2 2 0 0 0 2-2V16" />
   </symbol>
 
+  <symbol id="icon-mirar" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Una lupa sobre una hoja: mirar qué es **sin abrirlo**. -->
+    <path d="M5 3.5h8.5L18 8v3.2h-13z" fill="currentColor" fill-opacity=".16" stroke="none" />
+    <path d="M5 3.5h8.5L18 8v3.2" />
+    <path d="M13 3.5V8h5" />
+    <path d="M5 3.5v17h4" />
+    <circle cx="16" cy="16.5" r="3.6" fill="currentColor" fill-opacity=".16" />
+    <path d="M19 19.4L21.5 22" />
+  </symbol>
+
+  <symbol id="icon-destino" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Una diana: el programa donde tiene que abrir, no la extensión. -->
+    <circle cx="12" cy="12" r="8.5" fill="currentColor" fill-opacity=".16" />
+    <circle cx="12" cy="12" r="4.6" fill="currentColor" fill-opacity=".16" />
+    <circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none" />
+  </symbol>
+
+  <!--
+    Las nueve de PDF.
+
+    La hoja es el sujeto natural de todas, así que **lo que las distingue es el gesto**, no
+    un adorno dentro del mismo rectángulo. Dos llevan candado y lápiz y ninguna hoja: mejor
+    una silueta distinta que una novena variación del folio.
+
+    ## Dúotono: por qué `fill-opacity` y no una regla de CSS
+
+    La pieza principal de cada icono lleva además un relleno al 16 % del **mismo** color, que
+    es lo que los despega del fondo plano. Va como atributo del elemento y no como clase con
+    su regla en `app.css` **a propósito**: estos símbolos se traen con `<use>` desde un
+    archivo externo, y el contenido clonado vive en un árbol en la sombra donde los selectores
+    del documento que lo usa no entran. Una clase aquí se vería preciosa en el archivo y no
+    pintaría nada en la aplicación.
+
+    `fill-opacity` y no `opacity`: la segunda apagaría también el trazo, y entonces no hay
+    dúotono — hay un icono desvaído.
+  -->
+
+  <symbol id="icon-pdf-unir" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Dos hojas que confluyen en una. -->
+    <rect x="2.5" y="3" width="7" height="8" rx="1.2" fill="currentColor" fill-opacity=".16" />
+    <rect x="14.5" y="3" width="7" height="8" rx="1.2" fill="currentColor" fill-opacity=".16" />
+    <path d="M6 11v3a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-3" />
+    <path d="M12 13.5v7" />
+    <path d="M9 17.8l3 3 3-3" />
+  </symbol>
+
+  <symbol id="icon-pdf-dividir" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Una hoja que se abre en dos por una línea de corte. -->
+    <path d="M10 3.5H4.5A1.5 1.5 0 0 0 3 5v14a1.5 1.5 0 0 0 1.5 1.5H10z"
+          fill="currentColor" fill-opacity=".16" stroke="none" />
+    <path d="M14 3.5h5.5A1.5 1.5 0 0 1 21 5v14a1.5 1.5 0 0 1-1.5 1.5H14z"
+          fill="currentColor" fill-opacity=".16" stroke="none" />
+    <path d="M10 3.5H4.5A1.5 1.5 0 0 0 3 5v14a1.5 1.5 0 0 0 1.5 1.5H10" />
+    <path d="M14 3.5h5.5A1.5 1.5 0 0 1 21 5v14a1.5 1.5 0 0 1-1.5 1.5H14" />
+    <path d="M12 2v3M12 8v3M12 14v3M12 20v2" stroke-dasharray="0 0" />
+  </symbol>
+
+  <!--
+    Estos dos son **espejo el uno del otro a proposito**: mismas dos piezas, intercambiadas.
+    Lo que las distingue no es la flecha -una flecha al reves se confunde de un vistazo- sino
+    de que lado esta el paisaje y de que lado la hoja.
+  -->
+  <symbol id="icon-pdf-a-pdf" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Imagenes a PDF: el paisaje entra, sale la hoja. -->
+    <rect x="1.8" y="7.5" width="8" height="9" rx="1.3" fill="currentColor" fill-opacity=".16" />
+    <circle cx="4.4" cy="10.4" r="0.95" />
+    <path d="M1.8 14.6l2.4-2.2 2.3 2 1.3-1.1 2 1.7" />
+    <path d="M11 12h2.6" stroke-width="1.7" />
+    <path d="M12.4 10.4L14 12l-1.6 1.6" stroke-width="1.7" />
+    <path d="M15.4 7.5h3.6L22.2 10.7v5.8h-6.8z" fill="currentColor" fill-opacity=".16" />
+    <path d="M19 7.5v3.2h3.2" />
+  </symbol>
+
+  <symbol id="icon-pdf-a-imagen" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <!-- PDF a imagenes: entra la hoja, sale el paisaje. -->
+    <path d="M1.8 7.5h3.6L8.6 10.7v5.8H1.8z" fill="currentColor" fill-opacity=".16" />
+    <path d="M5.4 7.5v3.2h3.2" />
+    <path d="M10.4 12H13" stroke-width="1.7" />
+    <path d="M11.8 10.4L13.4 12l-1.6 1.6" stroke-width="1.7" />
+    <rect x="14.2" y="7.5" width="8" height="9" rx="1.3" fill="currentColor" fill-opacity=".16" />
+    <circle cx="16.8" cy="10.4" r="0.95" />
+    <path d="M14.2 14.6l2.4-2.2 2.3 2 1.3-1.1 2 1.7" />
+  </symbol>
+
+  <symbol id="icon-pdf-numerar" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+    <!-- La hoja con el folio marcado abajo, que es justo donde se imprime. -->
+    <path d="M4.5 2.5h9L19.5 8v13.5h-15z" fill="currentColor" fill-opacity=".16" />
+    <path d="M13.5 2.5V8h6" />
+    <path d="M7.5 11h9M7.5 14h6" />
+    <path d="M13.8 18.4v-1.6h4.2" stroke-width="1.9" />
+    <path d="M15.9 16.8v3.4" stroke-width="1.9" />
+  </symbol>
+
+  <symbol id="icon-pdf-marca" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+    <!-- La banda cruzando la hoja en diagonal, que es lo que se ve al estamparla. -->
+    <path d="M4.5 2.5h9L19.5 8v13.5h-15z" fill="currentColor" fill-opacity=".16" />
+    <path d="M13.5 2.5V8h6" />
+    <path d="M6.6 17.6L17.4 8.2" stroke-width="2.4" opacity="0.55" />
+    <path d="M9.2 20.2L20 10.8" stroke-width="2.4" opacity="0.55" />
+  </symbol>
+
+  <symbol id="icon-pdf-proteger" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Un candado y ninguna hoja: la silueta más reconocible de todo el juego. -->
+    <rect x="4" y="10.5" width="16" height="11" rx="2.2" fill="currentColor" fill-opacity=".16" />
+    <path d="M7.8 10.5V7.2a4.2 4.2 0 0 1 8.4 0v3.3" />
+    <path d="M12 14.6v3.2" stroke-width="2" />
+  </symbol>
+
+  <symbol id="icon-pdf-office" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Tres documentos apilados: Word, Excel y PowerPoint son tres, no uno. -->
+    <path d="M7.5 2.5h6L17 6v9.5H7.5z" fill="currentColor" fill-opacity=".16" />
+    <path d="M13.5 2.5V6H17" />
+    <path d="M11 18.5H4.5v-12" />
+    <path d="M14.5 21.5H8V9.5" opacity="0.55" />
+    <path d="M14 19.5h7" />
+    <path d="M18.8 17.4l2.2 2.1-2.2 2.1" />
+  </symbol>
+
+  <symbol id="icon-pdf-a-word" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+    <!-- La hoja con un lápiz: el camino de vuelta es poder editarlo. -->
+    <path d="M4.5 2.5h8L17.5 7.5v4h-13z" fill="currentColor" fill-opacity=".16" stroke="none" />
+    <path d="M4.5 2.5h8L17.5 7.5v4" />
+    <path d="M12.5 2.5V7.5h5" />
+    <path d="M4.5 2.5v19h6" />
+    <path d="M8 11h5" />
+    <path d="M19.4 12.6l2 2-6.5 6.5-2.6.6.6-2.6z" />
+  </symbol>
+
   <!-- Los tres veredictos. Formas claramente distintas, no tres círculos de colores: uno de
        cada doce hombres no distingue el rojo del verde. -->
   <symbol id="icon-veredicto-abre" viewBox="0 0 24 24" fill="none" stroke="currentColor"
