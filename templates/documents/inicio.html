@@ -12,41 +12,47 @@
 
   **El icono va delante del nombre, no encima.** Encima obliga a cada tarjeta a reservar una
   banda entera y la rejilla crece hasta que solo caben dos por fila; delante ocupa el hueco
-  que el título ya dejaba libre y se lee en el mismo golpe de vista que la palabra. Es la
-  diferencia entre ilustrar y decorar.
+  que el título ya dejaba libre y se lee en el mismo golpe de vista que la palabra.
 
-  Y una que hoy no se puede usar **sigue saliendo**, apagada y con el motivo. Ocultarla
-  haría parecer que nunca existió, que es la misma regla que con ECW en la matriz.
+  Y las que hoy no se pueden usar **siguen saliendo** —ocultarlas haría parecer que nunca
+  existieron— pero abajo y con el motivo escrito una sola vez. Ver el docstring de `inicio`.
 {% endcomment %}
 <div class="herramientas">
-  {% for herramienta in herramientas %}
-    {% if herramienta.disponible %}
-      <a class="herramienta" href="{% url herramienta.url %}">
-        <span class="herramienta-marca fam-{{ herramienta.familia }}" aria-hidden="true">
-          <svg class="herramienta-icono"><use href="{% static 'img/icons.svg' %}#{{ herramienta.icono }}"></use></svg>
-        </span>
-        <span class="herramienta-texto">
-          <strong>{{ herramienta.nombre }}</strong>
-          <span class="herramienta-que">{{ herramienta.que_hace }}</span>
-        </span>
-      </a>
-    {% else %}
-      <div class="herramienta herramienta-apagada">
-        <span class="herramienta-marca fam-{{ herramienta.familia }}" aria-hidden="true">
-          <svg class="herramienta-icono"><use href="{% static 'img/icons.svg' %}#{{ herramienta.icono }}"></use></svg>
-        </span>
-        <span class="herramienta-texto">
-          <strong>{{ herramienta.nombre }}</strong>
-          <span class="herramienta-que">{{ herramienta.que_hace }}</span>
-          <span class="motivo">
-            <span aria-hidden="true">⊘</span> {{ herramienta.motivo }}
-            {% if herramienta.sugerencia %}<br>{{ herramienta.sugerencia }}{% endif %}
-          </span>
-        </span>
-      </div>
-    {% endif %}
+  {% for herramienta in disponibles %}
+    <a class="herramienta" href="{% url herramienta.url %}">
+      <span class="herramienta-marca fam-{{ herramienta.familia }}" aria-hidden="true">
+        <svg class="herramienta-icono"><use href="{% static 'img/icons.svg' %}#{{ herramienta.icono }}"></use></svg>
+      </span>
+      <span class="herramienta-texto">
+        <strong>{{ herramienta.nombre }}</strong>
+        <span class="herramienta-que">{{ herramienta.que_hace }}</span>
+      </span>
+    </a>
   {% endfor %}
 </div>
+
+{% if apagadas %}
+  <section class="bloque bloque-apagado">
+    <h2 class="bloque-titulo">Estas dos no funcionan en este equipo</h2>
+    <p class="bloque-nota">
+      {{ motivo_office }} {{ sugerencia_office }}
+    </p>
+
+    <div class="herramientas herramientas-apagadas">
+      {% for herramienta in apagadas %}
+        <div class="herramienta herramienta-apagada">
+          <span class="herramienta-marca" aria-hidden="true">
+            <svg class="herramienta-icono"><use href="{% static 'img/icons.svg' %}#{{ herramienta.icono }}"></use></svg>
+          </span>
+          <span class="herramienta-texto">
+            <strong>{{ herramienta.nombre }}</strong>
+            <span class="herramienta-que">{{ herramienta.que_hace }}</span>
+          </span>
+        </div>
+      {% endfor %}
+    </div>
+  </section>
+{% endif %}
 
 <div class="tarjeta nota-privacidad">
   <span class="nota-privacidad-marca fam-proteger" aria-hidden="true">

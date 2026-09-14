@@ -74,6 +74,24 @@
           <span>Compatibilidad</span>
         </a>
 
+        {% comment %}
+          **Solo para quien administra**, y solo si existe.
+
+          No estaba en ninguna parte, así que dar de alta a alguien del equipo exigía saberse
+          la dirección de memoria — y quien administra aquí no es quien programa. Sin este
+          enlace, la pantalla de altas existe y no se encuentra, que a efectos prácticos es
+          lo mismo que no existir.
+
+          `is_staff` y no `is_superuser`: es exactamente la condición que deja entrar a
+          `/admin/`, así que el enlace nunca aparece para llevar a un 403.
+        {% endcomment %}
+        {% if user.is_staff %}
+          <a href="{% url 'admin:index' %}" class="nav-item">
+            <svg class="nav-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-personas"></use></svg>
+            <span>Cuentas</span>
+          </a>
+        {% endif %}
+
         <span class="barra-separador" aria-hidden="true"></span>
 
         {# Sol y luna, como en AeroControl. El JS enseña el que corresponde. #}

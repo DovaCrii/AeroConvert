@@ -65,6 +65,16 @@
     <path d="M4 16v2.5A2 2 0 0 0 6 20.5h12a2 2 0 0 0 2-2V16" />
   </symbol>
 
+  <symbol id="icon-personas" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Dos personas: la administracion de esta aplicacion es, sobre todo, dar de alta al
+         equipo. Un engranaje diria «ajustes», que es otra cosa y no existe aqui. -->
+    <circle cx="9" cy="8" r="3.4" fill="currentColor" fill-opacity=".16" />
+    <path d="M3 20a6 6 0 0 1 12 0" />
+    <path d="M16.5 5.2a3.4 3.4 0 0 1 0 6.6" />
+    <path d="M18 14.4A6 6 0 0 1 21 20" />
+  </symbol>
+
   <symbol id="icon-mirar" viewBox="0 0 24 24" fill="none" stroke="currentColor"
           stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
     <!-- Una lupa sobre una hoja: mirar qué es **sin abrirlo**. -->

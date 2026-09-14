@@ -477,13 +477,19 @@ td.cifra,
   margin: 0 0 4px;
 }
 
+/*
+ * El rótulo de sección. A 0,78 rem en mayúsculas y con interletraje ancho quedaba **por
+ * debajo del umbral en que una palabra se lee sin fijarse**: se veía una mancha rosa y había
+ * que detenerse a descifrar «PDF». Mayúsculas y espaciado le quitan legibilidad a un tamaño
+ * que ya era el más pequeño de la hoja, así que sube a 0,84 y baja el interletraje.
+ */
 .eyebrow {
-  font-size: var(--av-fs-xs);
-  font-weight: 800;
-  letter-spacing: 0.12em;
+  font-size: 0.84rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
   text-transform: uppercase;
   color: var(--av-primary);
-  margin-bottom: 2px;
+  margin-bottom: 4px;
 }
 
 /* --- La navegacion -------------------------------------------------------- */
@@ -1277,6 +1283,19 @@ code {
   background: transparent;
   border: 1px dashed var(--av-border-control);
   box-shadow: none;
+}
+
+/* El bloque de las que no funcionan: separado, más abajo y sin competir por la atención.
+ * Sigue estando —ocultarlo haría parecer que nunca existieron— pero en su sitio. */
+.bloque-apagado {
+  margin-top: 32px;
+  padding-top: 22px;
+  border-top: 1px solid var(--av-border);
+}
+
+/* Dos tarjetas y no siete: sin tope se estirarían a media pantalla cada una. */
+.herramientas-apagadas {
+  grid-template-columns: repeat(auto-fit, minmax(19.5rem, 24rem));
 }
 
 .herramienta-apagada strong {

@@ -238,18 +238,26 @@ def inicio(request):
 
     Una herramienta que hoy no se puede usar **no desaparece**: sale apagada y diciendo por
     qué. Es la misma regla que con ECW en la matriz de motores.
+
+    ## Pero apagada **abajo y en su propio bloque**, no intercalada
+
+    Las dos que dependen de Office comparten motivo, y ese motivo es un párrafo de cuatro
+    líneas. Mezcladas en la rejilla pasaban tres cosas a la vez: el párrafo salía repetido
+    palabra por palabra, su fila se estiraba al triple que las demás, y la herramienta que
+    venía detrás caía sola a una tercera fila con media pantalla en blanco alrededor.
+
+    Separadas, el motivo se escribe **una vez** —es el mismo— y las siete que funcionan
+    forman filas parejas.
     """
     office = office_mod.sondar()
-    herramientas = []
+    disponibles = []
+    apagadas = []
     for herramienta in HERRAMIENTAS:
         fila = dict(herramienta)
-        if herramienta.get("exige_office"):
-            fila["disponible"] = bool(office)
-            fila["motivo"] = office.motivo
-            fila["sugerencia"] = office.sugerencia
+        if herramienta.get("exige_office") and not office:
+            apagadas.append(fila)
         else:
-            fila["disponible"] = True
-        herramientas.append(fila)
+            disponibles.append(fila)
 
     return render(
         request,
@@ -262,7 +270,11 @@ def inicio(request):
                 "Todo pasa en tu equipo: los archivos no se copian, no se suben, y el "
                 "original nunca se toca."
             ),
-            "herramientas": herramientas,
+            "disponibles": disponibles,
+            "apagadas": apagadas,
+            # El motivo va aparte porque es **uno solo** para las dos.
+            "motivo_office": office.motivo,
+            "sugerencia_office": office.sugerencia,
         },
     )
 
