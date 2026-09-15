@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block titulo %}Qué necesitas hacer · AeroConvert{% endblock %}
+
+{% block contenido %}
+
+{% comment %}
+  El buscador va arriba y solo. Es lo único que hay que hacer en esta pantalla.
+
+  `hx-trigger` con `delay` porque dispara con cada tecla: sin la espera, escribir «ortofoto»
+  serían ocho peticiones de las que siete se tiran. Y `changed` para que moverse por el campo
+  con las flechas no dispare nada.
+{% endcomment %}
+<form class="buscador-acciones"
+      hx-get="{% url 'dashboard:que_puedo_hacer' %}"
+      hx-target="#resultados"
+      hx-swap="innerHTML"
+      hx-trigger="input changed delay:250ms from:#q, submit"
+      hx-indicator="#buscando">
+  <label class="visually-hidden" for="q">Qué necesitas hacer</label>
+  <svg class="buscador-lupa" aria-hidden="true">
+    <use href="{% static 'img/icons.svg' %}#icon-mirar"></use>
+  </svg>
+  <input type="search" id="q" name="q" value="{{ q }}" class="form-control"
+         placeholder="juntar planos, quitar contraseña, pasar a Excel…"
+         autocomplete="off" autofocus>
+  <span id="buscando" class="tenue htmx-indicator">buscando…</span>
+</form>
+
+<div id="resultados">
+  {% include "dashboard/_acciones.html" %}
+</div>
+{% endblock %}

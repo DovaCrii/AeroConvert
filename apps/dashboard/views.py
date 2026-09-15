@@ -18,6 +18,7 @@ from django.views.decorators.http import require_POST
 from apps.core import entrada as entrada_mod
 from apps.core import modo as modo_mod
 from apps.core import subidas as subidas_mod
+from apps.dashboard import acciones as acciones_mod
 from apps.dashboard import vista_previa as vista_previa_mod
 from apps.engines import formulario as formulario_mod
 from apps.engines import registry
@@ -133,6 +134,40 @@ def convertir(request):
             # vez. Y es literalmente el caso que originó la aplicación.
             "proposito": "Para cuando un archivo abre en un equipo y en otro no.",
             "recientes": ConversionJob.objects.filter(owner=request.user)[:5],
+        },
+    )
+
+
+@login_required
+def que_puedo_hacer(request):
+    """Todo lo que sabe hacer la aplicación, por categorías y con buscador.
+
+    La puerta que faltaba. Las capacidades vivían en tres pantallas que no se hablan, y quien
+    llega con un archivo y una intención tenía que saber de antemano en cuál mirar.
+
+    **El filtro se hace en el servidor y no en el navegador.** Son unas veinte acciones: el
+    viaje de ida y vuelta es más barato que el JavaScript que haría falta para filtrar bien
+    —acentos, sinónimos, varias palabras— y además funciona igual sin JavaScript.
+    """
+    busqueda = (request.GET.get("q") or "").strip()
+    grupos = acciones_mod.por_categoria(busqueda)
+
+    if request.headers.get("HX-Request"):
+        return render(request, "dashboard/_acciones.html", {"grupos": grupos, "q": busqueda})
+
+    return render(
+        request,
+        "dashboard/que_puedo_hacer.html",
+        {
+            "grupos": grupos,
+            "q": busqueda,
+            "seccion": "acciones",
+            "etiqueta_seccion": "Todo",
+            "titulo_pagina": "¿Qué necesitas hacer?",
+            "proposito": (
+                "Escribe lo que quieres conseguir —«juntar planos», «quitar la contraseña», "
+                "«pasar a Excel»— y sale con qué hacerlo."
+            ),
         },
     )
 

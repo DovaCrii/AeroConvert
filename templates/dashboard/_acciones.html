@@ -1,0 +1,58 @@
+{% load static %}
+{% comment %}
+  Los resultados. Fragmento aparte porque htmx lo reemplaza con cada tecla.
+{% endcomment %}
+
+{% if not grupos %}
+  <div class="vacio-busqueda">
+    <p style="margin:0 0 4px;"><strong>Nada coincide con «{{ q }}».</strong></p>
+    <p class="tenue" style="margin:0;">
+      Prueba con menos palabras, o con el formato: «pdf», «excel», «ortofoto».
+      Si lo que buscas no está, en
+      <a href="{% url 'engines:matriz' %}">Compatibilidad</a> se dice qué falta y por qué.
+    </p>
+  </div>
+{% endif %}
+
+{% for grupo in grupos %}
+  <section class="bloque">
+    <h2 class="bloque-titulo">{{ grupo.titulo }}</h2>
+    <p class="bloque-nota">{{ grupo.cuando }}</p>
+
+    <div class="herramientas">
+      {% for accion in grupo.acciones %}
+        {% if accion.disponible %}
+          <a class="herramienta" href="{% url accion.url %}">
+            <span class="herramienta-marca fam-{{ accion.familia }}" aria-hidden="true">
+              <svg class="herramienta-icono"><use href="{% static 'img/icons.svg' %}#{{ accion.icono }}"></use></svg>
+            </span>
+            <span class="herramienta-texto">
+              <strong>{{ accion.nombre }}</strong>
+              <span class="herramienta-que">{{ accion.que_hace }}</span>
+              <span class="herramienta-sale">Sale: <strong>{{ accion.sale }}</strong></span>
+            </span>
+          </a>
+        {% else %}
+          {% comment %}
+            Sale, pero apagada y sin enlace. Aquí sí tiene sentido enseñarla —esta pantalla
+            es el índice de todo— y con el motivo en una línea, no con el párrafo entero:
+            ese vive en Compatibilidad.
+          {% endcomment %}
+          <div class="herramienta herramienta-apagada">
+            <span class="herramienta-marca" aria-hidden="true">
+              <svg class="herramienta-icono"><use href="{% static 'img/icons.svg' %}#{{ accion.icono }}"></use></svg>
+            </span>
+            <span class="herramienta-texto">
+              <strong>{{ accion.nombre }}</strong>
+              <span class="herramienta-que">{{ accion.que_hace }}</span>
+              <span class="motivo">
+                <span aria-hidden="true">⊘</span> Aquí no se puede.
+                <a href="{% url 'engines:matriz' %}">Ver por qué</a>
+              </span>
+            </span>
+          </div>
+        {% endif %}
+      {% endfor %}
+    </div>
+  </section>
+{% endfor %}

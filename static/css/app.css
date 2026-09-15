@@ -821,6 +821,43 @@ td.cifra,
   font-size: var(--av-fs-sm);
 }
 
+/* --- El buscador de acciones --------------------------------------------- */
+/*
+ * Grande y solo. Es lo único que hay que hacer en esa pantalla, y un campo del tamaño de los
+ * demás no lo parecería.
+ */
+.buscador-acciones {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 28px;
+}
+
+.buscador-lupa {
+  position: absolute;
+  left: 14px;
+  width: 1.2rem;
+  height: 1.2rem;
+  color: var(--av-text-muted);
+  pointer-events: none;
+}
+
+.buscador-acciones input {
+  min-height: 52px;
+  padding-left: 44px;
+  font-size: 1.05rem;
+  border-radius: var(--av-radius);
+}
+
+.vacio-busqueda {
+  padding: 22px;
+  border: 1px dashed var(--av-border-control);
+  border-radius: var(--av-radius);
+  font-size: var(--av-fs-sm);
+  line-height: 1.55;
+}
+
 /* --- El buscador plegable, en las pantallas de PDF ----------------------- */
 
 .buscador {

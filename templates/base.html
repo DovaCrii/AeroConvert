@@ -42,6 +42,15 @@
         puede convertir en este equipo, así que se llama «Compatibilidad».
       {% endcomment %}
       <nav class="barra-nav" aria-label="Secciones">
+        {% comment %}
+          **La primera, y a propósito.** Es la única que no exige saber de antemano en qué
+          sección vive lo que se busca: se escribe la intención y ella lleva al sitio.
+        {% endcomment %}
+        <a href="{% url 'dashboard:que_puedo_hacer' %}" class="nav-item" title="Qué necesitas hacer"
+           {% if seccion == 'acciones' %}aria-current="page"{% endif %}>
+          <svg class="nav-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-mirar"></use></svg>
+          <span>Buscar</span>
+        </a>
         <a href="{% url 'dashboard:convertir' %}" class="nav-item" title="Convertir"
            {% if seccion == 'convertir' %}aria-current="page"{% endif %}>
           <svg class="nav-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-convertir"></use></svg>
