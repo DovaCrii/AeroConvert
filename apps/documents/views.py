@@ -154,6 +154,7 @@ HERRAMIENTAS = (
         "id": "unir",
         "url": "documents:unir",
         "icono": "icon-pdf-unir",
+        "sale": "un PDF",
         "familia": "componer",
         "nombre": "Unir PDF",
         "que_hace": (
@@ -164,6 +165,7 @@ HERRAMIENTAS = (
     {
         "id": "dividir",
         "icono": "icon-pdf-dividir",
+        "sale": "uno o varios PDF",
         "familia": "componer",
         "url": "documents:dividir",
         "nombre": "Dividir PDF",
@@ -172,6 +174,7 @@ HERRAMIENTAS = (
     {
         "id": "imagenes",
         "icono": "icon-pdf-a-pdf",
+        "sale": "un PDF",
         "familia": "transformar",
         "url": "documents:imagenes",
         "nombre": "Imágenes a PDF",
@@ -180,6 +183,7 @@ HERRAMIENTAS = (
     {
         "id": "a_imagenes",
         "icono": "icon-pdf-a-imagen",
+        "sale": "JPG o PNG",
         "familia": "transformar",
         "url": "documents:a_imagenes",
         "nombre": "PDF a imágenes",
@@ -188,6 +192,7 @@ HERRAMIENTAS = (
     {
         "id": "numerar",
         "icono": "icon-pdf-numerar",
+        "sale": "el mismo PDF, numerado",
         "familia": "marcar",
         "url": "documents:numerar",
         "nombre": "Numerar páginas",
@@ -196,6 +201,7 @@ HERRAMIENTAS = (
     {
         "id": "marca",
         "icono": "icon-pdf-marca",
+        "sale": "el mismo PDF, con la marca",
         "familia": "marcar",
         "url": "documents:marca",
         "nombre": "Marca de agua",
@@ -204,6 +210,7 @@ HERRAMIENTAS = (
     {
         "id": "proteger",
         "icono": "icon-pdf-proteger",
+        "sale": "el mismo PDF, con contraseña",
         "familia": "proteger",
         "url": "documents:proteger",
         "nombre": "Proteger PDF",
@@ -212,6 +219,7 @@ HERRAMIENTAS = (
     {
         "id": "office",
         "icono": "icon-pdf-office",
+        "sale": "un PDF",
         "familia": "transformar",
         "url": "documents:office",
         "nombre": "Word, Excel o PowerPoint a PDF",
@@ -223,6 +231,7 @@ HERRAMIENTAS = (
     {
         "id": "a_word",
         "icono": "icon-pdf-a-word",
+        "sale": "un DOCX",
         "familia": "transformar",
         "url": "documents:a_word",
         "nombre": "PDF a Word",
@@ -230,6 +239,41 @@ HERRAMIENTAS = (
         "exige_office": True,
     },
 )
+
+
+#: Los cuatro grupos, en el orden en que se piensan: primero mover páginas de sitio, luego
+#: cambiar de formato, luego estampar encima, y al final cerrar con llave.
+#:
+#: Cada uno con **la pregunta que lo trae**, no con un sustantivo. «Componer» es la palabra
+#: correcta y no le dice nada a quien llega con dos PDF que quiere juntar.
+GRUPOS = (
+    ("componer", "Juntar o separar", "Cuando el documento está repartido, o sobra la mitad."),
+    ("transformar", "Cambiar de formato", "Cuando hace falta en otra cosa: PDF, imagen o Word."),
+    ("marcar", "Estampar encima", "Cuando el documento está bien pero le falta algo en cada hoja."),
+    ("proteger", "Poner o quitar contraseña", "Cuando no puede abrirlo cualquiera."),
+)
+
+
+def _agrupar(herramientas):
+    """Las herramientas por familia, en el orden de `GRUPOS`.
+
+    **Siete tarjetas seguidas se reparten en cuatro y tres y dejan un hueco**, y el hueco se
+    lee como si faltara algo. Agrupadas, cada fila tiene el tamaño que le toca y además el
+    encabezado contesta antes de que haya que leer los nombres uno a uno.
+
+    Un grupo vacío no se pinta: con Office ausente, «cambiar de formato» pierde dos de sus
+    cuatro y sigue teniendo sentido, pero si algún día se queda sin ninguna, un encabezado
+    solo sería peor que nada.
+    """
+    por_familia: dict[str, list] = {}
+    for herramienta in herramientas:
+        por_familia.setdefault(herramienta.get("familia", ""), []).append(herramienta)
+
+    return [
+        {"clave": clave, "titulo": titulo, "cuando": cuando, "herramientas": por_familia[clave]}
+        for clave, titulo, cuando in GRUPOS
+        if por_familia.get(clave)
+    ]
 
 
 @login_required
@@ -270,6 +314,7 @@ def inicio(request):
                 "Todo pasa en tu equipo: los archivos no se copian, no se suben, y el "
                 "original nunca se toca."
             ),
+            "grupos": _agrupar(disponibles),
             "disponibles": disponibles,
             "apagadas": apagadas,
             # El motivo va aparte porque es **uno solo** para las dos.

@@ -573,9 +573,54 @@ td.cifra,
   }
 }
 
-@media (max-width: 1100px) {
+/*
+ * **Primero se aprieta, y solo al final se pierde la palabra.**
+ *
+ * Antes las palabras desaparecían de golpe por debajo de 1100 px, y a 1024 —un portátil
+ * corriente— la barra quedaba en siete iconos sin etiqueta. Eso contradice la regla escrita
+ * de esta familia: «cada entrada lleva icono **y** palabra; solo el icono obliga a adivinar».
+ *
+ * Así que hay dos escalones antes: menos aire y letra algo menor, que es lo que permite que
+ * siete entradas con su nombre entren en un portátil. Solo por debajo de 720 px —donde no
+ * caben de ninguna manera— se quedan los iconos solos, y entonces llevan `title` para que
+ * sigan siendo averiguables.
+ */
+@media (max-width: 1240px) {
+  .barra {
+    padding: 10px 14px;
+    gap: 10px;
+  }
+
+  .barra-nav {
+    gap: 6px;
+  }
+
+  .nav-item {
+    padding: 6px 7px;
+    gap: 5px;
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 1000px) {
+  .nav-item {
+    padding: 5px 5px;
+    font-size: 0.84rem;
+  }
+
+  .nav-icono {
+    width: 1.05rem;
+    height: 1.05rem;
+  }
+}
+
+@media (max-width: 720px) {
   .nav-item span {
     display: none;
+  }
+
+  .nav-item {
+    padding: 7px 9px;
   }
 }
 
@@ -840,7 +885,7 @@ td.cifra,
   border-top: 1px solid var(--av-border);
 }
 
-.entrada {
+.linea {
   display: grid;
   grid-template-columns: 1.4rem 1fr auto;
   align-items: center;
@@ -855,31 +900,31 @@ td.cifra,
   font: inherit;
 }
 
-.entrada:hover,
-.entrada:focus-visible {
+.linea:hover,
+.linea:focus-visible {
   background: var(--av-primary-soft);
 }
 
-.entrada-icono {
+.linea-icono {
   width: 1.15rem;
   height: 1.15rem;
 }
 
-.entrada-carpeta .entrada-icono {
+.linea-carpeta .linea-icono {
   color: var(--av-fam-proteger);
 }
 
-.entrada-archivo .entrada-icono {
+.linea-archivo .linea-icono {
   color: var(--av-text-muted);
 }
 
-.entrada-nombre {
+.linea-nombre {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.entrada-peso {
+.linea-peso {
   color: var(--av-text-muted);
   font-size: var(--av-fs-xs);
 }
@@ -1475,6 +1520,21 @@ code {
   font-size: var(--av-fs-sm);
   line-height: 1.5;
   text-wrap: pretty;
+}
+
+/* Qué entrega la herramienta. Separado por una línea y en el color más apagado de la escala:
+ * se busca cuando se busca, y no compite con el nombre el resto del tiempo. */
+.herramienta-sale {
+  margin-top: 8px;
+  padding-top: 7px;
+  border-top: 1px solid var(--av-border);
+  color: var(--av-text-muted);
+  font-size: var(--av-fs-xs);
+}
+
+.herramienta-sale strong {
+  color: var(--av-text-secondary);
+  font-weight: 600;
 }
 
 /* --- La nota de por que esto no es una web de internet -------------------- */

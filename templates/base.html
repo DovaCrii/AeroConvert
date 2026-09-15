@@ -42,7 +42,7 @@
         puede convertir en este equipo, así que se llama «Compatibilidad».
       {% endcomment %}
       <nav class="barra-nav" aria-label="Secciones">
-        <a href="{% url 'dashboard:convertir' %}" class="nav-item"
+        <a href="{% url 'dashboard:convertir' %}" class="nav-item" title="Convertir"
            {% if seccion == 'convertir' %}aria-current="page"{% endif %}>
           <svg class="nav-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-convertir"></use></svg>
           <span>Convertir</span>
@@ -53,22 +53,22 @@
           cada una arriba acabaría en una barra de ocho entradas que nadie distingue, y
           obligaría a rediscutir el sitio cada vez que entra una nueva.
         {% endcomment %}
-        <a href="{% url 'documents:inicio' %}" class="nav-item"
+        <a href="{% url 'documents:inicio' %}" class="nav-item" title="PDF"
            {% if seccion == 'pdf' %}aria-current="page"{% endif %}>
           <svg class="nav-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-preajustes"></use></svg>
           <span>PDF</span>
         </a>
-        <a href="{% url 'jobs:lista' %}" class="nav-item"
+        <a href="{% url 'jobs:lista' %}" class="nav-item" title="Historial"
            {% if seccion == 'historial' %}aria-current="page"{% endif %}>
           <svg class="nav-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-historial"></use></svg>
           <span>Historial</span>
         </a>
-        <a href="{% url 'presets:lista' %}" class="nav-item"
+        <a href="{% url 'presets:lista' %}" class="nav-item" title="Preajustes"
            {% if seccion == 'preajustes' %}aria-current="page"{% endif %}>
           <svg class="nav-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-preajustes"></use></svg>
           <span>Preajustes</span>
         </a>
-        <a href="{% url 'engines:matriz' %}" class="nav-item"
+        <a href="{% url 'engines:matriz' %}" class="nav-item" title="Compatibilidad"
            {% if seccion == 'compatibilidad' %}aria-current="page"{% endif %}>
           <svg class="nav-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-compatibilidad"></use></svg>
           <span>Compatibilidad</span>
@@ -86,7 +86,7 @@
           `/admin/`, así que el enlace nunca aparece para llevar a un 403.
         {% endcomment %}
         {% if user.is_staff %}
-          <a href="{% url 'admin:index' %}" class="nav-item">
+          <a href="{% url 'admin:index' %}" class="nav-item" title="Cuentas">
             <svg class="nav-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-personas"></use></svg>
             <span>Cuentas</span>
           </a>

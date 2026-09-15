@@ -50,21 +50,21 @@
     <ul class="listado">
       {% for carpeta in carpetas %}
         <li>
-          <button type="button" class="entrada entrada-carpeta"
+          <button type="button" class="linea linea-carpeta"
                   hx-get="{% url 'dashboard:explorar' %}?en={{ carpeta.ruta|urlencode }}"
                   hx-target="closest .explorador" hx-swap="innerHTML">
-            <svg class="entrada-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-carpeta"></use></svg>
-            <span class="entrada-nombre">{{ carpeta.nombre }}</span>
+            <svg class="linea-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-carpeta"></use></svg>
+            <span class="linea-nombre">{{ carpeta.nombre }}</span>
           </button>
         </li>
       {% endfor %}
 
       {% for archivo in archivos %}
         <li>
-          <button type="button" class="entrada entrada-archivo" data-ruta="{{ archivo.ruta }}">
-            <svg class="entrada-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-archivo"></use></svg>
-            <span class="entrada-nombre">{{ archivo.nombre }}</span>
-            <span class="entrada-peso cifra">{{ archivo.bytes|filesizeformat }}</span>
+          <button type="button" class="linea linea-archivo" data-ruta="{{ archivo.ruta }}">
+            <svg class="linea-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-archivo"></use></svg>
+            <span class="linea-nombre">{{ archivo.nombre }}</span>
+            <span class="linea-peso cifra">{{ archivo.bytes|filesizeformat }}</span>
           </button>
         </li>
       {% endfor %}
