@@ -181,8 +181,16 @@ class TestLaPantalla:
         assert "¿Qué necesitas hacer?" in respuesta.content.decode()
 
     def test_filtra_con_lo_escrito(self, sesion):
+        """**Se mira el fragmento, no la página.**
+
+        La página entera trae ahora el desplegable de la barra, que lista todas las
+        herramientas en todas las pantallas: buscar «Marca de agua» en el HTML completo la
+        encuentra siempre, y la prueba pasaría dijera lo que dijera el buscador.
+        """
         cuerpo = sesion.get(
-            reverse("dashboard:que_puedo_hacer"), {"q": "contrasena"}
+            reverse("dashboard:que_puedo_hacer"),
+            {"q": "contrasena"},
+            headers={"HX-Request": "true"},
         ).content.decode()
         assert "Proteger PDF" in cuerpo
         assert "Marca de agua" not in cuerpo

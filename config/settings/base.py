@@ -28,14 +28,27 @@ MODO = config("AEROCONVERT_MODO", default=MODO_TALLER)
 # al arrancar, no aca, para poder dar un mensaje que se entienda.
 RAICES_PERMITIDAS = config("AEROCONVERT_RAICES_PERMITIDAS", default="")
 
-# El tope de lo que se sube por el navegador. **Los archivos grandes no suben**: llegan por
-# la carpeta compartida, que es reanudable y no pasa por HTTP. Esto es para los PDF y poco
-# mas, asi que 200 MB y no dos gigas: un tope bajo hace que una subida desbocada no pueda
-# importar.
+# El tope de lo que se sube por el navegador.
+#
+# **Estaba en 200 MB, y la razon escrita aqui era falsa en la practica.** Decia que esto «es
+# para los PDF y poco mas» porque los archivos grandes llegan por la carpeta compartida -- y
+# en el servidor esa carpeta **no esta montada**, asi que subir es la unica via que hay. El
+# 2026-09-15 alguien intento subir una ortofoto de 600 MB y no pudo.
+#
+# 2 GB cubre las ortofotos, que es lo que de verdad se sube. Las nubes de puntos de diez o
+# veinte gigas **siguen sin caber, y a proposito**: una subida por HTTP no se reanuda, asi que
+# perder la conexion al 90 % de veinte gigas es empezar de cero. Para eso esta la carpeta
+# compartida, y mientras no exista ese caso no tiene solucion buena.
+#
+# El coste de subirlo: el temporal y la copia guardada conviven, o sea el doble en disco
+# mientras dura. Con 317 GB libres en la VM, un archivo de 2 GB no mueve la aguja.
+#
+# `.env.example` ya proponia 2048; tenerlo en 200 aqui hacia que copiar el ejemplo y dejar la
+# linea comentada diera un tope distinto del que el propio ejemplo recomienda.
 #
 # Se comprueba en tres sitios, y solo el ultimo es inevadible: `client_max_body_size` en
 # nginx, `apps/core/manejador.py` mientras llega, y `ArchivoSubido.clean()`.
-TOPE_MB = config("AEROCONVERT_TOPE_MB", default=200, cast=int)
+TOPE_MB = config("AEROCONVERT_TOPE_MB", default=2048, cast=int)
 
 # El nuestro, que cuenta lo que llega y corta. Ver `apps/core/manejador.py`.
 FILE_UPLOAD_HANDLERS = ["apps.core.manejador.SubidaConTope"]
@@ -159,6 +172,9 @@ TEMPLATES = [
                 # La chapa del modo va en `base.html`, o sea en todas las pantallas: saber
                 # si los archivos salen del disco o no es lo primero que hay que ver.
                 "apps.core.context_processors.modo",
+                # El desplegable de la barra. Va en todas las pantallas porque la barra va
+                # en todas: lo que se puede hacer tiene que estar a un clic desde donde sea.
+                "apps.core.context_processors.menu",
             ]
         },
     }

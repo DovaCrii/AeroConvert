@@ -43,30 +43,83 @@
       {% endcomment %}
       <nav class="barra-nav" aria-label="Secciones">
         {% comment %}
-          **La primera, y a propósito.** Es la única que no exige saber de antemano en qué
-          sección vive lo que se busca: se escribe la intención y ella lleva al sitio.
+          **Una entrada que se despliega, en vez de una por sección.**
+
+          Había siete planas, y tres —«Buscar», «Convertir» y «PDF»— eran tres formas de
+          decir «lo que se puede hacer». Es además la barra que no escala: cada herramienta
+          nueva pedía su sitio, y la escala responsiva ya estaba al límite con siete.
+
+          Nadie en el mercado tiene siete entradas planas: iLovePDF tiene **una** que se
+          despliega, CloudConvert tres, Smallpdf cuatro. El patrón es barra mínima más un
+          punto de entrada que explota.
+
+          **Y se hace con `details`/`summary`, no con JavaScript.** Se abre con clic —que es
+          lo que recomienda Nielsen Norman frente al despliegue al pasar el ratón—, va con
+          teclado de fábrica, y **funciona con JavaScript apagado**. El fichero `menu.js`
+          solo añade cerrarlo al pulsar fuera y con Escape, que es comodidad y no la función.
         {% endcomment %}
-        <a href="{% url 'dashboard:que_puedo_hacer' %}" class="nav-item" title="Qué necesitas hacer"
-           {% if seccion == 'acciones' %}aria-current="page"{% endif %}>
-          <svg class="nav-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-mirar"></use></svg>
-          <span>Buscar</span>
-        </a>
-        <a href="{% url 'dashboard:convertir' %}" class="nav-item" title="Convertir"
-           {% if seccion == 'convertir' %}aria-current="page"{% endif %}>
-          <svg class="nav-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-convertir"></use></svg>
-          <span>Convertir</span>
-        </a>
+        <details class="menu" id="menu-herramientas">
+          <summary class="nav-item menu-boton" aria-haspopup="true">
+            <svg class="nav-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-convertir"></use></svg>
+            <span>Herramientas</span>
+            <svg class="menu-flecha" aria-hidden="true" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M6 9l6 6 6-6" />
+            </svg>
+          </summary>
+
+          <div class="menu-panel">
+            {% for grupo in menu_grupos %}
+              <div class="menu-columna">
+                {% if grupo.seccion %}
+                  <a class="menu-titulo" href="{{ grupo.seccion }}">{{ grupo.titulo }}</a>
+                {% else %}
+                  <span class="menu-titulo">{{ grupo.titulo }}</span>
+                {% endif %}
+                <ul class="menu-lista">
+                  {% for accion in grupo.acciones %}
+                    {% comment %}
+                      **Solo las que se pueden hacer.** Las apagadas sí salen en el catálogo
+                      —esa pantalla es el índice de todo y decir «esto no, y por esto» es
+                      parte de su trabajo— pero un menú es para ir a un sitio. Una entrada
+                      que no lleva a ninguna parte no es información: es un callejón.
+                    {% endcomment %}
+                    {% if accion.disponible %}
+                      <li>
+                        <a href="{{ accion.enlace }}" class="menu-enlace">
+                          <span class="menu-marca fam-{{ accion.familia }}" aria-hidden="true">
+                            <svg class="menu-icono"><use href="{% static 'img/icons.svg' %}#{{ accion.icono }}"></use></svg>
+                          </span>
+                          <span>{{ accion.nombre }}</span>
+                        </a>
+                      </li>
+                    {% endif %}
+                  {% endfor %}
+                </ul>
+              </div>
+            {% endfor %}
+
+            <p class="menu-pie">
+              <a href="{% url 'dashboard:que_puedo_hacer' %}">Verlas todas y buscar</a>
+              · <a href="{% url 'engines:matriz' %}">Qué no se puede, y por qué</a>
+            </p>
+          </div>
+        </details>
+
         {% comment %}
-          **Una entrada, no una por herramienta.** La barra es de secciones, y las de PDF
-          —unir, dividir, imágenes, y las que vengan— son varias cosas dentro de una. Poner
-          cada una arriba acabaría en una barra de ocho entradas que nadie distingue, y
-          obligaría a rediscutir el sitio cada vez que entra una nueva.
+          El buscador, **visible en todas las pantallas**. Es la única guía de Nielsen Norman
+          sobre buscadores que aplica aquí sin matices: que esté siempre a mano y no escondido
+          dentro del menú. En la portada no se pinta porque el grande está justo debajo.
         {% endcomment %}
-        <a href="{% url 'documents:inicio' %}" class="nav-item" title="PDF"
-           {% if seccion == 'pdf' %}aria-current="page"{% endif %}>
-          <svg class="nav-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-preajustes"></use></svg>
-          <span>PDF</span>
-        </a>
+        {% if seccion != 'acciones' %}
+          <form class="buscador-barra" method="get" action="{% url 'dashboard:que_puedo_hacer' %}"
+                role="search">
+            <label class="visually-hidden" for="q-barra">Buscar una herramienta</label>
+            <svg class="buscador-lupa" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-mirar"></use></svg>
+            <input type="search" id="q-barra" name="q" placeholder="Buscar…" autocomplete="off">
+          </form>
+        {% endif %}
+
         <a href="{% url 'jobs:lista' %}" class="nav-item" title="Historial"
            {% if seccion == 'historial' %}aria-current="page"{% endif %}>
           <svg class="nav-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-historial"></use></svg>
@@ -154,6 +207,10 @@
   <script src="{% static 'js/tema.js' %}"></script>
   {# El buscador de archivos lo usan la pantalla de convertir y las nueve de PDF. #}
   <script src="{% static 'js/explorador.js' %}"></script>
+  {# El tope, el aviso de que no cabe, y la barra con el porcentaje y lo que falta. #}
+  <script src="{% static 'js/subida.js' %}"></script>
+  {# Comodidad del desplegable. Sin esto el menú sigue abriendo y cerrando: ver el fichero. #}
+  <script src="{% static 'js/menu.js' %}"></script>
   {% block scripts %}{% endblock %}
 </body>
 </html>

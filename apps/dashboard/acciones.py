@@ -75,21 +75,27 @@ class Accion:
 
 #: Las categorías, en el orden en que se piensan: primero el trabajo de terreno, luego el de
 #: gabinete, y al final lo que sale hacia fuera.
+#:
+#: El cuarto campo es **la pantalla de la sección**, para que el encabezado del desplegable
+#: sea un enlace y no un rótulo muerto. Vacío cuando la sección no tiene pantalla propia.
 CATEGORIAS = (
     (
         "planos",
         "Planos, mapas y nubes de puntos",
         "Lo que viene del vuelo o del levantamiento, y hay que dejar en un formato que abra.",
+        "dashboard:convertir",
     ),
     (
         "documentos",
         "Documentos y PDF",
         "Lo que acaba dentro de un informe o de una entrega.",
+        "documents:inicio",
     ),
     (
         "texto",
         "Texto y tablas",
         "Cuando el contenido tiene que salir del archivo y entrar en otro sitio.",
+        "",
     ),
 )
 
@@ -228,8 +234,16 @@ def por_categoria(busqueda: str = "") -> list[dict]:
     encontradas = [a for a in todas() if all(t in a.texto_de_busqueda for t in terminos)]
 
     grupos = []
-    for clave, titulo, cuando in CATEGORIAS:
+    for clave, titulo, cuando, seccion in CATEGORIAS:
         dentro = [a for a in encontradas if a.categoria == clave]
         if dentro:
-            grupos.append({"clave": clave, "titulo": titulo, "cuando": cuando, "acciones": dentro})
+            grupos.append(
+                {
+                    "clave": clave,
+                    "titulo": titulo,
+                    "cuando": cuando,
+                    "seccion": reverse(seccion) if seccion else "",
+                    "acciones": dentro,
+                }
+            )
     return grupos

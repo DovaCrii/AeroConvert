@@ -552,6 +552,186 @@ td.cifra,
   text-decoration: none;
 }
 
+/* --- El desplegable de herramientas --------------------------------------- */
+
+/*
+ * `details` dentro de la barra. La posición absoluta del panel cuelga de aquí, así que este
+ * `relative` no es decorativo: sin él el panel se ancla al `body` y aparece arriba del todo.
+ */
+.menu {
+  position: relative;
+}
+
+.menu-boton {
+  cursor: pointer;
+  list-style: none; /* Firefox pinta un triángulo propio en `summary`. */
+  user-select: none;
+}
+
+/* El de WebKit, que no obedece a `list-style`. */
+.menu-boton::-webkit-details-marker {
+  display: none;
+}
+
+.menu-flecha {
+  width: 0.9rem;
+  height: 0.9rem;
+  opacity: 0.7;
+  transition: transform 0.15s ease;
+}
+
+.menu[open] .menu-boton {
+  opacity: 1;
+  background: rgb(255 255 255 / 12%);
+}
+
+.menu[open] .menu-flecha {
+  transform: rotate(180deg);
+}
+
+/*
+ * El panel. **Anclado a la izquierda del botón y no a la derecha**: la barra empuja la
+ * navegación contra el borde derecho con `margin-left:auto`, y un panel de tres columnas
+ * anclado ahí se sale de la pantalla en cuanto la ventana baja de 1400 px.
+ */
+.menu-panel {
+  position: absolute;
+  z-index: 40;
+  top: calc(100% + 8px);
+  left: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: 10px 26px;
+  width: max-content;
+  max-width: min(58rem, calc(100vw - 32px));
+  padding: 18px 20px;
+  border: 1px solid var(--av-border);
+  border-radius: var(--av-radius);
+  background: var(--av-surface);
+  color: var(--av-text);
+  box-shadow: var(--av-shadow-alto);
+}
+
+.menu-titulo {
+  display: block;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--av-border);
+  font-size: var(--av-fs-xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--av-text-secondary);
+}
+
+/* El encabezado es enlace cuando la sección tiene pantalla propia. Dentro de `.barra` todo
+ * enlace es blanco y translúcido; aquí el panel es claro y hay que devolverlo. */
+.menu-panel a {
+  color: inherit;
+  opacity: 1;
+}
+
+a.menu-titulo:hover {
+  color: var(--av-primary);
+  text-decoration: none;
+  border-bottom-color: var(--av-primary);
+}
+
+.menu-lista {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.menu-enlace {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  margin: 0 -8px;
+  border-radius: var(--av-radius-sm);
+  font-size: 0.9rem;
+  line-height: 1.3;
+}
+
+.menu-enlace:hover,
+.menu-enlace:focus-visible {
+  background: var(--av-primary-soft);
+  text-decoration: none;
+}
+
+/* La misma baldosa de las tarjetas, a escala de menú: es lo que hace que el icono de «Unir
+ * PDF» sea reconocible como el mismo en los dos sitios. El color lo pone `.fam-*`. */
+.menu-marca {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 7px;
+  color: var(--marca-color, var(--av-primary));
+  background: var(--marca-fondo, var(--av-primary-soft));
+}
+
+.menu-icono {
+  width: 1.05rem;
+  height: 1.05rem;
+}
+
+/* Ocupa el ancho entero por debajo de las columnas, sean dos o tres. */
+.menu-pie {
+  grid-column: 1 / -1;
+  margin: 4px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--av-border);
+  font-size: var(--av-fs-xs);
+  color: var(--av-text-secondary);
+}
+
+.menu-pie a {
+  color: var(--av-primary);
+}
+
+/* --- El buscador de la barra ---------------------------------------------- */
+
+.buscador-barra {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin: 0;
+}
+
+.buscador-barra .buscador-lupa {
+  position: absolute;
+  left: 9px;
+  width: 1rem;
+  height: 1rem;
+  color: rgb(255 255 255 / 60%);
+  pointer-events: none;
+}
+
+.buscador-barra input {
+  width: 11rem;
+  min-height: 34px;
+  padding: 4px 10px 4px 30px;
+  border: 1px solid rgb(255 255 255 / 22%);
+  border-radius: 999px;
+  background: rgb(255 255 255 / 8%);
+  color: #fff;
+  font: inherit;
+  font-size: 0.88rem;
+}
+
+.buscador-barra input::placeholder {
+  color: rgb(255 255 255 / 55%);
+}
+
+.buscador-barra input:focus {
+  outline: 2px solid var(--av-magenta);
+  outline-offset: 1px;
+  background: rgb(255 255 255 / 14%);
+}
+
 .nav-icono {
   width: 1.15rem;
   height: 1.15rem;
@@ -616,10 +796,9 @@ td.cifra,
  * corriente— la barra quedaba en siete iconos sin etiqueta. Eso contradice la regla escrita
  * de esta familia: «cada entrada lleva icono **y** palabra; solo el icono obliga a adivinar».
  *
- * Así que hay dos escalones antes: menos aire y letra algo menor, que es lo que permite que
- * siete entradas con su nombre entren en un portátil. Solo por debajo de 720 px —donde no
- * caben de ninguna manera— se quedan los iconos solos, y entonces llevan `title` para que
- * sigan siendo averiguables.
+ * Con **cuatro** entradas y un desplegable, los escalones siguen valiendo pero pasan a
+ * proteger otra cosa: el sitio del buscador. La barra ya no crece al entrar una herramienta
+ * nueva —esa va dentro del menú— así que estos cortes dejan de reabrirse cada vez.
  */
 @media (max-width: 1240px) {
   .barra {
@@ -636,6 +815,10 @@ td.cifra,
     gap: 5px;
     font-size: 0.9rem;
   }
+
+  .buscador-barra input {
+    width: 8.5rem;
+  }
 }
 
 @media (max-width: 1000px) {
@@ -648,6 +831,12 @@ td.cifra,
     width: 1.05rem;
     height: 1.05rem;
   }
+
+  /* El buscador cae aquí, no la palabra de las entradas. Está a un clic desde la portada y
+   * desde el menú, así que perderlo cuesta menos que perder los nombres de las secciones. */
+  .buscador-barra {
+    display: none;
+  }
 }
 
 @media (max-width: 720px) {
@@ -657,6 +846,23 @@ td.cifra,
 
   .nav-item {
     padding: 7px 9px;
+  }
+
+  /* **La del menú se queda.** Es la única entrada de la que cuelga todo lo demás, y un icono
+   * suelto no dice que se despliegue. Con cuatro entradas hay sitio de sobra para una palabra. */
+  .menu-boton span {
+    display: inline;
+  }
+
+  /* A este ancho el panel es la pantalla: anclarlo al botón lo sacaría por la derecha. */
+  .menu-panel {
+    position: fixed;
+    left: 12px;
+    right: 12px;
+    width: auto;
+    max-width: none;
+    max-height: calc(100vh - 80px);
+    overflow-y: auto;
   }
 }
 
@@ -1330,9 +1536,17 @@ td.cifra,
 }
 
 .avance-relleno {
+  display: block;
   height: 100%;
   background: var(--av-primary);
   transition: width 200ms ease;
+}
+
+/* La línea de debajo de la barra de subida: «42 % · 250 MB de 600 MB · falta unos 2 min». */
+.avance-texto {
+  margin: 6px 0 0;
+  font-size: var(--av-fs-sm);
+  color: var(--av-text-secondary);
 }
 
 .etapa {
