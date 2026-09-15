@@ -141,26 +141,26 @@
   </div>
 </div>
 
-<details class="tarjeta por-ruta">
-  <summary>O pega la ruta, si ya te la sabes</summary>
-  <form id="forma-inspeccion"
-        hx-get="{% url 'dashboard:inspeccionar' %}"
-        hx-target="#ficha"
-        hx-swap="innerHTML"
-        hx-indicator="#mirando">
-    <p class="soltar-ayuda" style="margin:10px 0 8px;">
-      Tiene que ser una ruta que vea <strong>el servidor</strong>, no tu equipo. En el
-      Explorador: clic derecho con <kbd>Mayús</kbd> → «Copiar como ruta».
-    </p>
-    <div class="soltar-campo">
-      <label class="visually-hidden" for="ruta">Ruta del archivo</label>
-      <input type="text" id="ruta" name="ruta" class="form-control ruta"
-             placeholder="/mnt/entregas/CC716/ortofoto.tif"
-             autocomplete="off" spellcheck="false">
-      <button type="submit" class="boton">Inspeccionar</button>
-    </div>
-  </form>
-</details>
+{% comment %}
+  **La caja de «pega la ruta» ya no está, y no es una simplificación cosmética.**
+
+  Era la única vía cuando esta pantalla se escribió para una estación de trabajo, y en el
+  servidor se convirtió en una trampa: pedía una ruta, alguien pegaba la de su propio
+  OneDrive, y recibía «esa ruta está fuera de las carpetas permitidas». Con las dos vías de
+  arriba no queda ningún caso que solo ella resolviera — lo que está en tu equipo se sube, y
+  lo que ve el servidor se anda.
+
+  Lo que sí se queda es este formulario, **sin campo visible**: es el que el explorador
+  dispara al pinchar un archivo. El `input` es oculto porque nadie tiene que escribir ahí;
+  lo rellena `static/js/explorador.js` con la ruta del archivo elegido.
+{% endcomment %}
+<form id="forma-inspeccion"
+      hx-get="{% url 'dashboard:inspeccionar' %}"
+      hx-target="#ficha"
+      hx-swap="innerHTML"
+      hx-indicator="#mirando">
+  <input type="hidden" id="ruta" name="ruta">
+</form>
 
 <p id="mirando" class="tenue htmx-indicator" style="margin:12px 0 0;">Mirando el archivo…</p>
 

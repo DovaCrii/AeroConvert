@@ -67,10 +67,20 @@ class TestLaPuerta:
 
 
 class TestLaMesa:
-    def test_se_pinta(self, entrado, taller):
+    def test_se_pinta_con_las_dos_vias_de_entrada(self, entrado, taller):
+        """Antes esto buscaba el botón «Inspeccionar» de la caja de pegar rutas.
+
+        Esa caja ya no está: era la única vía cuando la pantalla se escribió para una
+        estación de trabajo, y en el servidor se volvió una trampa —alguien pegaba la ruta de
+        su propio equipo y recibía «fuera de las carpetas permitidas»—. Lo que hay que
+        comprobar es que sigue habiendo **por dónde empezar**, y ahora son dos.
+        """
         respuesta = entrado.get("/")
         assert respuesta.status_code == 200
-        assert b"Inspeccionar" in respuesta.content
+
+        cuerpo = respuesta.content.decode()
+        assert 'name="archivo"' in cuerpo, "Falta subir un archivo del propio equipo."
+        assert "explorador" in cuerpo, "Falta el explorador de la carpeta compartida."
 
     def test_la_chapa_del_modo_esta_en_todas_las_pantallas(self, entrado, taller):
         """Saber si los archivos salen o no de la máquina es lo primero que hay que ver."""

@@ -93,7 +93,69 @@ class TestElAltaExigeCorreo:
         assert not AltaDeCuenta(data={}).is_valid()
 
     def test_con_correo_nuevo_si(self, db):
-        assert AltaDeCuenta(data={"correo": "nueva@jej.cl"}).is_valid()
+        assert AltaDeCuenta(
+            data={
+                "username": "nueva",
+                "correo": "nueva@jej.cl",
+                "password1": CLAVE,
+                "password2": CLAVE,
+            }
+        ).is_valid()
+
+    def test_y_guarda_el_correo_en_el_modelo(self, db):
+        formulario = AltaDeCuenta(
+            data={
+                "username": "nueva",
+                "correo": "nueva@jej.cl",
+                "password1": CLAVE,
+                "password2": CLAVE,
+            }
+        )
+        assert formulario.is_valid(), formulario.errors
+        assert formulario.save().email == "nueva@jej.cl"
+
+
+class TestLaPantallaDeAltas:
+    """**Las pruebas de arriba miran el formulario suelto, y por eso no vieron el fallo.**
+
+    La primera versión de `AltaDeCuenta` heredaba de `ModelForm`, así que no traía
+    `password1`, `password2` ni `usable_password` — y `add_fieldsets` los nombra. El
+    formulario por su cuenta validaba perfectamente; la pantalla daba 500:
+
+        FieldError: Unknown field(s) (password2, usable_password, password1)
+
+    Lo que faltaba era abrir la página. Eso es lo que hace esto.
+    """
+
+    @pytest.fixture
+    def jefa(self, db):
+        return get_user_model().objects.create_superuser(  # nosec B106
+            "jefa", email="jefa@jej.cl", password=CLAVE
+        )
+
+    def test_la_pantalla_de_crear_cuenta_abre(self, client, jefa):
+        client.force_login(jefa)
+        respuesta = client.get("/admin/auth/user/add/")
+        assert respuesta.status_code == 200
+        assert "Correo" in respuesta.content.decode()
+
+    def test_y_crea_la_cuenta_con_su_correo(self, client, jefa):
+        client.force_login(jefa)
+        respuesta = client.post(
+            "/admin/auth/user/add/",
+            {
+                "username": "nuevo",
+                "correo": "nuevo@jej.cl",
+                "password1": CLAVE,
+                "password2": CLAVE,
+            },
+        )
+        assert respuesta.status_code == 302, respuesta.context["adminform"].form.errors
+        assert get_user_model().objects.get(username="nuevo").email == "nuevo@jej.cl"
+
+    def test_la_lista_de_cuentas_abre(self, client, jefa):
+        client.force_login(jefa)
+        assert client.get("/admin/auth/user/").status_code == 200
 
 
 class TestLaPantalla:

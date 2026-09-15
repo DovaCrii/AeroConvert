@@ -1,5 +1,9 @@
+{% load static %}
 {% comment %}
 El fragmento que htmx reemplaza mientras el trabajo avanza.
+
+Carga `static` por su cuenta: htmx lo pide suelto, sin pasar por `base.html`, así que aquí no
+hay nada heredado.
 
 **El `hx-trigger` solo se pone si el trabajo no ha terminado.** Así el sondeo se detiene
 solo, sin una línea de JavaScript: cuando el trabajo llega a un estado terminal, este
@@ -48,6 +52,37 @@ generar 10.800 peticiones.
       Va con la etiqueta de comentario larga y no con la corta de almohadilla: esa segunda
       forma es de UNA sola línea, y repartida en varias Django la imprime en la página.
     {% endcomment %}
+    {% comment %}
+      **El remate, antes del recibo.**
+
+      Al terminar se pasaba directamente a «✓ Verificado contra el original» y una lista de
+      sha256, bandas y EPSG. Todo eso hace falta —es lo que se le manda al cliente— pero no
+      es lo primero que alguien quiere leer después de esperar: lo primero es **que ya está**,
+      y poder bajárselo sin buscar el botón entre nueve filas de datos.
+
+      Así que va delante, dicho con las palabras de quien esperó, y el recibo se queda debajo
+      para cuando haga falta demostrar algo.
+    {% endcomment %}
+    <div class="remate">
+      <span class="remate-marca fam-proteger" aria-hidden="true">
+        <svg class="remate-icono"><use href="{% static 'img/icons.svg' %}#icon-veredicto-abre"></use></svg>
+      </span>
+      <div class="remate-texto">
+        <strong class="remate-titulo">Listo, ya puedes descargarlo</strong>
+        <span class="remate-detalle">
+          <strong>{{ trabajo.source_name }}</strong> es ahora
+          {{ trabajo.nombre_del_destino }}{% if trabajo.duracion_s %}, en
+          {{ trabajo.duracion_s|floatformat:0 }} s{% endif %}{% if trabajo.reduccion_pct %} y
+          ocupando un {{ trabajo.reduccion_pct }} % menos{% endif %}.
+          Se comprobó contra el original, y el original no se tocó.
+        </span>
+      </div>
+      {% if trabajo.output_path %}
+        <a class="boton remate-boton"
+           href="{% url 'jobs:descargar' trabajo.pk %}">Descargar</a>
+      {% endif %}
+    </div>
+
     <div class="recibo">
       <strong style="color:var(--av-ok);">✓ Verificado contra el original</strong>
       <dl style="margin-top:8px;">

@@ -8,6 +8,7 @@ from django import forms
 from django.contrib import admin
 from django.contrib.auth import get_user_model
 from django.contrib.auth.admin import UserAdmin
+from django.contrib.auth.forms import AdminUserCreationForm
 
 from .models import ArchivoSubido, Resultado
 
@@ -18,13 +19,22 @@ admin.site.index_title = "Trabajos, bitácora y preajustes"
 Usuario = get_user_model()
 
 
-class AltaDeCuenta(forms.ModelForm):
+class AltaDeCuenta(AdminUserCreationForm):
     """El alta que pide el correo, porque es con lo que se entra.
 
     El formulario de fábrica pide nombre de usuario y contraseña **y nada más**: el correo se
     rellena después, en una segunda pantalla que nadie visita. Con el correo como puerta, una
     cuenta sin correo es una cuenta con la que no se puede entrar — creada, guardada, y
     silenciosamente inútil hasta que alguien lo descubre intentándolo.
+
+    **`AdminUserCreationForm` y no `ModelForm` ni `UserCreationForm`**, y eso costó dos
+    intentos. La pantalla de altas reventaba con
+
+        FieldError: Unknown field(s) (password2, usable_password, password1)
+
+    porque `add_fieldsets` nombra esos tres y el formulario base tiene que declararlos. Los
+    dos primeros los trae `UserCreationForm`; `usable_password` solo lo trae esta, que es
+    además la que usa `UserAdmin` de fábrica. Aquí únicamente se añade el correo encima.
     """
 
     correo = forms.EmailField(
@@ -32,9 +42,9 @@ class AltaDeCuenta(forms.ModelForm):
         help_text="Es con lo que entra esta persona, y por donde se le puede escribir.",
     )
 
-    class Meta:
+    class Meta(AdminUserCreationForm.Meta):
         model = Usuario
-        fields = ()
+        fields = ("username",)
 
     def clean_correo(self):
         correo = self.cleaned_data["correo"].strip()
@@ -44,6 +54,19 @@ class AltaDeCuenta(forms.ModelForm):
         if Usuario._default_manager.filter(email__iexact=correo).exists():
             raise forms.ValidationError("Ya hay una cuenta con ese correo.")
         return correo
+
+    def save(self, commit=True):
+        """El correo, al campo del modelo.
+
+        Va aquí y no en `save_model` del admin porque así el formulario se basta solo: quien
+        lo use desde una prueba o desde un guion obtiene la misma cuenta que quien lo usa
+        desde la pantalla.
+        """
+        usuario = super().save(commit=False)
+        usuario.email = self.cleaned_data["correo"]
+        if commit:
+            usuario.save()
+        return usuario
 
 
 class CuentaAdmin(UserAdmin):
@@ -68,17 +91,6 @@ class CuentaAdmin(UserAdmin):
             },
         ),
     )
-
-    def save_model(self, request, obj, form, change):
-        """El correo del formulario al campo del modelo.
-
-        Va por un campo propio (`correo`) y no por el `email` del modelo porque ese es
-        opcional, y lo que hace falta es que **no** lo sea al crear. Exigirlo así no obliga a
-        tocar `auth.User`, que es una migración que no se paga con la base ya en producción.
-        """
-        if not change and "correo" in form.cleaned_data:
-            obj.email = form.cleaned_data["correo"]
-        super().save_model(request, obj, form, change)
 
 
 admin.site.unregister(Usuario)
