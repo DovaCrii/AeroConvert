@@ -33,7 +33,19 @@
   </nav>
 
   {% if vacia %}
-    <p class="tenue" style="margin:10px 0 0;">Esta carpeta está vacía.</p>
+    {% comment %}
+      Una carpeta vacía es un estado normal, no un fallo — pero «está vacía» a secas deja a
+      quien lo lee sin saber qué hacer. Lo que falta decir es **cómo llegan ahí los archivos**,
+      que es por el Explorador de Windows y no por esta pantalla.
+    {% endcomment %}
+    <div class="vacio-explorador">
+      <p style="margin:0 0 4px;"><strong>Aquí no hay nada todavía.</strong></p>
+      <p class="tenue" style="margin:0;">
+        Los archivos llegan copiándolos a la carpeta compartida desde el Explorador. Es lo que
+        conviene para una ortofoto o una nube de puntos: copiar así se reanuda si se corta, y
+        subir por el navegador no.
+      </p>
+    </div>
   {% else %}
     <ul class="listado">
       {% for carpeta in carpetas %}

@@ -188,8 +188,17 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
+# **El orden importa, y cada uno está donde está por algo.**
+#
+# `axes` va primero porque es el que corta: cuando una pareja usuario+IP está bloqueada
+# levanta `PermissionDenied` y nadie más llega a mirar la contraseña.
+#
+# `PorCorreo` antes que `ModelBackend` porque es el caso normal — así se entra tecleando el
+# correo. Y `ModelBackend` sigue detrás, no de adorno: la cuenta de administración que creó
+# el servidor no tiene correo puesto, y quitarlo la dejaría fuera de su propia aplicación.
 AUTHENTICATION_BACKENDS = [
     "axes.backends.AxesStandaloneBackend",
+    "apps.core.autenticacion.PorCorreo",
     "django.contrib.auth.backends.ModelBackend",
 ]
 

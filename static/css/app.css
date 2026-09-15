@@ -669,12 +669,45 @@ td.cifra,
  * Lado a lado y con el mismo peso visual: no hay una principal. Cuál sirve depende del
  * archivo, no de una preferencia, y eso se decide en un vistazo comparándolas.
  */
+/*
+ * **Estiradas a la misma altura, al revés que la rejilla de herramientas.** Allí son nueve y
+ * estirar deja huecos; aquí son dos, hermanas y de igual importancia, y con alturas distintas
+ * la corta se lee como «esta está a medias». Que la carpeta compartida esté vacía es una
+ * situación normal, no una tarjeta rota.
+ */
 .origenes {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(24rem, 1fr));
   gap: 16px;
   margin-bottom: 16px;
-  align-items: start;
+  align-items: stretch;
+}
+
+/* Columna, para que lo de dentro ocupe lo que sobra en vez de dejarlo al final. */
+.origen {
+  display: flex;
+  flex-direction: column;
+}
+
+.origen form,
+.origen .explorador {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* Un suelo para el explorador: con la carpeta vacía, sin esto la tarjeta se encoge a dos
+ * líneas y el par se descuadra. */
+.origen .explorador {
+  min-height: 11rem;
+}
+
+.origen .soltar {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .origen-cabeza {
@@ -785,6 +818,14 @@ td.cifra,
 
 /* Altura acotada y con desplazamiento propio: una carpeta de obra con doscientas entradas no
  * puede empujar la ficha del archivo fuera de la pantalla. */
+.vacio-explorador {
+  padding: 16px;
+  border: 1px dashed var(--av-border-control);
+  border-radius: var(--av-radius-sm);
+  font-size: var(--av-fs-sm);
+  line-height: 1.5;
+}
+
 .listado {
   list-style: none;
   margin: 0;

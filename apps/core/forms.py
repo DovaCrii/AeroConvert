@@ -13,14 +13,30 @@ from django.contrib.auth.forms import AuthenticationForm
 
 
 class FormularioDeEntrada(AuthenticationForm):
+    """El campo sigue llamándose `username` por dentro, y pide el correo por fuera.
+
+    **El nombre del campo no se toca.** `AuthenticationForm` lo espera así, y django-axes
+    cuenta los intentos fallidos por lo que venga en él: renombrarlo dejaría el bloqueo por
+    tanteo contando otra cosa, o nada. Quien resuelve el correo es
+    `apps.core.autenticacion.PorCorreo`.
+
+    La etiqueta dice «Correo» y no «Correo o usuario» a propósito: el segundo es más exacto y
+    obliga a decidir a quien solo quiere entrar. El nombre de usuario sigue funcionando para
+    quien lo tenga — la cuenta de administración del servidor, sobre todo — pero no es lo que
+    se anuncia.
+    """
+
     username = forms.CharField(
-        label="Usuario",
+        label="Correo",
         widget=forms.TextInput(
             attrs={
                 "class": "form-control",
                 "autofocus": True,
-                "autocomplete": "username",
-                "placeholder": "tu usuario",
+                # `email` y no `username`: es lo que hace que el gestor de contraseñas y el
+                # autorrelleno del móvil ofrezcan lo correcto.
+                "autocomplete": "email",
+                "inputmode": "email",
+                "placeholder": "tu.nombre@jej.cl",
             }
         ),
     )
