@@ -253,6 +253,21 @@ class TestElGuionDeDespliegue:
         """
         assert f"gestionar {orden}" in desplegar, f"«{orden}» no pasa por `gestionar`"
 
+    def test_busca_un_uv_que_pueda_ejecutar_el_dueno(self, desplegar: str):
+        """**No el que encuentre quien lanza el guion.**
+
+        `command -v uv` a secas devuelve el del PATH de quien invoca, y en el servidor eso es
+        `/home/levdigital01/.local/bin/uv`: un fichero que existe, que quien mira sí puede
+        ejecutar, y que el usuario del servicio no puede leer porque está en el directorio
+        personal de otra persona. Pasárselo a `sudo -u aeroconvert` moría con «Permiso
+        denegado» nombrando esa ruta, que es la forma más confusa posible de decir «este no».
+
+        La condición de verdad es que **lo pueda ejecutar el dueño**, y comprobarla de otra
+        manera es volver a tener el mismo fallo. Pasó dos veces, el 2026-09-15.
+        """
+        assert "/usr/local/bin/uv" in desplegar, "Hay que probar las rutas de sistema primero."
+        assert 'sudo -u "$DUENO" test -x' in desplegar, "La comprobación tiene que ser del dueño."
+
     def test_y_gestionar_baja_de_usuario(self, desplegar: str):
         """La otra mitad: que el ayudante haga lo que su nombre promete. Sin esto, las cuatro
         de arriba pasarían con un `gestionar()` que no bajara de usuario."""

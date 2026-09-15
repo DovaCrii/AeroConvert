@@ -56,10 +56,33 @@ if [ -z "$NOMBRE" ]; then
     exit 1
 fi
 
-UV="$(command -v uv || true)"
+# **`uv` tiene que poder ejecutarlo `aeroconvert`, no quien lanza el guion.**
+#
+# `command -v uv` a secas encuentra el del PATH de quien invoca, y en esta maquina eso es
+# `/home/levdigital01/.local/bin/uv` -- que el usuario del servicio no puede leer porque el
+# directorio personal de otra persona no es suyo. Se pasaba esa ruta a `sudo -u aeroconvert`
+# y moria con «Permiso denegado» nombrando un fichero que existe y que quien mira si puede
+# ejecutar, que es la forma mas confusa posible de decir «este no».
+#
+# Asi que se prueban las rutas de sistema primero, y **se comprueba como el dueno**: es la
+# condicion de verdad, y comprobarla de otra manera es volver a tener el mismo fallo.
+UV=""
+for candidato in /usr/local/bin/uv /usr/bin/uv "$(command -v uv 2>/dev/null || true)"; do
+    [ -n "$candidato" ] || continue
+    if sudo -u "$DUENO" test -x "$candidato" 2>/dev/null; then
+        UV="$candidato"
+        break
+    fi
+done
+
 if [ -z "$UV" ]; then
-    echo "No encuentro 'uv'. Ponlo donde lo vean todos los usuarios:" >&2
-    echo "  sudo install -m 0755 \$HOME/.local/bin/uv /usr/local/bin/uv" >&2
+    echo "No hay ningun 'uv' que ${DUENO} pueda ejecutar." >&2
+    encontrado="$(command -v uv 2>/dev/null || true)"
+    if [ -n "$encontrado" ]; then
+        echo "El tuyo esta en ${encontrado}, pero ${DUENO} no puede leerlo." >&2
+    fi
+    echo "Copialo donde lo vean todos los usuarios:" >&2
+    echo "  sudo install -m 0755 ${encontrado:-\$HOME/.local/bin/uv} /usr/local/bin/uv" >&2
     exit 1
 fi
 
