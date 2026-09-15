@@ -6,6 +6,16 @@ name: CI
 #
 # Las pruebas con oraculo externo van en `oraculo.yml`, aparte y sin bloquear.
 
+# Una tanda por rama: empujar tres veces seguidas a una rama de trabajo lanzaba tres gates
+# completos y solo importaba el ultimo.
+#
+# **En `main` no se cancela**, y esa es la unica parte que no es ahorro: el historial de
+# `main` es lo que dice si un commit concreto paso el gate. Cancelado a medias no dice nada, y
+# el commit se queda sin veredicto para siempre.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
 on:
   push:
     branches: [main]

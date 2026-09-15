@@ -2,9 +2,12 @@
 
 import pytest
 from django.contrib.auth import get_user_model
-from django.test import override_settings
+from django.core.files.uploadhandler import StopUpload
+from django.test import RequestFactory, override_settings
 from django.urls import reverse
 
+from apps.core import manejador as manejador_mod
+from apps.dashboard import views as vistas
 from apps.engines import registry
 from apps.engines.testing import MotorDeMentira
 from apps.formats.tests.constructor import bigtiff_minimo, geotiff_minimo
@@ -87,6 +90,65 @@ class TestLaMesa:
         """Saber si los archivos salen o no de la máquina es lo primero que hay que ver."""
         for ruta in ("/", "/convertir/", "/trabajos/", "/motores/"):
             assert b"Taller" in entrado.get(ruta).content
+
+
+class TestCuandoNoCabe:
+    """**Lo que pasó en el servidor el 2026-09-15**, y que nadie habría adivinado del mensaje.
+
+    Alguien eligió una ortofoto de 600 MB con el tope en 200. `SubidaConTope` la cortó con
+    `StopUpload`, que **descarta el cuerpo entero**, así que la vista recibió un `request.FILES`
+    vacío — idéntico a no haber elegido nada. Y contestó «No llegó ningún archivo» con el
+    código `ruta-no-permitida`: las dos cosas falsas, sobre un archivo que sí se eligió y que
+    sí empezó a subir.
+    """
+
+    def _pedido(self, usuario, cortado: bool):
+        """Un POST a `subir` sin archivo, con o sin la marca que deja el manejador.
+
+        Se fabrica el pedido en vez de subir megabytes de verdad: lo que hay que comprobar es
+        que la vista **distingue los dos casos**, y mandar doscientos megabytes por la suite
+        tardaría minutos y no comprobaría nada más.
+        """
+        pedido = RequestFactory().post("/subir/")
+        pedido.user = usuario
+        if cortado:
+            setattr(pedido, manejador_mod.MARCA_DE_CORTE, True)
+        return pedido
+
+    def test_dice_que_no_cabe_y_cuanto_cabe(self, usuario, settings):
+        settings.TOPE_MB = 200
+        cuerpo = vistas.subir(self._pedido(usuario, cortado=True)).content.decode()
+
+        assert "200 MB" in cuerpo, "Sin el número no hay nada accionable."
+        assert "carpeta compartida" in cuerpo, "Hay que decir por dónde sí."
+        assert "No llegó ningún archivo" not in cuerpo
+
+    def test_el_numero_sale_del_ajuste_y_no_esta_escrito_a_mano(self, usuario, settings):
+        settings.TOPE_MB = 4096
+        assert "4096 MB" in vistas.subir(self._pedido(usuario, cortado=True)).content.decode()
+
+    def test_sin_marca_sigue_siendo_que_no_llego_nada(self, usuario):
+        """Elegir de verdad ningún archivo y pulsar: ese mensaje sí era correcto."""
+        cuerpo = vistas.subir(self._pedido(usuario, cortado=False)).content.decode()
+        assert "No llegó ningún archivo" in cuerpo
+
+    def test_el_manejador_deja_la_marca_antes_de_cortar(self, rf, settings):
+        """La otra mitad: que el manejador la ponga. Sin esto la vista nunca entra en su rama.
+
+        Se le dan 3 MB en trozos con el tope en 1: el corte tiene que llegar **antes** de
+        haber recibido los tres, que es el otro motivo de que exista este manejador.
+        """
+        settings.TOPE_MB = 1
+        pedido = rf.post("/subir/")
+        manejador = manejador_mod.SubidaConTope(request=pedido)
+        manejador.new_file("archivo", "grande.tif", "image/tiff", None, None)
+
+        trozo = b"\0" * 262144
+        with pytest.raises(StopUpload):
+            for i in range(12):
+                manejador.receive_data_chunk(trozo, i * len(trozo))
+
+        assert getattr(pedido, manejador_mod.MARCA_DE_CORTE, False) is True
 
 
 class TestElDestinoQueVieneDelCatalogo:

@@ -44,10 +44,15 @@
 
       <div class="soltar soltar-compacto">
         <label class="visually-hidden" for="id_archivo">Elegir un documento de tu equipo</label>
-        <input type="file" id="id_archivo" name="archivo" class="form-control" accept=".pdf">
+        {# El tope lo pone el servidor; `subida.js` lo comprueba antes de mandar nada. #}
+        <input type="file" id="id_archivo" name="archivo" class="form-control" accept=".pdf"
+               data-tope-mb="{{ tope_mb }}">
         <button type="submit" name="accion" value="{{ accion }}" class="boton"
                 style="margin-top:10px;">{{ boton }}</button>
+        <p class="soltar-ayuda" style="margin:10px 0 0;">Hasta {{ tope_mb }} MB por aquí.</p>
       </div>
+
+      <div data-avance-subida hidden style="margin-top:10px;"></div>
     </div>
 
     <div class="origen">

@@ -1,31 +1,24 @@
-/* El explorador de la carpeta compartida, y el selector de archivos del equipo.
+/* El explorador de la carpeta compartida.
  *
- * ## Por qué esto es un archivo y no un `onchange=` en la plantilla
+ * ## Por qué esto es un archivo y no un `onclick=` en la plantilla
  *
  * La CSP de la familia es `script-src 'self'` **sin** `unsafe-inline`. Un manejador escrito
  * en el atributo del elemento no se ejecuta: no da error visible, sencillamente no pasa nada
- * al elegir el archivo. Es el peor fallo posible — el que parece que la aplicación se colgó.
+ * al pinchar. Es el peor fallo posible — el que parece que la aplicación se colgó.
  *
  * ## Qué hace
  *
- * Dos cosas, y las dos son «pegar la ruta por ti»:
+ * Pinchar un archivo del explorador escribe su ruta en el campo que diga el panel. Cada
+ * pantalla dice cuál es el suyo y si se reemplaza o se añade, porque «unir» acumula y las
+ * demás sustituyen.
  *
- * 1. Elegir un archivo del equipo envía su formulario solo. Un botón «subir» aparte obliga a
- *    dos clics para una decisión que ya se tomó al elegir el archivo.
- * 2. Pinchar un archivo del explorador escribe su ruta en el campo que diga el panel. Cada
- *    pantalla dice cuál es el suyo y si se reemplaza o se añade, porque «unir» acumula y las
- *    demás sustituyen.
+ * **Lo de elegir un archivo del propio equipo vive en `subida.js`.** Estaba aquí, y ahí es
+ * donde había que enviar el formulario solo; pero al entrar el tope de tamaño y la barra de
+ * avance, tener media subida en un fichero llamado «explorador» y la otra media en otro era
+ * la forma segura de que las dos dejaran de estar de acuerdo.
  */
 (function () {
   "use strict";
-
-  /** Envía el formulario en cuanto se elige un archivo. */
-  document.addEventListener("change", function (evento) {
-    const campo = evento.target;
-    if (!campo.matches || !campo.matches("input[type=file][data-envia-solo]")) return;
-    if (!campo.files || campo.files.length === 0) return;
-    if (campo.form) campo.form.requestSubmit();
-  });
 
   /**
    * Pincha un archivo del explorador.

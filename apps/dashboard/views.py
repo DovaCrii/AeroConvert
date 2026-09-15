@@ -9,6 +9,7 @@ obliga a traducir mentalmente cada vez que se lee un error.
 from dataclasses import dataclass
 from pathlib import Path
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
@@ -16,6 +17,7 @@ from django.shortcuts import redirect, render
 from django.views.decorators.http import require_POST
 
 from apps.core import entrada as entrada_mod
+from apps.core import manejador as manejador_mod
 from apps.core import modo as modo_mod
 from apps.core import subidas as subidas_mod
 from apps.dashboard import acciones as acciones_mod
@@ -296,6 +298,25 @@ def subir(request):
     """
     archivo = request.FILES.get("archivo")
     if archivo is None:
+        # **Dos casos que se veían idénticos, y uno de ellos mentía.**
+        #
+        # Cuando la subida se pasa del tope, `SubidaConTope` la corta con `StopUpload`, que
+        # descarta el cuerpo entero: aquí llega un `request.FILES` vacío, igual que si nadie
+        # hubiera elegido nada. Quien subía 600 MB con el tope en 200 leía «No llegó ningún
+        # archivo» y un código `ruta-no-permitida` — las dos cosas falsas.
+        if getattr(request, manejador_mod.MARCA_DE_CORTE, False):
+            return render(
+                request,
+                "dashboard/_ficha.html",
+                {
+                    "error": (
+                        f"El archivo pasa de {settings.TOPE_MB} MB, que es el tope de subida "
+                        f"por el navegador. Déjalo en la carpeta compartida: por ahí no hay "
+                        f"tope, y copiar con el Explorador se reanuda si se corta."
+                    ),
+                    "codigo_error": "pasa-del-tope",
+                },
+            )
         return render(
             request,
             "dashboard/_ficha.html",

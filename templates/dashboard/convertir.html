@@ -121,12 +121,26 @@
           avisaría. Lo recoge `static/js/explorador.js`.
         {% endcomment %}
         <label class="visually-hidden" for="archivo">Elegir un archivo de tu equipo</label>
-        <input type="file" id="archivo" name="archivo" class="form-control" data-envia-solo>
+        {% comment %}
+          `data-tope-mb` lo pone el servidor. Escrito a mano aquí se quedaría desfasado el
+          día que alguien cambie `AEROCONVERT_TOPE_MB`, y un tope que miente es peor que
+          ninguno: dejaría subir hasta que el servidor corte, que es el fallo que arregla.
+        {% endcomment %}
+        <input type="file" id="archivo" name="archivo" class="form-control"
+               data-envia-solo data-tope-mb="{{ tope_mb }}">
         <p class="soltar-ayuda" style="margin:10px 0 0;">
-          Para un archivo de varios gigabytes usa la carpeta compartida: copiarlo ahí con el
-          Explorador es reanudable, y subirlo por el navegador no.
+          Hasta <strong>{{ tope_mb }} MB</strong> por aquí. Si pesa más, déjalo en la carpeta
+          compartida: copiarlo ahí con el Explorador es reanudable, y subirlo por el
+          navegador no.
         </p>
       </div>
+
+      {% comment %}
+        Donde aterriza la barra de avance, y también el aviso de «no cabe». Vacío y oculto
+        hasta que `subida.js` tenga algo que decir: un hueco reservado que nunca se llena es
+        una tarjeta con un agujero.
+      {% endcomment %}
+      <div data-avance-subida hidden style="margin-top:12px;"></div>
     </form>
   </div>
 
