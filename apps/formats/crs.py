@@ -99,12 +99,21 @@ SIN_CRS = Crs(autoridad="", codigo="", origen=DESCONOCIDO)
 
 
 @lru_cache(maxsize=512)
-def _nombre_epsg(codigo: int) -> str:
+def nombre_epsg(codigo: int | str) -> str:
     """Nombre legible de un EPSG. Cadena vacia si pyproj no lo conoce.
+
+    **Publico a proposito**: lo pide tambien la etiqueta de plantilla que pinta el recibo de
+    verificacion, donde el codigo se guardo a secas y el nombre se resuelve al mostrarlo.
+    Resolverlo al mostrar y no al guardar tiene una ventaja concreta: los trabajos que ya
+    estaban en la base salen con nombre sin tocar una sola fila.
 
     Cacheado porque la ficha del archivo lo pide en cada pintada y abrir la base de PROJ
     no es gratis.
     """
+    try:
+        codigo = int(str(codigo).strip().upper().removeprefix("EPSG:"))
+    except (TypeError, ValueError):
+        return ""
     try:
         from pyproj import CRS as PyprojCRS
     except ImportError:  # pragma: no cover - pyproj es dependencia declarada
@@ -122,7 +131,7 @@ def epsg(codigo: int | str, *, origen: str = INCRUSTADO) -> Crs:
         autoridad="EPSG",
         codigo=str(numero),
         origen=origen,
-        nombre=_nombre_epsg(numero),
+        nombre=nombre_epsg(numero),
     )
 
 

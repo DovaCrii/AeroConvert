@@ -1,4 +1,4 @@
-{% load static %}
+{% load static referencia %}
 {% comment %}
 El fragmento que htmx reemplaza mientras el trabajo avanza.
 
@@ -101,8 +101,19 @@ generar 10.800 peticiones.
         {% endif %}
 
         {% if trabajo.verification.epsg %}
+          {% comment %}
+            **El número y el nombre, no solo el número.**
+
+            `EPSG:32719` no le dice nada a quien no se lo sepa de memoria, y el número solo es
+            además peligroso: 32718 y 32719 son husos contiguos, se diferencian en una cifra, y
+            confundirlos mueve el trabajo seiscientos kilómetros. Con «WGS 84 / UTM zone 19S»
+            al lado, el error salta a la vista.
+          {% endcomment %}
           <dt>Sistema de referencia</dt>
-          <dd>EPSG:{{ trabajo.verification.epsg }} · sin cambio</dd>
+          <dd>
+            EPSG:{{ trabajo.verification.epsg }}{% with nombre=trabajo.verification.epsg|nombre_del_crs %}{% if nombre %} — {{ nombre }}{% endif %}{% endwith %}
+            · sin cambio
+          </dd>
         {% endif %}
 
         {% if trabajo.verification.bandas %}
