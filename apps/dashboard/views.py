@@ -202,10 +202,13 @@ def que_puedo_hacer(request):
         {
             **contexto,
             "seccion": "acciones",
-            # **Ni «Todo» ni «TODO».** El CSS pone este rótulo en mayúsculas, y «TODO» a
-            # secas se lee como el marcador de pendiente que dejamos los programadores en el
-            # código — justo en una aplicación cuyo público sabe lo que es.
-            "etiqueta_seccion": "Todas las herramientas",
+            # **«Inicio», porque esta pantalla necesitaba un nombre.**
+            #
+            # Fue «Todo» —que el CSS pone en mayúsculas y se lee como el marcador de pendiente
+            # que dejamos los programadores— y luego «Todas las herramientas», que describe lo
+            # que hay pero no dice **dónde estás**. Quien pulsa la marca y aterriza aquí tiene
+            # que reconocer el sitio en una palabra, y la palabra es esa.
+            "etiqueta_seccion": "Inicio",
             "titulo_pagina": "¿Qué necesitas hacer?",
             "proposito": (
                 "Escribe lo que quieres conseguir —«juntar planos», «quitar la contraseña», "

@@ -120,6 +120,22 @@
           </form>
         {% endif %}
 
+        {% comment %}
+          **Convertir vuelve a la barra, y se queda.**
+
+          Al reducir de siete entradas a cuatro entró aquí dentro del desplegable, como
+          encabezado de su columna. Sobre el papel era coherente —es una sección más— y en uso
+          resultó ser un error: es **la pantalla que más se abre**, y desde la portada volver a
+          ella obligaba a abrir un menú y acertar con el título de una columna.
+
+          Una entrada de más en la barra cuesta sitio una vez. Esconder la más usada lo cuesta
+          cada día.
+        {% endcomment %}
+        <a href="{% url 'dashboard:convertir' %}" class="nav-item" title="Convertir"
+           {% if seccion == 'convertir' %}aria-current="page"{% endif %}>
+          <svg class="nav-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-convertir"></use></svg>
+          <span>Convertir</span>
+        </a>
         <a href="{% url 'jobs:lista' %}" class="nav-item" title="Historial"
            {% if seccion == 'historial' %}aria-current="page"{% endif %}>
           <svg class="nav-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-historial"></use></svg>

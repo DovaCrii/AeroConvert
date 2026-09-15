@@ -57,6 +57,10 @@ PROPIOS = {
     "aerolink",
     "tailscale",
     "markdown",
+    # Los catálogos de tubería: «Access» es el programa de Microsoft y «Plant 3D» el de
+    # Autodesk. Los dos entraron el 2026-09-15 y esta prueba los cazó el mismo día.
+    "access",
+    "plant",
     # Formatos y siglas
     "pdf",
     "pdfs",

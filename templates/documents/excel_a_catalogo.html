@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block titulo %}Excel a catálogo de tubería · AeroConvert{% endblock %}
+
+{% block contenido %}
+
+{% if not access %}
+  <div class="tarjeta" style="border-left:4px solid var(--av-warn); margin-bottom:14px;">
+    <p style="margin:0;"><strong>Aquí no se puede.</strong> {{ access.motivo }}</p>
+    {% if access.sugerencia %}<p class="tenue" style="margin:6px 0 0;">{{ access.sugerencia }}</p>{% endif %}
+  </div>
+{% else %}
+  <form id="forma-documento" method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+
+    {% include "documents/_origen.html" with pregunta="¿Qué hoja de cálculo?" accion="convertir" boton="Rehacer el catálogo" acepta=".xlsx,.xlsm" %}
+
+    {% comment %}
+      **El segundo archivo no es un extra: es el que pone el esquema.**
+
+      El catálogo nuevo se hace copiando este y sustituyendo las filas, no creando una base
+      desde cero. Crear una perdería los índices, las claves y las propiedades que Plant 3D
+      dejó puestas — y el resultado se abriría igual, para fallar más tarde. Ver el docstring
+      de `catalogos.desde_excel`.
+    {% endcomment %}
+    <div class="tarjeta" style="margin-bottom:14px;">
+      <div class="eyebrow">Y el catálogo original</div>
+      <h2 class="origen-titulo" style="margin:2px 0 6px;">¿De cuál salió esa hoja?</h2>
+      <p class="tenue" style="margin:0 0 12px;">
+        De ahí se toman las tablas, las columnas y sus tipos. El resultado es una copia suya con
+        las filas del Excel dentro, así que el esquema queda <strong>idéntico</strong> y no
+        parecido.
+      </p>
+
+      <div class="soltar soltar-compacto">
+        <label class="visually-hidden" for="id_plantilla">Elegir el catálogo original</label>
+        <input type="file" id="id_plantilla" name="plantilla_subida" class="form-control"
+               accept=".mdb,.accdb" data-tope-mb="{{ tope_mb }}">
+        <p class="soltar-ayuda" style="margin:8px 0 0;">Hasta {{ tope_mb }} MB.</p>
+      </div>
+
+      <details class="buscador" style="margin-top:10px;">
+        <summary class="buscador-resumen">…o cógelo de la carpeta compartida</summary>
+        <div class="explorador" data-destino="[name='plantilla']"
+             hx-get="{% url 'dashboard:explorar' %}"
+             hx-trigger="toggle from:closest details once"
+             hx-swap="innerHTML">
+          <p class="tenue" style="margin:0;">Abriendo la carpeta…</p>
+        </div>
+      </details>
+      <input type="hidden" name="plantilla" value="">
+
+      <div data-avance-subida hidden style="margin-top:10px;"></div>
+    </div>
+  </form>
+{% endif %}
+
+{% if generado %}
+  <div class="tarjeta tarjeta-acento" style="margin-bottom:14px;">
+    <div class="eyebrow">Hecho</div>
+    <strong style="color:var(--av-ok);">✓ {{ generado.name }}</strong>
+    {% if avisos %}
+      {% comment %}
+        Los avisos salen **con el resultado**, no en lugar de él: el catálogo está hecho y es
+        usable. Lo que dicen es qué quedó vacío, que puede ser deliberado o puede ser una
+        columna borrada sin querer al reordenar la hoja.
+      {% endcomment %}
+      <p class="tenue" style="margin:10px 0 4px;"><strong>Conviene que mires esto:</strong></p>
+      <ul class="lista-simple">
+        {% for aviso in avisos %}<li>{{ aviso }}</li>{% endfor %}
+      </ul>
+    {% endif %}
+  </div>
+{% endif %}
+
+<div class="tarjeta">
+  <div class="eyebrow">Qué se comprueba antes de escribir</div>
+  <ul class="lista-simple">
+    <li>Que cada hoja del Excel sea una tabla del catálogo.</li>
+    <li>Que cada columna exista en esa tabla. <strong>Una que no exista para el trabajo</strong>
+        en vez de descartarse en silencio.</li>
+    <li>Que los valores quepan en su campo, diciendo la fila cuando alguno no cabe.</li>
+  </ul>
+  <p class="tenue" style="margin:10px 0 0;">
+    Es todo o nada: si algo falla, no se escribe nada. Un catálogo a medio llenar se abre igual,
+    y el fallo aparece cuando alguien está usando una pieza que no lleva su espesor.
+  </p>
+</div>
+{% endblock %}

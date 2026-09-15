@@ -24,6 +24,10 @@ urlpatterns = [
     # donde arreglar el mismo fallo. El catálogo sí las lista por separado, con `?de=`.
     path("a-markdown/", views.a_markdown, name="a_markdown"),
     path("de-markdown/", views.de_markdown, name="de_markdown"),
+    # Catálogos de tubería de Plant 3D, que son bases de Access. Solo en Windows: en el
+    # servidor salen apagadas con su motivo, igual que las de Office.
+    path("catalogo-a-excel/", views.catalogo_a_excel, name="catalogo_a_excel"),
+    path("excel-a-catalogo/", views.excel_a_catalogo, name="excel_a_catalogo"),
     path("miniatura/", views.miniatura, name="miniatura"),
     # Por identificador y **nunca por ruta**: ver el docstring de la vista.
     path("descargar/<uuid:pk>/", views.descargar, name="descargar"),

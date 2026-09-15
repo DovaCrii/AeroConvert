@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block titulo %}Catálogo de tubería a Excel · AeroConvert{% endblock %}
+
+{% block contenido %}
+
+{% if not access %}
+  {% comment %}
+    Apagada con su motivo, nunca ausente. Es la misma regla que Office y que ECW: ocultar una
+    capacidad que no está hace parecer que nunca existió.
+  {% endcomment %}
+  <div class="tarjeta" style="border-left:4px solid var(--av-warn); margin-bottom:14px;">
+    <p style="margin:0;"><strong>Aquí no se puede.</strong> {{ access.motivo }}</p>
+    {% if access.sugerencia %}<p class="tenue" style="margin:6px 0 0;">{{ access.sugerencia }}</p>{% endif %}
+  </div>
+{% else %}
+  <form id="forma-documento" method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {% include "documents/_origen.html" with pregunta="¿Qué catálogo?" accion="convertir" boton="Sacar a Excel" acepta=".mdb,.accdb" %}
+  </form>
+{% endif %}
+
+{% if tablas %}
+  <div class="tarjeta" style="margin-bottom:14px;">
+    <div class="eyebrow">Lo que hay dentro</div>
+    <h2 class="origen-titulo" style="margin:2px 0 10px;">{{ tablas|length }} tabla(s)</h2>
+    <div class="herramientas">
+      {% for tabla in tablas %}
+        <div class="linea">
+          <strong>{{ tabla.nombre }}</strong>
+          <span class="tenue">{{ tabla.filas }} fila(s) · {{ tabla.columnas|length }} columnas</span>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+{% endif %}
+
+{% if generado %}
+  <div class="tarjeta tarjeta-acento" style="margin-bottom:14px;">
+    <div class="eyebrow">Hecho</div>
+    <strong style="color:var(--av-ok);">✓ {{ generado.name }}</strong>
+    <p class="tenue" style="margin:8px 0 0;">
+      Una hoja por tabla, con la fila de encabezados fija. Cuando lo tengas editado, vuelve con
+      <a href="{% url 'documents:excel_a_catalogo' %}">Excel a catálogo de tubería</a>.
+    </p>
+  </div>
+{% endif %}
+
+<div class="tarjeta">
+  <div class="eyebrow">Qué es esto</div>
+  <p style="margin:6px 0 0;">
+    Los catálogos de tubería de AutoCAD Plant 3D son bases de Access: nueve tablas —
+    <code>PIPE</code>, <code>ELBOW</code>, <code>TEE</code>, <code>FLANGE</code>,
+    <code>REDUCER</code> y las demás— con hasta cincuenta columnas cada una.
+  </p>
+  <p class="tenue" style="margin:10px 0 0;">
+    Se saca todo, incluidas las tablas vacías: sus encabezados son la plantilla para
+    rellenarlas, y sin ellos habría que inventarse los nombres de las columnas.
+  </p>
+</div>
+{% endblock %}

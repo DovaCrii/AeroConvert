@@ -44,6 +44,7 @@ from apps.formats import pdf as lectura_pdf
 
 from . import a_imagenes as a_imagenes_mod
 from . import a_markdown as a_markdown_mod
+from . import catalogos as catalogos_mod
 from . import desde_markdown as desde_markdown_mod
 from . import dividir as dividir_mod
 from . import marcas as marcas_mod
@@ -87,7 +88,7 @@ def _origenes_pedidos(texto: str, usuario) -> list:
     return entrada_mod.resolver_varios(texto, usuario=usuario, maximo=MAXIMO_ARCHIVOS)
 
 
-def _origen_del_formulario(request, campo: str = "ruta"):
+def _origen_del_formulario(request, campo: str = "ruta", archivo: str = "archivo"):
     """De dónde parte la pantalla: el archivo subido si lo hay, y si no lo que venga escrito.
 
     ## Por qué existe
@@ -106,12 +107,12 @@ def _origen_del_formulario(request, campo: str = "ruta"):
     escribir nada. Se traduce aquí para que la pantalla lo enseñe como cualquier otro motivo
     en vez de reventar con un 500.
     """
-    archivo = request.FILES.get("archivo")
-    if archivo is None:
+    subido = request.FILES.get(archivo)
+    if subido is None:
         return entrada_mod.resolver(request.POST.get(campo) or "", usuario=request.user)
 
     try:
-        subida = subidas_mod.guardar(archivo, usuario=request.user)
+        subida = subidas_mod.guardar(subido, usuario=request.user)
     except ValidationError as fallo:
         raise entrada_mod.EntradaNoPermitida(
             "; ".join(fallo.messages), "ruta-no-permitida"
@@ -354,6 +355,32 @@ HERRAMIENTAS = (
         "nombre": "Markdown a PDF",
         "que_hace": "El camino de vuelta, para entregar lo que se redactó en Markdown.",
     },
+    # --- Catálogos de tubería ---------------------------------------------
+    #
+    # Son bases de Access de AutoCAD Plant 3D. Van en este grupo porque es lo mismo que hacen
+    # las de arriba: sacar el contenido de un archivo para poder trabajarlo en otro sitio.
+    {
+        "id": "catalogo_excel",
+        "categoria": "texto",
+        "icono": "icon-catalogo",
+        "sale": "un Excel con una hoja por tabla",
+        "familia": "texto",
+        "url": "documents:catalogo_a_excel",
+        "nombre": "Catálogo de tubería a Excel",
+        "que_hace": "Saca las nueve tablas del catálogo para poder editarlas cómodo.",
+        "exige_access": True,
+    },
+    {
+        "id": "excel_catalogo",
+        "categoria": "texto",
+        "icono": "icon-catalogo-volver",
+        "sale": "un catálogo listo para Plant 3D",
+        "familia": "texto",
+        "url": "documents:excel_a_catalogo",
+        "nombre": "Excel a catálogo de tubería",
+        "que_hace": "El camino de vuelta. Se parte del catálogo original, que pone el esquema.",
+        "exige_access": True,
+    },
 )
 
 
@@ -401,6 +428,10 @@ def estado_de_herramientas() -> list[dict]:
     se enseñaban en el índice de PDF y en ningún otro lado; ahora salen de aquí.
     """
     office = office_mod.sondar()
+    # Los catálogos son bases de Access: el motor es de Microsoft y en Linux no existe. Se
+    # sondea igual que Office, y en el servidor salen apagadas con su motivo.
+    access = catalogos_mod.sondar()
+
     estado = []
     for herramienta in HERRAMIENTAS:
         fila = dict(herramienta)
@@ -408,6 +439,10 @@ def estado_de_herramientas() -> list[dict]:
             fila["disponible"] = bool(office)
             fila["motivo"] = office.motivo
             fila["sugerencia"] = office.sugerencia
+        elif herramienta.get("exige_access"):
+            fila["disponible"] = bool(access)
+            fila["motivo"] = access.motivo
+            fila["sugerencia"] = access.sugerencia
         else:
             fila["disponible"] = True
         estado.append(fila)
@@ -1233,6 +1268,79 @@ def de_markdown(request):
     messages.success(request, f"Hecho: {destino.name}.")
     contexto["generado"] = destino
     return render(request, "documents/de_markdown.html", contexto)
+
+
+@login_required
+def catalogo_a_excel(request):
+    """Un catálogo de tubería a una hoja de cálculo, una hoja por tabla.
+
+    **Esta va primero de las dos**, y no por orden alfabético: nadie escribe cincuenta y dos
+    columnas desde cero. El camino real es sacar el catálogo que ya se tiene, cambiar lo que
+    haga falta, y volver a meterlo con la otra.
+    """
+    access = catalogos_mod.sondar()
+    contexto = {
+        "seccion": "pdf",
+        "etiqueta_seccion": "Catálogos de tubería",
+        "titulo_pagina": "Catálogo de tubería a Excel",
+        "proposito": "Para poder editarlo sin abrir Access, y volver a meterlo después.",
+        "access": access,
+        "ruta_texto": (request.GET.get("ruta") or "").strip(),
+    }
+
+    if request.method != "POST" or not access:
+        return render(request, "documents/catalogo_a_excel.html", contexto)
+
+    try:
+        origen = _origen_del_formulario(request)
+        # La ficha del catálogo antes de nada: si alguien se equivocó de archivo, se ve aquí
+        # y no después de abrir un Excel de nueve hojas que no son las suyas.
+        contexto["tablas"] = catalogos_mod.esquema(origen.ruta)
+        destino = catalogos_mod.a_excel(origen.ruta, destino=_ruta_de_salida_de(origen, ".xlsx"))
+    except (modo_mod.RutaNoPermitida, ComposicionInvalida) as fallo:
+        messages.error(request, str(fallo))
+        return render(request, "documents/catalogo_a_excel.html", contexto)
+
+    messages.success(request, f"Hecho: {destino.name}.")
+    contexto["generado"] = destino
+    return render(request, "documents/catalogo_a_excel.html", contexto)
+
+
+@login_required
+def excel_a_catalogo(request):
+    """La hoja de cálculo de vuelta al catálogo, **sobre el catálogo original**.
+
+    Dos archivos, y el segundo no es un extra: es el que pone el esquema. Ver el docstring de
+    `catalogos.desde_excel`, donde está por qué se copia la plantilla en vez de crear una base
+    nueva.
+    """
+    access = catalogos_mod.sondar()
+    contexto = {
+        "seccion": "pdf",
+        "etiqueta_seccion": "Catálogos de tubería",
+        "titulo_pagina": "Excel a catálogo de tubería",
+        "proposito": "El camino de vuelta. Hacen falta los dos: la hoja editada y el catálogo.",
+        "access": access,
+        "ruta_texto": (request.GET.get("ruta") or "").strip(),
+    }
+
+    if request.method != "POST" or not access:
+        return render(request, "documents/excel_a_catalogo.html", contexto)
+
+    try:
+        hoja = _origen_del_formulario(request)
+        plantilla = _origen_del_formulario(request, campo="plantilla", archivo="plantilla_subida")
+        destino, avisos = catalogos_mod.desde_excel(
+            hoja.ruta, plantilla.ruta, destino=_ruta_de_salida_de(hoja, ".mdb")
+        )
+    except (modo_mod.RutaNoPermitida, ComposicionInvalida) as fallo:
+        messages.error(request, str(fallo))
+        return render(request, "documents/excel_a_catalogo.html", contexto)
+
+    messages.success(request, f"Hecho: {destino.name}.")
+    contexto["generado"] = destino
+    contexto["avisos"] = avisos
+    return render(request, "documents/excel_a_catalogo.html", contexto)
 
 
 #: Cuántos caracteres del resultado se enseñan antes de descargarlo.

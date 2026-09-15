@@ -92,6 +92,14 @@ dependencies = [
     # es lo que demuestra que esto se podia escribir.
     "markdownify>=1.1,<2",
     "beautifulsoup4>=4.13,<5",
+    # Los catalogos de tuberia de Plant 3D, que son bases de Access. Ver
+    # `apps/documents/catalogos.py`.
+    #
+    # **Con marcador de plataforma**, y eso no es cautela: el controlador que hace el trabajo
+    # es ACE, de Microsoft, y en Linux no existe. Instalarlo en el servidor seria meter una
+    # extension compilada que alli no puede hacer nada. Con el marcador, el servidor ni la
+    # baja y la sonda dice por que la herramienta sale apagada -- exactamente como Office.
+    "pyodbc>=5.1,<6; sys_platform == 'win32'",
 ]
 
 # GDAL, PDAL y el conversor de ECW **no van aca a proposito**. Son herramientas

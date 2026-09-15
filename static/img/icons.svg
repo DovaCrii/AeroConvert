@@ -344,6 +344,27 @@
     <path d="M9 18.5h4" />
   </symbol>
 
+  <!-- Catálogos de tubería: una base de Access con nueve tablas de piezas. -->
+
+  <symbol id="icon-catalogo" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Un tubo con su brida, que es de lo que va el catálogo. -->
+    <rect x="2.5" y="9" width="19" height="6" rx="1" fill="currentColor" fill-opacity=".16" />
+    <path d="M6 7.5v9" />
+    <path d="M18 7.5v9" />
+    <path d="M2.5 12h19" stroke-dasharray="2 2" />
+  </symbol>
+
+  <symbol id="icon-catalogo-volver" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+    <!-- El mismo tubo, con la flecha de vuelta: del Excel al catálogo. -->
+    <rect x="2.5" y="11" width="19" height="6" rx="1" fill="currentColor" fill-opacity=".16" />
+    <path d="M6 9.5v9" />
+    <path d="M18 9.5v9" />
+    <path d="M8 5.5h8" />
+    <path d="M10.5 3l-2.5 2.5 2.5 2.5" />
+  </symbol>
+
   <symbol id="icon-veredicto-abre" viewBox="0 0 24 24" fill="none" stroke="currentColor"
           stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
     <path d="M4.5 12.5l5 5 10-11" />

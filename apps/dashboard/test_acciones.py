@@ -346,4 +346,16 @@ class TestLaPantalla:
         dejamos los programadores — delante de un equipo que sabe lo que es."""
         cuerpo = sesion.get(reverse("dashboard:que_puedo_hacer")).content.decode()
         assert ">TODO<" not in cuerpo.replace(" ", "").replace("\n", "")
-        assert "Todas las herramientas" in cuerpo
+        assert "Inicio" in cuerpo, "La portada tiene que decir dónde estás."
+
+    def test_convertir_sigue_en_la_barra(self, sesion):
+        """**La pantalla que más se abre no puede vivir solo dentro de un menú.**
+
+        Al reducir la barra de siete entradas a cuatro, «Convertir» pasó a ser el encabezado de
+        una columna del desplegable. Sobre el papel coherente; en uso, volver a ella desde la
+        portada exigía abrir el menú y acertar con el título de una columna.
+        """
+        cuerpo = sesion.get(reverse("dashboard:que_puedo_hacer")).content.decode()
+        barra = cuerpo[cuerpo.index('class="barra-nav"') : cuerpo.index("</nav>")]
+        assert f'href="{reverse("dashboard:convertir")}"' in barra
+        assert "<span>Convertir</span>" in barra
