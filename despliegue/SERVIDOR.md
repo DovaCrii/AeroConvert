@@ -77,7 +77,12 @@ El tailnet es **`tailccd107`**. Reparto comprobado el 2026-09-14 con `tailscale 
 | **AeroControl** | `127.0.0.1:8000` | `https://p340.tailccd107.ts.net` |
 | **AeroLink** | `127.0.0.1:8092` | `https://p340.tailccd107.ts.net/aerolink` |
 | **AeroConvert** | `127.0.0.1:8001` | `https://p340.tailccd107.ts.net:8443` |
-| **AeroBim** | `127.0.0.1:8002` *(previsto)* | `https://p340.tailccd107.ts.net:10000` |
+| **AeroBim** | `127.0.0.1:8002` | `https://p340.tailccd107.ts.net:10000` |
+
+**AeroBim pasó a Funnel el 2026-09-15.** Estuvo un tiempo en `tailnet only` —alcanzable solo
+dentro de la red privada— y ahora está en internet abierto como las otras dos. Eso convierte
+en real el aviso de más abajo sobre el bloqueo por intentos fallidos: mientras era privado,
+equivocarse ocho veces solo lo podía hacer alguien de la oficina.
 
 Cada una montada en `/`, sin `FORCE_SCRIPT_NAME` y sin reescribir estáticos.
 
@@ -101,7 +106,68 @@ AeroConvert lo resuelve en `apps/core/ip.py` con `AXES_CLIENT_IP_CALLABLE`, y bl
 nada** — axes solo los mira si `django-ipware` está instalado, y no lo está.
 
 > **AeroControl y AeroBim: revisad esto.** Si alguna bloquea solo por IP, hoy es una
-> denegación de servicio a un clic de distancia, y está publicada en internet.
+> denegación de servicio a un clic de distancia, y está publicada en internet. Para AeroBim
+> esto dejó de ser hipotético el **2026-09-15**, cuando pasó de `tailnet only` a Funnel.
+
+### Cuando «se cayeron las tres» y no se había caído ninguna
+
+Pasó el **2026-09-15**, durante los cambios de AeroBim: las tres aplicaciones dejaron de
+abrirse a la vez, con `ERR_NAME_NOT_RESOLVED`. La causa no estaba en el servidor.
+
+```
+# Health check:
+#   - Tailscale failed to set the DNS configuration of your device:
+#     El proceso no tiene acceso al archivo porque está siendo utilizado por otro proceso.
+```
+
+**Era el cliente**, y en concreto una **regla NRPT atascada**.
+
+Tailscale instala en Windows una regla que intercepta todo `.ts.net` y lo manda a su propio
+resolutor. Cuando no consigue escribir la configuración de DNS, esa regla se queda puesta
+apuntando a un resolutor que no contesta: **ni la usa ni la suelta**. Windows deja de preguntar
+al DNS público y devuelve «el nombre no existe» para un nombre que existe.
+
+Que fallen las tres a la vez es justamente la pista de que **no es ninguna de las tres**:
+comparten el nombre.
+
+Dos cosas que se probaron y **no** sirvieron, para no repetirlas:
+
+- `tailscale down; tailscale up` — reconecta el túnel, que nunca estuvo caído.
+- `tailscale up --accept-dns=false` — debería retirar la regla, pero retirarla es escribir la
+  configuración de DNS, que es justo lo que está bloqueado.
+
+Lo que sí sirvió, en PowerShell **como administrador**:
+
+```powershell
+Get-DnsClientNrptRule | Where-Object { $_.Namespace -like "*ts.net*" } | Remove-DnsClientNrptRule -Force
+ipconfig /flushdns
+```
+
+Si la orden se queja del bloqueo, un reinicio del equipo lo suelta.
+
+Cómo distinguirlo en treinta segundos, antes de tocar nada:
+
+| Qué mirar, desde el cliente | Si sale esto, el servidor está bien |
+| --- | --- |
+| `Test-NetConnection 100.121.16.118 -Port 8443` | `TcpTestSucceeded : True` — **el más rápido y el más concluyente** |
+| `Resolve-DnsName p340.tailccd107.ts.net -Server 1.1.1.1` | devuelve direcciones: el nombre **sí** está publicado |
+| `tailscale status` | la línea de `p340` dice `active; direct …` con tráfico |
+
+Y en p340, si aun así hay dudas: `sudo tailscale funnel status` con los puertos en
+`(Funnel on)`, `systemctl is-active aeroconvert`, y un `curl` a `127.0.0.1:<puerto>`.
+
+**Las dos primeras filas cierran el caso en veinte segundos.** Si el puerto acepta conexión
+por la interfaz de Tailscale y el nombre resuelve desde un DNS de fuera, no hay absolutamente
+nada que arreglar en el servidor — y todo el tiempo que se gaste ahí es tiempo perdido.
+
+Si urge entrar antes de arreglar el cliente, una línea en el archivo de hosts apuntando el
+nombre a la dirección **de Tailscale** —`100.121.16.118`, no la de la LAN— mantiene el
+certificado válido. Hay que quitarla después, o el día que esa dirección cambie alguien se
+quedará fuera sin saber por qué.
+
+**La lección que sí es del servidor:** las órdenes de `tailscale funnel` y `tailscale serve`
+**no son de una aplicación, son de la máquina**. Una sin puerto, o un `serve reset`, rehace el
+reparto de las tres. Quien configure una aplicación nueva usa siempre `--https=<su puerto>`.
 
 **Y se puede saber si una petición vino de internet o de la red privada.** Tailscale manda la
 cabecera `Tailscale-Funnel-Request` solo en las de Funnel. Llegan por el mismo puerto, así que
