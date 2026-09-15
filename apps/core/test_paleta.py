@@ -139,6 +139,27 @@ class TestElMagentaDeMarca:
         assert contraste(claro["--av-magenta"], "#ffffff") < TEXTO
 
 
+class TestNadaSePintaDeBlancoFuraDeLaBarra:
+    """**Blanco sobre blanco: invisible, pero ahí.**
+
+    `.boton-icono` nació para la barra navy con `color: #fff`. Después la reutilizaron las
+    filas de páginas de «unir» —subir, bajar, girar, quitar— que viven dentro de una tarjeta.
+    En tema oscuro la tarjeta es `#1c2634` y se veían; en claro es blanca, y los cuatro
+    botones desaparecían. Se pulsaban por casualidad o no se pulsaban.
+
+    Duró porque **solo fallaba en un tema**, y quien lo probó lo probó en oscuro.
+    """
+
+    def test_el_boton_de_icono_hereda_el_color(self, css):
+        bloque = _bloque(css, "\n.boton-icono {")
+        assert "#fff" not in bloque, "Vuelve a ser blanco fijo: invisible en cualquier tarjeta."
+        assert "currentcolor" in bloque.lower()
+
+    def test_y_la_barra_lo_pone_blanco_ella(self, css):
+        """La barra sí es navy, así que ahí el blanco es lo correcto — pero lo declara ella."""
+        assert ".barra .boton-icono" in css
+
+
 class TestLosColoresDeFamilia:
     """Cada icono contra su propia baldosa, en los **tres** bloques de tema."""
 

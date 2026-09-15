@@ -8,7 +8,7 @@
 <form id="forma-documento" method="post" enctype="multipart/form-data">
   {% csrf_token %}
 
-  {% include "documents/_origen.html" with accion="convertir" boton="Sacar el contenido" pregunta="¿De qué archivo?" %}
+  {% include "documents/_origen.html" with accion="convertir" boton="Sacar el contenido" pregunta="¿De qué archivo?" acepta=".xlsx,.xlsm,.csv,.docx,.pdf,.epub,.html,.htm" %}
 </form>
 
 {% if sin_texto %}

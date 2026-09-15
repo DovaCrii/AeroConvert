@@ -744,6 +744,20 @@ a.menu-titulo:hover {
   background: rgb(255 255 255 / 20%);
 }
 
+/*
+ * **`currentColor`, y no blanco.**
+ *
+ * Esta clase nació para la barra navy, donde el blanco era lo correcto. Después la
+ * reutilizaron las filas de páginas de «unir» —subir, bajar, girar, quitar— que viven
+ * **dentro de una tarjeta**. En tema oscuro la tarjeta es `#1c2634` y el blanco se veía; en
+ * claro es blanca, así que los cuatro botones eran blanco sobre blanco: **invisibles, pero
+ * ahí**. Se pulsaban por casualidad o no se pulsaban.
+ *
+ * Solo fallaba en un tema, que es la razón de que durara: quien lo probó lo probó en oscuro.
+ *
+ * El color lo pone ahora el sitio. `.barra` ya pinta de blanco todo lo suyo, así que la barra
+ * sigue igual sin una sola regla nueva.
+ */
 .boton-icono {
   display: inline-flex;
   align-items: center;
@@ -754,13 +768,24 @@ a.menu-titulo:hover {
   border: 0;
   border-radius: var(--av-radius-sm);
   background: none;
-  color: #fff;
+  color: currentcolor;
   cursor: pointer;
   opacity: 0.82;
 }
 
+.barra .boton-icono {
+  color: #fff;
+}
+
+/* El velo del `hover` también era blanco, o sea invisible sobre una tarjeta clara.
+ * `color-mix` lo saca del color del propio texto, así que funciona en los dos temas. */
 .boton-icono:hover {
   opacity: 1;
+  background: rgb(127 127 127 / 14%);
+  background: color-mix(in srgb, currentcolor 12%, transparent);
+}
+
+.barra .boton-icono:hover {
   background: rgb(255 255 255 / 9%);
 }
 

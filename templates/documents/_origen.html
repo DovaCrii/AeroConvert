@@ -11,6 +11,14 @@
 
     {% include "documents/_origen.html" with accion="mirar" boton="Ver el documento" %}
 
+  Y **`acepta` no es opcional de verdad**: por omisión vale `.pdf`, que es lo correcto para las
+  nueve pantallas de PDF y lo que rompió las de Markdown el día que las escribí. Con el filtro
+  en `.pdf`, el diálogo del sistema no deja elegir un `.xlsx` — el botón está, la pantalla está,
+  y el archivo que hace falta no se puede seleccionar. Es el peor fallo posible: parece que la
+  herramienta no funciona, cuando lo que no funciona es el filtro.
+
+    {% include "documents/_origen.html" with acepta=".xlsx,.csv,.docx" ... %}
+
   El campo oculto `ruta` conserva lo ya elegido entre un paso y el siguiente: estas pantallas
   van en dos tiempos —mirar y después hacer— y sin él el segundo POST llegaría sin archivo.
   Lleva el **token**, nunca la ruta del servidor.
@@ -45,8 +53,8 @@
       <div class="soltar soltar-compacto">
         <label class="visually-hidden" for="id_archivo">Elegir un documento de tu equipo</label>
         {# El tope lo pone el servidor; `subida.js` lo comprueba antes de mandar nada. #}
-        <input type="file" id="id_archivo" name="archivo" class="form-control" accept=".pdf"
-               data-tope-mb="{{ tope_mb }}">
+        <input type="file" id="id_archivo" name="archivo" class="form-control"
+               accept="{{ acepta|default:'.pdf' }}" data-tope-mb="{{ tope_mb }}">
         <button type="submit" name="accion" value="{{ accion }}" class="boton"
                 style="margin-top:10px;">{{ boton }}</button>
         <p class="soltar-ayuda" style="margin:10px 0 0;">Hasta {{ tope_mb }} MB por aquí.</p>

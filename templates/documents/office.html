@@ -16,28 +16,22 @@
   </div>
 {% else %}
 
-<form method="post">
+{% comment %}
+  **Esta era la última pantalla de un solo archivo que seguía pidiendo la ruta escrita.**
+
+  Se quedó fuera cuando se quitaron las cajas de ruta de las otras cinco, y el motivo de que
+  no se notara es que en el servidor sale apagada —Office es Windows—, así que nadie tropezó
+  con ella allí. En una estación de trabajo sí, y ahí es donde la usa quien la usa.
+{% endcomment %}
+<form id="forma-documento" method="post" enctype="multipart/form-data">
   {% csrf_token %}
 
-  <div class="tarjeta tarjeta-acento" style="margin-bottom:14px;">
-    <div class="eyebrow">El documento</div>
-    <h2 style="font-size:1.1rem;">¿Cuál hay que pasar a PDF?</h2>
-    <p class="tenue" style="margin:6px 0 10px;">
+  {% include "documents/_origen.html" with pregunta="¿Cuál hay que pasar a PDF?" accion="convertir" boton="Pasar a PDF" acepta=".doc,.docx,.xls,.xlsx,.ppt,.pptx" %}
+
+  <div class="tarjeta" style="margin-bottom:14px;">
+    <p class="tenue" style="margin:0;">
       Vale {% for nombre in office.nombres %}{{ nombre }}{% if not forloop.last %}, {% endif %}{% endfor %}:
-      <code>{{ office.extensiones|join:"</code> <code>" }}</code>
-    </p>
-
-    <div class="soltar-campo">
-      <label class="visually-hidden" for="id_ruta">Ruta del documento</label>
-      <input type="text" name="ruta" id="id_ruta" class="form-control ruta"
-             value="{{ ruta_texto }}" autocomplete="off" spellcheck="false"
-             placeholder="D:\obras\entrega\informe.docx">
-      <button type="submit" class="boton">Pasar a PDF</button>
-    </div>
-
-    {% include "dashboard/_buscador.html" with destino="#id_ruta" %}
-
-    <p class="tenue" style="margin:10px 0 0; font-size:.85rem;">
+      <code>{{ office.extensiones|join:"</code> <code>" }}</code>.
       Tarda unos segundos: por detrás se abre {{ office.nombres.0 }} de verdad, sin ventana.
       El PDF sale junto al original, con el mismo nombre.
     </p>

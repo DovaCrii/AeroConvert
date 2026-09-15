@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block titulo %}Imágenes a PDF · AeroConvert{% endblock %}
 
@@ -14,20 +15,50 @@
       Cada imagen es una página, en el orden de la lista. Se admiten {{ extensiones }}.
     </p>
 
-    <label class="visually-hidden" for="id_subir">Elegir imágenes del equipo</label>
-    <input type="file" name="archivos" id="id_subir" class="form-control" multiple accept="image/*">
-    <p class="tenue" style="margin:6px 0 14px; font-size:.85rem;">
-      Se añaden a la lista de abajo, en el orden en que las elijas.
-    </p>
+    {% comment %}
+      Las mismas dos vías que en todas partes, y ninguna pide teclear una ruta. El campo de
+      texto sigue existiendo **oculto** —es donde el explorador acumula lo que se pincha— pero
+      ya no se le pide a nadie que lo escriba: en el servidor, pegar la ruta del propio equipo
+      devuelve «fuera de las carpetas permitidas» y no hay forma de adivinar por qué.
+    {% endcomment %}
+    <div class="origenes origenes-pdf">
+      <div class="origen">
+        <div class="origen-cabeza">
+          <span class="origen-marca fam-transformar" aria-hidden="true">
+            <svg class="origen-icono"><use href="{% static 'img/icons.svg' %}#icon-equipo"></use></svg>
+          </span>
+          <div>
+            <h3 class="origen-titulo">Desde tu equipo</h3>
+            <p class="origen-nota">Varias a la vez, en el orden en que las elijas.</p>
+          </div>
+        </div>
 
-    <label class="eyebrow" for="id_imagenes" style="display:block;">O pega sus rutas</label>
-    <textarea name="archivos_texto" id="id_imagenes" class="form-control ruta" rows="5"
-              spellcheck="false"
-              style="margin-top:4px;"
-              placeholder="D:\obras\monografia\P1.jpg&#10;D:\obras\monografia\P2.jpg">{{ rutas_texto }}</textarea>
+        <div class="soltar soltar-compacto">
+          <label class="visually-hidden" for="id_subir">Elegir imágenes del equipo</label>
+          <input type="file" name="archivos" id="id_subir" class="form-control" multiple
+                 accept="image/*" data-tope-mb="{{ tope_mb }}">
+          <p class="soltar-ayuda" style="margin:8px 0 0;">Hasta {{ tope_mb }} MB cada una.</p>
+        </div>
+      </div>
 
-    {# Acumula, como «unir»: aquí también entran varios archivos en un orden. #}
-    {% include "dashboard/_buscador.html" with destino="#id_imagenes" modo="anadir" %}
+      <div class="origen">
+        <div class="origen-cabeza">
+          <span class="origen-marca fam-proteger" aria-hidden="true">
+            <svg class="origen-icono"><use href="{% static 'img/icons.svg' %}#icon-carpeta"></use></svg>
+          </span>
+          <div>
+            <h3 class="origen-titulo">De la carpeta compartida</h3>
+            <p class="origen-nota">Pincha cada una en el orden en que van.</p>
+          </div>
+        </div>
+
+        {# Acumula, como «unir»: aquí también entran varios archivos en un orden. #}
+        {% include "dashboard/_buscador.html" with destino="#id_imagenes" modo="anadir" %}
+      </div>
+    </div>
+
+    <textarea name="archivos_texto" id="id_imagenes" hidden>{{ rutas_texto }}</textarea>
+    <div data-avance-subida hidden style="margin-top:10px;"></div>
 
     <fieldset style="border:0; padding:0; margin:14px 0 0;">
       <legend class="eyebrow" style="padding:0;">Tamaño de la hoja</legend>

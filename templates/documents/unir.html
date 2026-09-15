@@ -28,33 +28,68 @@
     <h2 style="font-size:1.1rem;">¿Qué PDF hay que juntar?</h2>
 
     {% comment %}
-      Dos vías, y el orden importa: **primero la de elegir del equipo**, que es la que
-      espera quien llega, y después la de pegar rutas, que es la de los archivos que ya
-      están en la carpeta compartida.
-    {% endcomment %}
-    <label class="visually-hidden" for="id_subir">Elegir PDF del equipo</label>
-    <input type="file" name="archivos" id="id_subir" class="form-control"
-           multiple accept="application/pdf,.pdf">
-    <p class="tenue" style="margin:6px 0 14px; font-size:.85rem;">
-      Se añaden a la lista de abajo. Para un plano grande es mejor la otra vía: subir tarda,
-      y si ya está en la carpeta compartida no hace falta moverlo.
-    </p>
+      **Las mismas dos vías que en todas partes, y ninguna pide teclear una ruta.**
 
-    <label class="eyebrow" for="id_archivos" style="display:block;">O pega sus rutas</label>
-    <p class="tenue" style="margin:4px 0 6px; font-size:.85rem;">
-      Una por línea, en el orden en que van. En el Explorador: clic derecho con
-      <kbd>Mayús</kbd> → «Copiar como ruta».
-    </p>
-    <textarea name="archivos_texto" id="id_archivos" class="form-control ruta" rows="4"
-              spellcheck="false"
-              placeholder="D:\obras\entrega\memoria.pdf&#10;D:\obras\entrega\planos.pdf">{{ rutas_texto }}</textarea>
+      Había una caja de «pega sus rutas» con su ejemplo de `D:\obras\...`, que era la última
+      que quedaba de las multiarchivo. Tenía el mismo problema que las cinco que ya se
+      quitaron: en el servidor, quien pega la ruta de su propio equipo recibe «fuera de las
+      carpetas permitidas» y no hay forma de adivinar por qué.
 
-    {% comment %}
-      **`modo="anadir"`, que es lo que distingue esta pantalla.** Aquí se juntan varios
-      documentos, así que pinchar un archivo lo **añade** al final de la lista en vez de
-      sustituir lo que ya había. En las demás, que trabajan sobre uno solo, reemplaza.
+      El campo sigue existiendo, **oculto**: es donde el explorador acumula lo que se pincha,
+      y es lo que viaja en el POST. Lo que desaparece es pedirle a alguien que lo escriba.
     {% endcomment %}
-    {% include "dashboard/_buscador.html" with destino="#id_archivos" modo="anadir" %}
+    <div class="origenes origenes-pdf">
+      <div class="origen">
+        <div class="origen-cabeza">
+          <span class="origen-marca fam-transformar" aria-hidden="true">
+            <svg class="origen-icono"><use href="{% static 'img/icons.svg' %}#icon-equipo"></use></svg>
+          </span>
+          <div>
+            <h3 class="origen-titulo">Desde tu equipo</h3>
+            <p class="origen-nota">Varios a la vez. Se añaden a la lista.</p>
+          </div>
+        </div>
+
+        <div class="soltar soltar-compacto">
+          <label class="visually-hidden" for="id_subir">Elegir PDF del equipo</label>
+          <input type="file" name="archivos" id="id_subir" class="form-control"
+                 multiple accept="application/pdf,.pdf" data-tope-mb="{{ tope_mb }}">
+          <p class="soltar-ayuda" style="margin:8px 0 0;">
+            Hasta {{ tope_mb }} MB cada uno. Si ya están en la carpeta compartida, mejor por ahí.
+          </p>
+        </div>
+      </div>
+
+      <div class="origen">
+        <div class="origen-cabeza">
+          <span class="origen-marca fam-proteger" aria-hidden="true">
+            <svg class="origen-icono"><use href="{% static 'img/icons.svg' %}#icon-carpeta"></use></svg>
+          </span>
+          <div>
+            <h3 class="origen-titulo">De la carpeta compartida</h3>
+            <p class="origen-nota">Pincha cada uno en el orden en que van.</p>
+          </div>
+        </div>
+
+        {% comment %}
+          **`modo="anadir"`, que es lo que distingue esta pantalla.** Aquí se juntan varios
+          documentos, así que pinchar un archivo lo **añade** al final de la lista en vez de
+          sustituir lo que ya había. En las demás, que trabajan sobre uno solo, reemplaza.
+        {% endcomment %}
+        {% include "dashboard/_buscador.html" with destino="#id_archivos" modo="anadir" %}
+      </div>
+    </div>
+
+    <textarea name="archivos_texto" id="id_archivos" hidden>{{ rutas_texto }}</textarea>
+    <div data-avance-subida hidden style="margin-top:10px;"></div>
+
+    {% if nombres %}
+      <p class="origen-elegido" style="margin-top:12px;">
+        <svg class="linea-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-archivo"></use></svg>
+        <strong>{{ nombres|length }} archivo(s):</strong>
+        <span class="tenue">{{ nombres|join:" · " }}</span>
+      </p>
+    {% endif %}
 
     <button type="submit" name="accion" value="analizar" class="boton" style="margin-top:12px;">
       Ver las páginas
