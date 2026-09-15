@@ -34,6 +34,26 @@
 
     {% if user.is_authenticated %}
       {% comment %}
+        **El buscador va aquí, fuera de la navegación, y centrado.**
+
+        Estaba dentro del grupo de la derecha, que se empuja al borde con `margin-left:auto`.
+        Resultado: todo apelotonado a la derecha y un hueco enorme en medio de la barra — el
+        sitio se desperdiciaba y la distribución parecía un descuido, no una decisión.
+
+        Suelto y con márgenes automáticos ocupa el centro, que es donde lo pone todo el mundo
+        y donde se busca sin pensar. Y la barra pasa a tener tres zonas legibles: quién eres a
+        la izquierda, qué buscas en medio, a dónde vas a la derecha.
+      {% endcomment %}
+      {% if seccion != 'acciones' %}
+        <form class="buscador-barra" method="get" action="{% url 'dashboard:que_puedo_hacer' %}"
+              role="search">
+          <label class="visually-hidden" for="q-barra">Buscar una herramienta</label>
+          <svg class="buscador-lupa" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-mirar"></use></svg>
+          <input type="search" id="q-barra" name="q" placeholder="Buscar una herramienta…"
+                 autocomplete="off">
+        </form>
+      {% endif %}
+      {% comment %}
         Cada entrada lleva icono **y** palabra.
 
         Solo el icono obliga a adivinar; solo la palabra hace que cuatro entradas se lean
@@ -105,20 +125,6 @@
             </p>
           </div>
         </details>
-
-        {% comment %}
-          El buscador, **visible en todas las pantallas**. Es la única guía de Nielsen Norman
-          sobre buscadores que aplica aquí sin matices: que esté siempre a mano y no escondido
-          dentro del menú. En la portada no se pinta porque el grande está justo debajo.
-        {% endcomment %}
-        {% if seccion != 'acciones' %}
-          <form class="buscador-barra" method="get" action="{% url 'dashboard:que_puedo_hacer' %}"
-                role="search">
-            <label class="visually-hidden" for="q-barra">Buscar una herramienta</label>
-            <svg class="buscador-lupa" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-mirar"></use></svg>
-            <input type="search" id="q-barra" name="q" placeholder="Buscar…" autocomplete="off">
-          </form>
-        {% endif %}
 
         {% comment %}
           **Convertir vuelve a la barra, y se queda.**

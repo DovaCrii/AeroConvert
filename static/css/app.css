@@ -694,11 +694,23 @@ a.menu-titulo:hover {
 
 /* --- El buscador de la barra ---------------------------------------------- */
 
+/*
+ * **Centrado, y ocupando el hueco que antes sobraba.**
+ *
+ * Vivía dentro de `.barra-nav`, que se empuja al borde derecho con `margin-left:auto`: todo
+ * quedaba apelotonado a la derecha y con un vacío grande en medio de la barra. Suelto y con
+ * márgenes automáticos, la barra pasa a tener tres zonas legibles — quién eres a la izquierda,
+ * qué buscas en medio, a dónde vas a la derecha.
+ *
+ * `flex: 0 1 26rem` y no un ancho fijo: cede antes que las entradas de navegación, que son las
+ * que no pueden encogerse sin perder su palabra.
+ */
 .buscador-barra {
   position: relative;
   display: flex;
   align-items: center;
-  margin: 0;
+  flex: 0 1 26rem;
+  margin: 0 auto;
 }
 
 .buscador-barra .buscador-lupa {

@@ -222,6 +222,43 @@ class TestBuscarPorParDeFormatos:
         assert 'name="formato"' not in respuesta.content.decode()
 
 
+class TestCadaCategoriaEnSuSitio:
+    """**Las dos columnas del desplegable llevaban al mismo sitio.**
+
+    «Documentos y PDF» y «Texto y tablas» compartían índice: al entrar en la primera aparecían
+    también las siete de Markdown y las dos de catálogos, y quien venía a pasar un Excel tenía
+    que bajar por delante de nueve herramientas de PDF. Ofrecer dos columnas distintas que
+    terminan en la misma pantalla es prometer una separación que no existe.
+    """
+
+    def test_cada_categoria_tiene_su_pantalla(self):
+        secciones = {c[0]: c[3] for c in acciones_mod.CATEGORIAS}
+        assert secciones["documentos"] and secciones["texto"]
+        assert secciones["documentos"] != secciones["texto"]
+
+    def _contenido(self, sesion, nombre: str) -> str:
+        """Solo `<main>`. **La página entera no vale**: el desplegable de la barra lista todas
+        las herramientas en todas las pantallas, así que buscar en el HTML completo encuentra
+        siempre cualquier nombre y la prueba pasaría dijera lo que dijera el índice."""
+        cuerpo = sesion.get(reverse(nombre)).content.decode()
+        return cuerpo[cuerpo.index("<main") :]
+
+    def test_en_pdf_no_salen_las_de_texto(self, sesion):
+        contenido = self._contenido(sesion, "documents:inicio")
+        assert "Unir PDF" in contenido
+        assert "Excel a Markdown" not in contenido
+
+    def test_y_en_texto_no_salen_las_de_pdf(self, sesion):
+        contenido = self._contenido(sesion, "documents:texto")
+        assert "Excel a Markdown" in contenido
+        assert "Unir PDF" not in contenido
+
+    def test_las_apagadas_se_cuentan_dentro_de_su_categoria(self, sesion):
+        """Decirle a quien mira las de texto que hay dos apagadas de Office sería contarle un
+        problema que no es el suyo."""
+        assert sesion.get(reverse("documents:texto")).status_code == 200
+
+
 class TestLaBienvenida:
     """**Solo mientras hace falta, y sin guardar nada.**
 

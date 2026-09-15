@@ -95,7 +95,7 @@ CATEGORIAS = (
         "texto",
         "Texto y tablas",
         "Cuando el contenido tiene que salir del archivo y entrar en otro sitio.",
-        "",
+        "documents:texto",
     ),
 )
 

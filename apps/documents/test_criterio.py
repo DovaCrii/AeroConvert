@@ -122,7 +122,13 @@ class TestElFiltroDeTipo:
 
     @pytest.mark.parametrize(
         ("pantalla", "extension"),
-        [("a_markdown.html", ".xlsx"), ("de_markdown.html", ".md"), ("office.html", ".docx")],
+        [
+            ("a_markdown.html", ".xlsx"),
+            ("de_markdown.html", ".md"),
+            ("office.html", ".docx"),
+            ("catalogo_a_excel.html", ".mdb"),
+            ("excel_a_catalogo.html", ".xlsx"),
+        ],
     )
     def test_cada_pantalla_acepta_lo_suyo(self, textos, pantalla, extension):
         assert extension in textos[pantalla], f"{pantalla} no deja elegir un {extension}"

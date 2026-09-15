@@ -19,8 +19,15 @@
 {% endcomment %}
 {% for grupo in grupos %}
   <section class="bloque">
-    <h2 class="bloque-titulo">{{ grupo.titulo }}</h2>
-    <p class="bloque-nota">{{ grupo.cuando }}</p>
+    {% comment %}
+      **Con un solo grupo, el encabezado sobra.** Los grupos existen para que nueve tarjetas
+      no sean una lista de nueve; con una sola familia, el título del bloque repite casi
+      palabra por palabra el de la pantalla y añade dos renglones que no informan.
+    {% endcomment %}
+    {% if grupos|length > 1 %}
+      <h2 class="bloque-titulo">{{ grupo.titulo }}</h2>
+      <p class="bloque-nota">{{ grupo.cuando }}</p>
+    {% endif %}
 
     <div class="herramientas">
       {% for herramienta in grupo.herramientas %}

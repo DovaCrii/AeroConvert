@@ -465,7 +465,47 @@ def inicio(request):
     contestar «qué se puede convertir en este equipo». Esta pantalla enseña lo que se puede
     usar ahora, y lleva un enlace a la otra.
     """
-    estado = estado_de_herramientas()
+    return _indice(
+        request,
+        categoria="documentos",
+        etiqueta="PDF",
+        titulo="Herramientas de PDF",
+        proposito=(
+            "Todo pasa en tu equipo: los archivos no se copian, no se suben, y el "
+            "original nunca se toca."
+        ),
+    )
+
+
+@login_required
+def texto(request):
+    """El índice de «Texto y tablas», aparte del de PDF.
+
+    **Eran la misma pantalla y no debían serlo.** Al entrar en «Documentos y PDF» aparecían
+    también las siete de Markdown y las dos de catálogos, y al revés: quien venía a pasar un
+    Excel a Markdown tenía que bajar por delante de nueve herramientas de PDF. El desplegable
+    ofrece dos columnas distintas y las dos llevaban al mismo sitio, que es prometer una
+    separación que no existe.
+    """
+    return _indice(
+        request,
+        categoria="texto",
+        etiqueta="Texto y tablas",
+        titulo="Sacar el contenido de un archivo",
+        proposito=(
+            "Cuando el texto o la tabla tienen que salir del archivo y entrar en un correo, "
+            "en una ficha o en otro programa."
+        ),
+    )
+
+
+def _indice(request, *, categoria: str, etiqueta: str, titulo: str, proposito: str):
+    """El índice de una categoría. Lo comparten las dos pantallas.
+
+    Las apagadas se cuentan **dentro de su categoría**: decirle a quien mira las de texto que
+    hay dos apagadas de Office sería contarle un problema que no es el suyo.
+    """
+    estado = [h for h in estado_de_herramientas() if h.get("categoria", "documentos") == categoria]
     disponibles = [h for h in estado if h["disponible"]]
     apagadas = [h for h in estado if not h["disponible"]]
 
@@ -473,13 +513,10 @@ def inicio(request):
         request,
         "documents/inicio.html",
         {
-            "seccion": "pdf",
-            "etiqueta_seccion": "PDF",
-            "titulo_pagina": "Herramientas de PDF",
-            "proposito": (
-                "Todo pasa en tu equipo: los archivos no se copian, no se suben, y el "
-                "original nunca se toca."
-            ),
+            "seccion": "pdf" if categoria == "documentos" else "texto",
+            "etiqueta_seccion": etiqueta,
+            "titulo_pagina": titulo,
+            "proposito": proposito,
             "grupos": _agrupar(disponibles),
             "disponibles": disponibles,
             # Solo para contarlas y enlazar a `/motores/`, que es donde se explican.
