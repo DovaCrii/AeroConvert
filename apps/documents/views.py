@@ -276,32 +276,46 @@ def _agrupar(herramientas):
     ]
 
 
+def estado_de_herramientas() -> list[dict]:
+    """Las once, con si esta máquina puede hacerlas y por qué no.
+
+    Vive aquí y la consume **también la pantalla de compatibilidad**: es la única forma de
+    que lo que no se puede aparezca en un solo sitio y siga apareciendo. Antes las apagadas
+    se enseñaban en el índice de PDF y en ningún otro lado; ahora salen de aquí.
+    """
+    office = office_mod.sondar()
+    estado = []
+    for herramienta in HERRAMIENTAS:
+        fila = dict(herramienta)
+        if herramienta.get("exige_office"):
+            fila["disponible"] = bool(office)
+            fila["motivo"] = office.motivo
+            fila["sugerencia"] = office.sugerencia
+        else:
+            fila["disponible"] = True
+        estado.append(fila)
+    return estado
+
+
 @login_required
 def inicio(request):
     """El índice de herramientas de PDF.
 
-    Una herramienta que hoy no se puede usar **no desaparece**: sale apagada y diciendo por
-    qué. Es la misma regla que con ECW en la matriz de motores.
+    ## Lo que no se puede hacer **no sale aquí**
 
-    ## Pero apagada **abajo y en su propio bloque**, no intercalada
+    Y es un cambio de criterio, no un descuido. La regla de la casa es que una capacidad
+    ausente se apaga y no se esconde — pero «no se esconde» quiere decir que se puede
+    encontrar, no que tenga que estar en todas partes. Repetida en las dos pantallas, la
+    explicación de Office ocupaba un párrafo de cuatro líneas en la que se viene a trabajar,
+    para contar algo que no cambia nunca en esta máquina.
 
-    Las dos que dependen de Office comparten motivo, y ese motivo es un párrafo de cuatro
-    líneas. Mezcladas en la rejilla pasaban tres cosas a la vez: el párrafo salía repetido
-    palabra por palabra, su fila se estiraba al triple que las demás, y la herramienta que
-    venía detrás caía sola a una tercera fila con media pantalla en blanco alrededor.
-
-    Separadas, el motivo se escribe **una vez** —es el mismo— y las siete que funcionan
-    forman filas parejas.
+    Así que se dice **una vez y en su sitio**: `/motores/`, que existe precisamente para
+    contestar «qué se puede convertir en este equipo». Esta pantalla enseña lo que se puede
+    usar ahora, y lleva un enlace a la otra.
     """
-    office = office_mod.sondar()
-    disponibles = []
-    apagadas = []
-    for herramienta in HERRAMIENTAS:
-        fila = dict(herramienta)
-        if herramienta.get("exige_office") and not office:
-            apagadas.append(fila)
-        else:
-            disponibles.append(fila)
+    estado = estado_de_herramientas()
+    disponibles = [h for h in estado if h["disponible"]]
+    apagadas = [h for h in estado if not h["disponible"]]
 
     return render(
         request,
@@ -316,10 +330,8 @@ def inicio(request):
             ),
             "grupos": _agrupar(disponibles),
             "disponibles": disponibles,
+            # Solo para contarlas y enlazar a `/motores/`, que es donde se explican.
             "apagadas": apagadas,
-            # El motivo va aparte porque es **uno solo** para las dos.
-            "motivo_office": office.motivo,
-            "sugerencia_office": office.sugerencia,
         },
     )
 

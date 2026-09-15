@@ -25,9 +25,19 @@
     <span>Buscar en la carpeta compartida</span>
   </summary>
 
+  {% comment %}
+    **`toggle from:closest details` y no `intersect once`.**
+
+    El primer intento usaba `intersect`, que dispara cuando el elemento entra en pantalla. Con
+    el panel plegado el contenido **nunca es visible**, así que nunca disparaba: abrías el
+    buscador y se quedaba en «Abriendo la carpeta…» para siempre. Es el peor tipo de fallo —
+    parece que la aplicación está pensando.
+
+    `toggle` lo dispara el `<details>` al abrirse, que es justo el momento en que hace falta.
+  {% endcomment %}
   <div class="explorador"
        hx-get="{% url 'dashboard:explorar' %}"
-       hx-trigger="intersect once"
+       hx-trigger="toggle from:closest details once"
        hx-swap="innerHTML">
     <p class="tenue" style="margin:0;">Abriendo la carpeta…</p>
   </div>

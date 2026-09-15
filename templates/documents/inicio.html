@@ -45,27 +45,18 @@
 {% endfor %}
 
 {% if apagadas %}
-  <section class="bloque bloque-apagado">
-    <h2 class="bloque-titulo">Estas dos no funcionan en este equipo</h2>
-    <p class="bloque-nota">
-      {{ motivo_office }} {{ sugerencia_office }}
-    </p>
-
-    <div class="herramientas herramientas-apagadas">
-      {% for herramienta in apagadas %}
-        <div class="herramienta herramienta-apagada">
-          <span class="herramienta-marca" aria-hidden="true">
-            <svg class="herramienta-icono"><use href="{% static 'img/icons.svg' %}#{{ herramienta.icono }}"></use></svg>
-          </span>
-          <span class="herramienta-texto">
-            <strong>{{ herramienta.nombre }}</strong>
-            <span class="herramienta-que">{{ herramienta.que_hace }}</span>
-            <span class="herramienta-sale">Sale: <strong>{{ herramienta.sale }}</strong></span>
-          </span>
-        </div>
-      {% endfor %}
-    </div>
-  </section>
+  {% comment %}
+    **Una línea, no un bloque.** Lo que no se puede hacer se explica entero en
+    `/motores/`, que existe para eso; aquí basta con decir que existe y cuántas son, para que
+    nadie las busque creyendo que se le perdieron. Repetir el párrafo de Office en las dos
+    pantallas gastaba cuatro líneas de la que se viene a trabajar, para contar algo que en
+    esta máquina no cambia nunca.
+  {% endcomment %}
+  <p class="nota-apagadas">
+    {{ apagadas|length }} herramienta{{ apagadas|pluralize:",s" }} más no funciona{{ apagadas|pluralize:",n" }}
+    en este equipo.
+    <a href="{% url 'engines:matriz' %}">Ver cuáles y por qué →</a>
+  </p>
 {% endif %}
 
 <div class="tarjeta nota-privacidad">

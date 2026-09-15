@@ -75,6 +75,8 @@ dependencies = [
     # hoja -- habria que hacerlos tambien, y ahi es donde falla en silencio: un parentesis
     # sin escapar en el texto de la marca rompe el PDF entero.
     "reportlab>=4.2,<6",
+    "openpyxl>=3.1,<4",
+    "python-docx>=1.1,<2",
 ]
 
 # GDAL, PDAL y el conversor de ECW **no van aca a proposito**. Son herramientas

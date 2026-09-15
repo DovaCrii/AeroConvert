@@ -72,6 +72,44 @@
   </section>
 {% endif %}
 
+{% if documentos_apagados %}
+  {% comment %}
+    Las de documentos no pasan por el registro de motores —son pantallas directas— pero la
+    pregunta es la misma, así que se contestan aquí. **Y solo aquí**: el índice de PDF llevaba
+    el mismo párrafo repetido, gastando media pantalla de la que se viene a trabajar.
+  {% endcomment %}
+  <section class="bloque">
+    <h2 class="bloque-titulo">Herramientas de PDF que no funcionan aquí</h2>
+    <p class="bloque-nota">
+      Las otras {{ documentos_listos }} de
+      <a href="{% url 'documents:inicio' %}">la sección PDF</a> sí funcionan.
+    </p>
+
+    <div class="motores motores-apagados">
+      {% for d in documentos_apagados %}
+        <article class="motor motor-apagado">
+          <header class="motor-cabeza">
+            <span class="motor-marca fam-marcar" aria-hidden="true">
+              <svg class="motor-icono"><use href="{% static 'img/icons.svg' %}#{{ d.icono }}"></use></svg>
+            </span>
+            <div class="motor-nombre">
+              <strong>{{ d.nombre }}</strong>
+              <span class="tenue">{{ d.que_hace }}</span>
+            </div>
+            <span class="pildora pildora-error">apagado</span>
+          </header>
+
+          <p class="motor-motivo">{{ d.motivo }}</p>
+          {% if d.sugerencia %}
+            <p class="motor-remedio"><strong>Qué hace falta:</strong> {{ d.sugerencia }}</p>
+          {% endif %}
+          <footer class="motor-pie cifra">Saldría: {{ d.sale }}</footer>
+        </article>
+      {% endfor %}
+    </div>
+  </section>
+{% endif %}
+
 <section class="bloque">
   <h2 class="bloque-titulo">Listas para usar</h2>
 

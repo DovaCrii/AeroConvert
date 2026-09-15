@@ -51,6 +51,15 @@ def matriz(request):
 
     conversiones_posibles = sum(1 for c in celdas.values() if c.estado == "disponible")
 
+    # **Las herramientas de documentos también viven aquí.** No pasan por el registro de
+    # motores -- son pantallas directas, porque escriben en menos de un segundo-- pero la
+    # pregunta «¿qué se puede hacer en este equipo?» es la misma, y tenerla contestada en dos
+    # sitios distintos era la razon de que el indice de PDF gastara medio palmo repitiendo el
+    # motivo de Office. Se dice una vez, y se dice aqui.
+    from apps.documents.views import estado_de_herramientas
+
+    documentos = estado_de_herramientas()
+
     # Lo que falta, agrupado por motivo. Repetir el mismo mensaje en cuarenta celdas no
     # ayuda a nadie; verlo una vez con su cuenta, sí.
     por_motivo: dict[str, dict] = {}
@@ -72,6 +81,8 @@ def matriz(request):
             "motores": motores,
             "listas": listas,
             "apagadas": apagadas,
+            "documentos_listos": sum(1 for d in documentos if d["disponible"]),
+            "documentos_apagados": [d for d in documentos if not d["disponible"]],
             "conversiones_posibles": conversiones_posibles,
             "conversiones_totales": len(celdas),
             "motivos": sorted(por_motivo.values(), key=lambda m: -m["cuantas"]),

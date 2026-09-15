@@ -1446,9 +1446,16 @@ code {
  * dentro el párrafo entero de por qué están apagadas. Estirada a esa altura, dejaba un
  * agujero de medio palmo que se leía como si le faltara algo.
  */
+/*
+ * **`auto-fill` y no `auto-fit`.** El segundo colapsa las columnas vacías y reparte el ancho
+ * entre las que quedan: con los grupos de dos, cada tarjeta se estiraba a media pantalla y
+ * una descripción de ocho palabras quedaba flotando en un campo de fútbol. `auto-fill`
+ * conserva las columnas, así que dos tarjetas ocupan dos y el resto queda en blanco — que es
+ * lo correcto cuando el grupo tiene dos cosas.
+ */
 .herramientas {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(19.5rem, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(19.5rem, 1fr));
   align-items: start;
   gap: 14px;
 }
@@ -1643,17 +1650,14 @@ code {
   box-shadow: none;
 }
 
-/* El bloque de las que no funcionan: separado, más abajo y sin competir por la atención.
- * Sigue estando —ocultarlo haría parecer que nunca existieron— pero en su sitio. */
-.bloque-apagado {
-  margin-top: 32px;
-  padding-top: 22px;
+/* Una línea, no un bloque: lo que no se puede hacer se explica entero en `/motores/`, y aquí
+ * solo se dice que existe para que nadie lo busque creyendo que se le perdió. */
+.nota-apagadas {
+  margin: 26px 0 0;
+  padding-top: 18px;
   border-top: 1px solid var(--av-border);
-}
-
-/* Dos tarjetas y no siete: sin tope se estirarían a media pantalla cada una. */
-.herramientas-apagadas {
-  grid-template-columns: repeat(auto-fit, minmax(19.5rem, 24rem));
+  color: var(--av-text-secondary);
+  font-size: var(--av-fs-sm);
 }
 
 .herramienta-apagada strong {

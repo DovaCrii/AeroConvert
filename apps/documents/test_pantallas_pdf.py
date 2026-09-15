@@ -79,15 +79,33 @@ class TestElIndice:
         for herramienta in views.HERRAMIENTAS:
             assert reverse(herramienta["url"]) in cuerpo
 
-    def test_sin_office_la_tarjeta_sigue_saliendo_apagada_y_con_el_motivo(self, sesion, sin_office):
-        """Regla de la familia: una capacidad ausente **no se oculta**. Ocultarla haría
-        parecer que nunca existió."""
+    def test_sin_office_la_herramienta_no_se_ofrece(self, sesion, sin_office):
+        """No se ofrece un botón que lleva a un callejón."""
         cuerpo = sesion.get(reverse("documents:inicio")).content.decode()
-        assert "Word, Excel o PowerPoint a PDF" in cuerpo
-        assert "herramienta-apagada" in cuerpo
-        assert "No hay Microsoft Office instalado" in cuerpo
-        # Y sin enlace, porque no lleva a ninguna parte util.
         assert f'href="{reverse("documents:office")}"' not in cuerpo
+
+    def test_pero_el_indice_dice_que_existen_y_donde_mirarlo(self, sesion, sin_office):
+        """**La regla cambió, y conviene entender en qué.**
+
+        «Una capacidad ausente no se oculta» sigue en pie, pero *no ocultar* quiere decir que
+        se pueda encontrar, no que tenga que estar en todas partes. El motivo de Office es un
+        párrafo de cuatro líneas que no cambia nunca en una máquina dada; repetido aquí y en
+        `/motores/`, gastaba media pantalla de la que se viene a trabajar.
+
+        Así que aquí queda una línea que dice que existen y adónde ir. Lo que esta prueba
+        vigila es que esa línea **no desaparezca**: sin ella, alguien que busque «PDF a Word»
+        creería que se le perdió.
+        """
+        cuerpo = sesion.get(reverse("documents:inicio")).content.decode()
+        assert "no funciona" in cuerpo
+        assert reverse("engines:matriz") in cuerpo
+
+    def test_y_la_explicacion_entera_esta_en_compatibilidad(self, sesion, sin_office):
+        """El otro lado del cambio: si se quita de aquí, **tiene que estar allí**. Sin esto,
+        «se dice en su sitio» sería «se dejó de decir»."""
+        cuerpo = sesion.get(reverse("engines:matriz")).content.decode()
+        assert "Word, Excel o PowerPoint a PDF" in cuerpo
+        assert "No hay Microsoft Office instalado" in cuerpo
 
     def test_dice_por_que_no_se_usa_una_web(self, sesion):
         """Es la razón de que esto exista: un plano bajo acuerdo de confidencialidad no
