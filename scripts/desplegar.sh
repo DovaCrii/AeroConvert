@@ -40,13 +40,19 @@ if [ ! -f .env ]; then
     exit 1
 fi
 
-# El nombre sale del propio .env si no se paso a mano: tenerlo en dos sitios es tenerlo mal
-# en uno de los dos. Se coge el primero de la lista, que es el que publica Tailscale.
+# **El .env se lee como su dueno, no como quien invoca.**
+#
+# Es modo 600 y pertenece a `aeroconvert`: lleva la SECRET_KEY, y que solo el la lea es
+# deliberado. Un `grep` normal aqui muere con «permission denied» aunque quien lanza el guion
+# tenga sudo -- tener sudo no es lo mismo que usarlo.
 if [ -z "$NOMBRE" ]; then
-    NOMBRE="$(grep -E '^ALLOWED_HOSTS=' .env | head -n1 | cut -d= -f2- | cut -d, -f1 | tr -d ' "'"'"'')"
+    NOMBRE="$(sudo -u "$DUENO" grep -hE '^ALLOWED_HOSTS=' .env 2>/dev/null \
+        | head -n1 | cut -d= -f2- | cut -d, -f1 | tr -d ' "'"'"'' || true)"
 fi
 if [ -z "$NOMBRE" ]; then
     echo "No hay ALLOWED_HOSTS en .env, y sin el la sonda recibe un 400." >&2
+    echo "Compruebalo asi, que el fichero solo lo lee su dueno:" >&2
+    echo "  sudo -u ${DUENO} grep ALLOWED_HOSTS ${PWD}/.env" >&2
     exit 1
 fi
 
@@ -127,6 +133,7 @@ sonda | python3 -m json.tool
 
 # El tope de subida, en claro. Es el ajuste que mas veces se ha quedado desfasado entre el
 # codigo, el ejemplo y el .env del servidor, y el sintoma es una subida que se corta sin
-# decir por que.
+# decir por que. **Se imprime el valor que de verdad quedo cargado**, no lo que dice ningun
+# fichero: el .env manda sobre el codigo, y ahi es donde se ha escondido la discrepancia.
 echo "==> tope de subida"
 gestionar shell -c 'from django.conf import settings; print(f"{settings.TOPE_MB} MB")'

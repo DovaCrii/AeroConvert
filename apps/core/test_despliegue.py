@@ -207,6 +207,58 @@ class TestElGuionDeDespliegue:
     def test_para_ante_el_primer_fallo(self, desplegar: str):
         assert "set -euo pipefail" in desplegar
 
+    def test_se_puede_ejecutar(self):
+        """**El bit de ejecución, que git guarda y Windows no tiene.**
+
+        Sin él, el servidor contesta `Permission denied` a la única orden que el README manda
+        escribir. Pasó el 2026-09-15: el fichero llegó al servidor con modo 644 porque se
+        escribió desde una máquina Windows, donde no existe ese bit y git se queda con el
+        valor por omisión.
+
+        Se mira en el índice de git y no en el disco por eso mismo: en Windows el modo del
+        fichero real no dice nada, y lo que viaja al servidor es lo que git tiene anotado.
+        """
+        import subprocess  # nosec B404
+
+        indice = subprocess.run(  # nosec B603 B607
+            ["git", "ls-files", "-s", "scripts/desplegar.sh"],
+            cwd=settings.BASE_DIR,
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout
+        assert indice.startswith("100755"), f"scripts/desplegar.sh no es ejecutable: {indice!r}"
+
+    def test_lee_el_env_como_su_dueno(self, desplegar: str):
+        """`.env` es modo 600 y lleva la `SECRET_KEY`: solo su dueño lo lee.
+
+        El guion saca de ahí el `ALLOWED_HOSTS` para la sonda, y hacerlo con un `grep` normal
+        muere con «permission denied» aunque quien lo lanza tenga sudo — tener sudo no es lo
+        mismo que usarlo.
+        """
+        lineas = [ln for ln in desplegar.splitlines() if "grep" in ln and "ALLOWED_HOSTS" in ln]
+        assert lineas, "Ya no se lee ALLOWED_HOSTS del .env; revisa esta prueba."
+        assert all("sudo -u" in ln for ln in lineas), lineas
+
+    @pytest.mark.parametrize(
+        "orden", ["check --deploy", "migrate", "collectstatic", "sembrar_preajustes"]
+    )
+    def test_no_escribe_en_el_arbol_como_quien_invoca(self, desplegar: str, orden: str):
+        """Las órdenes que tocan `/opt/aeroconvert` van como `aeroconvert`; solo `systemctl`
+        va con sudo.
+
+        Lanzarlas como root deja el entorno virtual y los estáticos con dueño root en un árbol
+        que es del usuario del servicio: arranca ese día y falla el día que tenga que escribir
+        algo. Es el fallo que no se ve hasta semanas después.
+        """
+        assert f"gestionar {orden}" in desplegar, f"«{orden}» no pasa por `gestionar`"
+
+    def test_y_gestionar_baja_de_usuario(self, desplegar: str):
+        """La otra mitad: que el ayudante haga lo que su nombre promete. Sin esto, las cuatro
+        de arriba pasarían con un `gestionar()` que no bajara de usuario."""
+        definicion = next(ln for ln in desplegar.splitlines() if ln.startswith("como_dueno()"))
+        assert 'sudo -u "$DUENO"' in definicion
+
 
 class TestElEjemploDeConfiguracion:
     """Cierra el agujero de verdad: quien copie `.env.example` tiene que poder arrancar.
