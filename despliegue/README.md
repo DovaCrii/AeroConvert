@@ -196,13 +196,27 @@ dos nubes de puntos suman sus techos de memoria y se llevan la máquina.
 
 ## 5. Desplegar
 
+**Primero, `uv` donde lo vean todos.** Vive en `/home/levdigital01/.local/bin`, que el usuario
+del servicio no puede leer: ni el guion ni ninguna orden con `sudo -u aeroconvert` lo
+encuentran ahí. Se hace una sola vez:
+
+```bash
+sudo install -m 0755 /home/levdigital01/.local/bin/uv /usr/local/bin/uv
+```
+
+Y ya, cada despliegue es esto:
+
 ```bash
 cd /opt/aeroconvert && sudo -u aeroconvert git pull && scripts/desplegar.sh
 ```
 
 El guion valida la configuración **antes** de migrar, recolecta los estáticos **antes** de
-servir —sin `collectstatic`, todas las páginas dan 500— y espera a `/salud/` antes de dar el
-despliegue por bueno.
+servir —sin `collectstatic`, todas las páginas dan 500—, espera a `/salud/` con la cabecera
+`Host` que `ALLOWED_HOSTS` exige, y termina diciendo el tope de subida que quedó activo.
+
+Cada orden que escribe dentro de `/opt/aeroconvert` va como `aeroconvert`; solo `systemctl` va
+con `sudo`. Lanzarlo todo como root deja el entorno virtual y los estáticos con dueño root en
+un árbol que no es suyo: arranca ese día y falla el día que el servicio tenga que escribir.
 
 ## 6. La primera cuenta
 
@@ -287,5 +301,28 @@ sudo systemctl start aeroconvert-obrero aeroconvert
 - **Las nubes de puntos muy grandes.** PDAL carga los puntos en memoria: la regla medida son
   105 MB por millón. Una nube de mil millones de puntos pide unos 100 GB, y la aplicación lo
   dice **antes** de empezar en vez de dejar que el sistema mate el proceso.
-- **Subir archivos por el navegador.** No está escrito. Los archivos llegan por la carpeta
-  compartida, que además es lo correcto para varios gigabytes.
+- **Subir una nube de diez o veinte gigabytes por el navegador.** No es el tope: es que una
+  subida por HTTP **no se reanuda**, así que perder la conexión al 90 % es empezar de cero.
+  Para eso está la carpeta compartida.
+
+## El tope de subida
+
+`AEROCONVERT_TOPE_MB`, **2048 por omisión**. Cubre las ortofotos, que es lo que de verdad se
+sube desde un portátil.
+
+Estuvo en 200 hasta el 2026-09-15, con el argumento de que «los archivos grandes llegan por la
+carpeta compartida» — y esa carpeta no está montada, así que subir era la única vía y una
+ortofoto de 600 MB no cabía. Peor: el mensaje decía **«No llegó ningún archivo»**, porque
+`StopUpload` descarta el cuerpo entero y la vista no podía distinguirlo de no haber elegido
+nada. Ya lo distingue y lo dice con el número.
+
+Si se cambia, hay **tres sitios** que tienen que moverse juntos, y una prueba que lo vigila:
+
+| Dónde | Qué |
+| --- | --- |
+| `.env` | `AEROCONVERT_TOPE_MB` |
+| `despliegue/aeroconvert.nginx.conf` | `client_max_body_size`, con margen por encima |
+| — | `test_el_tope_de_cuerpo_deja_pasar_una_subida` falla si los dos se separan |
+
+Y el tiempo: `client_body_timeout` está en 600 s. Con los 60 de fábrica, dos gigabytes por una
+red de oficina se cortan a mitad y el mensaje no dice que fue el reloj.
