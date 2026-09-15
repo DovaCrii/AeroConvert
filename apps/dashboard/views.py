@@ -129,6 +129,11 @@ def convertir(request):
     preferido = (request.GET.get("destino") or "").strip()
     perfil = perfiles_mod.PERFILES.get(preferido)
 
+    # Y el otro camino: `?formato=jp2`, que es donde deja el buscador a quien escribió
+    # «tif a jp2». No es un perfil —no hay programa de destino— es el formato a secas.
+    pedido = (request.GET.get("formato") or "").strip()
+    formato = catalogo.FORMATOS.get(pedido) if pedido else None
+
     return render(
         request,
         "dashboard/convertir.html",
@@ -137,6 +142,8 @@ def convertir(request):
             "etiqueta_seccion": "Convertir",
             "destino_preferido": perfil.id if perfil else "",
             "nombre_preferido": perfil.nombre if perfil else "",
+            "formato_preferido": pedido if formato else "",
+            "nombre_formato": str(formato.nombre) if formato else "",
             "titulo_pagina": "Qué tiene dentro, y dónde va a abrir",
             # Corto, y **diciendo algo que no dice ningún otro sitio de la pantalla**.
             #
@@ -164,16 +171,20 @@ def que_puedo_hacer(request):
     """
     busqueda = (request.GET.get("q") or "").strip()
     grupos = acciones_mod.por_categoria(busqueda)
+    # **La respuesta directa, cuando lo escrito nombra dos formatos.** «tif a jp2» no
+    # encontraba nada: el catálogo está ordenado por intención y quien ya sabe los formatos no
+    # pregunta por intención. Ver `conversion_pedida`.
+    conversion = acciones_mod.conversion_pedida(busqueda)
 
+    contexto = {"grupos": grupos, "q": busqueda, "conversion": conversion}
     if request.headers.get("HX-Request"):
-        return render(request, "dashboard/_acciones.html", {"grupos": grupos, "q": busqueda})
+        return render(request, "dashboard/_acciones.html", contexto)
 
     return render(
         request,
         "dashboard/que_puedo_hacer.html",
         {
-            "grupos": grupos,
-            "q": busqueda,
+            **contexto,
             "seccion": "acciones",
             # **Ni «Todo» ni «TODO».** El CSS pone este rótulo en mayúsculas, y «TODO» a
             # secas se lee como el marcador de pendiente que dejamos los programadores en el
@@ -334,7 +345,13 @@ def subir(request):
             {"error": "; ".join(fallo.messages), "codigo_error": "ruta-no-permitida"},
         )
 
-    return _ficha(request, f"{entrada_mod.PREFIJO}{subida.pk}")
+    # El formato pedido viaja igual que el destino: quien llegó desde «tif a jp2» lo eligió
+    # antes de subir, y perderlo aquí obligaría a elegirlo otra vez con el archivo ya dentro.
+    return _ficha(
+        request,
+        f"{entrada_mod.PREFIJO}{subida.pk}",
+        (request.POST.get("formato") or "").strip(),
+    )
 
 
 @login_required

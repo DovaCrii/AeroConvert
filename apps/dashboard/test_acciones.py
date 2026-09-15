@@ -145,6 +145,83 @@ class TestElBuscador:
         assert all(g["acciones"] for g in grupos)
 
 
+class TestBuscarPorParDeFormatos:
+    """**El hueco que dejaba un catálogo ordenado por intención.**
+
+    «Llevarlo a QGIS» cubre a quien llega con un archivo y una necesidad. No cubre a quien ya
+    sabe exactamente lo que quiere: escribir «tif a jp2» no encontraba nada, aunque la
+    aplicación sepa hacerlo desde la primera fase. Y cero resultados se lee como «no se
+    puede», que es una respuesta falsa.
+    """
+
+    @pytest.mark.parametrize(
+        "escrito",
+        ["tif a jp2", "de tif a jp2", "tif jp2", "geotiff jpeg2000", "pasar un tif a jp2"],
+    )
+    def test_lo_encuentra_se_escriba_como_se_escriba(self, escrito):
+        respuesta = acciones_mod.conversion_pedida(escrito)
+        assert respuesta is not None, escrito
+        assert (respuesta.origen, respuesta.destino) == ("geotiff", "jp2")
+        assert respuesta.se_puede
+
+    def test_un_tif_es_el_clasico_y_no_el_cog(self):
+        """`.tif` es extensión de `geotiff`, `cog` y `bigtiff` a la vez. Quien escribe «un tif»
+        quiere decir el clásico; sin desempate salía `cog`, o sea el orden del diccionario."""
+        assert acciones_mod.formatos_nombrados("tif")[0] == "geotiff"
+
+    def test_dos_formatos_pegados_se_encuentran_los_dos(self):
+        """Compartían el espacio de en medio: el primero se lo quedaba y el segundo dejaba de
+        existir. La búsqueda devolvía un solo formato y por tanto ninguna respuesta."""
+        assert acciones_mod.formatos_nombrados("geotiff jpeg2000") == ["geotiff", "jp2"]
+
+    def test_el_nombre_largo_gana_al_codigo_corto(self):
+        """«jpeg 2000» tiene que ganar a «jpeg» aunque «jpeg» sea un código exacto: al revés se
+        come las cuatro primeras letras y deja un «2000» suelto que no es nada."""
+        assert acciones_mod.formatos_nombrados("jpeg 2000")[0] == "jp2"
+
+    def test_con_un_solo_formato_no_contesta(self):
+        """Con uno no hay pregunta: «jp2» a secas puede ser de dónde o hacia dónde, y elegir
+        por la persona es contestar otra cosa."""
+        assert acciones_mod.conversion_pedida("jp2") is None
+
+    def test_una_frase_normal_no_dispara_nada(self):
+        """`las` y `asc` son formatos **y** palabras corrientes. Buscar por trozos convertiría
+        media aplicación en un par de formatos."""
+        for frase in ("juntar las paginas", "quitar la contrasena", "marca de agua"):
+            assert acciones_mod.conversion_pedida(frase) is None, frase
+
+    def test_dice_que_no_cuando_no_se_puede(self):
+        """**Y eso no es lo mismo que «nada coincide».** Confundirlos manda a alguien a buscar
+        de otra manera algo que sencillamente no existe."""
+        respuesta = acciones_mod.conversion_pedida("tif a ecw")
+        assert respuesta is not None
+        assert not respuesta.se_puede
+        assert respuesta.motivo
+
+    def test_la_pantalla_lo_pinta_arriba(self, sesion):
+        cuerpo = sesion.get(
+            reverse("dashboard:que_puedo_hacer"), {"q": "tif a jp2"}
+        ).content.decode()
+        assert "Sí se puede" in cuerpo
+        assert "Nada coincide" not in cuerpo, "No se contesta y se desmiente en la misma página."
+
+    def test_y_lleva_a_convertir_con_el_formato_puesto(self, sesion):
+        cuerpo = sesion.get(
+            reverse("dashboard:que_puedo_hacer"), {"q": "tif a jp2"}
+        ).content.decode()
+        assert f"{reverse('dashboard:convertir')}?formato=jp2" in cuerpo
+
+    def test_convertir_recoge_ese_formato(self, sesion):
+        cuerpo = sesion.get(reverse("dashboard:convertir"), {"formato": "jp2"}).content.decode()
+        assert "Vas a convertir a" in cuerpo
+        assert 'name="formato" value="jp2"' in cuerpo
+
+    def test_un_formato_inventado_se_ignora(self, sesion):
+        respuesta = sesion.get(reverse("dashboard:convertir"), {"formato": "xilofono"})
+        assert respuesta.status_code == 200
+        assert 'name="formato"' not in respuesta.content.decode()
+
+
 class TestElViajeCompleto:
     """De la tarjeta a la pantalla de convertir **sin perder por el camino lo elegido**.
 

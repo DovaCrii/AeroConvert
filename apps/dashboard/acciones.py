@@ -220,6 +220,148 @@ def todas() -> list[Accion]:
     return [*_de_los_perfiles(), *_de_los_documentos()]
 
 
+# --- Buscar por par de formatos --------------------------------------------
+#
+# El catálogo está ordenado por intención —«Llevarlo a QGIS»— y eso cubre a quien llega con un
+# archivo y una necesidad. Pero **no cubre a quien ya sabe exactamente lo que quiere**: escribir
+# «tif a jp2» no encontraba nada, aunque la aplicación sepa hacerlo desde la primera fase.
+#
+# La respuesta no es meter las 189 combinaciones en el catálogo: eso es la matriz, y existe.
+# Es que el **buscador** entienda la pregunta y lleve al sitio, que es lo que Nielsen Norman
+# llama convertir la búsqueda en navegación — cuando lo escrito señala a una sola cosa, se va
+# a esa cosa en vez de devolver una lista.
+
+#: Cómo nombra la gente a un formato cuando no usa su código. La clave es el código.
+APODOS = {
+    "geotiff": ("tif", "tiff", "geotif", "raster"),
+    "bigtiff": ("tif grande", "tiff grande"),
+    "cog": ("tif en la nube", "cloud optimized"),
+    "jp2": ("jpeg2000", "jpeg 2000", "j2k", "jp2000"),
+    "jpeg": ("jpg", "foto"),
+    "png": ("imagen sin perdida",),
+    "ecw": ("hexagon", "erdas"),
+    "mrsid": ("sid", "lizardtech"),
+    "img": ("erdas imagine",),
+    "asc": ("ascii grid", "grid"),
+    "shp": ("shapefile", "shape"),
+    "gpkg": ("geopackage", "paquete"),
+    "geojson": ("json geografico",),
+    "kml": ("google earth",),
+    "kmz": ("google earth comprimido",),
+    "dxf": ("autocad", "cad", "dibujo"),
+    "landxml": ("puntos cogo", "topografia"),
+    "las": ("nube de puntos",),
+    "laz": ("nube comprimida",),
+    "copc": ("nube en la nube", "cloud optimized point cloud"),
+    "puntos": ("libreta", "libreta de puntos", "csv de puntos"),
+}
+
+
+#: Por qué vía se reconoció un formato. **Solo desempata entre textos igual de largos.**
+#:
+#: `.tif` es extensión de `geotiff`, de `cog` y de `bigtiff` a la vez, así que «tif» a secas
+#: tiene tres dueños posibles y hay que elegir: quien escribe «un tif» quiere decir el clásico,
+#: que es el apodo declarado arriba. Sin esto salía `cog`, que es lo que devolvía el orden del
+#: diccionario — o sea, el azar.
+_POR_CODIGO, _POR_APODO, _POR_NOMBRE, _POR_EXTENSION_ = 0, 1, 2, 3
+
+
+def _indice_de_formatos() -> list[tuple[str, str]]:
+    """Pares `(texto buscable, código)`, en el orden en que hay que probarlos.
+
+    **Primero por longitud y solo después por vía**, y ese orden no es intercambiable: «jpeg
+    2000» tiene que ganar a «jpeg» aunque «jpeg» sea un código exacto y «jpeg 2000» solo un
+    apodo. Al revés, «jpeg» se comería las cuatro primeras letras y dejaría un «2000» suelto
+    que no es nada.
+    """
+    from apps.formats import catalogo
+
+    entradas: list[tuple[str, str, int]] = []
+    for codigo, formato in catalogo.FORMATOS.items():
+        entradas.append((codigo.lower(), codigo, _POR_CODIGO))
+        entradas.append((str(formato.nombre).lower(), codigo, _POR_NOMBRE))
+        for extension in formato.extensiones:
+            entradas.append((extension.lstrip(".").lower(), codigo, _POR_EXTENSION_))
+        for apodo in APODOS.get(codigo, ()):
+            entradas.append((apodo, codigo, _POR_APODO))
+
+    ordenadas = sorted(set(entradas), key=lambda e: (-len(e[0]), e[2]))
+    return [(texto, codigo) for texto, codigo, _ in ordenadas]
+
+
+def formatos_nombrados(busqueda: str) -> list[str]:
+    """Los códigos de formato que se reconocen en lo escrito, en el orden en que aparecen.
+
+    **Se busca por palabras completas**, no por trozos: sin eso «asc» aparecería dentro de
+    cualquier frase que lo lleve pegado a otra letra, y «las» —que es un formato de nube de
+    puntos— saldría en «las páginas», o sea en media aplicación.
+
+    Lo que se marca como gastado es **la palabra, no sus espacios**. Con los espacios dentro,
+    dos formatos pegados compartían el de en medio: en «geotiff jpeg2000», el primero se
+    quedaba con el espacio y el segundo dejaba de encontrarse. La búsqueda devolvía uno solo y
+    por tanto ninguna respuesta.
+    """
+    texto = " " + busqueda.lower().replace("→", " ").replace("-", " ") + " "
+    hallados: list[tuple[int, str]] = []
+    gastado = [False] * len(texto)
+
+    for aguja, codigo in _indice_de_formatos():
+        desde = 0
+        while (pos := texto.find(f" {aguja} ", desde)) != -1:
+            inicio, fin = pos + 1, pos + 1 + len(aguja)
+            if not any(gastado[inicio:fin]):
+                for i in range(inicio, fin):
+                    gastado[i] = True
+                hallados.append((inicio, codigo))
+            desde = pos + 1
+
+    vistos: list[str] = []
+    for _, codigo in sorted(hallados):
+        if codigo not in vistos:
+            vistos.append(codigo)
+    return vistos
+
+
+@dataclass(frozen=True)
+class Conversion:
+    """La respuesta directa a «¿puedo pasar de esto a esto otro?»."""
+
+    origen: str
+    destino: str
+    nombre_origen: str
+    nombre_destino: str
+    se_puede: bool
+    motivo: str = ""
+    sugerencia: str = ""
+
+
+def conversion_pedida(busqueda: str) -> Conversion | None:
+    """`None` si lo escrito no nombra dos formatos.
+
+    Dos y no uno: con uno solo no hay pregunta que contestar —«jp2» a secas puede ser origen o
+    destino— y adivinar cuál de los dos es sería contestar otra cosa.
+    """
+    from apps.engines import registry
+    from apps.engines.base import ParDeFormatos
+    from apps.formats import catalogo
+
+    codigos = formatos_nombrados(busqueda)
+    if len(codigos) < 2:
+        return None
+
+    origen, destino = codigos[0], codigos[1]
+    celda = registry.celda(ParDeFormatos(origen, destino))
+    return Conversion(
+        origen=origen,
+        destino=destino,
+        nombre_origen=str(catalogo.FORMATOS[origen].nombre),
+        nombre_destino=str(catalogo.FORMATOS[destino].nombre),
+        se_puede=celda.se_puede,
+        motivo=celda.mensaje,
+        sugerencia=celda.sugerencia,
+    )
+
+
 def por_categoria(busqueda: str = "") -> list[dict]:
     """Las acciones agrupadas, filtradas por lo que se haya escrito.
 

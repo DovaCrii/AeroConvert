@@ -3,7 +3,44 @@
   Los resultados. Fragmento aparte porque htmx lo reemplaza con cada tecla.
 {% endcomment %}
 
-{% if not grupos %}
+{% if conversion %}
+  {% comment %}
+    **La respuesta directa, arriba del todo.**
+
+    Quien escribe «tif a jp2» no está explorando: ya sabe lo que quiere y solo necesita saber
+    si se puede y por dónde. Devolverle una lista de tarjetas entre las que buscar sería
+    contestar otra pregunta.
+
+    Y cuando **no** se puede, se dice aquí mismo con su motivo en vez de dejar cero resultados:
+    «nada coincide» y «eso no se puede hacer» son cosas distintas, y confundirlas manda a
+    alguien a buscar de otra manera algo que no existe.
+  {% endcomment %}
+  <section class="respuesta {% if not conversion.se_puede %}respuesta-no{% endif %}">
+    <p class="respuesta-par">
+      <strong>{{ conversion.nombre_origen }}</strong>
+      <span aria-hidden="true">→</span>
+      <strong>{{ conversion.nombre_destino }}</strong>
+    </p>
+
+    {% if conversion.se_puede %}
+      <p class="respuesta-texto">Sí se puede. Elige el archivo y pide <strong>{{ conversion.nombre_destino }}</strong> en «ajustar a mano».</p>
+      <a class="boton" href="{% url 'dashboard:convertir' %}?formato={{ conversion.destino }}">Convertir a {{ conversion.nombre_destino }}</a>
+    {% else %}
+      <p class="respuesta-texto">
+        <strong>Aquí no se puede.</strong>
+        {% if conversion.motivo %}{{ conversion.motivo }}{% endif %}
+      </p>
+      {% if conversion.sugerencia %}<p class="respuesta-texto tenue">{{ conversion.sugerencia }}</p>{% endif %}
+      <a class="boton boton-suave" href="{% url 'engines:matriz' %}">Ver la tabla completa</a>
+    {% endif %}
+  </section>
+{% endif %}
+
+{% comment %}
+  El «nada coincide» solo cuando de verdad no hay nada. Con la respuesta directa arriba
+  contradecía a lo que se acababa de contestar: «Sí se puede» seguido de «Nada coincide».
+{% endcomment %}
+{% if not grupos and not conversion %}
   <div class="vacio-busqueda">
     <p style="margin:0 0 4px;"><strong>Nada coincide con «{{ q }}».</strong></p>
     <p class="tenue" style="margin:0;">

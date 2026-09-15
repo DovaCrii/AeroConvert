@@ -1092,6 +1092,44 @@ a.menu-titulo:hover {
   border-radius: var(--av-radius);
 }
 
+/* --- La respuesta directa del buscador ------------------------------------ */
+
+/*
+ * Cuando lo escrito nombra dos formatos —«tif a jp2»— la respuesta va arriba y sola. No es
+ * una tarjeta más: es una contestación, y mezclarla con la rejilla la haría invisible.
+ */
+.respuesta {
+  margin: 0 0 20px;
+  padding: 16px 18px;
+  border: 1px solid var(--av-primary);
+  border-left-width: 4px;
+  border-radius: var(--av-radius);
+  background: var(--av-primary-soft);
+}
+
+/* Que no se puede **no es un error**: es la respuesta correcta a una pregunta legítima. De
+ * ahí el ámbar de «cuidado» y no el rojo de «falló». */
+.respuesta-no {
+  border-color: var(--av-warn);
+  background: var(--av-warn-soft);
+}
+
+.respuesta-par {
+  margin: 0 0 6px;
+  font-size: 1.15rem;
+  line-height: 1.3;
+}
+
+.respuesta-par span {
+  margin: 0 6px;
+  color: var(--av-text-secondary);
+}
+
+.respuesta-texto {
+  margin: 0 0 12px;
+  color: var(--av-text-secondary);
+}
+
 .vacio-busqueda {
   padding: 22px;
   border: 1px dashed var(--av-border-control);

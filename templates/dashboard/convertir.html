@@ -5,6 +5,18 @@
 
 {% block contenido %}
 
+{% if nombre_formato %}
+  {% comment %}
+    Quien llega desde «tif a jp2» eligió un formato, no un programa. Se dice igual, porque el
+    viaje tiene que sentirse continuo: la pantalla es idéntica con o sin esto, y sin la línea
+    la elección parece haberse perdido.
+  {% endcomment %}
+  <p class="aviso destino-traido">
+    Vas a convertir a <strong>{{ nombre_formato }}</strong>. Elige el archivo y lo verás ya
+    puesto en «ajustar a mano».
+  </p>
+{% endif %}
+
 {% if nombre_preferido %}
   {% comment %}
     Quien llega desde «Llevarlo a QGIS» ya eligió. Decirlo aquí es lo que convierte el viaje
@@ -110,6 +122,7 @@
       {% csrf_token %}
       {# La elección hecha en el catálogo, para que la ficha la marque. Ver `_destino_preferido`. #}
       {% if destino_preferido %}<input type="hidden" name="destino" value="{{ destino_preferido }}">{% endif %}
+      {% if formato_preferido %}<input type="hidden" name="formato" value="{{ formato_preferido }}">{% endif %}
       <div class="soltar soltar-compacto" id="zona">
         <svg class="soltar-icono" aria-hidden="true">
           <use href="{% static 'img/icons.svg' %}#icon-soltar"></use>
@@ -189,6 +202,7 @@
       hx-indicator="#mirando">
   <input type="hidden" id="ruta" name="ruta">
   {% if destino_preferido %}<input type="hidden" name="destino" value="{{ destino_preferido }}">{% endif %}
+  {% if formato_preferido %}<input type="hidden" name="formato" value="{{ formato_preferido }}">{% endif %}
 </form>
 
 <p id="mirando" class="tenue htmx-indicator" style="margin:12px 0 0;">Mirando el archivo…</p>

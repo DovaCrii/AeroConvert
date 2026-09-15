@@ -77,6 +77,21 @@ dependencies = [
     "reportlab>=4.2,<6",
     "openpyxl>=3.1,<4",
     "python-docx>=1.1,<2",
+    # El motor de HTML a Markdown. Lo usan el EPUB -- que por dentro es HTML -- y la
+    # conversion de paginas sueltas.
+    #
+    # **Son 126 KB entre las dos, y ese numero es el argumento.** La alternativa era
+    # `markitdown` de Microsoft, cuya lista de formatos si se copio: trae `magika` como
+    # dependencia obligatoria -- no un extra, un `import` de nivel superior en el constructor --
+    # y `magika` arrastra `onnxruntime`. Son ~40 MB de runtime de aprendizaje automatico
+    # **solo para adivinar el tipo de archivo**, en una aplicacion que ya lo detecta por firma
+    # y dice con que confianza. Su conversor de Excel usa ademas `pandas` (~60 MB) donde aqui
+    # ya esta `openpyxl`, y el de PDF usa `pdfplumber`, que fija `pdfminer.six` con `==`.
+    #
+    # Su conversor de EPUB, en cambio, no usa ninguna libreria externa: `zipfile` y XML. Eso
+    # es lo que demuestra que esto se podia escribir.
+    "markdownify>=1.1,<2",
+    "beautifulsoup4>=4.13,<5",
 ]
 
 # GDAL, PDAL y el conversor de ECW **no van aca a proposito**. Son herramientas
