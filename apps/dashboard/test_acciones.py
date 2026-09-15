@@ -222,6 +222,40 @@ class TestBuscarPorParDeFormatos:
         assert 'name="formato"' not in respuesta.content.decode()
 
 
+class TestLaBienvenida:
+    """**Solo mientras hace falta, y sin guardar nada.**
+
+    Una pantalla de «cómo funciona» separada se lee una vez y después es un clic de más todos
+    los días. Una tira fija encima del catálogo ocupa el sitio de lo que se viene a hacer. El
+    disparador es no haber convertido nada todavía, que es el dato que ya existe y que además
+    es la definición exacta de «primera vez».
+    """
+
+    def test_sale_a_quien_no_ha_convertido_nada(self, sesion):
+        assert (
+            "Cómo funciona esto"
+            in sesion.get(reverse("dashboard:que_puedo_hacer")).content.decode()
+        )
+
+    def test_y_desaparece_sola_en_cuanto_hay_un_trabajo(self, sesion, django_user_model):
+        from apps.jobs.models import ConversionJob
+
+        ConversionJob.objects.create(
+            owner=django_user_model.objects.get(username="ana"),
+            source_path="C:/x.tif",
+            source_format_code="geotiff",
+            target_format_code="cog",
+        )
+        cuerpo = sesion.get(reverse("dashboard:que_puedo_hacer")).content.decode()
+        assert "Cómo funciona esto" not in cuerpo
+
+    def test_no_estorba_cuando_se_esta_buscando(self, sesion):
+        """Quien escribe algo ya sabe lo que quiere: la explicación empujaría los resultados
+        hacia abajo justo cuando son lo único que importa."""
+        cuerpo = sesion.get(reverse("dashboard:que_puedo_hacer"), {"q": "unir"}).content.decode()
+        assert "Cómo funciona esto" not in cuerpo
+
+
 class TestElViajeCompleto:
     """De la tarjeta a la pantalla de convertir **sin perder por el camino lo elegido**.
 

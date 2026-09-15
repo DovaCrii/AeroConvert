@@ -196,6 +196,14 @@ def _de_los_documentos() -> list[Accion]:
         "proteger": ("contrasena", "clave", "cifrar", "desbloquear", "aes"),
         "office": ("word", "excel", "powerpoint", "docx", "xlsx", "pptx"),
         "a_word": ("editar", "docx", "reflow"),
+        # Texto y tablas. «md» y «markdown» en todas, porque quien busca escribe una u otra.
+        "md_excel": ("md", "markdown", "xlsx", "hoja de calculo", "tabla", "pegar en un correo"),
+        "md_csv": ("md", "markdown", "tabla", "separado por comas", "punto y coma"),
+        "md_word": ("md", "markdown", "docx", "texto plano"),
+        "md_pdf": ("md", "markdown", "sacar el texto", "copiar el texto"),
+        "md_epub": ("md", "markdown", "libro", "ebook", "capitulos"),
+        "md_html": ("md", "markdown", "pagina web", "htm", "limpiar"),
+        "md_a_pdf": ("md", "markdown", "imprimir", "entregar", "maquetar"),
     }
 
     return [
@@ -204,8 +212,12 @@ def _de_los_documentos() -> list[Accion]:
             nombre=h["nombre"],
             que_hace=h["que_hace"],
             sale=h["sale"],
-            categoria="documentos",
+            # `documentos` salvo que la herramienta diga otra cosa. Las de Markdown viven en
+            # el mismo sitio que las de PDF —comparten pantalla, origen y descarga— pero no
+            # contestan la misma pregunta: una entrega un PDF y la otra saca lo de dentro.
+            categoria=h.get("categoria", "documentos"),
             url=h["url"] if h["disponible"] else "",
+            consulta=h.get("consulta", {}),
             icono=h["icono"],
             familia=h["familia"],
             disponible=h["disponible"],

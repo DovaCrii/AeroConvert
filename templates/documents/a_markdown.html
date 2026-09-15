@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block titulo %}Sacar el contenido a Markdown · AeroConvert{% endblock %}
+
+{% block contenido %}
+
+<form id="forma-documento" method="post" enctype="multipart/form-data">
+  {% csrf_token %}
+
+  {% include "documents/_origen.html" with accion="convertir" boton="Sacar el contenido" pregunta="¿De qué archivo?" %}
+</form>
+
+{% if sin_texto %}
+  {% comment %}
+    **Ni verde ni rojo.** El archivo está bien: lo que no tiene es texto que sacar. Pintarlo
+    como un error manda a alguien a reintentar con el mismo archivo, que es justo lo que no va
+    a funcionar; pintarlo como un éxito sería mentir.
+  {% endcomment %}
+  <div class="tarjeta" style="border-left:4px solid var(--av-warn); margin-bottom:14px;">
+    <p style="margin:0;"><strong>No hay nada que sacar.</strong></p>
+    <p class="tenue" style="margin:6px 0 0;">{{ sin_texto }}</p>
+  </div>
+{% endif %}
+
+{% if generado %}
+  <div class="tarjeta tarjeta-acento" style="margin-bottom:14px;">
+    <p style="margin:0 0 10px;"><strong>Listo: {{ generado.name }}</strong></p>
+    {% if vista_previa %}
+      {% comment %}
+        Un asomo antes de descargar. Evita el viaje de bajar el archivo, abrirlo y descubrir
+        que la hoja que hacía falta era la otra.
+      {% endcomment %}
+      <pre class="asomo">{{ vista_previa }}</pre>
+    {% endif %}
+  </div>
+{% endif %}
+
+<div class="tarjeta">
+  <h2 class="origen-titulo" style="margin:0 0 10px;">De qué se puede sacar</h2>
+  <ul class="lista-simple">
+    {% for extension, que_es in origenes.items %}
+      <li><code>{{ extension }}</code> — {{ que_es }}</li>
+    {% endfor %}
+  </ul>
+
+  <p class="tenue" style="margin:14px 0 0;">
+    <strong>De un Word no sobreviven</strong> {{ no_sobrevive }}. Y de un PDF sale
+    <strong>solo el texto que ya tiene dentro</strong>: si es un escaneo no tiene ninguno, y
+    se dice en vez de entregar un archivo vacío.
+  </p>
+</div>
+{% endblock %}

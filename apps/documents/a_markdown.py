@@ -430,6 +430,14 @@ def de_word(origen: str | Path) -> str:
         if etiqueta == "p":
             linea = _parrafo(Paragraph(hijo, documento))
             if linea is not None:
+                # **Un renglón en blanco antes de cada título y de cada lista.**
+                #
+                # Markdown separa bloques por líneas vacías: un `## Resultados` pegado al
+                # párrafo anterior lo entienden unos visores y otros no, y una lista pegada a
+                # un párrafo se pinta como parte del párrafo en casi todos. Word no guarda
+                # esas líneas porque para él la separación es el estilo, no el hueco.
+                if _abre_bloque(linea) and partes and partes[-1]:
+                    partes.append("")
                 partes.append(linea)
         elif etiqueta == "tbl":
             tabla = Table(hijo, documento)
@@ -444,6 +452,11 @@ def de_word(origen: str | Path) -> str:
             "texto o en el encabezado, eso no se puede sacar."
         )
     return texto
+
+
+def _abre_bloque(linea: str) -> bool:
+    """Si esta línea empieza algo que en Markdown necesita un renglón en blanco delante."""
+    return linea.startswith(("#", "- ", "1. ", "> "))
 
 
 def _parrafo(parrafo) -> str | None:
@@ -472,17 +485,29 @@ def _trozo(run) -> str:
 
     Los asteriscos del texto original se escapan: un «3 * 4» dentro de una frase se comería el
     resto de la línea como si fuera el principio de una cursiva.
+
+    **Y los espacios se quedan fuera de los asteriscos.** Word guarda muchísimo «Importante: »
+    con el espacio dentro de la negrita, y `**Importante: **revisar` no es negrita en
+    CommonMark: la norma exige que el cierre no venga precedido de un espacio, así que lo que
+    se ve son cuatro asteriscos literales en mitad de la frase.
     """
     texto = run.text.replace("*", r"\*")
-    if not texto.strip():
+    nucleo = texto.strip()
+    if not nucleo:
         return texto
+
+    izquierda = texto[: len(texto) - len(texto.lstrip())]
+    derecha = texto[len(texto.rstrip()) :]
+
     if run.bold and run.italic:
-        return f"***{texto}***"
-    if run.bold:
-        return f"**{texto}**"
-    if run.italic:
-        return f"*{texto}*"
-    return texto
+        marca = "***"
+    elif run.bold:
+        marca = "**"
+    elif run.italic:
+        marca = "*"
+    else:
+        return texto
+    return f"{izquierda}{marca}{nucleo}{marca}{derecha}"
 
 
 # --- PDF -------------------------------------------------------------------

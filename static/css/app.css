@@ -1092,6 +1092,70 @@ a.menu-titulo:hover {
   border-radius: var(--av-radius);
 }
 
+/* El asomo al Markdown recién hecho, antes de descargarlo. Con barra propia: una tabla ancha
+ * no puede empujar el ancho de la página, que es lo que pasa con `pre` a secas. */
+.asomo {
+  max-height: 22rem;
+  margin: 0;
+  padding: 12px 14px;
+  overflow: auto;
+  border: 1px solid var(--av-border);
+  border-radius: var(--av-radius-sm);
+  background: var(--av-surface-alt);
+  color: var(--av-text-secondary);
+  font-size: 0.82rem;
+  line-height: 1.5;
+  white-space: pre;
+}
+
+.lista-simple {
+  margin: 0;
+  padding-left: 1.1rem;
+  line-height: 1.8;
+}
+
+/* --- La bienvenida de la primera vez -------------------------------------- */
+
+.bienvenida {
+  margin: 0 0 22px;
+  padding: 18px 20px;
+  border: 1px solid var(--av-border);
+  border-radius: var(--av-radius);
+  background: var(--av-surface);
+}
+
+.bienvenida-titulo {
+  margin: 0 0 14px;
+  font-size: 1.05rem;
+}
+
+.bienvenida-ideas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: 16px 24px;
+}
+
+.bienvenida-ideas h3 {
+  margin: 0 0 4px;
+  font-size: 0.92rem;
+  color: var(--av-primary);
+}
+
+.bienvenida-ideas p {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--av-text-secondary);
+}
+
+.bienvenida-pie {
+  margin: 16px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--av-border);
+  font-size: var(--av-fs-sm);
+  color: var(--av-text-muted);
+}
+
 /* --- La respuesta directa del buscador ------------------------------------ */
 
 /*

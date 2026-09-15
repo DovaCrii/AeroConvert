@@ -28,6 +28,57 @@
   <span id="buscando" class="tenue htmx-indicator">buscando…</span>
 </form>
 
+{% if primera_vez %}
+  {% comment %}
+    **La bienvenida, solo mientras hace falta.**
+
+    Sale a quien todavía no ha convertido nada y desaparece sola en cuanto lo hace. Sin
+    cookie, sin ajuste y sin un «no volver a mostrar» que alguien pulsa sin querer y luego no
+    sabe deshacer: el disparador es el historial, que ya existe y que además es la definición
+    exacta de «primera vez».
+
+    Tres ideas y no un manual. Lo que hay que saber antes de la primera conversión es de
+    dónde salen los archivos, que aquí se mira antes de convertir, y que cada herramienta
+    dice qué entrega. Lo demás se aprende usándolo.
+  {% endcomment %}
+  <section class="bienvenida">
+    <h2 class="bienvenida-titulo">Cómo funciona esto</h2>
+
+    <div class="bienvenida-ideas">
+      <div>
+        <h3>1 · El archivo, de dos sitios</h3>
+        <p>
+          De <strong>tu equipo</strong>, subiéndolo, o de la <strong>carpeta compartida</strong>,
+          que es donde el equipo deja las ortofotos y las nubes. Nunca hace falta escribir una
+          ruta.
+        </p>
+      </div>
+      <div>
+        <h3>2 · Primero se mira</h3>
+        <p>
+          Antes de convertir, AeroConvert abre el archivo y dice <strong>qué es de
+          verdad</strong> —no por su extensión— y si le falta el sistema de referencia. El
+          original no se toca nunca.
+        </p>
+      </div>
+      <div>
+        <h3>3 · Eliges el destino, no el formato</h3>
+        <p>
+          Dices <strong>dónde tiene que abrir</strong> —Civil 3D, QGIS, un informe— y los
+          ajustes se ponen solos. Cada herramienta dice <strong>qué entrega</strong> antes de
+          pulsar.
+        </p>
+      </div>
+    </div>
+
+    <p class="bienvenida-pie">
+      Y lo que <em>no</em> se puede hacer en esta máquina también se dice, con su motivo, en
+      <a href="{% url 'engines:matriz' %}">Compatibilidad</a>. Esta tira desaparece sola en
+      cuanto conviertas tu primer archivo.
+    </p>
+  </section>
+{% endif %}
+
 <div id="resultados">
   {% include "dashboard/_acciones.html" %}
 </div>

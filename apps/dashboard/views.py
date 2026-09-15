@@ -176,7 +176,23 @@ def que_puedo_hacer(request):
     # pregunta por intención. Ver `conversion_pedida`.
     conversion = acciones_mod.conversion_pedida(busqueda)
 
-    contexto = {"grupos": grupos, "q": busqueda, "conversion": conversion}
+    contexto = {
+        "grupos": grupos,
+        "q": busqueda,
+        "conversion": conversion,
+        # **La explicación solo mientras hace falta**, y sin guardar nada.
+        #
+        # Una pantalla de «cómo funciona» separada se lee una vez y después es un clic de más
+        # todos los días. Una tira fija encima del catálogo es peor: ocupa el sitio de lo que
+        # se viene a hacer. Lo que hace falta es que esté **la primera vez** y desaparezca
+        # sola.
+        #
+        # El disparador es no haber convertido nada todavía, que es el dato que ya existe y
+        # que además es la definición exacta de «primera vez». Ni cookie, ni ajuste, ni un
+        # botón de «no volver a mostrar» que alguien pulsa sin querer y no sabe deshacer.
+        "primera_vez": not busqueda
+        and not ConversionJob.objects.filter(owner=request.user).exists(),
+    }
     if request.headers.get("HX-Request"):
         return render(request, "dashboard/_acciones.html", contexto)
 
@@ -446,7 +462,17 @@ def _migas(actual: Path, raices) -> list[dict]:
             relativa = actual.relative_to(raiz)
         except ValueError:
             continue
-        migas = [{"nombre": raiz.name or str(raiz), "ruta": str(raiz)}]
+        # **La raíz se nombra por lo que es, no por cómo se llama la carpeta.**
+        #
+        # En el servidor esa carpeta se llama `entregas`, así que la primera miga era la
+        # palabra «entregas» suelta y en minúscula encabezando la pantalla: parece el nombre
+        # de algo que se está entregando, no el sitio donde se busca. Y si mañana la carpeta
+        # se llama `obras_2026`, el rótulo vuelve a ser jerga del sistema de archivos.
+        #
+        # Con varias raíces sí hace falta distinguirlas, y ahí el nombre de la carpeta es lo
+        # único que las distingue.
+        etiqueta = "Carpeta compartida" if len(raices) == 1 else (raiz.name or str(raiz))
+        migas = [{"nombre": etiqueta, "ruta": str(raiz)}]
         acumulada = raiz
         for parte in relativa.parts:
             acumulada = acumulada / parte

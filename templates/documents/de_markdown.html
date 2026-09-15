@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block titulo %}Markdown a PDF · AeroConvert{% endblock %}
+
+{% block contenido %}
+
+<form id="forma-documento" method="post" enctype="multipart/form-data">
+  {% csrf_token %}
+
+  {% include "documents/_origen.html" with accion="convertir" boton="Hacer el PDF" pregunta="¿Qué archivo Markdown?" %}
+</form>
+
+{% if generado %}
+  <div class="tarjeta tarjeta-acento" style="margin-bottom:14px;">
+    <p style="margin:0;"><strong>Listo: {{ generado.name }}</strong></p>
+  </div>
+{% endif %}
+
+<div class="tarjeta">
+  <h2 class="origen-titulo" style="margin:0 0 10px;">Qué se imprime y qué no</h2>
+  <p style="margin:0 0 10px;">
+    Títulos, párrafos, listas, tablas, citas, negrita, cursiva y bloques de código.
+  </p>
+  {% comment %}
+    **Decirlo antes, no después.** Un Markdown escrito a mano puede traer cualquiera de estas
+    cosas; lo que se hace es imprimir su texto tal cual en vez de tragárselo en silencio, que
+    es lo que hace un analizador incompleto y lo que hace difícil darse cuenta.
+  {% endcomment %}
+  <p class="tenue" style="margin:0;">
+    <strong>No se interpretan</strong> las imágenes, el HTML incrustado, las notas al pie ni
+    las celdas combinadas: si aparecen, salen impresas tal como están escritas. Es a propósito
+    — pasarlas por alto sin avisar sería peor.
+  </p>
+</div>
+{% endblock %}

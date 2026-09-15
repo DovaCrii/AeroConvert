@@ -43,6 +43,8 @@ from apps.engines.base import ruta_parcial
 from apps.formats import pdf as lectura_pdf
 
 from . import a_imagenes as a_imagenes_mod
+from . import a_markdown as a_markdown_mod
+from . import desde_markdown as desde_markdown_mod
 from . import dividir as dividir_mod
 from . import marcas as marcas_mod
 from . import miniaturas
@@ -270,6 +272,88 @@ HERRAMIENTAS = (
         "que_hace": "El camino de vuelta, para poder editarlo. Con lo que eso significa.",
         "exige_office": True,
     },
+    # --- Texto y tablas ---------------------------------------------------
+    #
+    # **Seis entradas y una sola pantalla.** La pantalla mira la extensión y hace lo que toca;
+    # las seis entradas existen porque quien busca escribe «excel a markdown» o «epub», no
+    # «a markdown». Es el mismo patrón que los seis destinos geoespaciales, que también van a
+    # una sola pantalla con la elección en la consulta.
+    {
+        "id": "md_excel",
+        "categoria": "texto",
+        "icono": "icon-texto-tabla",
+        "sale": "un .md con una tabla por hoja",
+        "familia": "texto",
+        "url": "documents:a_markdown",
+        "consulta": {"de": "xlsx"},
+        "nombre": "Excel a Markdown",
+        "que_hace": "Cada hoja, una tabla que se pega en un correo o en una ficha.",
+    },
+    {
+        "id": "md_csv",
+        "categoria": "texto",
+        "icono": "icon-texto-tabla",
+        "sale": "un .md con la tabla",
+        "familia": "texto",
+        "url": "documents:a_markdown",
+        "consulta": {"de": "csv"},
+        "nombre": "CSV a Markdown",
+        "que_hace": "Detecta si separa por punto y coma o por coma, que aquí cambia.",
+    },
+    {
+        "id": "md_word",
+        "categoria": "texto",
+        "icono": "icon-texto-parrafo",
+        "sale": "un .md",
+        "familia": "texto",
+        "url": "documents:a_markdown",
+        "consulta": {"de": "docx"},
+        "nombre": "Word a Markdown",
+        "que_hace": "Títulos, listas, tablas y negritas. Lo que no sobrevive se avisa.",
+    },
+    {
+        "id": "md_pdf",
+        "categoria": "texto",
+        "icono": "icon-texto-parrafo",
+        "sale": "un .md",
+        "familia": "texto",
+        "url": "documents:a_markdown",
+        "consulta": {"de": "pdf"},
+        "nombre": "PDF a Markdown",
+        "que_hace": "El texto que el PDF ya tiene. Si es un escaneo, se dice.",
+    },
+    {
+        "id": "md_epub",
+        "categoria": "texto",
+        "icono": "icon-texto-libro",
+        "sale": "un .md con los capítulos en orden",
+        "familia": "texto",
+        "url": "documents:a_markdown",
+        "consulta": {"de": "epub"},
+        "nombre": "EPUB a Markdown",
+        "que_hace": "En el orden en que se lee, no en el que vienen dentro del archivo.",
+    },
+    {
+        "id": "md_html",
+        "categoria": "texto",
+        "icono": "icon-texto-parrafo",
+        "sale": "un .md",
+        "familia": "texto",
+        "url": "documents:a_markdown",
+        "consulta": {"de": "html"},
+        "nombre": "Página web a Markdown",
+        "que_hace": "Una página guardada, sin el armazón ni los menús.",
+    },
+    {
+        "id": "md_a_pdf",
+        "categoria": "texto",
+        "icono": "icon-texto-imprimir",
+        "sale": "un PDF",
+        "familia": "texto",
+        "url": "documents:de_markdown",
+        "nombre": "Markdown a PDF",
+        "que_hace": "El camino de vuelta, para entregar lo que se redactó en Markdown.",
+    },
 )
 
 
@@ -283,6 +367,7 @@ GRUPOS = (
     ("transformar", "Cambiar de formato", "Cuando hace falta en otra cosa: PDF, imagen o Word."),
     ("marcar", "Estampar encima", "Cuando el documento está bien pero le falta algo en cada hoja."),
     ("proteger", "Poner o quitar contraseña", "Cuando no puede abrirlo cualquiera."),
+    ("texto", "Sacar el contenido", "Cuando el texto o la tabla tienen que salir del archivo."),
 )
 
 
@@ -1071,6 +1156,103 @@ def a_word_vista(request):
     messages.success(request, f"Hecho: {destino.name}.")
     contexto["generado"] = destino
     return render(request, "documents/a_word.html", contexto)
+
+
+@login_required
+def a_markdown(request):
+    """Sacar el contenido de un archivo y dejarlo en Markdown.
+
+    **Una pantalla para los seis orígenes.** Excel, CSV, Word, PDF, EPUB y una página guardada
+    hacen todos lo mismo desde fuera —eliges el archivo y recibes un `.md`— y lo que cambia es
+    lo que pasa por dentro, que lo decide la extensión. Seis pantallas idénticas salvo por el
+    título serían seis sitios donde arreglar el mismo fallo.
+
+    El catálogo sí tiene seis entradas, con `?de=xlsx` y compañía: quien busca escribe «excel
+    a markdown», no «a markdown». Es el mismo reparto que los destinos geoespaciales.
+    """
+    pedido = (request.GET.get("de") or "").strip().lstrip(".").lower()
+    contexto = {
+        "seccion": "pdf",
+        "etiqueta_seccion": "Texto y tablas",
+        "titulo_pagina": "Sacar el contenido a Markdown",
+        "proposito": (
+            "Para pegarlo en un correo, en una ficha o en un tablero sin perder la tabla ni "
+            "los títulos."
+        ),
+        "origenes": a_markdown_mod.ORIGENES,
+        "de": pedido if f".{pedido}" in a_markdown_mod.ORIGENES else "",
+        "no_sobrevive": a_markdown_mod.NO_SOBREVIVE_DE_WORD,
+        "ruta_texto": (request.GET.get("ruta") or "").strip(),
+    }
+
+    if request.method != "POST":
+        return render(request, "documents/a_markdown.html", contexto)
+
+    try:
+        origen = _origen_del_formulario(request)
+        destino = a_markdown_mod.a_markdown(origen.ruta, destino=_ruta_de_salida_de(origen, ".md"))
+    except a_markdown_mod.SinTextoQueSacar as fallo:
+        # **Su propio aviso, y no un error rojo.** El archivo está bien: lo que no tiene es
+        # texto. Tratarlo como un fallo manda a alguien a probar otra vez con el mismo
+        # archivo, que es exactamente lo que no va a funcionar.
+        contexto["sin_texto"] = str(fallo)
+        return render(request, "documents/a_markdown.html", contexto)
+    except (modo_mod.RutaNoPermitida, ComposicionInvalida) as fallo:
+        messages.error(request, str(fallo))
+        return render(request, "documents/a_markdown.html", contexto)
+
+    messages.success(request, f"Hecho: {destino.name}.")
+    contexto["generado"] = destino
+    contexto["vista_previa"] = _asomarse(destino)
+    return render(request, "documents/a_markdown.html", contexto)
+
+
+@login_required
+def de_markdown(request):
+    """Markdown a PDF: el camino de vuelta."""
+    contexto = {
+        "seccion": "pdf",
+        "etiqueta_seccion": "Texto y tablas",
+        "titulo_pagina": "Markdown a PDF",
+        "proposito": "Para entregar lo que se redactó en Markdown.",
+        "ruta_texto": (request.GET.get("ruta") or "").strip(),
+    }
+
+    if request.method != "POST":
+        return render(request, "documents/de_markdown.html", contexto)
+
+    try:
+        origen = _origen_del_formulario(request)
+        destino = desde_markdown_mod.markdown_a_pdf(
+            origen.ruta, destino=_ruta_de_salida_de(origen, ".pdf")
+        )
+    except (modo_mod.RutaNoPermitida, ComposicionInvalida) as fallo:
+        messages.error(request, str(fallo))
+        return render(request, "documents/de_markdown.html", contexto)
+
+    messages.success(request, f"Hecho: {destino.name}.")
+    contexto["generado"] = destino
+    return render(request, "documents/de_markdown.html", contexto)
+
+
+#: Cuántos caracteres del resultado se enseñan antes de descargarlo.
+ASOMO = 1200
+
+
+def _asomarse(destino: Path) -> str:
+    """Las primeras líneas del `.md`, para ver que salió lo que se esperaba.
+
+    Es barato y evita el viaje de descargar, abrir y descubrir que la hoja que hacía falta era
+    la otra. Se corta por líneas enteras: cortar a mitad de una fila de tabla enseña una tabla
+    rota y hace pensar que la conversión lo está.
+    """
+    try:
+        crudo = destino.read_text(encoding="utf-8")
+    except OSError:
+        return ""
+    if len(crudo) <= ASOMO:
+        return crudo
+    return crudo[:ASOMO].rsplit("\n", 1)[0] + "\n\n…"
 
 
 def _entero(crudo, por_omision: int) -> int:
