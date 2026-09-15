@@ -225,6 +225,62 @@ Tres que valen, y la decisión es tuya:
 
 Yo elegiría **Tino**: los otros dos describen el ambiente, y ese describe el trabajo.
 
+### F7.6 — Catálogos de tubería: Excel ↔ `.mdb`
+
+Pedido el **2026-09-15**, con un archivo de verdad delante: `HDPE_PE100_PN16.mdb`.
+
+**Y lo primero que hay que decir es que no es «Excel a Access».** Al abrirlo resulta ser un
+**catálogo de especificación de AutoCAD Plant 3D**: nueve tablas —`PIPE`, `ELBOW`, `TEE`,
+`FLANGE`, `REDUCER`, `CROSSES`, `GASKET`, `BOLT`, `MISC_FIT`—, 481 filas y columnas como
+`EC_CLASS_NAME`, `PIECE_MARK`, `END_COND_1`, `SKT_DPTH_M` o `CTR_END_B`. Entre 28 y 52
+columnas por tabla.
+
+Un conversor genérico de hoja a base de datos **no sirve para esto**: produciría una tabla con
+los nombres que traiga el Excel, y Plant 3D no abriría el resultado. Lo que hace falta es
+rellenar **un esquema fijo que ya existe**.
+
+#### Lo que ya está medido, no supuesto
+
+Comprobado el 2026-09-15 en la estación de trabajo:
+
+| Qué | Resultado |
+| --- | --- |
+| Formato del archivo | **Jet 4** (Access 2000-2003), 675 KB |
+| Controlador presente | `Microsoft Access Driver (*.mdb, *.accdb)` **en 64 bits** |
+| ¿Se puede **crear** un `.mdb` Jet 4? | **Sí.** `ADOX.Catalog` con `Jet OLEDB:Engine Type=5` |
+| ¿Crear tabla e insertar? | **Sí**, las dos comprobadas |
+| ¿Hace falta licencia de Access? | **No.** ACE es un redistribuible gratuito de Microsoft |
+
+Era la pregunta que decidía la fase entera: leer un `.mdb` es fácil y **escribirlo** es lo que
+suele no poderse. Se puede.
+
+#### El orden, que es al revés de lo que se pidió
+
+| # | Entrega | Por qué en este orden |
+| --- | --- | --- |
+| F7.6a | **`.mdb` → Excel**, una hoja por tabla | Es la mitad que más se usa y la que no puede fallar: **nadie escribe 52 columnas desde cero**. El flujo real es exportar el catálogo que ya existe, editarlo en Excel y volver a meterlo |
+| F7.6b | **Excel → `.mdb` usando un `.mdb` de plantilla** | El esquema sale del archivo de plantilla, no del Excel. Las columnas del Excel se **comprueban contra él** y una que no exista **para el trabajo**, no se descarta en silencio: un catálogo al que le falta una columna lo abre Plant 3D y falla más tarde, en la obra |
+| F7.6c | Avisar de lo que no cuadra **antes** de escribir | Filas con `MAIN_SIZE` vacío, textos más largos que el campo, números donde va texto. Es la misma regla que el resto: si no se puede entregar algo correcto, se dice |
+
+#### Cómo se hace
+
+- **`pyodbc`** (MIT) contra el controlador ACE, que **se sondea, no se declara** — exactamente
+  como `apps/documents/office.py` con Word. En el servidor Linux no hay ACE, así que las dos
+  herramientas salen **apagadas con su motivo**, igual que las de Office.
+- La lectura (F7.6a) sí tiene alternativa en Linux: `mdbtools` exporta a CSV. Se deja anotado
+  y **no se hace todavía**: media función que solo lee en un sitio y solo escribe en otro es
+  más difícil de explicar que una que no está.
+- El `.mdb` de plantilla se elige con las dos vías de siempre —subir o carpeta compartida—,
+  como cualquier otra pantalla. Ver `docs/ESTILO.md`.
+
+#### Lo que hay que preguntar antes de escribir una línea
+
+- **¿Plant 3D o CADWorx?** El esquema se parece mucho entre los dos y las tablas no son
+  idénticas. Con un archivo de cada uno delante se sale de dudas en diez minutos.
+- **¿De dónde salen los catálogos nuevos?** Si siempre se parte de uno existente, F7.6b es
+  rellenar; si hay que crear uno desde cero, hace falta además saber qué tablas son
+  obligatorias para que el programa lo acepte.
+
 ### F7.5 — La barra, cuando entren más aplicaciones
 
 La distribución de ahora funciona y **no hay que rehacerla**. Lo que falta es lo de al lado:
@@ -257,5 +313,6 @@ No son cosas que se resuelvan programando mejor.
 | **Nombre del ayudante** | Es de familia: se usa en las tres aplicaciones | **Tino** |
 | **Si el ayudante habla con un modelo de fuera** | El argumento entero de la aplicación es que nada sale del equipo | Que salga la pregunta, nunca el archivo — y dicho en pantalla |
 | **ECW** | Medio día y una licencia de pago, para 10 conversiones que ya tienen salida abierta | No, hasta que alguien lo pida dos veces |
+| **Catálogos `.mdb`: ¿Plant 3D o CADWorx?** | El esquema se parece entre los dos y las tablas no son iguales. Adivinar mal es entregar un catálogo que el programa no abre | Mándame un archivo de cada uno y se resuelve en diez minutos |
 | **Office en el servidor** | LibreOffice daría Word→PDF en Linux, pero *parecido* no es *idéntico* | Dejarlas apagadas |
 | **Respaldo del servidor** | Hoy no hay ninguno, con tres aplicaciones y exposición pública | Es lo más urgente de todo lo que queda |
