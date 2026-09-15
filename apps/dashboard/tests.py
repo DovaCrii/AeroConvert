@@ -3,6 +3,7 @@
 import pytest
 from django.contrib.auth import get_user_model
 from django.test import override_settings
+from django.urls import reverse
 
 from apps.engines import registry
 from apps.engines.testing import MotorDeMentira
@@ -75,7 +76,7 @@ class TestLaMesa:
         su propio equipo y recibía «fuera de las carpetas permitidas»—. Lo que hay que
         comprobar es que sigue habiendo **por dónde empezar**, y ahora son dos.
         """
-        respuesta = entrado.get("/")
+        respuesta = entrado.get(reverse("dashboard:convertir"))
         assert respuesta.status_code == 200
 
         cuerpo = respuesta.content.decode()
@@ -84,8 +85,42 @@ class TestLaMesa:
 
     def test_la_chapa_del_modo_esta_en_todas_las_pantallas(self, entrado, taller):
         """Saber si los archivos salen o no de la máquina es lo primero que hay que ver."""
-        for ruta in ("/", "/trabajos/", "/motores/"):
+        for ruta in ("/", "/convertir/", "/trabajos/", "/motores/"):
             assert b"Taller" in entrado.get(ruta).content
+
+
+class TestElDestinoQueVieneDelCatalogo:
+    """La última pata del viaje: que la ficha **marque** el destino que se pidió.
+
+    Se comprueba aquí y no en `test_acciones.py` porque hace falta un archivo de verdad: sin
+    inspeccionar no hay botones de destino, y es en los botones donde la marca se ve o no se
+    ve. Las otras pruebas llegan hasta el campo escondido y ahí se quedan.
+    """
+
+    def test_la_ficha_marca_el_que_se_eligio(self, entrado, ortofoto, con_motor):
+        cuerpo = entrado.get(
+            "/inspeccionar/", {"ruta": str(ortofoto), "destino": "qgis"}
+        ).content.decode()
+        assert "destino-elegido" in cuerpo
+
+    def test_y_marca_uno_solo(self, entrado, ortofoto, con_motor):
+        """Seis botones resaltados no resaltan nada."""
+        cuerpo = entrado.get(
+            "/inspeccionar/", {"ruta": str(ortofoto), "destino": "qgis"}
+        ).content.decode()
+        assert cuerpo.count("destino-elegido") == 1
+
+    def test_sin_destino_no_marca_ninguno(self, entrado, ortofoto, con_motor):
+        cuerpo = entrado.get("/inspeccionar/", {"ruta": str(ortofoto)}).content.decode()
+        assert "destino-elegido" not in cuerpo
+
+    def test_un_destino_inventado_tampoco(self, entrado, ortofoto, con_motor):
+        """Llega de fuera y acaba comparándose contra el identificador de cada perfil. Que no
+        marque nada es exactamente lo correcto."""
+        cuerpo = entrado.get(
+            "/inspeccionar/", {"ruta": str(ortofoto), "destino": "../qgis"}
+        ).content.decode()
+        assert "destino-elegido" not in cuerpo
 
 
 class TestLaEstimacion:

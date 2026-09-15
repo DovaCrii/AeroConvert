@@ -70,6 +70,14 @@
   --av-fam-marcar-soft: #ede8fb;
   --av-fam-proteger: #0f6d78;
   --av-fam-proteger-soft: #ddf1f3;
+  /* Los destinos geoespaciales. Antes reusaban el azul de `transformar`, así que las seis
+   * tarjetas de «llevarlo a…» salían idénticas salvo por su título. */
+  --av-fam-destino: #2e4a8e;
+  --av-fam-destino-soft: #e8ecfa;
+  /* Y el grupo de texto y tablas. El bronce es el único hueco que queda sin pisar al verde,
+   * al ámbar ni al rojo de los estados. */
+  --av-fam-texto: #8f4418;
+  --av-fam-texto-soft: #fbe9dd;
 
   --av-radius: 12px;
   --av-radius-sm: 8px;
@@ -127,6 +135,10 @@
   --av-fam-marcar-soft: #2f1d5c;
   --av-fam-proteger: #7ddbe3;
   --av-fam-proteger-soft: #14444b;
+  --av-fam-destino: #a9c0f2;
+  --av-fam-destino-soft: #1d2c52;
+  --av-fam-texto: #f0b088;
+  --av-fam-texto-soft: #4a2a14;
 
   --av-shadow: 0 10px 30px rgb(0 0 0 / 35%);
   --av-shadow-alto: 0 14px 34px rgb(0 0 0 / 50%);
@@ -155,6 +167,30 @@
     --av-ok-soft: #14361f;
     --av-warn-soft: #3d2f14;
     --av-danger-soft: #3d1a1e;
+
+    /* **Las familias también aquí, y faltaban.**
+     *
+     * Este bloque atiende a quien tiene el sistema en oscuro y no ha tocado el interruptor,
+     * que es el caso por omisión. Sin estas líneas heredaba los valores de `:root`: baldosas
+     * casi blancas con el dibujo azul oscuro, pegadas sobre una tarjeta oscura. Exactamente
+     * la «calcomanía» contra la que avisa el comentario de `.herramienta-marca`.
+     *
+     * No se veía en las pruebas porque `test_paleta.py` leía `:root` y
+     * `:root[data-theme="dark"]`, y este bloque no es ninguno de los dos. Ahora también lo
+     * lee. */
+    --av-fam-componer: var(--av-primary);
+    --av-fam-componer-soft: #46143a;
+    --av-fam-transformar: #9cc6f8;
+    --av-fam-transformar-soft: #17325a;
+    --av-fam-marcar: #cdb4f8;
+    --av-fam-marcar-soft: #2f1d5c;
+    --av-fam-proteger: #7ddbe3;
+    --av-fam-proteger-soft: #14444b;
+    --av-fam-destino: #a9c0f2;
+    --av-fam-destino-soft: #1d2c52;
+    --av-fam-texto: #f0b088;
+    --av-fam-texto-soft: #4a2a14;
+
     --av-shadow: 0 10px 30px rgb(0 0 0 / 35%);
     --av-shadow-alto: 0 14px 34px rgb(0 0 0 / 50%);
   }
@@ -1261,6 +1297,14 @@ td.cifra,
   background: var(--av-primary-soft);
 }
 
+/* El que se pidió desde el catálogo. **Marcado, no pulsado**: la elección se confirma aquí,
+ * cuando ya se ve el tamaño y el tiempo estimados. Un borde de dos píxeles y nada más — un
+ * relleno lo haría parecer ya enviado. */
+.destino-elegido:not(:disabled) {
+  border: 2px solid var(--av-primary);
+  padding: 11px 13px;
+}
+
 .destino:disabled {
   opacity: 1; /* No se atenúa: se explica. Un botón fantasma no dice por qué. */
   cursor: not-allowed;
@@ -1603,7 +1647,7 @@ code {
     0 3px 8px rgb(18 34 59 / 18%);
 }
 
-/* --- Las cuatro familias -------------------------------------------------- */
+/* --- Las familias --------------------------------------------------------- */
 
 .fam-componer {
   --marca-color: var(--av-fam-componer);
@@ -1623,6 +1667,16 @@ code {
 .fam-proteger {
   --marca-color: var(--av-fam-proteger);
   --marca-fondo: var(--av-fam-proteger-soft);
+}
+
+.fam-destino {
+  --marca-color: var(--av-fam-destino);
+  --marca-fondo: var(--av-fam-destino-soft);
+}
+
+.fam-texto {
+  --marca-color: var(--av-fam-texto);
+  --marca-fondo: var(--av-fam-texto-soft);
 }
 
 .herramienta-icono {

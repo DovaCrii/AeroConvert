@@ -24,6 +24,9 @@ del formato concreto ya la hace la aplicación.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from urllib.parse import urlencode
+
+from django.urls import reverse
 
 
 @dataclass(frozen=True)
@@ -36,7 +39,7 @@ class Accion:
     #: Qué entrega. Es la pregunta de antes de pulsar, y casi ninguna interfaz la contesta.
     sale: str
     categoria: str
-    #: El nombre de la URL, para `{% url %}`. Vacío si hoy no lleva a ninguna parte.
+    #: El nombre de la URL, para `reverse()`. Vacío si hoy no lleva a ninguna parte.
     url: str
     icono: str
     #: La familia de color. Ver `--av-fam-*` en `app.css`.
@@ -47,10 +50,27 @@ class Accion:
     #: hace que «excel» encuentre «Hoja de cálculo a Markdown», o «achurar» encuentre la
     #: marca de agua. Sin esto, un buscador solo sirve a quien ya sabe cómo se llama.
     palabras: tuple[str, ...] = field(default_factory=tuple)
+    #: Lo que hay que llevarse en la cadena de consulta para que el enlace no pierda la
+    #: elección. Ver `enlace`.
+    consulta: dict[str, str] = field(default_factory=dict)
 
     @property
     def texto_de_busqueda(self) -> str:
         return " ".join((self.nombre, self.que_hace, self.sale, *self.palabras)).lower()
+
+    @property
+    def enlace(self) -> str:
+        """A dónde lleva la tarjeta, **con la elección dentro**.
+
+        Se resuelve aquí y no con `{% url %}` en la plantilla porque seis de estas acciones
+        van al mismo sitio y lo único que las distingue es la consulta. Con `{% url %}` la
+        plantilla tendría que saber cuáles llevan parámetros y cuáles no; aquí lo sabe cada
+        acción, que es quien lo sabe de verdad.
+        """
+        if not self.url:
+            return ""
+        destino = reverse(self.url)
+        return f"{destino}?{urlencode(self.consulta)}" if self.consulta else destino
 
 
 #: Las categorías, en el orden en que se piensan: primero el trabajo de terreno, luego el de
@@ -74,12 +94,67 @@ CATEGORIAS = (
 )
 
 
+#: El nombre corto de cada formato de salida, para la línea de «Sale:».
+#:
+#: No sale de `catalogo.FORMATOS[x].nombre` a propósito: allí viven los nombres completos
+#: —«Cloud Optimized GeoTIFF», «LAZ compressed point cloud»— que son los correctos en la
+#: matriz de compatibilidad y demasiado largos para una tarjeta. Esto es presentación, y
+#: vive en la capa de presentación.
+SIGLAS = {
+    "cog": "COG",
+    "geotiff": "GeoTIFF",
+    "gpkg": "GeoPackage",
+    "copc": "COPC",
+    "laz": "LAZ",
+    "shp": "Shapefile",
+    "geojson": "GeoJSON",
+    "kmz": "KMZ",
+    "landxml": "LandXML",
+    "dxf": "DXF",
+}
+
+#: Un símbolo por perfil, y **distinguible**, no solo distinto.
+#:
+#: Los seis llevaban la misma diana y el mismo azul. Seis tarjetas idénticas salvo por su
+#: título obligan a leer los seis títulos para encontrar uno: el icono dejaba de informar y
+#: solo ocupaba sitio.
+ICONOS_DE_PERFIL = {
+    "civil3d": "icon-destino-plano",
+    "qgis": "icon-destino-capas",
+    "arcgis": "icon-destino-globo",
+    "google-earth": "icon-destino-chincheta",
+    "web": "icon-destino-ventana",
+    "aerobim": "icon-destino-cubo",
+}
+
+
+def _salidas_de(perfil) -> str:
+    """Los formatos a los que lleva un perfil, sin repetir y en orden de probabilidad.
+
+    Antes las seis tarjetas decían «el formato que ese programa abre», las seis, ocupando dos
+    líneas cada una. Una línea que no distingue una tarjeta de otra no está informando.
+
+    El dato ya estaba: `formato_destino` más `destinos_por_familia`. Lo que faltaba era
+    decirlo.
+    """
+    codigos = [perfil.formato_destino, *perfil.destinos_por_familia.values()]
+    vistos: list[str] = []
+    for codigo in codigos:
+        if codigo and codigo not in vistos:
+            vistos.append(codigo)
+    return " · ".join(SIGLAS.get(c, c.upper()) for c in vistos)
+
+
 def _de_los_perfiles() -> list[Accion]:
     """Lo geoespacial, **por dónde tiene que abrir** y no por formato.
 
     Es como está planteada la pantalla de convertir desde el principio: se elige el programa
     de destino y los ajustes se ponen solos. Aquí se repite esa forma de preguntar, porque es
     la que coincide con la de quien tiene el archivo.
+
+    **Y la elección viaja en el enlace.** Las seis iban a `dashboard:convertir` a secas, así
+    que pulsar «Llevarlo a QGIS» tiraba justo lo único que la tarjeta había preguntado y
+    dejaba a quien la pulsó en la pantalla genérica, eligiendo otra vez.
     """
     from apps.targets import perfiles as perfiles_mod
 
@@ -88,11 +163,12 @@ def _de_los_perfiles() -> list[Accion]:
             id=f"perfil-{perfil.id}",
             nombre=f"Llevarlo a {perfil.nombre}",
             que_hace=perfil.descripcion,
-            sale="el formato que ese programa abre",
+            sale=_salidas_de(perfil),
             categoria="planos",
             url="dashboard:convertir",
-            icono="icon-destino",
-            familia="transformar",
+            consulta={"destino": perfil.id},
+            icono=ICONOS_DE_PERFIL.get(perfil.id, "icon-destino"),
+            familia="destino",
             palabras=("ortofoto", "nube de puntos", "raster", "vectorial", perfil.id),
         )
         for perfil in perfiles_mod.PERFILES.values()

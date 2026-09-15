@@ -238,7 +238,8 @@ CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
 CRISPY_TEMPLATE_PACK = "bootstrap5"
 
 LOGIN_URL = "login"
-LOGIN_REDIRECT_URL = "dashboard:convertir"
+# Al catálogo, que es la portada. Quien entra no trae un formato: trae una intención.
+LOGIN_REDIRECT_URL = "dashboard:que_puedo_hacer"
 LOGOUT_REDIRECT_URL = "login"
 
 # --- Las cookies llevan apellido ------------------------------------------

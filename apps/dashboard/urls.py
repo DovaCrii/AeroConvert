@@ -5,10 +5,16 @@ from . import views
 app_name = "dashboard"
 
 urlpatterns = [
-    path("", views.convertir, name="convertir"),
-    # El catálogo de todo, con buscador. La puerta para quien llega con una intención y no
-    # con un formato.
-    path("que-hacer/", views.que_puedo_hacer, name="que_puedo_hacer"),
+    # **La portada es el catálogo, no «convertir».**
+    #
+    # Estaba escrito como «la puerta que faltaba» y vivía en `/que-hacer/`, o sea que solo
+    # llegaba ahí quien ya sabía que existía. Quien entra no trae un formato: trae una
+    # intención, y esta es la única pantalla que empieza por preguntarla.
+    #
+    # Es además lo que hace iLovePDF y lo que respalda Nielsen Norman: buscador siempre
+    # visible, **sobre** un catálogo y nunca en lugar de él.
+    path("", views.que_puedo_hacer, name="que_puedo_hacer"),
+    path("convertir/", views.convertir, name="convertir"),
     path("inspeccionar/", views.inspeccionar, name="inspeccionar"),
     # Las dos vías que faltaban: subir desde el equipo de quien mira, y andar la carpeta
     # compartida en vez de teclear su ruta.

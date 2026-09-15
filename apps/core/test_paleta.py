@@ -101,8 +101,20 @@ def oscuro(css: str) -> dict[str, str]:
     return _variables(_bloque(css, ':root[data-theme="dark"]'))
 
 
-#: Las cuatro familias de herramientas de PDF. Ver `HERRAMIENTAS` en `apps/documents/views.py`.
-FAMILIAS = ("componer", "transformar", "marcar", "proteger")
+@pytest.fixture(scope="module")
+def sistema_oscuro(css: str) -> dict[str, str]:
+    """El tercer bloque, que es el que **manda por omisión** y no se estaba mirando.
+
+    Quien tiene el sistema en oscuro y no ha tocado el interruptor no cae en
+    `[data-theme="dark"]`: cae aquí. Y aquí faltaban los ocho colores de familia, así que
+    heredaba los del tema claro — baldosas casi blancas sobre tarjetas oscuras.
+    """
+    return _variables(_bloque(css, ':root:not([data-theme="light"])'))
+
+
+#: Las seis familias. Cuatro de las herramientas de PDF (`HERRAMIENTAS` en
+#: `apps/documents/views.py`), más los destinos geoespaciales y el grupo de texto.
+FAMILIAS = ("componer", "transformar", "marcar", "proteger", "destino", "texto")
 
 
 class TestElColorDeAccion:
@@ -127,8 +139,8 @@ class TestElMagentaDeMarca:
         assert contraste(claro["--av-magenta"], "#ffffff") < TEXTO
 
 
-class TestLosCuatroColoresDeFamilia:
-    """Cada icono contra su propia baldosa, en los dos temas."""
+class TestLosColoresDeFamilia:
+    """Cada icono contra su propia baldosa, en los **tres** bloques de tema."""
 
     @pytest.mark.parametrize("familia", FAMILIAS)
     def test_en_claro(self, claro, familia):
@@ -143,16 +155,41 @@ class TestLosCuatroColoresDeFamilia:
         assert contraste(color, fondo) >= TEXTO, f"{familia} en oscuro"
 
     @pytest.mark.parametrize("familia", FAMILIAS)
+    def test_y_en_el_oscuro_del_sistema(self, sistema_oscuro, familia):
+        """**El que faltaba, y es el que más gente ve.**
+
+        Sin declararlos aquí el bloque heredaba los del tema claro, y una baldosa `#e6eefb`
+        sobre una tarjeta `#1c2634` no es un contraste malo: es una pegatina blanca. El
+        cálculo no lo habría cazado nunca porque nadie leía este bloque.
+        """
+        color = sistema_oscuro[f"--av-fam-{familia}"]
+        fondo = sistema_oscuro[f"--av-fam-{familia}-soft"]
+        assert contraste(color, fondo) >= TEXTO, f"{familia} en el oscuro del sistema"
+
+    # **Aquí NO va una prueba de «la baldosa se despega de la tarjeta».**
+    #
+    # Se intentó, medida con esta misma fórmula, y el resultado enseña por qué no vale: en
+    # oscuro `componer` está a 1,03 de la tarjeta y se distingue sin esfuerzo. El contraste
+    # de WCAG mide **luminancia**, y estas baldosas separan por **tono** — un ciruela `#46143a`
+    # y un pizarra `#1c2634` tienen casi la misma luz y no se parecen en nada.
+    #
+    # Un umbral ajustado hasta que pasaran los seis valores actuales no afirmaría nada: sería
+    # una copia de los valores con forma de prueba. Lo que sí vigila esto es el par
+    # icono/baldosa, que es donde la luminancia sí es el instrumento correcto.
+
+    @pytest.mark.parametrize("familia", FAMILIAS)
     def test_y_tambien_contra_la_tarjeta(self, claro, familia):
         """La baldosa es translúcida por el degradado, así que el icono acaba viéndose
         parcialmente contra la superficie de la tarjeta. Aquí basta el piso de lo gráfico."""
         color = claro[f"--av-fam-{familia}"]
         assert contraste(color, claro["--av-surface"]) >= GRAFICO, f"{familia} sobre tarjeta"
 
-    def test_las_cuatro_baldosas_se_distinguen_entre_si(self, claro):
-        """Cuatro colores que no se diferencian son un color con cuatro nombres."""
+    def test_las_baldosas_se_distinguen_entre_si(self, claro):
+        """Seis colores que no se diferencian son un color con seis nombres."""
         fondos = {claro[f"--av-fam-{f}-soft"] for f in FAMILIAS}
         assert len(fondos) == len(FAMILIAS)
+        colores = {claro[f"--av-fam-{f}"] for f in FAMILIAS}
+        assert len(colores) == len(FAMILIAS)
 
     def test_y_no_pisan_a_los_estados(self, claro):
         """Verde, ámbar y rojo significan “salió bien”, “cuidado” y “falló” en toda la

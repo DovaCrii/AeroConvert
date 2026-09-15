@@ -22,7 +22,11 @@
     <div class="herramientas">
       {% for accion in grupo.acciones %}
         {% if accion.disponible %}
-          <a class="herramienta" href="{% url accion.url %}">
+          {% comment %}
+            `enlace` y no la etiqueta `url`: seis de estas acciones van al mismo sitio y lo
+            único que las distingue es la consulta que llevan. Ver `Accion.enlace`.
+          {% endcomment %}
+          <a class="herramienta" href="{{ accion.enlace }}">
             <span class="herramienta-marca fam-{{ accion.familia }}" aria-hidden="true">
               <svg class="herramienta-icono"><use href="{% static 'img/icons.svg' %}#{{ accion.icono }}"></use></svg>
             </span>

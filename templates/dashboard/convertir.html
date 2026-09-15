@@ -5,6 +5,18 @@
 
 {% block contenido %}
 
+{% if nombre_preferido %}
+  {% comment %}
+    Quien llega desde «Llevarlo a QGIS» ya eligió. Decirlo aquí es lo que convierte el viaje
+    en continuo: sin esta línea la pantalla se ve idéntica viniendo de la tarjeta o del menú,
+    y la elección parece haberse perdido aunque no se haya perdido.
+  {% endcomment %}
+  <p class="aviso destino-traido">
+    Vas a llevarlo a <strong>{{ nombre_preferido }}</strong>. Elige el archivo y te lo dejo
+    marcado; todavía puedes cambiarlo.
+  </p>
+{% endif %}
+
 {% comment %}
   Los tres pasos, antes de la zona de soltar.
 
@@ -96,6 +108,8 @@
           hx-encoding="multipart/form-data"
           hx-indicator="#mirando">
       {% csrf_token %}
+      {# La elección hecha en el catálogo, para que la ficha la marque. Ver `_destino_preferido`. #}
+      {% if destino_preferido %}<input type="hidden" name="destino" value="{{ destino_preferido }}">{% endif %}
       <div class="soltar soltar-compacto" id="zona">
         <svg class="soltar-icono" aria-hidden="true">
           <use href="{% static 'img/icons.svg' %}#icon-soltar"></use>
@@ -160,6 +174,7 @@
       hx-swap="innerHTML"
       hx-indicator="#mirando">
   <input type="hidden" id="ruta" name="ruta">
+  {% if destino_preferido %}<input type="hidden" name="destino" value="{{ destino_preferido }}">{% endif %}
 </form>
 
 <p id="mirando" class="tenue htmx-indicator" style="margin:12px 0 0;">Mirando el archivo…</p>

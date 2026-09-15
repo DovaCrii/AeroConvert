@@ -117,13 +117,24 @@ def _formulario_experto(inspeccion, formato: str, valores: dict | None = None):
 
 @login_required
 def convertir(request):
-    """La pantalla principal: soltar un archivo y ver qué se puede hacer con él."""
+    """Soltar un archivo y ver qué se puede hacer con él.
+
+    Acepta `?destino=<id de perfil>` para llegar con la elección ya hecha, que es lo que
+    manda la tarjeta «Llevarlo a QGIS» del catálogo. **Un destino que no existe se ignora en
+    silencio**: es una cadena de consulta, la escribe cualquiera, y la pantalla sin destino
+    preferido funciona igual — no hay nada que avisar.
+    """
+    preferido = (request.GET.get("destino") or "").strip()
+    perfil = perfiles_mod.PERFILES.get(preferido)
+
     return render(
         request,
         "dashboard/convertir.html",
         {
             "seccion": "convertir",
             "etiqueta_seccion": "Convertir",
+            "destino_preferido": perfil.id if perfil else "",
+            "nombre_preferido": perfil.nombre if perfil else "",
             "titulo_pagina": "Qué tiene dentro, y dónde va a abrir",
             # Corto, y **diciendo algo que no dice ningún otro sitio de la pantalla**.
             #
@@ -162,7 +173,10 @@ def que_puedo_hacer(request):
             "grupos": grupos,
             "q": busqueda,
             "seccion": "acciones",
-            "etiqueta_seccion": "Todo",
+            # **Ni «Todo» ni «TODO».** El CSS pone este rótulo en mayúsculas, y «TODO» a
+            # secas se lee como el marcador de pendiente que dejamos los programadores en el
+            # código — justo en una aplicación cuyo público sabe lo que es.
+            "etiqueta_seccion": "Todas las herramientas",
             "titulo_pagina": "¿Qué necesitas hacer?",
             "proposito": (
                 "Escribe lo que quieres conseguir —«juntar planos», «quitar la contraseña», "
@@ -185,6 +199,17 @@ def inspeccionar(request):
         (request.GET.get("ruta") or "").strip(),
         (request.GET.get("formato") or "").strip(),
     )
+
+
+def _destino_preferido(request) -> str:
+    """El perfil que venía elegido del catálogo, si sigue existiendo.
+
+    Se comprueba contra `PERFILES` y no se devuelve tal cual: llega de una cadena de consulta
+    o de un campo escondido, o sea de fuera, y acaba comparándose en la plantilla para marcar
+    un botón. Un identificador inventado no marca nada, que es lo correcto.
+    """
+    crudo = (request.POST.get("destino") or request.GET.get("destino") or "").strip()
+    return crudo if crudo in perfiles_mod.PERFILES else ""
 
 
 def _ficha(request, token_pedido: str, formato_pedido: str = ""):
@@ -224,6 +249,12 @@ def _ficha(request, token_pedido: str, formato_pedido: str = ""):
             ),
             "veredictos": perfiles_mod.veredictos(inspeccion),
             "perfiles": _destinos_para(inspeccion),
+            # **La elección que se hizo en el catálogo, traída hasta aquí.**
+            #
+            # Se lee del propio pedido —y no de un parámetro— porque los dos caminos que
+            # acaban en esta ficha, subir y explorar, mandan formularios distintos: uno por
+            # POST y otro por GET. Lo que comparten es llevar el campo escondido.
+            "destino_preferido": _destino_preferido(request),
             "escribibles": escribibles,
             "formato_experto": experto,
             "campos": campos,

@@ -305,8 +305,14 @@
 
     <div class="destinos" style="margin-bottom:14px;">
       {% for p in perfiles %}
+        {% comment %}
+          `destino-elegido` marca el que se pidió desde el catálogo. Es una marca visual, no
+          un `autofocus`: mover el foco a un botón de enviar en cuanto aparece la ficha deja
+          a un pulsador de teclas a un espacio de encolar sin haber leído la estimación.
+        {% endcomment %}
         <button type="submit" name="perfil" value="{{ p.perfil.id }}"
-                class="destino" {% if not p.se_puede %}disabled{% endif %}
+                class="destino{% if p.perfil.id == destino_preferido %} destino-elegido{% endif %}"
+                {% if not p.se_puede %}disabled{% endif %}
                 {% if not p.se_puede %}title="{{ p.motivo }}"{% endif %}>
           <strong>{{ p.perfil.nombre }}</strong>
           <small>
