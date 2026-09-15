@@ -793,6 +793,34 @@ td.cifra,
   margin: 1px 0 0;
 }
 
+/* Dentro de una tarjeta que ya tiene su marco, las dos vías van sin el suyo: si no, son
+ * cuadros dentro de cuadros y la pantalla se llena de bordes. */
+.origenes-pdf {
+  margin-bottom: 0;
+}
+
+.origenes-pdf .origen {
+  padding: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+}
+
+/* Qué documento está elegido ahora mismo. Sin esto, tras el primer paso no había forma de
+ * saber sobre cuál se está trabajando: el nombre solo aparecía en la ruta que ya no se pide. */
+.origen-elegido {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 0 0 14px;
+  padding: 9px 12px;
+  border-radius: var(--av-radius-sm);
+  background: var(--av-surface-alt);
+  border: 1px solid var(--av-border);
+  font-size: var(--av-fs-sm);
+}
+
 /* --- El buscador plegable, en las pantallas de PDF ----------------------- */
 
 .buscador {

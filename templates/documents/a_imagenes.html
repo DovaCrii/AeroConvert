@@ -4,32 +4,12 @@
 
 {% block contenido %}
 
-<form method="post">
+<form method="post" id="forma-documento" enctype="multipart/form-data">
   {% csrf_token %}
 
-  <div class="tarjeta tarjeta-acento" style="margin-bottom:14px;">
-    <div class="eyebrow">El documento</div>
-    <h2 style="font-size:1.1rem;">¿De cuál sacamos las imágenes?</h2>
-    <p class="tenue" style="margin:6px 0 10px;">
-      En el Explorador: clic derecho con <kbd>Mayús</kbd> → «Copiar como ruta».
-    </p>
-
-    <div class="soltar-campo">
-      <label class="visually-hidden" for="id_ruta">Ruta del PDF</label>
-      <input type="text" name="ruta" id="id_ruta" class="form-control ruta"
-             value="{{ ruta_texto }}" autocomplete="off" spellcheck="false"
-             placeholder="D:\obras\entrega\lamina.pdf">
-      <button type="submit" name="accion" value="mirar" class="boton">Ver el documento</button>
-    </div>
-    {% comment %}
-      El mismo buscador que la pantalla de convertir: pinchar un archivo escribe su ruta
-      arriba, sin teclearla ni copiarla del Explorador.
-    {% endcomment %}
-    {% include "dashboard/_buscador.html" with destino="#id_ruta" %}
-  </div>
+  {% include "documents/_origen.html" with pregunta="¿De cuál sacamos las imágenes?" accion="mirar" boton="Ver el documento" %}
 
   {% if cabecera %}
-    <input type="hidden" name="ruta" value="{{ ruta }}">
 
     <div class="tarjeta" style="margin-bottom:14px;">
       <div class="cabecera-tarjeta">

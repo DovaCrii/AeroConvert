@@ -85,6 +85,38 @@ def _origenes_pedidos(texto: str, usuario) -> list:
     return entrada_mod.resolver_varios(texto, usuario=usuario, maximo=MAXIMO_ARCHIVOS)
 
 
+def _origen_del_formulario(request, campo: str = "ruta"):
+    """De dónde parte la pantalla: el archivo subido si lo hay, y si no lo que venga escrito.
+
+    ## Por qué existe
+
+    Cinco pantallas llamaban a `modo.comprobar_ruta()` por su cuenta, saltándose la puerta
+    única de `apps/core/entrada.py`. Consecuencia: **en esas cinco la subida nunca funcionó**
+    — el identificador `subida:<uuid>` llegaba a una función que solo entiende rutas del
+    disco y lo rechazaba por no estar dentro de las raíces permitidas.
+
+    `EntradaNoPermitida` hereda de `RutaNoPermitida` justamente para esto: los `except` que
+    ya había siguen capturándola sin tocar una línea.
+
+    ## Y el tope de tamaño
+
+    `guardar()` levanta `ValidationError` cuando el archivo pasa del tope, **antes** de
+    escribir nada. Se traduce aquí para que la pantalla lo enseñe como cualquier otro motivo
+    en vez de reventar con un 500.
+    """
+    archivo = request.FILES.get("archivo")
+    if archivo is None:
+        return entrada_mod.resolver(request.POST.get(campo) or "", usuario=request.user)
+
+    try:
+        subida = subidas_mod.guardar(archivo, usuario=request.user)
+    except ValidationError as fallo:
+        raise entrada_mod.EntradaNoPermitida(
+            "; ".join(fallo.messages), "ruta-no-permitida"
+        ) from fallo
+    return entrada_mod.resolver(f"{entrada_mod.PREFIJO}{subida.pk}", usuario=request.user)
+
+
 def _filas(entradas, origenes: list, cabeceras: dict) -> list[Fila]:
     filas = []
     for indice, entrada in enumerate(entradas):
@@ -560,12 +592,16 @@ def dividir_vista(request):
         return render(request, "documents/dividir.html", contexto)
 
     try:
-        ruta = modo_mod.comprobar_ruta((request.POST.get("ruta") or "").strip().strip('"'))
+        origen = _origen_del_formulario(request)
     except modo_mod.RutaNoPermitida as fallo:
         messages.error(request, str(fallo))
         return render(request, "documents/dividir.html", contexto)
 
-    contexto["ruta_texto"] = str(ruta)
+    ruta = origen.ruta
+    # **El token, no la ruta.** Para un archivo subido son cosas distintas, y devolver la del
+    # servidor dejaría que el POST siguiente la tratara como una ruta del disco.
+    contexto["ruta_texto"] = origen.token
+    contexto["nombre_origen"] = origen.nombre
     contexto["modo"] = request.POST.get("modo") or "rangos"
     contexto["rangos"] = (request.POST.get("rangos") or "").strip()
 
@@ -580,7 +616,7 @@ def dividir_vista(request):
         return render(request, "documents/dividir.html", contexto)
 
     contexto["cabecera"] = cabecera
-    contexto["ruta"] = str(ruta)
+    contexto["ruta"] = origen.token
 
     if request.POST.get("accion") != "partir":
         return render(request, "documents/dividir.html", contexto)
@@ -694,13 +730,14 @@ def a_imagenes_vista(request):
     except ValueError:
         contexto["ppp_elegido"] = 150
 
-    cabecera, ruta, error = _mirar_pdf(request.POST.get("ruta"))
+    cabecera, origen, error = _mirar_pdf(request)
     if error:
         messages.error(request, error)
         return render(request, "documents/a_imagenes.html", contexto)
 
-    contexto["ruta_texto"] = str(ruta)
-    contexto["ruta"] = str(ruta)
+    ruta = origen.ruta
+    contexto["ruta_texto"] = contexto["ruta"] = origen.token
+    contexto["nombre_origen"] = origen.nombre
     contexto["cabecera"] = cabecera
 
     if request.POST.get("accion") != "convertir":
@@ -753,15 +790,15 @@ def proteger_vista(request):
     if request.method != "POST":
         return render(request, "documents/proteger.html", contexto)
 
-    contexto["ruta_texto"] = (request.POST.get("ruta") or "").strip().strip('"')
     try:
-        ruta = modo_mod.comprobar_ruta(contexto["ruta_texto"])
+        origen = _origen_del_formulario(request)
     except modo_mod.RutaNoPermitida as fallo:
         messages.error(request, str(fallo))
         return render(request, "documents/proteger.html", contexto)
 
-    contexto["ruta_texto"] = str(ruta)
-    contexto["ruta"] = str(ruta)
+    ruta = origen.ruta
+    contexto["ruta_texto"] = contexto["ruta"] = origen.token
+    contexto["nombre_origen"] = origen.nombre
 
     try:
         cabecera = lectura_pdf.leer_cabecera(ruta)
@@ -830,12 +867,14 @@ def numerar_vista(request):
     contexto["desde"] = _entero(request.POST.get("desde"), 1)
     contexto["empezar_en"] = _entero(request.POST.get("empezar_en"), 1)
 
-    cabecera, ruta, error = _mirar_pdf(request.POST.get("ruta"))
+    cabecera, origen, error = _mirar_pdf(request)
     if error:
         messages.error(request, error)
         return render(request, "documents/numerar.html", contexto)
 
-    contexto["ruta_texto"] = contexto["ruta"] = str(ruta)
+    ruta = origen.ruta
+    contexto["ruta_texto"] = contexto["ruta"] = origen.token
+    contexto["nombre_origen"] = origen.nombre
     contexto["cabecera"] = cabecera
 
     if request.POST.get("accion") != "numerar":
@@ -892,12 +931,14 @@ def marca_vista(request):
     contexto["opacidad"] = request.POST.get("opacidad") or "normal"
     contexto["diagonal"] = request.POST.get("orientacion") != "horizontal"
 
-    cabecera, ruta, error = _mirar_pdf(request.POST.get("ruta"))
+    cabecera, origen, error = _mirar_pdf(request)
     if error:
         messages.error(request, error)
         return render(request, "documents/marca.html", contexto)
 
-    contexto["ruta_texto"] = contexto["ruta"] = str(ruta)
+    ruta = origen.ruta
+    contexto["ruta_texto"] = contexto["ruta"] = origen.token
+    contexto["nombre_origen"] = origen.nombre
     contexto["cabecera"] = cabecera
 
     if request.POST.get("accion") != "marcar":
@@ -947,16 +988,17 @@ def office_vista(request):
     if request.method != "POST" or not office:
         return render(request, "documents/office.html", contexto)
 
-    contexto["ruta_texto"] = (request.POST.get("ruta") or "").strip().strip('"')
     contexto["ajustar_ancho"] = request.POST.get("ajustar_ancho") == "si"
 
     try:
-        ruta = modo_mod.comprobar_ruta(contexto["ruta_texto"])
+        origen = _origen_del_formulario(request)
     except modo_mod.RutaNoPermitida as fallo:
         messages.error(request, str(fallo))
         return render(request, "documents/office.html", contexto)
 
-    contexto["ruta_texto"] = str(ruta)
+    ruta = origen.ruta
+    contexto["ruta_texto"] = origen.token
+    contexto["nombre_origen"] = origen.nombre
     destino = ruta.with_suffix(".pdf")
     parcial = ruta_parcial(destino)
 
@@ -1001,15 +1043,16 @@ def a_word_vista(request):
     if request.method != "POST" or not office.tiene("word"):
         return render(request, "documents/a_word.html", contexto)
 
-    contexto["ruta_texto"] = (request.POST.get("ruta") or "").strip().strip('"')
     try:
-        ruta = modo_mod.comprobar_ruta(contexto["ruta_texto"])
+        origen = _origen_del_formulario(request)
+        ruta = origen.ruta
         que_trae = office_mod.mirar_pdf(ruta)
     except (modo_mod.RutaNoPermitida, ComposicionInvalida) as fallo:
         messages.error(request, str(fallo))
         return render(request, "documents/a_word.html", contexto)
 
-    contexto["ruta_texto"] = contexto["ruta"] = str(ruta)
+    contexto["ruta_texto"] = contexto["ruta"] = origen.token
+    contexto["nombre_origen"] = origen.nombre
     contexto["que_trae"] = que_trae
 
     if request.POST.get("accion") != "convertir":
@@ -1039,30 +1082,35 @@ def _entero(crudo, por_omision: int) -> int:
     return valor if valor >= 1 else por_omision
 
 
-def _mirar_pdf(crudo):
-    """Ruta comprobada y cabecera leída, o el motivo por el que no.
+def _mirar_pdf(request):
+    """Origen resuelto y cabecera leída, o el motivo por el que no.
 
-    Devuelve `(cabecera, ruta, error)`. Es el trozo que comparten dividir y PDF a imágenes:
-    comprobar la raíz permitida, leer la cabecera, y negarse si pide contraseña —porque sin
-    la clave no hay páginas que sacar—.
+    Devuelve `(cabecera, origen, error)`. Es el trozo que comparten numerar, marcar y PDF a
+    imágenes: resolver de dónde sale el archivo, leer la cabecera, y negarse si pide
+    contraseña —porque sin la clave no hay páginas que sacar—.
+
+    **Recibe la petición y no una cadena** desde que estas pantallas aceptan archivos subidos:
+    lo que hay que resolver puede venir en `request.FILES` y no en el POST.
     """
     try:
-        ruta = modo_mod.comprobar_ruta((crudo or "").strip().strip('"'))
+        origen = _origen_del_formulario(request)
+        ruta = origen.ruta
     except modo_mod.RutaNoPermitida as fallo:
         return None, None, str(fallo)
 
     try:
         cabecera = lectura_pdf.leer_cabecera(ruta)
     except lectura_pdf.NoEsPdf as fallo:
-        return None, ruta, str(fallo)
+        return None, origen, str(fallo)
 
     if cabecera.cifrado:
         return (
             None,
-            ruta,
-            f"{ruta.name} pide contraseña. Quítasela primero en «Proteger PDF».",
+            origen,
+            # El nombre que la persona reconoce, no el que quedó en el servidor.
+            f"{origen.nombre} pide contraseña. Quítasela primero en «Proteger PDF».",
         )
-    return cabecera, ruta, None
+    return cabecera, origen, None
 
 
 def _ruta_de_salida_de(primero, sufijo: str) -> Path:

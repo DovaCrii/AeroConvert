@@ -1,0 +1,76 @@
+{% load static %}
+{% comment %}
+  De dónde sale el documento, en las pantallas de PDF de un solo archivo.
+
+  Las mismas dos vías que en «Convertir», y **ninguna pide teclear una ruta**: eso solo tenía
+  sentido en una estación de trabajo, y en el servidor era una trampa — alguien pegaba la
+  ruta de su propio equipo y recibía «fuera de las carpetas permitidas».
+
+  Quien lo incluya pasa el texto del botón, porque cada pantalla hace algo distinto con el
+  documento:
+
+    {% include "documents/_origen.html" with accion="mirar" boton="Ver el documento" %}
+
+  El campo oculto `ruta` conserva lo ya elegido entre un paso y el siguiente: estas pantallas
+  van en dos tiempos —mirar y después hacer— y sin él el segundo POST llegaría sin archivo.
+  Lleva el **token**, nunca la ruta del servidor.
+{% endcomment %}
+
+<div class="tarjeta tarjeta-acento" style="margin-bottom:14px;">
+  <div class="eyebrow">El documento</div>
+  <h2 class="origen-titulo" style="margin:2px 0 12px;">{{ pregunta }}</h2>
+
+  {% if ruta_texto %}
+    <p class="origen-elegido">
+      <svg class="linea-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-archivo"></use></svg>
+      <strong>{{ nombre_origen|default:ruta_texto }}</strong>
+      <span class="tenue">· elige otro abajo si te equivocaste</span>
+    </p>
+  {% endif %}
+
+  <input type="hidden" name="ruta" value="{{ ruta_texto }}">
+
+  <div class="origenes origenes-pdf">
+    <div class="origen">
+      <div class="origen-cabeza">
+        <span class="origen-marca fam-transformar" aria-hidden="true">
+          <svg class="origen-icono"><use href="{% static 'img/icons.svg' %}#icon-equipo"></use></svg>
+        </span>
+        <div>
+          <h3 class="origen-titulo">Desde tu equipo</h3>
+          <p class="origen-nota">Se sube y se borra solo en un día.</p>
+        </div>
+      </div>
+
+      <div class="soltar soltar-compacto">
+        <label class="visually-hidden" for="id_archivo">Elegir un documento de tu equipo</label>
+        <input type="file" id="id_archivo" name="archivo" class="form-control" accept=".pdf">
+        <button type="submit" name="accion" value="{{ accion }}" class="boton"
+                style="margin-top:10px;">{{ boton }}</button>
+      </div>
+    </div>
+
+    <div class="origen">
+      <div class="origen-cabeza">
+        <span class="origen-marca fam-proteger" aria-hidden="true">
+          <svg class="origen-icono"><use href="{% static 'img/icons.svg' %}#icon-carpeta"></use></svg>
+        </span>
+        <div>
+          <h3 class="origen-titulo">De la carpeta compartida</h3>
+          <p class="origen-nota">Lo que ve todo el equipo. Pincha para entrar.</p>
+        </div>
+      </div>
+
+      {% comment %}
+        `data-enviar` apunta al formulario de la pantalla: al pinchar un archivo se escribe su
+        ruta en el campo oculto y se envía, que es exactamente lo que hacía el botón de antes.
+      {% endcomment %}
+      <div class="explorador" data-destino="[name='ruta']" data-enviar="#forma-documento"
+           hx-get="{% url 'dashboard:explorar' %}"
+           hx-trigger="load"
+           hx-swap="innerHTML">
+        <p class="tenue" style="margin:0;">Abriendo la carpeta…</p>
+      </div>
+    </div>
+  </div>
+</div>
