@@ -281,13 +281,25 @@ td.cifra,
   display: flex;
   align-items: center;
   gap: 14px;
-  flex-wrap: wrap;
+  /* **Nunca en dos líneas.** Con `wrap`, en cuanto no cabía algo la navegación saltaba abajo y
+   * la cabecera doblaba su altura en todas las pantallas — a cambio de nada, porque el
+   * problema era que sobraban entradas, no que faltara sitio. Sin envolver, lo que no cabe
+   * encoge: primero la explicación, luego el buscador, y solo al final las palabras. */
+  flex-wrap: nowrap;
 }
 
 /* La explicación del modo, en la barra y no en un `title`. Un tooltip no existe para quien
  * usa el teclado, y saber si los archivos salen de la máquina no es un detalle secundario.
- * Se esconde en pantallas estrechas, donde la chapa sola tiene que bastar. */
+ * Se esconde en pantallas estrechas, donde la chapa sola tiene que bastar.
+ *
+ * **Y es la primera que cede.** Es texto informativo que no cambia nunca: recortarlo con
+ * puntos suspensivos cuesta menos que perder el nombre de una sección. */
 .barra-explicacion {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: var(--av-fs-xs);
   color: rgb(255 255 255 / 72%);
 }
@@ -296,7 +308,13 @@ td.cifra,
   display: flex;
   align-items: center;
   gap: 14px;
-  margin-left: auto;
+  flex: 0 0 auto;
+}
+
+/* De quien administra, y se abre una vez cada varias semanas: su palabra ocupaba lo mismo
+ * que la de una sección que se usa a diario. Queda el icono con su `title`. */
+.nav-item-solo-icono {
+  padding: 6px 8px;
 }
 
 .boton-barra {
@@ -705,12 +723,25 @@ a.menu-titulo:hover {
  * `flex: 0 1 26rem` y no un ancho fijo: cede antes que las entradas de navegación, que son las
  * que no pueden encogerse sin perder su palabra.
  */
+/*
+ * **Entre la explicación y la navegación, y encogiendo antes que nadie.**
+ *
+ * Primero vivía dentro de `.barra-nav`, que se empuja al borde derecho: todo apelotonado
+ * allí y un hueco grande en medio. Después se centró con márgenes automáticos, y con seis
+ * entradas ya no cabía: **la barra se partía en dos líneas**, que es peor que cualquier
+ * reparto porque duplica la altura de la cabecera en todas las pantallas.
+ *
+ * Ahora `flex-shrink` alto y sin ancho mínimo: cede él antes que las entradas de navegación,
+ * que son las que no pueden encoger sin perder su palabra.
+ */
 .buscador-barra {
   position: relative;
   display: flex;
   align-items: center;
-  flex: 0 1 26rem;
-  margin: 0 auto;
+  flex: 1 1 8rem;
+  max-width: 20rem;
+  min-width: 0;
+  margin: 0;
 }
 
 .buscador-barra .buscador-lupa {
@@ -723,7 +754,8 @@ a.menu-titulo:hover {
 }
 
 .buscador-barra input {
-  width: 11rem;
+  width: 100%;
+  min-width: 0;
   min-height: 34px;
   padding: 4px 10px 4px 30px;
   border: 1px solid rgb(255 255 255 / 22%);

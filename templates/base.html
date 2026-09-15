@@ -49,8 +49,7 @@
               role="search">
           <label class="visually-hidden" for="q-barra">Buscar una herramienta</label>
           <svg class="buscador-lupa" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-mirar"></use></svg>
-          <input type="search" id="q-barra" name="q" placeholder="Buscar una herramienta…"
-                 autocomplete="off">
+          <input type="search" id="q-barra" name="q" placeholder="Buscar…" autocomplete="off">
         </form>
       {% endif %}
       {% comment %}
@@ -121,6 +120,7 @@
 
             <p class="menu-pie">
               <a href="{% url 'dashboard:que_puedo_hacer' %}">Verlas todas y buscar</a>
+              · <a href="{% url 'presets:lista' %}">Preajustes guardados</a>
               · <a href="{% url 'engines:matriz' %}">Qué no se puede, y por qué</a>
             </p>
           </div>
@@ -147,11 +147,14 @@
           <svg class="nav-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-historial"></use></svg>
           <span>Historial</span>
         </a>
-        <a href="{% url 'presets:lista' %}" class="nav-item" title="Preajustes"
-           {% if seccion == 'preajustes' %}aria-current="page"{% endif %}>
-          <svg class="nav-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-preajustes"></use></svg>
-          <span>Preajustes</span>
-        </a>
+        {% comment %}
+          **Preajustes sale de la barra y entra en el pie del desplegable.**
+
+          Es la entrada que menos se abre —se llega a ella desde la ficha, al guardar unos
+          ajustes— y estaba ocupando el mismo sitio que «Convertir». Con seis entradas más el
+          buscador, la barra no cabía en una línea y se partía en dos: eso es peor que
+          cualquier reparto, porque duplica la altura de la cabecera en todas las pantallas.
+        {% endcomment %}
         <a href="{% url 'engines:matriz' %}" class="nav-item" title="Compatibilidad"
            {% if seccion == 'compatibilidad' %}aria-current="page"{% endif %}>
           <svg class="nav-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-compatibilidad"></use></svg>
@@ -169,10 +172,14 @@
           `is_staff` y no `is_superuser`: es exactamente la condición que deja entrar a
           `/admin/`, así que el enlace nunca aparece para llevar a un 403.
         {% endcomment %}
+        {% comment %}
+          Solo el icono, y con su `title`: es de quien administra, se abre una vez cada varias
+          semanas, y su palabra ocupaba lo mismo que una que se usa a diario.
+        {% endcomment %}
         {% if user.is_staff %}
-          <a href="{% url 'admin:index' %}" class="nav-item" title="Cuentas">
+          <a href="{% url 'admin:index' %}" class="nav-item nav-item-solo-icono" title="Cuentas"
+             aria-label="Cuentas">
             <svg class="nav-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-personas"></use></svg>
-            <span>Cuentas</span>
           </a>
         {% endif %}
 

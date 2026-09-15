@@ -385,6 +385,33 @@ class TestLaPantalla:
         assert ">TODO<" not in cuerpo.replace(" ", "").replace("\n", "")
         assert "Inicio" in cuerpo, "La portada tiene que decir dónde estás."
 
+    def test_la_barra_no_crece_sin_control(self, sesion):
+        """**La barra no puede envolver, así que hay un tope de entradas.**
+
+        Con seis más el buscador se partía en dos líneas, y eso duplica la altura de la
+        cabecera en todas las pantallas a cambio de nada. Lo que sobra se mueve al desplegable
+        —ahí fue «Preajustes»— o se queda en icono, como «Cuentas».
+
+        Cuatro con palabra es lo que cabe cómodo en un portátil. Si esta prueba falla es que
+        alguien añadió una quinta: la decisión no es subir el número, es decidir cuál baja.
+        """
+        import re
+
+        cuerpo = sesion.get(reverse("dashboard:que_puedo_hacer")).content.decode()
+        barra = cuerpo[cuerpo.index('class="barra-nav"') : cuerpo.index("</nav>")]
+        # Se cuentan las entradas, no los `<span>`: el panel del desplegable va dentro de esta
+        # misma etiqueta y tiene uno por herramienta, así que contar spans daba veintiocho.
+        con_palabra = [
+            c for c in re.findall(r'class="(nav-item[^"]*)"', barra) if "solo-icono" not in c
+        ]
+        assert len(con_palabra) <= 4, f"La barra no aguanta más entradas: {con_palabra}"
+
+    def test_preajustes_sigue_alcanzable_desde_el_menu(self, sesion):
+        """Sacarlo de la barra no puede ser perderlo: se llega desde el pie del desplegable."""
+        cuerpo = sesion.get(reverse("dashboard:que_puedo_hacer")).content.decode()
+        menu = cuerpo[cuerpo.index('class="menu-panel"') : cuerpo.index("</details>")]
+        assert reverse("presets:lista") in menu
+
     def test_convertir_sigue_en_la_barra(self, sesion):
         """**La pantalla que más se abre no puede vivir solo dentro de un menú.**
 
