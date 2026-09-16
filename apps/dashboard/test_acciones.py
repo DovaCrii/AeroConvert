@@ -139,6 +139,35 @@ class TestElBuscador:
     def test_lo_que_no_existe_no_devuelve_nada(self):
         assert acciones_mod.por_categoria("xilofono") == []
 
+    @pytest.mark.parametrize(
+        ("con", "sin"), [("contraseña", "contrasena"), ("numeración", "numeracion")]
+    )
+    def test_los_acentos_y_la_ene_no_cambian_nada(self, con, sin):
+        """**Un fallo que se veía.** «quitar contraseña» —escrito como lo escribe cualquiera—
+        no encontraba nada, porque los sinónimos están sin acentos y se comparaba literal. Y
+        cero resultados se lee como «no se puede», que era falso."""
+        assert _nombres(acciones_mod.por_categoria(con)) == _nombres(
+            acciones_mod.por_categoria(sin)
+        )
+        assert _nombres(acciones_mod.por_categoria(con)), f"«{con}» no encuentra nada."
+
+    def test_una_palabra_de_mas_no_tira_la_busqueda(self):
+        """«juntar planos» daba cero: «juntar» sí está y «planos» no, y se exigían las dos. Se
+        descartan los términos que no encuentran nada **por sí solos**, no se rebaja a
+        «cualquiera de las palabras» — eso devolvería media aplicación."""
+        assert "Unir PDF" in _nombres(acciones_mod.por_categoria("juntar planos"))
+
+    def test_pero_una_palabra_inventada_sola_sigue_sin_devolver_nada(self):
+        """El respaldo no puede convertirse en «siempre hay resultados»."""
+        assert acciones_mod.por_categoria("xilofono") == []
+        assert acciones_mod.por_categoria("xilofono trombon") == []
+
+    def test_y_no_se_ensancha_una_busqueda_que_ya_encontraba(self):
+        """Si exigir todas ya devuelve algo, el respaldo no entra: «marca de agua» no puede
+        empezar a devolver todo lo que lleve «de»."""
+        estricta = _nombres(acciones_mod.por_categoria("marca agua"))
+        assert estricta == ["Marca de agua"]
+
     def test_una_categoria_vacia_no_se_pinta(self):
         """Un encabezado sobre un hueco hace pensar que algo se rompió."""
         grupos = acciones_mod.por_categoria("contrasena")
@@ -257,6 +286,35 @@ class TestCadaCategoriaEnSuSitio:
         """Decirle a quien mira las de texto que hay dos apagadas de Office sería contarle un
         problema que no es el suyo."""
         assert sesion.get(reverse("documents:texto")).status_code == 200
+
+
+class TestLosEjemplosDeBusqueda:
+    """**Un buscador con truco que nadie descubre es un buscador que no sirve.**
+
+    Este tiene tres —la palabra de quien busca, el par de formatos, y el contenido del
+    archivo— y ninguno se adivina escribiendo en una caja vacía. Los ejemplos los enseñan
+    pulsando, que es como se aprenden.
+    """
+
+    @pytest.mark.parametrize("texto", [e[0] for e in acciones_mod.EJEMPLOS])
+    def test_todos_devuelven_algo(self, texto):
+        """**Un ejemplo que no encuentra nada es peor que ninguno**: enseña, en la primera
+        pantalla y con un solo clic, que el buscador no funciona."""
+        hay_acciones = bool(acciones_mod.por_categoria(texto))
+        hay_conversion = acciones_mod.conversion_pedida(texto) is not None
+        assert hay_acciones or hay_conversion, f"«{texto}» no encuentra nada."
+
+    def test_cada_uno_lleva_su_pista(self):
+        """La pista es lo que convierte un ejemplo en una lección: dice **qué truco** está
+        demostrando, no solo qué se busca."""
+        assert all(pista for _, pista in acciones_mod.EJEMPLOS)
+
+    def test_salen_en_la_portada_como_enlaces(self, sesion):
+        """Enlaces y no botones: cada búsqueda tiene su dirección, que se copia y se comparte.
+        Y es lo único que funcionaría sin JavaScript, que la CSP no deja poner en línea."""
+        cuerpo = sesion.get(reverse("dashboard:que_puedo_hacer")).content.decode()
+        assert cuerpo.count('class="ejemplo"') == len(acciones_mod.EJEMPLOS)
+        assert "?q=juntar%20planos" in cuerpo
 
 
 class TestLaBienvenida:

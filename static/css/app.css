@@ -1183,6 +1183,46 @@ a.menu-titulo:hover {
   line-height: 1.8;
 }
 
+/* --- Los ejemplos de búsqueda --------------------------------------------- */
+
+/*
+ * Van pegados debajo del buscador y son enlaces de verdad, no adorno: cada uno es la búsqueda
+ * con su propia dirección, que se puede copiar y guardar. Enseñan los tres trucos del buscador
+ * —la palabra de quien busca, el par de formatos, el contenido del archivo— que escribiendo en
+ * una caja vacía no se adivinan.
+ */
+.ejemplos {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 0 20px;
+}
+
+.ejemplos-rotulo {
+  font-size: var(--av-fs-sm);
+  color: var(--av-text-muted);
+}
+
+.ejemplo {
+  padding: 4px 11px;
+  border: 1px solid var(--av-border);
+  border-radius: 999px;
+  background: var(--av-surface);
+  color: var(--av-text-secondary);
+  font-size: var(--av-fs-sm);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.ejemplo:hover,
+.ejemplo:focus-visible {
+  border-color: var(--av-primary);
+  background: var(--av-primary-soft);
+  color: var(--av-primary);
+  text-decoration: none;
+}
+
 /* --- La bienvenida de la primera vez -------------------------------------- */
 
 .bienvenida {
@@ -1200,8 +1240,53 @@ a.menu-titulo:hover {
 
 .bienvenida-ideas {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
   gap: 16px 24px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bienvenida-ideas li {
+  display: grid;
+  grid-template-columns: 2.4rem 1fr;
+  gap: 12px;
+  align-items: start;
+}
+
+/* La baldosa del paso, con el número encima del dibujo. El color lo pone `.fam-*`. */
+.bienvenida-ideas .paso-marca {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 10px;
+  color: var(--marca-color, var(--av-primary));
+  background: var(--marca-fondo, var(--av-primary-soft));
+}
+
+.bienvenida-ideas .paso-icono {
+  width: 1.3rem;
+  height: 1.3rem;
+}
+
+/* El número en una chapa pequeña sobre la esquina: dice el orden sin robarle sitio al
+ * dibujo, que es lo que se reconoce de un vistazo. */
+.bienvenida-ideas .paso-numero {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  display: grid;
+  place-items: center;
+  width: 1.1rem;
+  height: 1.1rem;
+  border-radius: 999px;
+  background: var(--av-primary);
+  color: var(--av-sobre-accion, #fff);
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1;
 }
 
 .bienvenida-ideas h3 {

@@ -23,10 +23,26 @@ del formato concreto ya la hace la aplicación.
 
 from __future__ import annotations
 
+import unicodedata
 from dataclasses import dataclass, field
 from urllib.parse import urlencode
 
 from django.urls import reverse
+
+
+def sin_tildes(texto: str) -> str:
+    """En minúsculas y sin acentos ni eñes, para comparar.
+
+    **No es un detalle de idioma: es un fallo que se veía.** «quitar contraseña» —escrito como
+    lo escribe cualquiera, con eñe— no encontraba nada, porque los sinónimos están escritos sin
+    acentos y la comparación era literal. Cero resultados se lee como «no se puede», que era
+    falso.
+
+    Se normaliza a NFD y se tiran las marcas diacríticas: así «contraseña» y «contrasena»,
+    «numeración» y «numeracion», son la misma cosa a efectos de buscar.
+    """
+    plano = unicodedata.normalize("NFD", texto.lower())
+    return "".join(c for c in plano if unicodedata.category(c) != "Mn")
 
 
 @dataclass(frozen=True)
@@ -56,7 +72,7 @@ class Accion:
 
     @property
     def texto_de_busqueda(self) -> str:
-        return " ".join((self.nombre, self.que_hace, self.sale, *self.palabras)).lower()
+        return sin_tildes(" ".join((self.nombre, self.que_hace, self.sale, *self.palabras)))
 
     @property
     def enlace(self) -> str:
@@ -191,7 +207,7 @@ def _de_los_documentos() -> list[Accion]:
         "dividir": ("separar", "partir", "extraer", "split", "sacar paginas"),
         "imagenes": ("fotos", "escaneo", "jpg", "png", "monografia"),
         "a_imagenes": ("exportar", "lamina", "captura", "jpg", "png"),
-        "numerar": ("foliar", "paginacion", "numeros de pagina"),
+        "numerar": ("foliar", "paginacion", "numeracion", "numeros de pagina"),
         "marca": ("borrador", "confidencial", "sello", "estampar", "watermark"),
         "proteger": ("contrasena", "clave", "cifrar", "desbloquear", "aes"),
         "office": ("word", "excel", "powerpoint", "docx", "xlsx", "pptx"),
@@ -226,6 +242,22 @@ def _de_los_documentos() -> list[Accion]:
         )
         for h in estado_de_herramientas()
     ]
+
+
+#: Búsquedas de ejemplo para la portada, y **cada una demuestra un truco distinto**.
+#:
+#: No son decoración: un buscador con truco que nadie descubre es un buscador que no sirve.
+#: Los tres que tiene este —la palabra de quien busca, el par de formatos, y el contenido del
+#: archivo— no se adivinan escribiendo en una caja vacía.
+#:
+#: Las cubre `test_los_ejemplos_de_la_portada_devuelven_algo`: un ejemplo que no encuentra nada
+#: es peor que ninguno, porque enseña que el buscador no funciona.
+EJEMPLOS = (
+    ("juntar planos", "Encuentra «Unir PDF» sin que ninguna de las dos palabras esté en su nombre"),
+    ("tif a jp2", "Escribe los dos formatos y contesta si se puede"),
+    ("quitar contraseña", "Encuentra la herramienta por lo que hace, no por cómo se llama"),
+    ("excel", "Todo lo que sale de una hoja de cálculo o entra en ella"),
+)
 
 
 def todas() -> list[Accion]:
@@ -290,12 +322,12 @@ def _indice_de_formatos() -> list[tuple[str, str]]:
 
     entradas: list[tuple[str, str, int]] = []
     for codigo, formato in catalogo.FORMATOS.items():
-        entradas.append((codigo.lower(), codigo, _POR_CODIGO))
-        entradas.append((str(formato.nombre).lower(), codigo, _POR_NOMBRE))
+        entradas.append((sin_tildes(codigo), codigo, _POR_CODIGO))
+        entradas.append((sin_tildes(str(formato.nombre)), codigo, _POR_NOMBRE))
         for extension in formato.extensiones:
-            entradas.append((extension.lstrip(".").lower(), codigo, _POR_EXTENSION_))
+            entradas.append((sin_tildes(extension.lstrip(".")), codigo, _POR_EXTENSION_))
         for apodo in APODOS.get(codigo, ()):
-            entradas.append((apodo, codigo, _POR_APODO))
+            entradas.append((sin_tildes(apodo), codigo, _POR_APODO))
 
     ordenadas = sorted(set(entradas), key=lambda e: (-len(e[0]), e[2]))
     return [(texto, codigo) for texto, codigo, _ in ordenadas]
@@ -313,7 +345,7 @@ def formatos_nombrados(busqueda: str) -> list[str]:
     quedaba con el espacio y el segundo dejaba de encontrarse. La búsqueda devolvía uno solo y
     por tanto ninguna respuesta.
     """
-    texto = " " + busqueda.lower().replace("→", " ").replace("-", " ") + " "
+    texto = " " + sin_tildes(busqueda).replace("→", " ").replace("-", " ") + " "
     hallados: list[tuple[int, str]] = []
     gastado = [False] * len(texto)
 
@@ -384,8 +416,25 @@ def por_categoria(busqueda: str = "") -> list[dict]:
     Una categoría sin resultados no se pinta: un encabezado sobre un hueco hace pensar que
     algo se rompió.
     """
-    terminos = [t for t in busqueda.lower().split() if t]
-    encontradas = [a for a in todas() if all(t in a.texto_de_busqueda for t in terminos)]
+    terminos = [t for t in sin_tildes(busqueda).split() if t]
+    catalogo = todas()
+    encontradas = [a for a in catalogo if all(t in a.texto_de_busqueda for t in terminos)]
+
+    # **Si exigir todas no deja nada, se devuelve lo que más se acerca.**
+    #
+    # «juntar planos» daba cero: «juntar» está en «Unir PDF» y «planos» en la descripción de
+    # otra herramienta, así que ninguna las tenía las dos. Y cero resultados se lee como «no se
+    # puede» —que era falso— en la búsqueda más natural del mundo.
+    #
+    # Se puntúa cada acción por **cuántos términos acierta** y se devuelven las del máximo. No
+    # es «cualquiera de las palabras», que soltaría media aplicación: si algo acierta dos, las
+    # que aciertan una no salen. Y si el máximo es cero, no sale nada — «xilofono» sigue sin
+    # devolver resultados, que es la respuesta correcta.
+    if terminos and not encontradas:
+        aciertos = {a.id: sum(t in a.texto_de_busqueda for t in terminos) for a in catalogo}
+        techo = max(aciertos.values(), default=0)
+        if techo:
+            encontradas = [a for a in catalogo if aciertos[a.id] == techo]
 
     grupos = []
     for clave, titulo, cuando, seccion in CATEGORIAS:

@@ -192,6 +192,15 @@ def que_puedo_hacer(request):
         # botón de «no volver a mostrar» que alguien pulsa sin querer y no sabe deshacer.
         "primera_vez": not busqueda
         and not ConversionJob.objects.filter(owner=request.user).exists(),
+        # **Los tres trucos del buscador, enseñados con búsquedas que funcionan.**
+        #
+        # Un buscador con truco que nadie descubre es un buscador que no sirve, y este tiene
+        # tres: entiende la palabra de quien busca y no la del programa, entiende pares de
+        # formato, y entiende lo que hay dentro del archivo. Un párrafo explicándolo no lo
+        # enseña; pulsar un ejemplo sí.
+        #
+        # Cada uno está elegido para demostrar uno distinto, y los tres devuelven resultados.
+        "ejemplos": acciones_mod.EJEMPLOS,
     }
     if request.headers.get("HX-Request"):
         return render(request, "dashboard/_acciones.html", contexto)

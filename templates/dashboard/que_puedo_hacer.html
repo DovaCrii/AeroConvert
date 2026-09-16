@@ -28,6 +28,25 @@
   <span id="buscando" class="tenue htmx-indicator">buscando…</span>
 </form>
 
+{% comment %}
+  **Cómo se busca aquí, enseñado con búsquedas que funcionan.**
+
+  Un buscador con truco que nadie descubre es un buscador que no sirve, y este tiene tres
+  trucos: entiende la palabra que usa quien busca y no la del programa («juntar» encuentra
+  «Unir PDF»), entiende pares de formato («tif a jp2»), y entiende lo que hay dentro del
+  archivo («excel»). Explicarlo en un párrafo no lo enseña; pulsarlo sí.
+
+  Son enlaces normales y no botones con JavaScript: cada uno es la búsqueda de verdad, con su
+  dirección propia, que se puede copiar, compartir y guardar en favoritos. La CSP prohíbe los
+  manejadores en línea, así que además es lo único que funcionaría sin un fichero aparte.
+{% endcomment %}
+<nav class="ejemplos" aria-label="Ejemplos de búsqueda">
+  <span class="ejemplos-rotulo">Prueba con</span>
+  {% for texto, pista in ejemplos %}
+    <a class="ejemplo" href="?q={{ texto|urlencode }}" title="{{ pista }}">{{ texto }}</a>
+  {% endfor %}
+</nav>
+
 {% if primera_vez %}
   {% comment %}
     **La bienvenida, solo mientras hace falta.**
@@ -44,32 +63,58 @@
   <section class="bienvenida">
     <h2 class="bienvenida-titulo">Cómo funciona esto</h2>
 
-    <div class="bienvenida-ideas">
-      <div>
-        <h3>1 · El archivo, de dos sitios</h3>
-        <p>
-          De <strong>tu equipo</strong>, subiéndolo, o de la <strong>carpeta compartida</strong>,
-          que es donde el equipo deja las ortofotos y las nubes. Nunca hace falta escribir una
-          ruta.
-        </p>
-      </div>
-      <div>
-        <h3>2 · Primero se mira</h3>
-        <p>
-          Antes de convertir, AeroConvert abre el archivo y dice <strong>qué es de
-          verdad</strong> —no por su extensión— y si le falta el sistema de referencia. El
-          original no se toca nunca.
-        </p>
-      </div>
-      <div>
-        <h3>3 · Eliges el destino, no el formato</h3>
-        <p>
-          Dices <strong>dónde tiene que abrir</strong> —Civil 3D, QGIS, un informe— y los
-          ajustes se ponen solos. Cada herramienta dice <strong>qué entrega</strong> antes de
-          pulsar.
-        </p>
-      </div>
-    </div>
+    {% comment %}
+      **El símbolo y el número, no uno de los dos.**
+
+      El número dice que hay un orden —primero esto, luego lo otro— y el dibujo dice de qué va
+      el paso sin leerlo. Es la misma pareja que ya usan los tres pasos de la pantalla de
+      convertir, y por el mismo motivo: tres iconos sueltos no se leen como una secuencia, y
+      tres números sueltos es lo que había aquí.
+    {% endcomment %}
+    <ol class="bienvenida-ideas">
+      <li>
+        <span class="paso-marca fam-componer" aria-hidden="true">
+          <svg class="paso-icono"><use href="{% static 'img/icons.svg' %}#icon-carpeta"></use></svg>
+          <span class="paso-numero">1</span>
+        </span>
+        <div>
+          <h3>El archivo, de dos sitios</h3>
+          <p>
+            De <strong>tu equipo</strong>, subiéndolo, o de la <strong>carpeta compartida</strong>,
+            que es donde el equipo deja las ortofotos y las nubes. Nunca hace falta escribir una
+            ruta.
+          </p>
+        </div>
+      </li>
+      <li>
+        <span class="paso-marca fam-transformar" aria-hidden="true">
+          <svg class="paso-icono"><use href="{% static 'img/icons.svg' %}#icon-mirar"></use></svg>
+          <span class="paso-numero">2</span>
+        </span>
+        <div>
+          <h3>Primero se mira</h3>
+          <p>
+            Antes de convertir, AeroConvert abre el archivo y dice <strong>qué es de
+            verdad</strong> —no por su extensión— y si le falta el sistema de referencia. El
+            original no se toca nunca.
+          </p>
+        </div>
+      </li>
+      <li>
+        <span class="paso-marca fam-destino" aria-hidden="true">
+          <svg class="paso-icono"><use href="{% static 'img/icons.svg' %}#icon-destino"></use></svg>
+          <span class="paso-numero">3</span>
+        </span>
+        <div>
+          <h3>Eliges el destino, no el formato</h3>
+          <p>
+            Dices <strong>dónde tiene que abrir</strong> —Civil 3D, QGIS, un informe— y los
+            ajustes se ponen solos. Cada herramienta dice <strong>qué entrega</strong> antes de
+            pulsar.
+          </p>
+        </div>
+      </li>
+    </ol>
 
     <p class="bienvenida-pie">
       Y lo que <em>no</em> se puede hacer en esta máquina también se dice, con su motivo, en
