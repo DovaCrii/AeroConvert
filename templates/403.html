@@ -21,6 +21,7 @@
     caduca. Vuelve atrás, recarga la página y repite lo que estabas haciendo.
   </p>
 
-  <p style="margin:0;"><a href="{% url 'dashboard:convertir' %}">Volver al inicio</a></p>
+  {# Decía «Volver al inicio» y llevaba a «Convertir». El texto era correcto; el enlace, no. #}
+  <p style="margin:0;"><a href="{% url 'dashboard:que_puedo_hacer' %}">Volver al inicio</a></p>
 </div>
 {% endblock %}

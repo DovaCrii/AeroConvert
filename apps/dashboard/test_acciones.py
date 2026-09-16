@@ -470,6 +470,25 @@ class TestLaPantalla:
         menu = cuerpo[cuerpo.index('class="menu-panel"') : cuerpo.index("</details>")]
         assert reverse("presets:lista") in menu
 
+    def test_la_marca_lleva_al_inicio(self, sesion):
+        """**El logotipo es el enlace a casa en todas las páginas del mundo.**
+
+        Se quedó apuntando a «Convertir» cuando la portada pasó a ser el catálogo: quien lo
+        pulsaba desde el inicio se iba a otro sitio y no tenía forma evidente de volver.
+        """
+        cuerpo = sesion.get(reverse("dashboard:convertir")).content.decode()
+        marca = cuerpo[cuerpo.index('class="marca"') - 60 : cuerpo.index('class="marca"') + 60]
+        assert f'href="{reverse("dashboard:que_puedo_hacer")}"' in marca, marca
+
+    def test_y_el_403_tambien(self, sesion):
+        """Decía «Volver al inicio» y llevaba a «Convertir»: el texto era correcto, el enlace no."""
+        from pathlib import Path
+
+        from django.conf import settings
+
+        crudo = (Path(settings.BASE_DIR) / "templates" / "403.html").read_text(encoding="utf-8")
+        assert "dashboard:que_puedo_hacer" in crudo
+
     def test_convertir_sigue_en_la_barra(self, sesion):
         """**La pantalla que más se abre no puede vivir solo dentro de un menú.**
 

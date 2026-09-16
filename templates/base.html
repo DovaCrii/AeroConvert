@@ -16,7 +16,14 @@
   <a class="salto" href="#principal">Saltar al contenido</a>
 
   <header class="barra">
-    <a class="marca" href="{% url 'dashboard:convertir' %}">
+    {% comment %}
+      **La marca lleva al inicio**, que es lo que espera cualquiera que la pulse.
+
+      Se quedó apuntando a «Convertir» cuando la portada pasó a ser el catálogo: el logotipo
+      es el enlace a casa en todas las páginas del mundo, y aquí llevaba a una sección. Quien
+      lo pulsaba desde el inicio se iba a otro sitio y no tenía forma evidente de volver.
+    {% endcomment %}
+    <a class="marca" href="{% url 'dashboard:que_puedo_hacer' %}" title="Inicio">
       <img src="{% static 'img/aeroconvert-mark.svg' %}" alt="" aria-hidden="true">
       <span>AeroConvert</span>
     </a>
