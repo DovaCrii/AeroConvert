@@ -214,8 +214,12 @@ sudo nginx -t && sudo systemctl reload nginx
 único de los tres servicios cuyo fallo no se nota usando la aplicación:
 
 ```bash
-sudo systemctl start aeroconvert-respaldo.service && ls -lh /var/backups/aeroconvert/
+sudo systemctl start aeroconvert-respaldo.service && sudo ls -lh /var/backups/aeroconvert/
 ```
+
+**El `sudo` del `ls` no sobra**: la carpeta es `0700` de `aeroconvert`, así que sin él sale
+«Permiso denegado» y parece que el respaldo falló cuando lo que pasa es que está bien
+guardado.
 
 Tiene que aparecer un `.sqlite3.gz`. Si no aparece, el motivo está en
 `journalctl -u aeroconvert-respaldo -n 30`.

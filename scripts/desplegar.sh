@@ -185,8 +185,13 @@ gestionar shell -c 'from django.conf import settings; print(f"{settings.TOPE_MB}
 # se caen y alguien lo ve el mismo dia; este se descubre el dia que hace falta el respaldo,
 # que es el peor dia posible. Aqui cuesta una linea y sale delante de quien despliega.
 echo "==> respaldo"
-ultimo=$(find "$RESPALDOS" -maxdepth 1 -name 'aeroconvert-*.sqlite3.gz' -printf '%T@ %p\n' \
-    2>/dev/null | sort -rn | head -1 | cut -d' ' -f2-)
+# **`sudo -u "$DUENO"` y no a secas**, por el mismo motivo que el `.env`: la carpeta es 0700
+# de `aeroconvert` -- ahi dentro va la bitacora entera de la oficina -- y quien lanza el
+# despliegue no es ese usuario. Sin esto, `find` recibe «Permiso denegado», el `2>/dev/null`
+# se lo traga, y la linea diria «NINGUNO» **siempre**, tambien con respaldos dentro. Una
+# falsa alarma permanente es peor que no avisar: se aprende a ignorarla.
+ultimo=$(sudo -u "$DUENO" find "$RESPALDOS" -maxdepth 1 -name 'aeroconvert-*.sqlite3.gz' \
+    -printf '%T@ %p\n' 2>/dev/null | sort -rn | head -1 | cut -d' ' -f2-)
 if [ -n "$ultimo" ]; then
     echo "  ultimo: $(basename "$ultimo")"
 else
