@@ -1555,8 +1555,19 @@ a.menu-titulo:hover {
 }
 
 /* **8 veces** como `style="color:var(--av-ok);"` en el `<strong>` del recibo. */
+/* El «✓ Hecho» de una conversión. **Va en verde porque significa «salió bien»**, así que no
+ * sirve para un título que solo informa: en verde, «Cloud Optimized GeoTIFF» se lee como
+ * «logrado» en vez de como el nombre de un formato. Para eso está `.respuesta-titulo`. */
 .recibo-titulo {
   color: var(--av-ok);
+  font-weight: var(--av-peso-fuerte);
+}
+
+/* Lo que contesta Tino. Peso y tamaño, **sin color de veredicto**: una respuesta no es ni
+ * un éxito ni un error, y pintarla de cualquiera de los dos le añade un juicio que no tiene. */
+.respuesta-titulo {
+  margin: var(--av-s-1) 0 var(--av-s-2);
+  font-size: var(--av-fs-lg);
   font-weight: var(--av-peso-fuerte);
 }
 
@@ -1744,6 +1755,16 @@ legend {
   border-radius: var(--av-radius);
   font-size: var(--av-fs-sm);
   line-height: var(--av-alto-normal);
+}
+
+/* El ritmo de este bloque, que vivía en tres `style="margin…"` escritos a mano dentro de la
+ * plantilla. Tres márgenes seguidos a mano son la señal de que falta una clase. */
+.vacio-busqueda p {
+  margin: 0 0 var(--av-s-2);
+}
+
+.vacio-busqueda p:last-child {
+  margin-bottom: 0;
 }
 
 /* --- El buscador plegable, en las pantallas de PDF ----------------------- */

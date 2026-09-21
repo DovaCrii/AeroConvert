@@ -171,14 +171,19 @@ class TestNoVuelvenLosEstilosEnLinea:
     def test_y_el_total_no_crece(self):
         """**Un tope que solo puede bajar.**
 
-        Empezó en 278 y va por menos de 220. No se fija en cero porque los de posición
-        puntual son legítimos y perseguirlos todos sería trabajo sin beneficio — pero el
-        número no puede volver a subir sin que alguien lo vea y lo justifique bajando este.
+        Empezó en 278 y va por 213. No se fija en cero porque los de posición puntual son
+        legítimos y perseguirlos todos sería trabajo sin beneficio — pero el número no puede
+        volver a subir sin que alguien lo vea y lo justifique bajando este.
+
+        **Y el tope baja cuando baja el número.** Si se dejara holgura, el siguiente en
+        añadir tres se los gastaría sin enterarse, que es justo lo que pasó al meter el
+        enlace a Tino en «nada coincide»: tres márgenes escritos a mano en un bloque de tres
+        párrafos, o sea una clase que faltaba.
         """
         raiz = Path(settings.BASE_DIR) / "templates"
         total = sum(len(re.findall(r'style="', f.read_text("utf-8"))) for f in raiz.rglob("*.html"))
-        assert total <= 220, (
-            f"Hay {total} estilos en línea y el tope está en 220. "
+        assert total <= 213, (
+            f"Hay {total} estilos en línea y el tope está en 213. "
             "Si añades uno, primero quita otro — o saca una clase, que es de lo que se trata."
         )
 

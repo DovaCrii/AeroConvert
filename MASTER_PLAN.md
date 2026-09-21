@@ -334,15 +334,18 @@ viven en el mismo servidor y en puertos distintos que nadie recuerda.
 > la deuda dentro — y no había forma de saber cuál. Una tabla de deuda que no permite saber si
 > algo sigue abierto no sirve para nada, que es justo lo contrario de su propósito.
 >
-> Ahora cada fila lleva **estado comprobado contra el código**, no contra el plan.
+> Ahora cada fila lleva **estado comprobado contra el código**, no contra el plan. Las tres
+> que quedaban «por verificar» se verificaron el 2026-09-21, una por una, abriendo el
+> archivo. **Dos estaban pagadas desde hacía semanas** y la tercera era peor de lo que la
+> fila decía.
 
 | Qué | Por qué está | Estado |
 | --- | --- | --- |
 | Sin `RegistroDeSonda` | La matriz se calcula en vivo; falta el historial de «el día que GDAL desapareció» | **Abierta** — comprobado: el identificador no aparece en ningún `.py` |
-| El modo experto solo elige formato | Las opciones del motor ya son declarativas, pero el formulario aún no las despliega | **Por verificar** — F1.7 se cerró y la deuda no se tachó |
-| Sin remuestreo ni nodata en la interfaz | El plan los acepta; falta exponerlos | **Por verificar** — igual que la anterior |
+| ~~El modo experto solo elige formato~~ | — | **Saldada** — `engines/formulario.py:113` construye los campos desde `motor.opciones(par)` y `_ajustes.html` los pinta. El ráster declara compresión, banda alfa, pirámides, tesela y calidad; el vectorial, CRS de destino y solo-geometría |
+| Sin remuestreo ni nodata en la interfaz | El plan los acepta; falta exponerlos | **Abierta, y peor de lo que decía.** `raster/motores.py:234` **lee** `opciones["remuestreo"]` y nadie lo declara: es un parámetro que se puede leer y no se puede poner, o sea código muerto con aspecto de función. `nodata` no aparece en ningún `.py` |
 | Sin traducciones compiladas | Los nombres de formato salen en inglés, que es su `msgid` | **Abierta** — no hay `.mo` compilados |
-| El LAS no reporta su CRS | Vive en las VLR, que aún no se leen | **Probablemente saldada** — F2.3 se cerró con «un CRS ausente es detención dura». Confirmar y tachar |
+| ~~El LAS no reporta su CRS~~ | — | **Saldada** — `formats/las.py:169` lee las VLR y saca EPSG y WKT, con el bit de `global_encoding` que decide cuál manda |
 | Soltar un archivo solo da su nombre | El navegador no entrega la ruta completa, por seguridad. Quedan las dos vías: subir o explorar la compartida | no se paga |
 | El correo no es único en la base | `auth.User` no lo declara así, y cambiarlo obliga a migrar el modelo con la base ya en producción. El alta lo impide y el backend se niega a elegir entre dos | cuando toque tocar el modelo por otra cosa |
 | Office solo en Windows | Hablan con Word por COM. En el servidor salen apagadas con su motivo | no se paga · la alternativa entrega un documento que *se parece* |

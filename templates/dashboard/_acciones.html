@@ -78,8 +78,13 @@
 {% endcomment %}
 {% if not grupos and not conversion %}
   <div class="vacio-busqueda">
-    <p style="margin:0 0 4px;"><strong>Nada coincide con «{{ q }}».</strong></p>
-    <p class="tenue" style="margin:0;">
+    {% comment %}
+      **Sin `style=` en los tres párrafos.** Eran tres márgenes escritos a mano, que es
+      exactamente la señal de que faltaba una clase: el ritmo de este bloque lo pone ahora
+      `.vacio-busqueda p` en la hoja, donde se puede cambiar una vez.
+    {% endcomment %}
+    <p><strong>Nada coincide con «{{ q }}».</strong></p>
+    <p class="tenue">
       Prueba con menos palabras, o con el formato: «pdf», «excel», «ortofoto».
       Si lo que buscas no está, en
       <a href="{% url 'engines:matriz' %}">Compatibilidad</a> se dice qué falta y por qué.
@@ -89,7 +94,7 @@
       que persigue a la gente por la aplicación. El momento de necesitar un ayudante es este:
       el buscador no encontró nada, y la pregunta se lleva escrita tal cual.
     {% endcomment %}
-    <p class="tenue" style="margin:8px 0 0;">
+    <p class="tenue">
       O <a href="{% url 'tino:preguntar' %}?p={{ q|urlencode }}">pregúntale a Tino</a>, que
       contesta con lo que esta máquina sabe.
     </p>

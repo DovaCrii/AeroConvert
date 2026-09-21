@@ -4,8 +4,14 @@
 
 {% if respuesta %}
   <div class="tarjeta">
+    {% comment %}
+      **Sin `.recibo-titulo`**, y no es un detalle. Esa clase nació para el «✓ Hecho» de una
+      conversión y va en verde; en verde, «Cloud Optimized GeoTIFF» se lee como «logrado» en
+      vez de como el nombre de un formato. Es el mismo error que el `.boton-icono` blanco
+      sobre blanco: una clase reutilizada fuera de donde nació.
+    {% endcomment %}
     <div class="eyebrow">Respuesta</div>
-    <h2 class="recibo-titulo">{{ respuesta.titulo }}</h2>
+    <h2 class="respuesta-titulo">{{ respuesta.titulo }}</h2>
     {% if respuesta.detalle %}<p>{{ respuesta.detalle }}</p>{% endif %}
 
     {% if respuesta.enlace %}
@@ -31,7 +37,7 @@
   {% endcomment %}
   <div class="tarjeta">
     <div class="eyebrow">No lo sé</div>
-    <h2 class="recibo-titulo">Esto no lo sé contestar.</h2>
+    <h2 class="respuesta-titulo">Esto no lo sé contestar.</h2>
     <p>
       Prefiero decirlo a inventarme algo: una respuesta equivocada sobre un formato o un
       sistema de referencia acaba en un archivo entregado mal.
