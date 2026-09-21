@@ -49,9 +49,19 @@ Hexagon para ECW. Lo único pendiente que solo depende de escribirlo es F2.6 (3D
 | F6 | **Desplegado**: systemd, dos servicios, respaldo con temporizador, publicado por Funnel |
 | F7.1 | **Markdown** en los dos sentidos, desde seis formatos |
 | F7.6 | **Catálogos de tubería** de Plant 3D ↔ Excel |
+| F5.10 / F7.3a | **Comprimir PDF**, y negarse cuando comprimir empeoraría el archivo |
+| F5.11 / F7.3d | **Reconocer el texto de un escaneo** ⚠ falta correrlo con Tesseract puesto |
+| F3.4 | **DWG y DGN v8** por ODA ⚠ falta correrlo con el conversor puesto |
+| F7.4 | **Tino**, que contesta desde esta máquina y con la puerta de fuera cerrada |
 
-**1.205 pruebas** en 66 ficheros, verdes **sin GDAL, sin PDAL y sin Office instalados**
-(2026-09-21).
+**1.843 pruebas** en 74 ficheros, verdes **sin GDAL, sin PDAL, sin Office, sin Tesseract y
+sin el conversor de ODA instalados** (2026-09-21). Nueve se saltan solas diciendo cuál de
+esos programas les falta, y eso es exactamente lo que se quiere: **una capacidad ausente se
+apaga con su motivo, no revienta**.
+
+Las ⚠ de arriba son lo contrario de una queja: son las dos cosas de esta tanda cuyo camino
+completo **no se ha podido correr** porque el programa externo no está en ninguna de las dos
+máquinas. El comando, las negativas y el criterio sí se comprueban.
 
 ### Lo verificado sobre archivos reales
 
@@ -97,23 +107,44 @@ pendiente de hacerse en un puesto con licencia; es un procedimiento manual, igua
    v8 hacia los seis destinos vectoriales — el motor y las pruebas del comando están desde el
    2026-09-21, y lo único que falta es el programa. Hoy la sonda responde `sin-conversor` y la
    herramienta sale apagada ofreciendo «Guardar como DXF», que hace el mismo primer paso.
-4. **La SDK de Hexagon** para ECW. El motor está escrito y la clave ya viaja solo en el
+4. **Instalar Tesseract** para reconocer el texto de un escaneo:
+   `sudo apt install tesseract-ocr tesseract-ocr-spa`. Igual que el anterior — el motor, el
+   sondeo y las negativas están desde el 2026-09-21; **la conversión de extremo a extremo no
+   se ha corrido nunca** porque el programa no está en ninguna de las dos máquinas. Con él
+   puesto, «PDF a Markdown» deja además de rendirse ante un escaneo.
+5. **Decidir dónde vive la copia del respaldo fuera de la máquina**, y ponerla en `.env`
+   como `AEROCONVERT_RESPALDOS_FUERA`. Es el único riesgo del servidor **sin arreglo posible
+   después**; el mecanismo ya está y la decisión no es técnica.
+6. **Decidir si Tino pregunta fuera, y a quién.** Hoy contesta desde esta máquina y la
+   puerta de fuera nace cerrada. Abrirla es una decisión sobre los datos de la oficina en una
+   aplicación publicada en internet abierto, así que no se ha tomado en el código.
+7. **La SDK de Hexagon** para ECW. El motor está escrito y la clave ya viaja solo en el
    entorno del hijo, con su prueba centinela.
+
+Y lo que se contesta solo, sin leer nada:
+
+```bash
+ssh p340 'cd /opt/aeroconvert && sudo ./scripts/revisar-servidor.sh'
+```
 
 **Lo que solo espera a que alguien lo escriba:**
 
-5. **F2.6 — 3D Tiles y Potree** con `py3dtiles`, para el visor web. Habría que añadir la
+8. **F2.6 — 3D Tiles y Potree** con `py3dtiles`, para el visor web. Habría que añadir la
    dependencia.
-6. **F4 — BIM y malla** con `ifcopenshell`. Tampoco está instalada.
+9. **F4 — BIM y malla** con `ifcopenshell`. Tampoco está instalada.
 
 ## PDF: lo que queda
 
-Lo hecho está arriba. Lo que falta, con lo que cuesta cada cosa de verdad:
+Lo hecho está arriba, y **comprimir y OCR ya no están aquí**: se hicieron el 2026-09-21.
+Lo que falta, con lo que cuesta cada cosa de verdad:
 
-- **Comprimir PDF.** Requiere volver a codificar las imágenes de dentro; en un plano
-  escaneado la diferencia entre útil e ilegible es de un paso de calidad, así que necesita
-  vista previa antes de escribir.
-- **OCR.** Depende de Tesseract instalado fuera, como GDAL. Se sondea, no se declara.
+- **Firmar PDF.** El caso real es el acta firmada, y es el único de la cola larga que
+  alguien ha pedido de verdad. Firma dibujada primero; la digital con certificado es otra
+  cosa y otra fase.
+- **Ordenar, eliminar y extraer páginas sueltas.** Medio hecho: la receta de «unir» ya sabe
+  hacerlo, falta la pantalla de una sola entrada.
+- **La cola larga** —comparar, censurar, recortar, PDF/A, formularios—. Cada una entra
+  cuando alguien la pida dos veces.
 
 ## Poner esto en una VM: cómo se hace
 
