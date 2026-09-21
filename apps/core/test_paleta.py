@@ -160,6 +160,33 @@ class TestNadaSePintaDeBlancoFuraDeLaBarra:
         assert ".barra .boton-icono" in css
 
 
+class TestElTextoAtenuado:
+    """`--av-text-muted`, que es **el color de casi todo el texto secundario**.
+
+    `.tenue` lo usa en cada tarjeta, en cada nota al pie, en cada «sale de…» y en la tecla
+    que enseña el atajo. Es el segundo color más leído de la aplicación y no lo sostenía
+    nada — un retoque de medio tono para «suavizarlo» lo habría bajado de AA en las tres
+    pantallas a la vez sin que ninguna prueba dijera nada.
+
+    **Contra las dos superficies**, no solo contra la principal: la alterna es más oscura en
+    claro y más clara en oscuro, así que es siempre la peor de las dos, y es justo donde vive
+    la tecla del atajo.
+    """
+
+    @pytest.mark.parametrize("fondo", ["--av-surface", "--av-surface-alt"])
+    def test_en_claro(self, claro, fondo):
+        assert contraste(claro["--av-text-muted"], claro[fondo]) >= TEXTO, fondo
+
+    @pytest.mark.parametrize("fondo", ["--av-surface", "--av-surface-alt"])
+    def test_en_oscuro(self, oscuro, fondo):
+        assert contraste(oscuro["--av-text-muted"], oscuro[fondo]) >= TEXTO, fondo
+
+    @pytest.mark.parametrize("fondo", ["--av-surface", "--av-surface-alt"])
+    def test_y_en_el_oscuro_del_sistema(self, sistema_oscuro, fondo):
+        """El bloque que manda por omisión, y el que ya se olvidó una vez con las familias."""
+        assert contraste(sistema_oscuro["--av-text-muted"], sistema_oscuro[fondo]) >= TEXTO, fondo
+
+
 class TestLosColoresDeFamilia:
     """Cada icono contra su propia baldosa, en los **tres** bloques de tema."""
 
