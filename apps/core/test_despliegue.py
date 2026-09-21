@@ -207,7 +207,7 @@ class TestElGuionDeDespliegue:
     def test_para_ante_el_primer_fallo(self, desplegar: str):
         assert "set -euo pipefail" in desplegar
 
-    def test_se_puede_ejecutar(self):
+    def test_se_pueden_ejecutar(self):
         """**El bit de ejecución, que git guarda y Windows no tiene.**
 
         Sin él, el servidor contesta `Permission denied` a la única orden que el README manda
@@ -217,17 +217,27 @@ class TestElGuionDeDespliegue:
 
         Se mira en el índice de git y no en el disco por eso mismo: en Windows el modo del
         fichero real no dice nada, y lo que viaja al servidor es lo que git tiene anotado.
+
+        **Y se miran todos, no solo `desplegar.sh`.** Este error no es de un fichero: es de
+        escribir guiones desde Windows, así que vale para el siguiente igual que valió para
+        aquel — `revisar-servidor.sh` habría entrado con 644 sin esto.
         """
         import subprocess  # nosec B404
 
         indice = subprocess.run(  # nosec B603 B607
-            ["git", "ls-files", "-s", "scripts/desplegar.sh"],
+            ["git", "ls-files", "-s", "--", "scripts/*.sh"],
             cwd=settings.BASE_DIR,
             capture_output=True,
             text=True,
             check=True,
-        ).stdout
-        assert indice.startswith("100755"), f"scripts/desplegar.sh no es ejecutable: {indice!r}"
+        ).stdout.splitlines()
+
+        assert indice, "no se encontró ningún guion de shell en el índice de git"
+        sin_bit = [linea for linea in indice if not linea.startswith("100755")]
+        assert not sin_bit, (
+            f"{sin_bit}: el servidor contestará «Permission denied». "
+            "Se arregla con: git update-index --chmod=+x <fichero>"
+        )
 
     def test_lee_el_env_como_su_dueno(self, desplegar: str):
         """`.env` es modo 600 y lleva la `SECRET_KEY`: solo su dueño lo lee.

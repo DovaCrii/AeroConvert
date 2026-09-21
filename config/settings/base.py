@@ -77,6 +77,14 @@ PRESUPUESTO_GB = config("AEROCONVERT_PRESUPUESTO_GB", default=20, cast=int)
 CARPETA_DE_RESPALDOS = config("AEROCONVERT_RESPALDOS", default="")
 RESPALDOS_DIAS = config("AEROCONVERT_RESPALDOS_DIAS", default=14, cast=int)
 
+#: La segunda copia, **fuera de esta maquina**. Es el unico riesgo del servidor sin arreglo
+#: posible despues: los demas se corrigen el dia que se descubren, y este no.
+#:
+#: Vacia porque elegir donde vive la segunda copia de la bitacora de la oficina -- que
+#: unidad de red, que disco, quien la ve -- no es una decision de un archivo de ajustes.
+#: Mientras este vacia, `respaldar` lo avisa en cada ejecucion.
+CARPETA_DE_RESPALDOS_FUERA = config("AEROCONVERT_RESPALDOS_FUERA", default="")
+
 # --- Motores externos ------------------------------------------------------
 # Ninguno es dependencia del paquete: se sondean en tiempo de ejecucion y su ausencia
 # apaga una fila de la matriz de capacidades, no rompe la aplicacion.

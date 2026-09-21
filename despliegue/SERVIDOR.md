@@ -241,6 +241,17 @@ aplicación se entera sola y rechaza por adelantado lo que no cabe, diciendo por
 
 ## Lo que falta, y es común a las tres
 
+> **Esta lista ya no hay que leerla para saber qué sigue abierto: se pregunta.**
+>
+> ```bash
+> ssh p340 'cd /opt/aeroconvert && sudo ./scripts/revisar-servidor.sh'
+> ```
+>
+> Comprueba los seis puntos de abajo contra la máquina, no cambia nada, y dice qué hacer con
+> cada uno. Existe porque **una lista de riesgos escrita no dice cuáles siguen abiertos**:
+> hay que ir comprobándolos, nadie lo hace, y envejece hasta decir cosas falsas en las dos
+> direcciones — que es exactamente lo que le pasó al punto 1 de esta lista.
+
 1. **El respaldo — y una corrección de este documento.**
 
    Este punto decía «no hay ningún respaldo automático», y esa frase se repitió durante días
@@ -255,9 +266,27 @@ aplicación se entera sola y rechaza por adelantado lo que no cabe, diciendo por
 
    Lo que **sí falta con certeza**, y es lo que de verdad importa:
 
-   - **Una copia fuera de la máquina.** El servicio escribe en `/var/backups/aeroconvert`, el
-     mismo NVMe que la base. Un fallo de ese disco se lleva base, entregables y respaldos a la
-     vez — que es exactamente el escenario del que un respaldo existe para proteger.
+   - **Una copia fuera de la máquina**, y es el único de esta lista **sin arreglo posible
+     después**: los demás se corrigen el día que se descubren, y que se muera el NVMe no. El
+     servicio escribe en `/var/backups/aeroconvert`, el mismo disco que la base, así que un
+     fallo se lleva base, entregables y respaldos a la vez — que es exactamente el escenario
+     del que un respaldo existe para proteger.
+
+     **El mecanismo ya está** desde el 2026-09-21; lo que falta es decidir dónde. Una línea
+     en `.env`:
+
+     ```
+     AEROCONVERT_RESPALDOS_FUERA=/mnt/loquesea/aeroconvert
+     ```
+
+     A partir de ahí, `respaldar` deja allí el archivo **ya verificado**, comprueba que
+     llegó con el mismo tamaño —porque el fallo clásico es que la unidad de red se desmonte y
+     se escriba dentro del punto de montaje vacío durante meses— y poda igual que aquí. Si no
+     puede, **el comando falla aunque la copia local esté bien**, y el servicio sale en
+     `systemctl --failed`. Es deliberado: se prefiere un servicio marcado como fallido a un
+     respaldo de fuera que lleva tres meses sin escribirse y nadie lo sabe.
+
+     Mientras no se decida, cada ejecución lo avisa en el diario.
    - **El equivalente para AeroControl y AeroBim**, que no tienen ni el comando. Y AeroLink
      arrastra PostgreSQL y MinIO, que piden otra cosa.
 

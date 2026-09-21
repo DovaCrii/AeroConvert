@@ -22,6 +22,24 @@ puede correr dentro de una transacción — lo que la deja sin poder probarse.
 Un respaldo que nadie ha abierto no es un respaldo. Este se reabre, se le pasa
 `PRAGMA integrity_check` y se cuentan los trabajos para contrastarlos con el origen. Si no
 cuadra, el comando falla **ruidosamente**, que es el único momento útil para enterarse.
+
+## La copia de fuera, que es el único riesgo sin arreglo posible después
+
+Todo lo de arriba escribe en `/var/backups/aeroconvert`, que está **en el mismo disco que la
+base**. Un fallo de ese NVMe se lleva la base, los entregables y los respaldos a la vez, y
+ese día no hay nada que hacer: los demás riesgos del servidor se arreglan cuando se
+descubren, y este no.
+
+`--copiar-a` deja una segunda copia donde se le diga —una unidad de red, un disco externo,
+lo que sea que no esté dentro de esta máquina—. **Sin decírselo no hace nada**, porque
+elegir dónde vive la segunda copia de la bitácora de la oficina no es una decisión de este
+archivo.
+
+Y si la copia de fuera falla, **el comando termina con error aunque la local haya salido
+bien**. Es deliberado y tiene su coste: una unidad de red caída deja el servicio marcado
+como fallido en `systemctl --failed`. Se prefiere eso a lo contrario, porque un respaldo de
+fuera que lleva tres meses sin escribirse y nadie lo sabe es exactamente el mismo desastre
+que no tenerlo.
 """
 
 from __future__ import annotations
@@ -57,6 +75,14 @@ class Command(BaseCommand):
             help=f"Cuantos dias se conservan. Por omision {DIAS_POR_OMISION}.",
         )
         parser.add_argument(
+            "--copiar-a",
+            default=None,
+            help=(
+                "Una segunda copia FUERA de esta maquina. Por omision, "
+                "AEROCONVERT_RESPALDOS_FUERA; vacio, no se hace."
+            ),
+        )
+        parser.add_argument(
             "--simular",
             action="store_true",
             help="Decir que haria, sin escribir nada.",
@@ -70,9 +96,24 @@ class Command(BaseCommand):
         )
         dias = opciones["dias"] or getattr(settings, "RESPALDOS_DIAS", DIAS_POR_OMISION)
         origen = Path(connection.settings_dict["NAME"])
+        fuera = str(
+            opciones["copiar_a"] or getattr(settings, "CARPETA_DE_RESPALDOS_FUERA", "") or ""
+        ).strip()
 
         self.stdout.write(f"Base:    {origen}")
         self.stdout.write(f"Destino: {carpeta}")
+        if fuera:
+            self.stdout.write(f"Y fuera: {fuera}")
+        else:
+            # **No es un detalle de configuracion: es el unico riesgo sin arreglo posible
+            # despues.** Se dice en cada ejecucion, para que aparezca en el diario del
+            # servicio y alguien lo vea alguna vez.
+            self.stdout.write(
+                self.style.WARNING(
+                    "Sin copia fuera de esta maquina: los respaldos viven en el mismo disco "
+                    "que la base. Ver --copiar-a."
+                )
+            )
 
         if opciones["simular"]:
             self.stdout.write(f"Se conservarian {dias} dias. No se escribio nada.")
@@ -111,6 +152,11 @@ class Command(BaseCommand):
         )
         self._podar(carpeta, dias)
 
+        # Al final y no antes: lo que se lleva fuera es el archivo ya verificado y
+        # comprimido, no uno a medias.
+        if fuera:
+            self._llevar_fuera(comprimido, Path(fuera), dias)
+
     def _contar(self, base: Path) -> int:
         with connection.cursor() as cursor:
             cursor.execute("SELECT COUNT(*) FROM jobs_conversionjob")
@@ -137,6 +183,38 @@ class Command(BaseCommand):
                 )
         finally:
             conexion.close()
+
+    def _llevar_fuera(self, comprimido: Path, destino: Path, dias: int) -> None:
+        """La segunda copia, y **se comprueba que llegó entera**.
+
+        Copiar y no mirar es el fallo clásico de los respaldos de red: la unidad se
+        desmonta, el sistema crea alegremente el directorio dentro del punto de montaje
+        vacío, y durante meses se escriben copias en el disco local creyendo que están
+        fuera. Se compara el tamaño, que es lo barato y basta para cazar eso.
+
+        Un fallo aquí **hace fallar el comando** aunque la copia local esté bien. Ver el
+        docstring del módulo: se prefiere un servicio marcado como fallido a un respaldo de
+        fuera que lleva tres meses sin escribirse y nadie lo sabe.
+        """
+        try:
+            destino.mkdir(parents=True, exist_ok=True)
+            alla = destino / comprimido.name
+            shutil.copy2(comprimido, alla)
+            aqui_bytes = comprimido.stat().st_size
+            alla_bytes = alla.stat().st_size
+        except OSError as fallo:
+            raise CommandError(
+                f"La copia local esta bien, pero no se pudo dejar una fuera en {destino}: {fallo}"
+            ) from fallo
+
+        if alla_bytes != aqui_bytes:
+            raise CommandError(
+                f"La copia de fuera quedo con {alla_bytes} bytes y la de aqui tiene "
+                f"{aqui_bytes}. Suele ser la unidad de red desmontada."
+            )
+
+        self.stdout.write(self.style.SUCCESS(f"Y una copia fuera, en {alla}."))
+        self._podar(destino, dias)
 
     def _podar(self, carpeta: Path, dias: int) -> None:
         limite = timezone.now().timestamp() - dias * 86400
