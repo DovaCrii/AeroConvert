@@ -143,22 +143,21 @@ class TestQueNoHayaTokensMuertos:
     #: Los que se declaran para que estén disponibles aunque hoy no toque usarlos. Cada uno
     #: con su motivo, para que la lista no se convierta en el cajón donde se esconde todo.
     PERMITIDOS = {
-        # Se retiran al aplicar la elevación, en la tanda siguiente. Hoy lo usa `.menu-panel`
-        # y el objetivo de esta tanda es no mover nada.
-        "--av-shadow-alto",
-        # Escalones altos: entran al vaciar los estilos en línea de las plantillas.
+        # Escalones altos de espaciado: todavía no hay ninguna separación tan grande.
         "--av-s-10",
         "--av-s-12",
-        # Niveles de elevación que se aplican en la tanda siguiente. Van en la lista con
-        # fecha: si siguen aquí dentro de dos tandas, es que la siguiente no llegó.
-        "--av-elev-0",
-        "--av-elev-1",
-        "--av-elev-2",
+        # El nivel de modal. No hay diálogos todavía; el día que entre uno, este es el suyo.
         "--av-elev-3",
         # El peso normal es el de fábrica del navegador, así que casi nunca hay que
         # declararlo. Está para poder **volver** a normal dentro de un bloque que lo subió.
         "--av-peso-normal",
     }
+
+    def test_los_dos_tokens_de_sombra_viejos_ya_no_estan(self, css):
+        """`--av-shadow` y `--av-shadow-alto` eran los dos niveles de antes, con un salto
+        enorme entre medias. Al entrar la escala de elevación se quedaron sin usar, y un
+        token muerto no es neutro: hace creer que hay dos sistemas donde hay uno."""
+        assert "--av-shadow" not in css
 
     def test_todo_token_declarado_se_usa(self, css):
         muertos = _declarados(css) - _usados(css) - self.PERMITIDOS

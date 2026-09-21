@@ -149,8 +149,6 @@
 
   /* Los dos de antes, conservados: `.tarjeta` y `.menu-panel` los usan y el objetivo de esta
    * tanda es no mover nada todavía. Se retiran en la siguiente, al aplicar la elevación. */
-  --av-shadow: 0 10px 30px rgb(18 34 59 / 8%);
-  --av-shadow-alto: 0 14px 34px rgb(18 34 59 / 14%);
 
   /* --- Tipografía ----------------------------------------------------------
    *
@@ -260,9 +258,6 @@
     0 0 0 1px rgb(255 255 255 / 22%),
     0 8px 16px -6px rgb(0 0 0 / 55%),
     0 24px 48px -12px rgb(0 0 0 / 60%);
-
-  --av-shadow: 0 10px 30px rgb(0 0 0 / 35%);
-  --av-shadow-alto: 0 14px 34px rgb(0 0 0 / 50%);
 }
 
 /* Sin `data-theme`, se sigue al sistema. El selector `:not([data-theme="light"])` es lo que
@@ -330,9 +325,6 @@
       0 0 0 1px rgb(255 255 255 / 22%),
       0 8px 16px -6px rgb(0 0 0 / 55%),
       0 24px 48px -12px rgb(0 0 0 / 60%);
-
-    --av-shadow: 0 10px 30px rgb(0 0 0 / 35%);
-    --av-shadow-alto: 0 14px 34px rgb(0 0 0 / 50%);
   }
 }
 
@@ -649,9 +641,10 @@ td.cifra,
 
 .tarjeta {
   background: var(--av-surface);
-  border: 1px solid var(--av-border);
+  /* **Sin `border`**: el anillo va dentro de `--av-elev-1`. Tener los dos pinta dos líneas
+   * de 1 px pegadas, que es exactamente el aspecto sucio que esta escala existe para evitar. */
   border-radius: var(--av-radius);
-  box-shadow: var(--av-shadow);
+  box-shadow: var(--av-elev-1);
   padding: 18px var(--av-s-5);
   position: relative;
   overflow: hidden;
@@ -763,11 +756,11 @@ td.cifra,
   width: max-content;
   max-width: min(58rem, calc(100vw - 32px));
   padding: 18px var(--av-s-5);
-  border: 1px solid var(--av-border);
+  /* Sin `border`: el anillo va dentro de `--av-elev-2`, y en oscuro sube de contraste solo. */
   border-radius: var(--av-radius);
   background: var(--av-surface);
   color: var(--av-text);
-  box-shadow: var(--av-shadow-alto);
+  box-shadow: var(--av-elev-2);
 }
 
 .menu-titulo {
@@ -1084,7 +1077,7 @@ a.menu-titulo:hover {
   padding: 16px 18px;
   border-radius: var(--av-radius);
   background: var(--av-surface);
-  border: 1px solid var(--av-border);
+  box-shadow: var(--av-elev-1);
 }
 
 /* El cuadro del dibujo, con el número colgando de la esquina. Mismo relieve y mismas
@@ -1412,6 +1405,30 @@ a.menu-titulo:hover {
   text-decoration: none;
 }
 
+/* --- Los estados, y sobre todo el que faltaba ----------------------------
+ *
+ * Había 17 reglas `:hover`, 9 de foco y **cero `:active`**. Nada se hundía al pulsar, y eso
+ * es media sensación de «pantalla muerta»: el clic no tiene respuesta hasta que llega la
+ * página siguiente, así que en una red lenta no hay forma de saber si el botón te oyó.
+ *
+ * Un solo píxel basta. No hace falta animación ni rebote: lo que el ojo espera es que la
+ * pieza ceda mientras el dedo está encima.
+ */
+.boton:active:not(:disabled),
+.destino:active:not(:disabled),
+.herramienta:active,
+.ejemplo:active,
+.boton-icono:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+/* Y al pulsar, la sombra se recoge: una pieza hundida no puede proyectar lo mismo que una
+ * levantada. Es el detalle que hace que el gesto se lea como físico y no como un parpadeo. */
+.destino:active:not(:disabled),
+.herramienta:active {
+  box-shadow: var(--av-elev-0);
+}
+
 /* --- Las clases que faltaban, y por eso había 278 estilos en línea -------
  *
  * Cada patrón repetido a mano en las plantillas era una clase que no existía. Estas son las
@@ -1495,7 +1512,7 @@ legend {
 .bienvenida {
   margin: 0 0 22px;
   padding: 18px var(--av-s-5);
-  border: 1px solid var(--av-border);
+  box-shadow: var(--av-elev-1);
   border-radius: var(--av-radius);
   background: var(--av-surface);
 }
@@ -2006,15 +2023,18 @@ legend {
   min-height: var(--av-touch-min);
   padding: 12px 14px;
   border-radius: var(--av-radius-sm);
-  border: 1px solid var(--av-border);
+  box-shadow: var(--av-elev-1);
   background: var(--av-surface);
   color: var(--av-text);
   cursor: pointer;
 }
 
+/* **El anillo, no el `border-color`.** Ya no hay borde que colorear: el anillo vive dentro
+ * de la sombra, así que resaltar es cambiar el anillo y subir un nivel de elevación. */
 .destino:hover:not(:disabled) {
-  border-color: var(--av-primary);
-  box-shadow: var(--av-shadow-alto);
+  --av-anillo: var(--av-primary);
+
+  box-shadow: var(--av-elev-2);
 }
 
 .destino[aria-pressed="true"] {
@@ -2313,7 +2333,7 @@ code {
   gap: 14px;
   align-items: start;
   padding: 16px 18px;
-  border: 1px solid var(--av-border);
+  box-shadow: var(--av-elev-1);
   border-radius: var(--av-radius);
   background: var(--av-surface);
   color: inherit;
@@ -2323,8 +2343,10 @@ code {
 
 .herramienta:hover,
 .herramienta:focus-visible {
-  border-color: var(--av-primary);
+  --av-anillo: var(--av-primary);
+
   background: var(--av-primary-soft);
+  box-shadow: var(--av-elev-2);
 }
 
 /* Un empujón de un píxel. Suficiente para que la tarjeta se sienta pulsable, y poco para
@@ -2526,7 +2548,7 @@ code {
   display: grid;
   gap: 2px;
   padding: 14px 18px;
-  border: 1px solid var(--av-border);
+  box-shadow: var(--av-elev-1);
   border-left: 3px solid var(--av-ok);
   border-radius: var(--av-radius);
   background: var(--av-surface);
@@ -2571,7 +2593,7 @@ code {
 
 .motor {
   padding: 16px 18px;
-  border: 1px solid var(--av-border);
+  box-shadow: var(--av-elev-1);
   border-radius: var(--av-radius);
   background: var(--av-surface);
 }
@@ -2744,7 +2766,7 @@ code {
   gap: var(--av-s-3);
   align-items: center;
   padding: 8px 12px;
-  border: 1px solid var(--av-border);
+  box-shadow: var(--av-elev-1);
   border-radius: var(--av-radius-sm);
   background: var(--av-surface);
 }
