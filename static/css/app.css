@@ -820,16 +820,6 @@ a.menu-titulo:hover {
 
 /* La misma baldosa de las tarjetas, a escala de menú: es lo que hace que el icono de «Unir
  * PDF» sea reconocible como el mismo en los dos sitios. El color lo pone `.fam-*`. */
-.menu-marca {
-  display: grid;
-  place-items: center;
-  flex: 0 0 auto;
-  width: 1.75rem;
-  height: 1.75rem;
-  border-radius: 7px;
-  color: var(--marca-color, var(--av-primary));
-  background: var(--marca-fondo, var(--av-primary-soft));
-}
 
 .menu-icono {
   width: 1.05rem;
@@ -1099,17 +1089,49 @@ a.menu-titulo:hover {
 
 /* El cuadro del dibujo, con el número colgando de la esquina. Mismo relieve y mismas
  * variables de familia que las tarjetas de PDF: es la misma idea en otra pantalla. */
-.paso-marca {
-  position: relative;
+/* --- La baldosa del icono, una sola vez ----------------------------------
+ *
+ * **Estaba implementada siete veces**: `.paso-marca`, `.origen-marca`, `.herramienta-marca`,
+ * `.nota-privacidad-marca`, `.motor-marca`, `.menu-marca` y `.remate-marca`. Es la pieza más
+ * visible de la interfaz, y el mismo `linear-gradient(160deg, …)` aparecía copiado literal
+ * tres veces, con el doble `box-shadow` de respaldo detrás.
+ *
+ * ## Qué diferencias eran de verdad y cuáles eran accidente
+ *
+ * **De verdad**: el tamaño. Una baldosa de menú (1,75 rem) no puede medir lo mismo que la de
+ * un paso numerado (2,9 rem). El radio va con ella, proporcional — y de hecho ya lo era:
+ * 7px/1,75rem, 9px/2,2rem, 11px/2,6rem, 12px/2,9rem. Eso se queda, como modificadores.
+ *
+ * **Accidente**: que unas llevaran el degradado y otras no, y que unas tuvieran la sombra de
+ * 1 px y otras tampoco. Nadie lo decidió: se copió el bloque unas veces entero y otras a
+ * medias. Ahora las llevan todas, y cuatro baldosas ganan un relieve muy tenue que antes no
+ * tenían. Es el único cambio visible de esta unificación.
+ *
+ * `.remate-marca` **no entra**, y no es un olvido: es circular, usa el verde de «salió bien»
+ * y el fondo de la tarjeta. No es una baldosa de familia, es una insignia de éxito.
+ */
+.paso-marca,
+.origen-marca,
+.herramienta-marca,
+.nota-privacidad-marca,
+.motor-marca,
+.menu-marca {
   display: grid;
   place-items: center;
-  width: 2.9rem;
-  height: 2.9rem;
-  border-radius: 12px;
+  flex: 0 0 auto;
+  width: var(--marca-lado, 2.6rem);
+  height: var(--marca-lado, 2.6rem);
+  border-radius: var(--marca-radio, 11px);
   color: var(--marca-color, var(--av-primary));
   background:
     linear-gradient(160deg, rgb(255 255 255 / 10%), rgb(0 0 0 / 6%)),
     var(--marca-fondo, var(--av-primary-soft));
+  /* El aro interior en el color de la propia familia, no en blanco: en oscuro un filo blanco
+   * se lee como brillo de plástico, y en claro desaparece. Del mismo tono que el dibujo, la
+   * pieza se recorta sola contra la tarjeta.
+   *
+   * La primera declaración es el respaldo para quien no entienda `color-mix`: un aro neutro,
+   * que es peor pero no es nada raro. */
   box-shadow:
     inset 0 0 0 1px rgb(127 127 127 / 20%),
     0 1px 2px rgb(18 34 59 / 10%);
@@ -1117,6 +1139,25 @@ a.menu-titulo:hover {
     inset 0 0 0 1px color-mix(in srgb, var(--marca-color, var(--av-primary)) 24%, transparent),
     0 1px 2px rgb(18 34 59 / 10%);
 }
+
+/* Los tres tamaños que sí significan algo. El de 2,6 rem es el de por omisión. */
+.menu-marca {
+  --marca-lado: 1.75rem;
+  --marca-radio: 7px;
+}
+
+.motor-marca {
+  --marca-lado: 2.2rem;
+  --marca-radio: 9px;
+}
+
+.paso-marca {
+  --marca-lado: 2.9rem;
+  --marca-radio: 12px;
+  /* La chapa del número cuelga de su esquina. Ver `.bienvenida-ideas .paso-numero`. */
+  position: relative;
+}
+
 
 .paso-icono {
   width: 1.6rem;
@@ -1214,17 +1255,6 @@ a.menu-titulo:hover {
   margin-bottom: 14px;
 }
 
-.origen-marca {
-  display: grid;
-  place-items: center;
-  width: 2.6rem;
-  height: 2.6rem;
-  border-radius: 11px;
-  color: var(--marca-color, var(--av-primary));
-  background: var(--marca-fondo, var(--av-primary-soft));
-  box-shadow: inset 0 0 0 1px rgb(127 127 127 / 20%);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--marca-color, var(--av-primary)) 24%, transparent);
-}
 
 .origen-icono {
   width: 1.45rem;
@@ -1434,14 +1464,10 @@ a.menu-titulo:hover {
 
 /* La baldosa del paso, con el número encima del dibujo. El color lo pone `.fam-*`. */
 .bienvenida-ideas .paso-marca {
-  position: relative;
-  display: grid;
-  place-items: center;
-  width: 2.4rem;
-  height: 2.4rem;
-  border-radius: 10px;
-  color: var(--marca-color, var(--av-primary));
-  background: var(--marca-fondo, var(--av-primary-soft));
+  /* Un poco más pequeña que la de los tres pasos de convertir: aquí van tres en una fila de
+   * texto, no tres tarjetas. Lo demás lo pone la baldosa compartida. */
+  --marca-lado: 2.4rem;
+  --marca-radio: 10px;
 }
 
 .bienvenida-ideas .paso-icono {
@@ -2264,27 +2290,8 @@ code {
  * la familia declara la variable o no la declara, y el respaldo entra solo si falta.
  */
 .herramienta-marca {
-  display: grid;
-  place-items: center;
-  width: 2.6rem;
-  height: 2.6rem;
-  border-radius: 11px;
-  color: var(--marca-color, var(--av-primary));
-  background:
-    linear-gradient(160deg, rgb(255 255 255 / 10%), rgb(0 0 0 / 6%)),
-    var(--marca-fondo, var(--av-primary-soft));
-  /* El aro interior en el color de la propia familia, no en blanco: en oscuro un filo blanco
-   * se lee como brillo de plástico, y en claro desaparece. Del mismo tono que el dibujo, la
-   * pieza se recorta sola contra la tarjeta.
-   *
-   * La primera línea es el respaldo para quien no entienda `color-mix`: un aro neutro, que es
-   * peor pero no es nada raro. */
-  box-shadow:
-    inset 0 0 0 1px rgb(127 127 127 / 20%),
-    0 1px 2px rgb(18 34 59 / 10%);
-  box-shadow:
-    inset 0 0 0 1px color-mix(in srgb, var(--marca-color, var(--av-primary)) 24%, transparent),
-    0 1px 2px rgb(18 34 59 / 10%);
+  /* Todo lo demás lo pone la baldosa compartida. Lo único suyo es que se mueve al pasar por
+   * encima de la tarjeta, porque es la única que vive dentro de algo pulsable. */
   transition: transform var(--av-rapido), box-shadow var(--av-rapido);
 }
 
@@ -2380,19 +2387,6 @@ code {
   margin-top: 16px;
 }
 
-.nota-privacidad-marca {
-  display: grid;
-  place-items: center;
-  width: 2.6rem;
-  height: 2.6rem;
-  border-radius: 11px;
-  color: var(--marca-color, var(--av-primary));
-  background:
-    linear-gradient(160deg, rgb(255 255 255 / 10%), rgb(0 0 0 / 6%)),
-    var(--marca-fondo, var(--av-primary-soft));
-  box-shadow: inset 0 0 0 1px rgb(127 127 127 / 20%);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--marca-color, var(--av-primary)) 24%, transparent);
-}
 
 /*
  * Una herramienta que hoy no se puede usar. **Se apaga, no se esconde**: ocultarla haría
@@ -2536,17 +2530,6 @@ code {
   margin-bottom: 8px;
 }
 
-.motor-marca {
-  display: grid;
-  place-items: center;
-  width: 2.2rem;
-  height: 2.2rem;
-  border-radius: 9px;
-  color: var(--marca-color, var(--av-primary));
-  background: var(--marca-fondo, var(--av-primary-soft));
-  box-shadow: inset 0 0 0 1px rgb(127 127 127 / 20%);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--marca-color, var(--av-primary)) 24%, transparent);
-}
 
 .motor-icono {
   width: 1.15rem;
