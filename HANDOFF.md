@@ -92,8 +92,11 @@ pendiente de hacerse en un puesto con licencia; es un procedimiento manual, igua
    pero no se traducen: sin un archivo con el que contrastar, un triangulado mal leído da una
    superficie plausible y equivocada.
 3. **Instalar ODA File Converter** (gratuito, de la Open Design Alliance) y apuntar
-   `AEROCONVERT_ODA_CONVERTER`. Con eso se abre DWG y DGN v8. La sonda ya está escrita y hoy
-   responde `sin-conversor`.
+   `AEROCONVERT_ODA_CONVERTER`. **En Linux, además `sudo apt install xvfb`**: ODA está hecho
+   con Qt y no arranca sin servidor gráfico aunque no dibuje nada. Con eso se abre DWG y DGN
+   v8 hacia los seis destinos vectoriales — el motor y las pruebas del comando están desde el
+   2026-09-21, y lo único que falta es el programa. Hoy la sonda responde `sin-conversor` y la
+   herramienta sale apagada ofreciendo «Guardar como DXF», que hace el mismo primer paso.
 4. **La SDK de Hexagon** para ECW. El motor está escrito y la clave ya viaja solo en el
    entorno del hijo, con su prueba centinela.
 

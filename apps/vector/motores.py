@@ -557,6 +557,130 @@ class MotorDesdeLandXml(Motor):
         return _verificar_con_ogrinfo(trabajo, salida, super().verificar(trabajo, salida))
 
 
+#: Los orígenes que necesitan pasar por ODA antes de que OGR pueda con ellos.
+#:
+#: `dgn` está **en los dos sitios**, aquí y en `ORIGENES_VECTORIALES`, y no es un descuido: la
+#: v7 la lee GDAL con controlador abierto y la v8 no. Como la versión no se sabe hasta abrir
+#: el archivo, los dos motores declaran el par y decide la prioridad — OGR primero, que no
+#: necesita nada instalado, y este cuando OGR no está o no puede.
+ORIGENES_DE_CAD = ("dwg", "dgn")
+
+
+class MotorCadPorOda(Motor):
+    """DWG y DGN v8 → lo que sea, en dos pasos, pasando por DXF.
+
+    **El formato de intercambio diario de una oficina de topografía**, y hasta ahora no se
+    convertía. Quien recibía un DWG tenía que abrirlo en un CAD y hacer «Guardar como DXF»
+    antes de poder usar nada de esto, que es exactamente el trabajo manual que la aplicación
+    existe para quitar.
+
+    El primer paso es el ODA File Converter —gratuito, de la Open Design Alliance, **sondeado
+    y no declarado**— y el segundo es el `ogr2ogr` de siempre. El DXF intermedio se llama
+    colgando del parcial para que lo barra la limpieza que ya existe.
+
+    ## Prioridad 30, y es lo que hace que DGN siga funcionando como antes
+
+    Va **detrás** de `MotorOgrVector`, que tiene 20. Para un DGN v7 —que GDAL lee solo— gana
+    OGR y no hace falta tener nada instalado; este solo entra cuando el otro no puede. Para
+    DWG es el único, porque OGR no declara ese par.
+    """
+
+    id = "oda-cad"
+    nombre = "ODA File Converter + OGR"
+    familia = "vector"
+    prioridad = 30
+
+    def pares(self) -> frozenset[ParDeFormatos]:
+        return frozenset(
+            ParDeFormatos(origen, destino)
+            for origen in ORIGENES_DE_CAD
+            for destino in DESTINOS
+            if origen != destino
+        )
+
+    def disponibilidad(self) -> Disponibilidad:
+        """Hacen falta **los dos**, y el que falta es el que se nombra.
+
+        Decir «no disponible» sin más mandaría a instalar ODA a quien lo que no tiene es
+        GDAL, y al revés. Se mira ODA primero porque es el que casi siempre falta y el que
+        además tiene alternativa que ofrecer: guardar como DXF desde el propio CAD.
+        """
+        from apps.engines import sondas
+
+        oda = sondas.sondar_oda()
+        if not oda.disponible:
+            return Disponibilidad.no(
+                oda.codigo_motivo,
+                oda.mensaje,
+                sugerencia=oda.sugerencia,
+                alternativas=("dxf",),
+            )
+        return _sonda_ogr()
+
+    def opciones(self, par: ParDeFormatos) -> tuple[OpcionDeMotor, ...]:
+        """Las mismas que el vectorial normal: **desde el DXF intermedio, esto es eso.**"""
+        return MotorOgrVector().opciones(par)
+
+    def plan(self, trabajo) -> PlanDeEjecucion:
+        origen = Path(trabajo.source_path)
+        destino = Path(trabajo.output_path)
+        parcial = ruta_parcial(destino)
+        intermedio = parcial.with_name(parcial.name + ".dxf")
+
+        opciones = dict(trabajo.options or {})
+        controlador = CONTROLADOR.get(trabajo.target_format_code, "GPKG")
+
+        argv = (
+            sys.executable,
+            "-m",
+            "apps.vector.desde_cad",
+            str(origen),
+            str(intermedio),
+        )
+
+        segundo: list[str] = [_bin("ogr2ogr"), "-f", controlador, str(parcial), str(intermedio)]
+
+        # **Un DXF no guarda sistema de referencia: guarda números.** Lo que salga de ODA
+        # hereda esa carencia del DWG, así que el CRS lo pone quien convierte — y sin él un
+        # KML acabaría con estes y nortes UTM leídos como grados.
+        declarado = str(opciones.get("crs_destino", "") or "").strip()
+        epsg = _epsg_del_trabajo(trabajo)
+        objetivo = ""
+        if trabajo.target_crs_code:
+            objetivo = f"{trabajo.target_crs_authority or 'EPSG'}:{trabajo.target_crs_code}"
+        elif declarado:
+            objetivo = declarado if ":" in declarado else f"EPSG:{declarado}"
+        elif trabajo.target_format_code in DESTINOS_EN_GRADOS:
+            objetivo = "EPSG:4326"
+
+        # Etiquetar o mover, nunca las dos: la misma rama que en la libreta y en LandXML.
+        if epsg and objetivo:
+            segundo += ["-s_srs", epsg, "-t_srs", objetivo]
+        elif epsg:
+            segundo += ["-a_srs", epsg]
+
+        if opciones.get("solo_geometria"):
+            segundo += ["-select", ""]
+
+        segundo += ["-overwrite"]
+
+        return PlanDeEjecucion(
+            argv=argv,
+            ruta_de_salida=destino,
+            posteriores=(tuple(segundo),),
+            salida_en_posteriores=True,
+            env=entorno_de_gdal(),
+            cwd=Path(settings.BASE_DIR),
+            # Más largo que el resto: son dos conversiones seguidas, y la primera es un
+            # programa de escritorio auditando un plano que puede tener cien mil entidades.
+            timeout_s=2400,
+            emite_progreso=False,
+        )
+
+    def verificar(self, trabajo, salida: Path) -> Verificacion:
+        return _verificar_con_ogrinfo(trabajo, salida, super().verificar(trabajo, salida))
+
+
 class MotorOgrVector(Motor):
     """Conversión vectorial normal: SHP, GPKG, GeoJSON, KML, DXF entre sí."""
 
@@ -743,4 +867,5 @@ def registrar_todos() -> None:
     registry.registrar(MotorPuntosTopograficos())
     registry.registrar(MotorLandXml())
     registry.registrar(MotorDesdeLandXml())
+    registry.registrar(MotorCadPorOda())
     registry.registrar(MotorOgrVector())

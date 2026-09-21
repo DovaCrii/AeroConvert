@@ -178,6 +178,21 @@ AEROCONVERT_ODA_CONVERTER=C:\Program Files\ODA\ODAFileConverter <versión>\ODAFi
 La alternativa abierta para DWG, LibreDWG, es GPL-3 y **contagiaría la licencia del
 proyecto entero**, así que no se contempla.
 
+**En Linux hace falta una cosa más**, y no se adivina leyendo el error que sale sin ella:
+
+```bash
+sudo apt install xvfb
+```
+
+ODA está hecho con Qt y **necesita un servidor gráfico para arrancar aunque no dibuje nada**.
+En un servidor sin escritorio, sin `xvfb-run` delante, lo que aparece es un fallo de Qt sobre
+un «display» que nadie pidió, y nadie lo relaciona con convertir un plano. AeroConvert lo
+envuelve solo cuando lo encuentra, y cuando no está lo dice nombrando el paquete.
+
+Con las dos cosas puestas, DWG y DGN v8 se convierten a GeoPackage, SHP, GeoJSON, KML, KMZ y
+DXF. Sin ellas, esos orígenes salen apagados con su motivo y ofreciendo la alternativa que sí
+sirve: «Guardar como DXF» desde cualquier CAD hace exactamente el mismo primer paso.
+
 ---
 
 ## 3. Comprobar que quedó bien
