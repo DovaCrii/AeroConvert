@@ -45,6 +45,7 @@ from apps.formats import pdf as lectura_pdf
 from . import a_imagenes as a_imagenes_mod
 from . import a_markdown as a_markdown_mod
 from . import catalogos as catalogos_mod
+from . import comprimir as comprimir_mod
 from . import desde_markdown as desde_markdown_mod
 from . import dividir as dividir_mod
 from . import marcas as marcas_mod
@@ -223,6 +224,15 @@ HERRAMIENTAS = (
         "url": "documents:a_imagenes",
         "nombre": "PDF a imágenes",
         "que_hace": "Una lámina como JPG o PNG, para meterla en un informe o en una diapositiva.",
+    },
+    {
+        "id": "comprimir",
+        "icono": "icon-pdf-comprimir",
+        "sale": "el mismo PDF, más ligero",
+        "familia": "transformar",
+        "url": "documents:comprimir",
+        "nombre": "Comprimir PDF",
+        "que_hace": "Para que un juego de planos entre en un correo. Dice cuánto baja antes.",
     },
     {
         "id": "numerar",
@@ -1309,6 +1319,55 @@ def de_markdown(request):
     messages.success(request, f"Hecho: {destino.name}.")
     contexto["generado"] = destino
     return render(request, "documents/de_markdown.html", contexto)
+
+
+@login_required
+def comprimir(request):
+    """Bajar el peso de un PDF, diciendo cuánto baja **antes** de descargarlo.
+
+    ## Por qué el resultado se enseña y no se entrega directo
+
+    Comprimir es la única herramienta de la casa donde el resultado correcto puede ser «no
+    hagas nada»: un PDF que ya venía optimizado puede engordar al recomprimirlo. Entregar eso
+    después de que alguien haya pulsado «comprimir» es la peor respuesta posible — parece que
+    funcionó, y empeoró el problema que se venía a resolver.
+
+    Así que la vista enseña los dos pesos y el porcentaje, y cuando no vale la pena lo dice
+    con el archivo intacto. Eso no es un error: es la respuesta.
+    """
+    contexto = {
+        "seccion": "pdf",
+        "etiqueta_seccion": "PDF",
+        "titulo_pagina": "Comprimir un PDF",
+        "proposito": "Para que un juego de planos entre en un correo sin dejar de leerse.",
+        "resoluciones": comprimir_mod.RESOLUCIONES,
+        "ppp": _entero(request.POST.get("ppp"), 200),
+        "ruta_texto": (request.GET.get("ruta") or "").strip(),
+    }
+
+    if request.method != "POST":
+        return render(request, "documents/comprimir.html", contexto)
+
+    try:
+        origen = _origen_del_formulario(request)
+        destino, resultado = comprimir_mod.comprimir(
+            origen.ruta,
+            ppp=contexto["ppp"],
+            destino=_ruta_de_salida_de(origen, "_ligero.pdf"),
+        )
+    except (modo_mod.RutaNoPermitida, ComposicionInvalida) as fallo:
+        messages.error(request, str(fallo))
+        return render(request, "documents/comprimir.html", contexto)
+
+    contexto["resultado"] = resultado
+    if destino is None:
+        # Ni verde ni rojo: el archivo está bien y ya estaba comprimido.
+        contexto["no_valio"] = True
+        return render(request, "documents/comprimir.html", contexto)
+
+    messages.success(request, f"Hecho: {destino.name}.")
+    contexto["generado"] = destino
+    return render(request, "documents/comprimir.html", contexto)
 
 
 @login_required

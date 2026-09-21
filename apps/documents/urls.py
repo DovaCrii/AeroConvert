@@ -19,12 +19,13 @@ urlpatterns = [
     path("proteger/", views.proteger_vista, name="proteger"),
     path("office/", views.office_vista, name="office"),
     path("a-word/", views.a_word_vista, name="a_word"),
-    # Texto y tablas. **Una pantalla para los seis orígenes**: lo que cambia por dentro lo
-    # decide la extensión, y seis pantallas idénticas salvo por el título serían seis sitios
-    # donde arreglar el mismo fallo. El catálogo sí las lista por separado, con `?de=`.
+    path("comprimir/", views.comprimir, name="comprimir"),
     # «Texto y tablas» tiene su propio índice. Compartía el de PDF, y entonces el desplegable
     # ofrecía dos columnas distintas que llevaban al mismo sitio.
     path("texto/", views.texto, name="texto"),
+    # Una pantalla para los seis orígenes: lo que cambia por dentro lo decide la extensión, y
+    # seis pantallas idénticas salvo por el título serían seis sitios donde arreglar el mismo
+    # fallo. El catálogo sí las lista por separado, con `?de=`.
     path("a-markdown/", views.a_markdown, name="a_markdown"),
     path("de-markdown/", views.de_markdown, name="de_markdown"),
     # Catálogos de tubería de Plant 3D, que son bases de Access. Solo en Windows: en el

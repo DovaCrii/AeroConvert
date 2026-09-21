@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block titulo %}Comprimir un PDF · AeroConvert{% endblock %}
+
+{% block contenido %}
+
+{% comment %}
+  Qué va a pasar, antes de elegir. Lo que hay que saber para decidir es **dónde está el peso**
+  y qué se toca: si alguien cree que esto recorta páginas, va a elegir mal.
+{% endcomment %}
+<div class="tarjeta antes-de-empezar">
+  <p class="sin-hueco">
+    <strong>El peso está casi siempre en las imágenes.</strong> El texto y las líneas no pesan
+    en comparación, y <strong>no se tocan</strong>: reducirlos sí estropearía el plano.
+  </p>
+  <p class="tenue">
+    No se entrega un archivo que pese más que el original. Si ya venía comprimido, se dice y se
+    queda como está — eso no es un fallo, es la respuesta.
+  </p>
+</div>
+
+<form id="forma-documento" method="post" enctype="multipart/form-data">
+  {% csrf_token %}
+
+  {% include "documents/_origen.html" with pregunta="¿Qué PDF hay que aligerar?" accion="convertir" boton="Comprimir" %}
+
+  <div class="tarjeta">
+    <fieldset>
+      <legend class="eyebrow">Cuánto se puede bajar</legend>
+      <p class="tenue">
+        La resolución la eliges tú, con la consecuencia al lado. Un campo libre de puntos por
+        pulgada invita a teclear 72 y descubrir que los planos salieron ilegibles cuando el
+        cliente ya los tiene.
+      </p>
+
+      {% for valor, que_hace in resoluciones.items %}
+        <label class="opcion">
+          <input type="radio" name="ppp" value="{{ valor }}" {% if ppp == valor %}checked{% endif %}>
+          <span>
+            <strong>{% if valor %}{{ valor }} ppp{% else %}Sin tocar las imágenes{% endif %}</strong>
+            <span class="tenue">{{ que_hace }}</span>
+          </span>
+        </label>
+      {% endfor %}
+    </fieldset>
+  </div>
+</form>
+
+{% if no_valio %}
+  {% comment %}
+    **Ni verde ni rojo.** El archivo está bien y ya estaba comprimido: pintarlo como error
+    manda a alguien a reintentar con el mismo archivo, y como éxito sería mentir.
+  {% endcomment %}
+  <div class="tarjeta antes-de-empezar">
+    <p class="sin-hueco"><strong>Ya estaba comprimido, así que no se ha tocado.</strong></p>
+    <p class="tenue">
+      Pesa {{ resultado.origen_bytes|filesizeformat }} y comprimirlo lo dejaría en
+      {{ resultado.salida_bytes|filesizeformat }} — más de lo que pesa ahora. El original sigue
+      donde estaba.
+    </p>
+  </div>
+{% endif %}
+
+{% if generado %}
+  <div class="tarjeta tarjeta-acento">
+    <div class="eyebrow">Hecho</div>
+    <strong class="recibo-titulo">✓ {{ generado.name }}</strong>
+    <p class="tenue">
+      {{ resultado.origen_bytes|filesizeformat }} →
+      <strong>{{ resultado.salida_bytes|filesizeformat }}</strong>
+      · <strong>{{ resultado.reduccion_pct }} % menos</strong>
+      {% if resultado.imagenes_tocadas %}
+        · {{ resultado.imagenes_tocadas }} imagen(es) reducida(s)
+      {% else %}
+        · solo se recomprimió, sin tocar ninguna imagen
+      {% endif %}
+      · {{ resultado.paginas }} página(s)
+    </p>
+    <p class="tenue">El original no se ha tocado.</p>
+  </div>
+{% endif %}
+{% endblock %}

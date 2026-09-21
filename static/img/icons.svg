@@ -300,6 +300,17 @@
 
   <!-- Los tres veredictos. Formas claramente distintas, no tres círculos de colores: uno de
        cada doce hombres no distingue el rojo del verde. -->
+  <symbol id="icon-pdf-comprimir" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Dos flechas apretando una hoja por arriba y por abajo: lo que se hace es aplastarla,
+         no recortarla. Recortar seria quitar paginas, que es «dividir». -->
+    <rect x="5" y="9" width="14" height="6" rx="1.5" fill="currentColor" fill-opacity=".16" />
+    <path d="M12 2.5v4" />
+    <path d="M9.5 4.5L12 6.9l2.5-2.4" />
+    <path d="M12 21.5v-4" />
+    <path d="M9.5 19.5L12 17.1l2.5 2.4" />
+  </symbol>
+
   <!-- Texto y tablas: sacar el contenido del archivo y meterlo en otro sitio. -->
 
   <symbol id="icon-texto-tabla" viewBox="0 0 24 24" fill="none" stroke="currentColor"

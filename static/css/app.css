@@ -1481,6 +1481,18 @@ legend {
   max-width: 26rem;
 }
 
+/* El primer párrafo de una tarjeta no necesita hueco arriba: ya lo pone el relleno. Estaba
+ * escrito como `style="margin:0;"` decenas de veces. */
+.sin-hueco {
+  margin: 0;
+}
+
+/* Y los siguientes solo separan del anterior. */
+.tarjeta > p + p,
+.tarjeta > .tenue {
+  margin: var(--av-s-2) 0 0;
+}
+
 /* Botón pequeño. Estaba inventado dos veces en línea con dos rellenos distintos. */
 .boton-pequeno {
   min-height: auto;
