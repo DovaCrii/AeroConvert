@@ -421,7 +421,11 @@ def _agrupar(herramientas):
 
 
 def estado_de_herramientas() -> list[dict]:
-    """Las once, con si esta máquina puede hacerlas y por qué no.
+    """Las dieciocho, con si esta máquina puede hacerlas y por qué no.
+
+    El número se queda escrito a propósito aunque envejezca: decía «las once» cuando ya eran
+    dieciocho, y ese desfase es la señal de que alguien añadió herramientas sin repasar lo que
+    las describe. Un «las que haya» no avisaría de nada.
 
     Vive aquí y la consume **también la pantalla de compatibilidad**: es la única forma de
     que lo que no se puede aparezca en un solo sitio y siga apareciendo. Antes las apagadas

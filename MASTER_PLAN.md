@@ -60,7 +60,7 @@ no un ejemplo inventado. Sus cifras están en
 | F3.1 | OGR: SHP, GPKG, GeoJSON, GML, GPX, DXF | ✅ |
 | F3.2 | KML y KMZ | ✅ · los lee y los escribe LIBKML, verificado de punta a punta. El parser endurecido de AeroControl **no hace falta**: resolvía un problema que OGR ya cubre |
 | F3.3 | **Archivos de puntos PNEZD/PENZD/NEZ/ENZ, con vista previa antes de convertir** | ✅ |
-| F3.4 | DWG y DGN v8 por ODA; DGN v7 por GDAL | ⬜ |
+| F3.4 | DWG y DGN v8 por ODA; DGN v7 por GDAL | ⬜ · **decidido el 2026-09-21: se hace.** Ver Fase 8 |
 | F3.5 | LandXML: superficies y alineamientos para Civil 3D | ◐ · se escribe y se lee; los puntos se convierten en los dos sentidos. Las superficies y los alineamientos **se cuentan y se identifican**, pero traducirlos espera a tener un archivo real con el que contrastar |
 
 ## Fase 4 — BIM y malla
@@ -153,12 +153,18 @@ copiándose a mano a un correo, a una ficha de AeroControl o a un tablero. Markd
 formato que atraviesa todo eso sin perder la tabla ni los títulos, y **no necesita programa
 para leerse**.
 
-| # | Entrega | Notas |
-| --- | --- | --- |
-| F7.1a | **Excel → Markdown** | Una hoja es una tabla y Markdown tiene tablas. Es la conversión más directa del grupo y probablemente la más pedida |
-| F7.1b | **PDF → Markdown** | Solo del texto que el PDF ya tiene. Un PDF escaneado no tiene texto y hay que **decirlo**, no entregar una página en blanco: eso es OCR, y es F5.11 |
-| F7.1c | **Word → Markdown** | Títulos, listas, tablas y negritas. Lo que no sobrevive —cuadros de texto, columnas— se avisa antes |
-| F7.1d | **Markdown → PDF** | El camino de vuelta, para entregar lo que se redactó en Markdown |
+| # | Entrega | Notas | Estado |
+| --- | --- | --- | --- |
+| F7.1a | **Excel → Markdown** | Una hoja es una tabla y Markdown tiene tablas. Es la conversión más directa del grupo y probablemente la más pedida | ✅ 2026-09-15 |
+| F7.1b | **PDF → Markdown** | Solo del texto que el PDF ya tiene. Un PDF escaneado no tiene texto y hay que **decirlo**, no entregar una página en blanco: eso es OCR, y es F5.11 | ✅ 2026-09-15 |
+| F7.1c | **Word → Markdown** | Títulos, listas, tablas y negritas. Lo que no sobrevive —cuadros de texto, columnas— se avisa antes | ✅ 2026-09-15 |
+| F7.1d | **Markdown → PDF** | El camino de vuelta, para entregar lo que se redactó en Markdown | ✅ 2026-09-15 |
+| F7.1e | **CSV, EPUB y página web → Markdown** | No estaban en el plan y entraron con el resto: el EPUB salió casi gratis porque por dentro es un ZIP con XHTML | ✅ 2026-09-15 |
+
+**Hecha entera en `0e07182`**, con `apps/documents/a_markdown.py` y `desde_markdown.py`. Sin
+`markitdown`: su `magika` obligatorio arrastra `onnxruntime`, ~40 MB de runtime de aprendizaje
+automático solo para adivinar el tipo de archivo. Entraron `markdownify` y `beautifulsoup4`,
+**126 KB entre las dos**.
 
 **La decisión de licencia, que es la de siempre:** hay biblioteca para casi todo esto, y casi
 toda es AGPL. `markitdown` (MIT) y `openpyxl` (MIT) cubren Excel y Word; para PDF, el texto ya
@@ -258,9 +264,16 @@ suele no poderse. Se puede.
 
 | # | Entrega | Por qué en este orden |
 | --- | --- | --- |
-| F7.6a | **`.mdb` → Excel**, una hoja por tabla | Es la mitad que más se usa y la que no puede fallar: **nadie escribe 52 columnas desde cero**. El flujo real es exportar el catálogo que ya existe, editarlo en Excel y volver a meterlo |
-| F7.6b | **Excel → `.mdb` usando un `.mdb` de plantilla** | El esquema sale del archivo de plantilla, no del Excel. Las columnas del Excel se **comprueban contra él** y una que no exista **para el trabajo**, no se descarta en silencio: un catálogo al que le falta una columna lo abre Plant 3D y falla más tarde, en la obra |
-| F7.6c | Avisar de lo que no cuadra **antes** de escribir | Filas con `MAIN_SIZE` vacío, textos más largos que el campo, números donde va texto. Es la misma regla que el resto: si no se puede entregar algo correcto, se dice |
+| F7.6a | **`.mdb` → Excel**, una hoja por tabla | Es la mitad que más se usa y la que no puede fallar: **nadie escribe 52 columnas desde cero**. El flujo real es exportar el catálogo que ya existe, editarlo en Excel y volver a meterlo | ✅ 2026-09-15 |
+| F7.6b | **Excel → `.mdb` usando un `.mdb` de plantilla** | El esquema sale del archivo de plantilla, no del Excel. Las columnas del Excel se **comprueban contra él** y una que no exista **para el trabajo**, no se descarta en silencio: un catálogo al que le falta una columna lo abre Plant 3D y falla más tarde, en la obra | ✅ 2026-09-15 |
+| F7.6c | Avisar de lo que no cuadra **antes** de escribir | Filas con `MAIN_SIZE` vacío, textos más largos que el campo, números donde va texto. Es la misma regla que el resto: si no se puede entregar algo correcto, se dice | ✅ 2026-09-15 |
+
+**Hecha en `2ef2c86`**, con `apps/documents/catalogos.py`. Probada de punta a punta contra
+`HDPE_PE100_PN16.mdb`: nueve tablas, 481 filas, exportado a Excel, editado y reconstruido.
+
+**Y la pregunta que quedaba abierta está resuelta el 2026-09-21: son catálogos de Plant 3D.**
+El código no cambia. Si algún día entra CADWorx, hará falta un `.mdb` suyo para comparar
+esquemas antes de tocar nada.
 
 #### Cómo se hace
 
@@ -291,28 +304,44 @@ viven en el mismo servidor y en puertos distintos que nadie recuerda.
 
 ## Deuda conocida
 
-| Qué | Por qué está | Cuándo se paga |
+> **Cómo se lee esta tabla, y por qué hizo falta arreglarla.**
+>
+> Al auditarla el 2026-09-21 salió un defecto del propio documento: **tres filas apuntaban a
+> F1.7, que está marcada ✅**. O se pagaron y nadie actualizó la tabla, o la fase se cerró con
+> la deuda dentro — y no había forma de saber cuál. Una tabla de deuda que no permite saber si
+> algo sigue abierto no sirve para nada, que es justo lo contrario de su propósito.
+>
+> Ahora cada fila lleva **estado comprobado contra el código**, no contra el plan.
+
+| Qué | Por qué está | Estado |
 | --- | --- | --- |
-| Sin `RegistroDeSonda` | La matriz se calcula en vivo; falta el historial de «el día que GDAL desapareció» | F1.1 |
-| El modo experto solo elige formato | Las opciones del motor ya son declarativas, pero el formulario aún no las despliega | F1.7 |
-| Sin remuestreo ni nodata en la interfaz | El plan los acepta; falta exponerlos | F1.7 |
-| Sin traducciones compiladas | Los nombres de formato salen en inglés, que es su `msgid` | F1.7 |
-| El LAS no reporta su CRS | Vive en las VLR, que aún no se leen | F2.3 |
-| Soltar un archivo solo da su nombre | El navegador no entrega la ruta completa, por seguridad. Por eso hay tres vías: subir, explorar la compartida, o pegar la ruta | no se paga |
+| Sin `RegistroDeSonda` | La matriz se calcula en vivo; falta el historial de «el día que GDAL desapareció» | **Abierta** — comprobado: el identificador no aparece en ningún `.py` |
+| El modo experto solo elige formato | Las opciones del motor ya son declarativas, pero el formulario aún no las despliega | **Por verificar** — F1.7 se cerró y la deuda no se tachó |
+| Sin remuestreo ni nodata en la interfaz | El plan los acepta; falta exponerlos | **Por verificar** — igual que la anterior |
+| Sin traducciones compiladas | Los nombres de formato salen en inglés, que es su `msgid` | **Abierta** — no hay `.mo` compilados |
+| El LAS no reporta su CRS | Vive en las VLR, que aún no se leen | **Probablemente saldada** — F2.3 se cerró con «un CRS ausente es detención dura». Confirmar y tachar |
+| Soltar un archivo solo da su nombre | El navegador no entrega la ruta completa, por seguridad. Quedan las dos vías: subir o explorar la compartida | no se paga |
 | El correo no es único en la base | `auth.User` no lo declara así, y cambiarlo obliga a migrar el modelo con la base ya en producción. El alta lo impide y el backend se niega a elegir entre dos | cuando toque tocar el modelo por otra cosa |
 | Office solo en Windows | Hablan con Word por COM. En el servidor salen apagadas con su motivo | no se paga · la alternativa entrega un documento que *se parece* |
 
 ---
 
-## Lo que solo puedes decidir tú
+## Lo que solo podías decidir tú
 
-No son cosas que se resuelvan programando mejor.
+No son cosas que se resuelvan programando mejor. **Cuatro se resolvieron el 2026-09-21** y
+quedan aquí anotadas con su fecha: una decisión sin registro se vuelve a discutir.
 
-| Decisión | Qué está en juego | Mi recomendación |
+| Decisión | Qué estaba en juego | Resuelto |
 | --- | --- | --- |
-| **Nombre del ayudante** | Es de familia: se usa en las tres aplicaciones | **Tino** |
-| **Si el ayudante habla con un modelo de fuera** | El argumento entero de la aplicación es que nada sale del equipo | Que salga la pregunta, nunca el archivo — y dicho en pantalla |
-| **ECW** | Medio día y una licencia de pago, para 10 conversiones que ya tienen salida abierta | No, hasta que alguien lo pida dos veces |
-| **Catálogos `.mdb`: ¿Plant 3D o CADWorx?** | El esquema se parece entre los dos y las tablas no son iguales. Adivinar mal es entregar un catálogo que el programa no abre | Mándame un archivo de cada uno y se resuelve en diez minutos |
-| **Office en el servidor** | LibreOffice daría Word→PDF en Linux, pero *parecido* no es *idéntico* | Dejarlas apagadas |
-| **Respaldo del servidor** | Hoy no hay ninguno, con tres aplicaciones y exposición pública | Es lo más urgente de todo lo que queda |
+| **Nombre del ayudante** | Es de familia: se usa en las tres aplicaciones | **Tino** · 2026-09-21 |
+| **¿El ayudante habla con un modelo de fuera?** | El argumento entero de la aplicación es que nada sale del equipo | **Solo la pregunta escrita, nunca el archivo** —ni su nombre, ni su contenido— y dicho en pantalla cada vez · 2026-09-21 |
+| **Catálogos `.mdb`: ¿Plant 3D o CADWorx?** | El esquema se parece entre los dos y las tablas no son iguales. Adivinar mal es entregar un catálogo que el programa abre y falla en obra | **Plant 3D.** F7.6 se cierra sin cambios · 2026-09-21 |
+| **DWG y DGN por ODA (F3.4)** | Es el formato de intercambio diario de una oficina de topografía, y hoy no se convierte | **Sí**, se instala el conversor y se hace · 2026-09-21 |
+| **ECW** | Medio día y una licencia de pago, para 10 conversiones que ya tienen salida abierta | Abierta — no, hasta que alguien lo pida dos veces |
+| **Office en el servidor** | LibreOffice daría Word→PDF en Linux, pero *parecido* no es *idéntico* | Abierta — dejarlas apagadas |
+| **Dónde va la copia de respaldo fuera de la máquina** | El servicio escribe en el mismo NVMe que la base: un fallo del disco se lo lleva todo a la vez | **Abierta, y es lo único de la lista sin arreglo posible después** |
+
+> **Corrección del 2026-09-21.** Este documento y `SERVIDOR.md` decían «hoy no hay ningún
+> respaldo» — y el repositorio trae `aeroconvert-respaldo.service` y `.timer` (03:15,
+> `Persistent=true`), que el README habilita. La afirmación se repitió durante días sin
+> comprobarla. Lo que falta con certeza es la **copia fuera de la máquina**.

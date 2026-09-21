@@ -197,7 +197,7 @@ servicio, con un error que no menciona `/home` por ningún lado.
 
 **PDAL no está empaquetado en 26.04** (`apt-cache policy pdal` no devuelve nada). Sin él las
 nubes de puntos salen apagadas con su motivo, igual que las dos herramientas de Office; el
-ráster, el vectorial, LandXML y las once de PDF funcionan. No bloquea nada.
+ráster, el vectorial, LandXML y las dieciocho de documentos funcionan. No bloquea nada.
 
 ---
 
@@ -230,12 +230,25 @@ aplicación se entera sola y rechaza por adelantado lo que no cabe, diciendo por
 
 ## Lo que falta, y es común a las tres
 
-1. **No hay ningún respaldo automático.** Con tres aplicaciones, PostgreSQL, MinIO y
-   exposición pública, esto es lo que decide si un mal día es una tarde o una semana.
-   AeroConvert trae `manage.py respaldar` —que verifica la copia abriéndola y falla
-   ruidosamente si no cuadra—; hace falta el equivalente para las otras y un temporizador.
-   Y **al menos una copia fuera de la máquina**: un respaldo en el mismo disco no protege del
-   escenario que más importa.
+1. **El respaldo — y una corrección de este documento.**
+
+   Este punto decía «no hay ningún respaldo automático», y esa frase se repitió durante días
+   sin comprobarla. **AeroConvert trae el suyo montado**: `manage.py respaldar` —que verifica
+   la copia abriéndola y falla ruidosamente si no cuadra—, más
+   `aeroconvert-respaldo.service` y `aeroconvert-respaldo.timer` (03:15, `Persistent=true`),
+   que el paso 4 del README habilita. Comprobarlo lleva treinta segundos:
+
+   ```bash
+   systemctl list-timers aeroconvert-respaldo.timer; ls -lh /var/backups/aeroconvert/ | tail -5
+   ```
+
+   Lo que **sí falta con certeza**, y es lo que de verdad importa:
+
+   - **Una copia fuera de la máquina.** El servicio escribe en `/var/backups/aeroconvert`, el
+     mismo NVMe que la base. Un fallo de ese disco se lleva base, entregables y respaldos a la
+     vez — que es exactamente el escenario del que un respaldo existe para proteger.
+   - **El equivalente para AeroControl y AeroBim**, que no tienen ni el comando. Y AeroLink
+     arrastra PostgreSQL y MinIO, que piden otra cosa.
 
 2. **No hay límite de peticiones.** Contra un extremo público, alguien puede probar
    contraseñas tan rápido como aguante la máquina. El bloqueo de axes es por usuario: no frena

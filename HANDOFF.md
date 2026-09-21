@@ -1,8 +1,28 @@
 # HANDOFF — dónde retomar
 
-**Última sesión: 2026-09-11.** Léelo antes que `MASTER_PLAN.md`.
+**Última sesión: 2026-09-21.** Léelo antes que `MASTER_PLAN.md`.
+
+> **Aviso sobre este documento.** Estuvo fechado el 11 de septiembre hasta el 21, diez días y
+> 262 pruebas después, mientras pedía en su primera línea que se leyera antes que nada. El
+> documento que se lee primero no puede ser el más viejo: si retomas esto y algo de aquí no
+> cuadra con el código, **gana el código** — y actualiza esta página antes de seguir.
 
 ---
+
+## Lo que pasó entre el 11 y el 21 de septiembre
+
+Diez días de trabajo que este documento no recogía:
+
+| | |
+| --- | --- |
+| **Desplegado en el servidor de la oficina** | `p340`, publicado en internet por Tailscale Funnel. Fase 6 cerrada entera |
+| **Entrar con el correo** | Y cada aplicación con su propia cookie: saltar entre AeroControl y AeroConvert cerraba la sesión |
+| **El catálogo con buscador, y es la portada** | Entiende sinónimos («juntar» encuentra «Unir PDF»), pares de formato («tif a jp2») y acentos |
+| **La barra**, de siete entradas planas a cuatro y un desplegable | Con el buscador siempre visible |
+| **Markdown** (F7.1) | Excel, CSV, Word, PDF, EPUB y página web → Markdown, y la vuelta a PDF |
+| **Catálogos de tubería** (F7.6) | `.mdb` de Plant 3D ↔ Excel, probado contra un catálogo real de 481 filas |
+| **La subida funcionaba mal** | En cinco pantallas nunca había funcionado, y el tope de 200 MB decía «No llegó ningún archivo» en vez de decir el tope. Hoy son 2 GB y hay barra de avance con porcentaje real |
+| **`docs/ESTILO.md`** | Las reglas de forma, con la prueba que las sostiene |
 
 ## En una frase
 
@@ -26,7 +46,12 @@ Hexagon para ECW. Lo único pendiente que solo depende de escribirlo es F2.6 (3D
 | F3.5 | **LandXML**: se escribe (CgPoints con número, descripción y epsgCode) y se lee (qué trae dentro; los puntos además se convierten) |
 | F5 | **PDF**: leer, unir con miniaturas y giro, dividir, imágenes ↔ PDF, numerar, marca de agua, proteger, y Office ↔ PDF en los dos sentidos |
 
-**943 pruebas**, 93,6 % de cobertura, verdes **sin GDAL, sin PDAL y sin Office instalados**.
+| F6 | **Desplegado**: systemd, dos servicios, respaldo con temporizador, publicado por Funnel |
+| F7.1 | **Markdown** en los dos sentidos, desde seis formatos |
+| F7.6 | **Catálogos de tubería** de Plant 3D ↔ Excel |
+
+**1.205 pruebas** en 66 ficheros, verdes **sin GDAL, sin PDAL y sin Office instalados**
+(2026-09-21).
 
 ### Lo verificado sobre archivos reales
 
