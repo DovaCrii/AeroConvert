@@ -50,7 +50,7 @@ Hexagon para ECW. Lo único pendiente que solo depende de escribirlo es F2.6 (3D
 | F7.1 | **Markdown** en los dos sentidos, desde seis formatos |
 | F7.6 | **Catálogos de tubería** de Plant 3D ↔ Excel |
 | F5.10 / F7.3a | **Comprimir PDF**, y negarse cuando comprimir empeoraría el archivo |
-| F5.11 / F7.3d | **Reconocer el texto de un escaneo** ⚠ falta correrlo con Tesseract puesto |
+| F5.11 / F7.3d | **Reconocer el texto de un escaneo**, verificado sobre un escaneo real |
 | F3.4 | **DWG y DGN v8** por ODA ⚠ falta correrlo con el conversor puesto |
 | F7.4 | **Tino**, que contesta desde esta máquina y con la puerta de fuera cerrada |
 
@@ -59,8 +59,13 @@ sin el conversor de ODA instalados** (2026-09-21). Nueve se saltan solas diciend
 esos programas les falta, y eso es exactamente lo que se quiere: **una capacidad ausente se
 apaga con su motivo, no revienta**.
 
-Las ⚠ de arriba son lo contrario de una queja: son las dos cosas de esta tanda cuyo camino
-completo **no se ha podido correr** porque el programa externo no está en ninguna de las dos
+**El servidor sí tiene Tesseract** desde el 2026-09-21 (5.5.0, con `spa`, `eng` y `osd`), y
+la conversión se corrió allí sobre un escaneo de verdad: `antes tiene texto: False` →
+`despues: True` → `'ACTA DE RECEPCION'`, sin una errata. Las pruebas de extremo a extremo se
+saltan **en esta estación**, no en el servidor.
+
+La ⚠ que queda es lo contrario de una queja: es lo único de esta tanda cuyo camino completo
+**no se ha podido correr**, porque el conversor de ODA no está en ninguna de las dos
 máquinas. El comando, las negativas y el criterio sí se comprueban.
 
 ### Lo verificado sobre archivos reales
@@ -107,19 +112,22 @@ pendiente de hacerse en un puesto con licencia; es un procedimiento manual, igua
    v8 hacia los seis destinos vectoriales — el motor y las pruebas del comando están desde el
    2026-09-21, y lo único que falta es el programa. Hoy la sonda responde `sin-conversor` y la
    herramienta sale apagada ofreciendo «Guardar como DXF», que hace el mismo primer paso.
-4. **Instalar Tesseract** para reconocer el texto de un escaneo:
-   `sudo apt install tesseract-ocr tesseract-ocr-spa`. Igual que el anterior — el motor, el
-   sondeo y las negativas están desde el 2026-09-21; **la conversión de extremo a extremo no
-   se ha corrido nunca** porque el programa no está en ninguna de las dos máquinas. Con él
-   puesto, «PDF a Markdown» deja además de rendirse ante un escaneo.
-5. **Decidir dónde vive la copia del respaldo fuera de la máquina**, y ponerla en `.env`
+4. **Decidir dónde vive la copia del respaldo fuera de la máquina**, y ponerla en `.env`
    como `AEROCONVERT_RESPALDOS_FUERA`. Es el único riesgo del servidor **sin arreglo posible
    después**; el mecanismo ya está y la decisión no es técnica.
-6. **Decidir si Tino pregunta fuera, y a quién.** Hoy contesta desde esta máquina y la
+5. **Decidir si Tino pregunta fuera, y a quién.** Hoy contesta desde esta máquina y la
    puerta de fuera nace cerrada. Abrirla es una decisión sobre los datos de la oficina en una
    aplicación publicada en internet abierto, así que no se ha tomado en el código.
-7. **La SDK de Hexagon** para ECW. El motor está escrito y la clave ya viaja solo en el
+6. **La SDK de Hexagon** para ECW. El motor está escrito y la clave ya viaja solo en el
    entorno del hijo, con su prueba centinela.
+7. **Volver a enseñarle la aplicación al equipo**, y esto no es una tarea de código —es la
+   que más rinde de la lista. Medido el 2026-09-21 en el servidor: **seis cuentas, nueve
+   entradas correctas, cuatro personas que entraron alguna vez, dos que no entraron nunca, y
+   cero conversiones.** La última entrada de cualquiera fue el **15 de septiembre**.
+   Esa fecha es la de la caída de AeroBim que se llevó a las otras dos por delante, y la del
+   `accept=".pdf"` heredado que impedía elegir un `.xlsx` — el fallo que el equipo reportó
+   como «no funciona». **Entraron, se estrelló, y no han vuelto.** Todo eso está arreglado
+   desde entonces y nadie lo sabe.
 
 Y lo que se contesta solo, sin leer nada:
 

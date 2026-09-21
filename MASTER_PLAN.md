@@ -95,13 +95,21 @@ sería pedir que alguien espere a un proceso en segundo plano para reordenar tre
 | F5.8 | Word/Excel/PowerPoint → PDF por COM, **solo en taller** | ✅ 2026-09-11 |
 | F5.9 | PDF → Word, con el aviso de qué se recibe de verdad | ✅ 2026-09-11 |
 | F5.10 | Comprimir, **y negarse cuando comprimir empeoraría el archivo** | ✅ 2026-09-21 |
-| F5.11 | OCR con Tesseract sondeado, no declarado | ✅ 2026-09-21 ⚠ |
+| F5.11 | OCR con Tesseract sondeado, no declarado | ✅ 2026-09-21 |
 
-> **La ⚠ de F5.11.** El motor, el sondeo y las negativas están y se comprueban; **la
-> conversión de extremo a extremo no**, porque Tesseract no está instalado ni en esta estación
-> ni en el servidor. Las cuatro pruebas que la ejercitan se saltan solas diciéndolo. Hasta que
-> se corran donde el programa esté —`sudo apt install tesseract-ocr tesseract-ocr-spa`— no se
-> puede afirmar que reconozca nada.
+> **F5.11 estuvo unas horas con una ⚠, y así se quitó.** El motor se escribió sin Tesseract
+> en ninguna de las dos máquinas, así que el comando, el sondeo y las negativas se
+> comprobaban y **la conversión no**. Se instaló en el servidor ese mismo día
+> —`tesseract-ocr` 5.5.0 con `spa`, `eng` y `osd`— y se corrió sobre un escaneo de verdad:
+>
+> ```
+> antes  tiene texto: False
+> despues tiene texto: True
+> reconocio: 'ACTA DE RECEPCION'
+> ```
+>
+> Sin una errata. **Eso es lo que convierte un ⚠ en un ✅**, y no que el código parezca
+> correcto.
 
 ---
 
@@ -198,7 +206,7 @@ De la lista de iLovePDF, ordenadas por lo que se pide de verdad en una oficina d
 | F7.3a | ~~**Comprimir PDF**~~ | ✅ 2026-09-21, como F5.10. Medido sobre un escaneo real: 7,2 MB → 1,19 MB |
 | F7.3b | **Ordenar, eliminar y extraer páginas** | Ya está medio hecho: la receta de «unir» sabe hacerlo, falta la pantalla de una sola entrada |
 | F7.3c | **Rotar PDF** | Tres líneas con `pypdf`. Está ya dentro de «unir», suelto no |
-| F7.3d | ~~**OCR**~~ | ✅ 2026-09-21 ⚠, como F5.11. Ver la nota de la fase 5: falta correrlo donde Tesseract esté instalado |
+| F7.3d | ~~**OCR**~~ | ✅ 2026-09-21, como F5.11. Verificado sobre un escaneo real en el servidor, con Tesseract 5.5.0 |
 | F7.3e | **Firmar PDF** | El caso real es el acta firmada. Firma dibujada primero; la digital con certificado es otra cosa y otra fase |
 | F7.3f | Comparar, censurar, recortar, reparar, HTML a PDF, PDF/A, formularios | La cola larga. Cada una entra cuando alguien la pida dos veces |
 

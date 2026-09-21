@@ -199,15 +199,18 @@ servicio, con un error que no menciona `/home` por ningún lado.
 nubes de puntos salen apagadas con su motivo, igual que las dos herramientas de Office; el
 ráster, el vectorial y LandXML funcionan. No bloquea nada.
 
-De las **veinte de documentos**, en este servidor funcionan **quince**. Las cinco
-apagadas no son un fallo del montaje y no hay que buscarles arreglo: dos piden Office, dos
-piden el motor de Access —los dos son de Microsoft y en Linux no existen— y la de reconocer
-texto pide **Tesseract**, que sí se puede poner:
+De las **veinte de documentos**, en este servidor funcionan **dieciséis** desde el
+2026-09-21, cuando se instaló Tesseract:
 
 ```bash
-sudo apt install tesseract-ocr tesseract-ocr-spa
+sudo apt install tesseract-ocr tesseract-ocr-spa tesseract-ocr-eng
 ```
 
+Quedó 5.5.0 con `spa`, `eng` y `osd`, y se verificó sobre un escaneo de verdad: un PDF sin
+texto entró, salió con texto, y devolvió `ACTA DE RECEPCION` sin una errata.
+
+Las **cuatro** apagadas no son un fallo del montaje y no hay que buscarles arreglo: dos
+piden Office y dos piden el motor de Access, que son de Microsoft y en Linux no existen.
 Cada una dice en pantalla cuál le falta. `/motores/` las lista todas con su motivo.
 
 ---

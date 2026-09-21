@@ -96,15 +96,17 @@ sondea, y la matriz de compatibilidad saldría medio apagada sin decir por qué.
   veinte herramientas de documentos funcionan igual. **No bloquea el despliegue.** Si hace
   falta, se trae de conda-forge, que es la vía que no arrastra medio sistema de compilación.
 
-**Y una que sí conviene poner**, porque es barata y desbloquea una herramienta entera:
+**Y una que sí hay que poner**, porque es barata y desbloquea una herramienta entera
+— **puesta en p340 el 2026-09-21**:
 
 ```bash
-sudo apt install tesseract-ocr tesseract-ocr-spa
+sudo apt install tesseract-ocr tesseract-ocr-spa tesseract-ocr-eng
 ```
 
 Sin ella, «Reconocer el texto de un escaneo» sale apagada y «PDF a Markdown» sigue sin poder
-hacer nada con un escaneo. Con ella, las dos funcionan. Ver `SERVIDOR.md` para las otras
-cuatro apagadas, que son de Microsoft y no tienen arreglo en Linux.
+hacer nada con un escaneo. Con ella, las dos funcionan: verificado ese día sobre un escaneo
+real, que entró sin texto y salió devolviendo `ACTA DE RECEPCION`. Ver `SERVIDOR.md` para
+las otras cuatro apagadas, que son de Microsoft y no tienen arreglo en Linux.
 
 Python lo pone `uv`, pero **fuera de `/home`**:
 
