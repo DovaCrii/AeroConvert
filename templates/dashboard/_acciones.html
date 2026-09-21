@@ -3,6 +3,42 @@
   Los resultados. Fragmento aparte porque htmx lo reemplaza con cada tecla.
 {% endcomment %}
 
+{% if repetibles %}
+  {% comment %}
+    **Lo que ya haces, antes del catálogo de todo lo que se puede hacer.**
+
+    Historial y no favoritos: cuestan lo mismo y **uno se llena solo**. Un panel de favoritos
+    nace vacío y exige acordarse de marcar algo mientras se está haciendo otra cosa, que es
+    justo lo que nadie hace.
+
+    Va **dentro del fragmento** y no en la página, para que desaparezca al buscar sin ningún
+    JavaScript: quien escribió algo en la caja ya dijo qué quiere, y ponerle delante lo que
+    hizo ayer es ruido. La vista deja la lista vacía cuando hay búsqueda.
+
+    Por destino y no por archivo: cinco ortofotos llevadas a QGIS son **una** fila, no cinco
+    que empujan el catálogo fuera de la pantalla. Ver `apps/dashboard/recientes.py`.
+  {% endcomment %}
+  <section class="repetibles" aria-label="Lo que sueles hacer">
+    <h2 class="repetibles-titulo">Seguir donde lo dejaste</h2>
+    <div class="repetibles-lista">
+      {% for r in repetibles %}
+        <a class="repetible" href="{{ r.enlace }}">
+          <span class="repetible-marca fam-destino" aria-hidden="true">
+            <svg class="repetible-icono"><use href="{% static 'img/icons.svg' %}#{{ r.icono }}"></use></svg>
+          </span>
+          <span class="repetible-texto">
+            <strong>{{ r.titulo }}</strong>
+            <span class="tenue">
+              {{ r.ultimo_archivo }}
+              {% if r.veces > 1 %}· {{ r.veces }} veces{% endif %}
+            </span>
+          </span>
+        </a>
+      {% endfor %}
+    </div>
+  </section>
+{% endif %}
+
 {% if conversion %}
   {% comment %}
     **La respuesta directa, arriba del todo.**

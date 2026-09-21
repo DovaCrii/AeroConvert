@@ -1108,6 +1108,7 @@ a.menu-titulo:hover {
 .herramienta-marca,
 .nota-privacidad-marca,
 .motor-marca,
+.repetible-marca,
 .menu-marca {
   display: grid;
   place-items: center;
@@ -1139,7 +1140,8 @@ a.menu-titulo:hover {
   --marca-radio: 7px;
 }
 
-.motor-marca {
+.motor-marca,
+.repetible-marca {
   --marca-lado: 2.2rem;
   --marca-radio: 9px;
 }
@@ -1324,6 +1326,27 @@ a.menu-titulo:hover {
   border-radius: var(--av-radius);
 }
 
+/* La tecla que enfoca la búsqueda, dibujada como una tecla. Ver `static/js/atajos.js`: la
+ * regla es que **descubrirla no puede ser necesario**, y eso solo se cumple si se ve. */
+.atajo-pista {
+  flex: 0 0 auto;
+  padding: 2px 8px;
+  border-radius: var(--av-radius-sm);
+  background: var(--av-surface-alt);
+  box-shadow: 0 0 0 1px var(--av-anillo);
+  color: var(--av-text-muted);
+  font-family: inherit;
+  font-size: var(--av-fs-sm);
+  line-height: 1.4;
+}
+
+/* En pantalla estrecha no hay teclado físico que pulsar, y el hueco sí se nota. */
+@media (max-width: 640px) {
+  .atajo-pista {
+    display: none;
+  }
+}
+
 /* El asomo al Markdown recién hecho, antes de descargarlo. Con barra propia: una tabla ancha
  * no puede empujar el ancho de la página, que es lo que pasa con `pre` a secas. */
 .asomo {
@@ -1403,6 +1426,81 @@ a.menu-titulo:hover {
   background: var(--av-primary-soft);
   color: var(--av-primary);
   text-decoration: none;
+}
+
+/* --- Seguir donde lo dejaste --------------------------------------------
+ *
+ * Historial y no favoritos: cuestan lo mismo y **uno se llena solo**. Ver
+ * `apps/dashboard/recientes.py`, donde está el razonamiento entero.
+ *
+ * Se parece a una tarjeta y no lo es: sin fondo de superficie, para que no compita con el
+ * catálogo que va justo debajo. Lo que la separa es el anillo, no el relleno. */
+
+.repetibles {
+  margin: 0 0 var(--av-s-6);
+}
+
+.repetibles-titulo {
+  margin: 0 0 var(--av-s-3);
+  font-size: var(--av-fs-sm);
+  font-weight: var(--av-peso-medio);
+  letter-spacing: var(--av-track-rotulo);
+  color: var(--av-text-muted);
+  text-transform: uppercase;
+}
+
+/* `auto-fill` y no `auto-fit`: con dos destinos, `auto-fit` los estira a media pantalla cada
+ * uno y parecen dos botones enormes. `auto-fill` los deja del tamaño que les toca. */
+.repetibles-lista {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  gap: var(--av-s-3);
+}
+
+.repetible {
+  display: flex;
+  gap: var(--av-s-3);
+  align-items: center;
+  padding: var(--av-s-3);
+  border-radius: var(--av-radius);
+  background: var(--av-surface);
+  box-shadow: var(--av-elev-1);
+  color: inherit;
+  text-decoration: none;
+  transition: box-shadow var(--av-rapido), transform var(--av-rapido);
+}
+
+.repetible:hover,
+.repetible:focus-visible {
+  box-shadow: var(--av-elev-2);
+  color: inherit;
+  text-decoration: none;
+}
+
+.repetible:active {
+  transform: translateY(1px);
+  box-shadow: var(--av-elev-1);
+}
+
+.repetible-texto {
+  display: grid;
+  gap: 2px;
+  /* Sin esto, un nombre de archivo largo ensancha la celda de la rejilla y descuadra la fila
+   * entera. `minmax(0, …)` implícito vía `min-width: 0` es lo que deja que el texto se corte
+   * en vez de empujar. */
+  min-width: 0;
+}
+
+.repetible-texto .tenue {
+  overflow: hidden;
+  font-size: var(--av-fs-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.repetible-icono {
+  width: 1.35rem;
+  height: 1.35rem;
 }
 
 /* --- Los estados, y sobre todo el que faltaba ----------------------------

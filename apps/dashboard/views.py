@@ -21,6 +21,7 @@ from apps.core import manejador as manejador_mod
 from apps.core import modo as modo_mod
 from apps.core import subidas as subidas_mod
 from apps.dashboard import acciones as acciones_mod
+from apps.dashboard import recientes as recientes_mod
 from apps.dashboard import vista_previa as vista_previa_mod
 from apps.engines import formulario as formulario_mod
 from apps.engines import registry
@@ -202,6 +203,10 @@ def que_puedo_hacer(request):
         # Cada uno está elegido para demostrar uno distinto, y los tres devuelven resultados.
         "ejemplos": acciones_mod.EJEMPLOS,
     }
+    # **Historial y no favoritos**, y cuestan lo mismo: uno se llena solo y el otro nace
+    # vacío. Solo cuando no se está buscando: quien escribió algo en la caja ya dijo qué
+    # quiere, y ponerle delante lo que hizo ayer es ruido. Ver `recientes.py`.
+    contexto["repetibles"] = [] if busqueda else recientes_mod.repetibles(request.user)
     if request.headers.get("HX-Request"):
         return render(request, "dashboard/_acciones.html", contexto)
 

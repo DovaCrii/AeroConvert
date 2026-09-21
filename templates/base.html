@@ -247,6 +247,11 @@
   <script src="{% static 'js/subida.js' %}"></script>
   {# Comodidad del desplegable. Sin esto el menú sigue abriendo y cerrando: ver el fichero. #}
   <script src="{% static 'js/menu.js' %}"></script>
+  {% comment %}
+    Dos atajos: «/» para buscar y Escape para volver. Todo lo que hacen se puede hacer con el
+    ratón igual, que es la regla que impide que descubrirlos sea necesario.
+  {% endcomment %}
+  <script src="{% static 'js/atajos.js' %}"></script>
   {% block scripts %}{% endblock %}
 </body>
 </html>

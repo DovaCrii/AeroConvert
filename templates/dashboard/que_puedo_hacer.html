@@ -25,6 +25,20 @@
   <input type="search" id="q" name="q" value="{{ q }}" class="form-control"
          placeholder="juntar planos, quitar contraseña, pasar a Excel…"
          autocomplete="off" autofocus>
+  {% comment %}
+    **El atajo se enseña donde se usa, no en una hoja de trucos.**
+
+    La regla que evita el desastre con los atajos de teclado es que descubrir uno no puede
+    ser necesario: esto se puede pulsar con el ratón igual, y la barra solo ahorra el viaje.
+    Enseñarlo aquí es lo que hace que alguien lo aprenda sin buscarlo.
+
+    Al lado del campo y no flotando dentro: dentro chocaría con «buscando…», que aparece a
+    la derecha cada vez que se teclea — o sea justo cuando el atajo estorba más.
+
+    `aria-hidden` porque para quien navega con lector de pantalla esto no es información:
+    ya está en el campo, o llega a él con el tabulador.
+  {% endcomment %}
+  <kbd class="atajo-pista" aria-hidden="true">/</kbd>
   <span id="buscando" class="tenue htmx-indicator">buscando…</span>
 </form>
 
