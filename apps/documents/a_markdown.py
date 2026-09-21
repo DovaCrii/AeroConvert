@@ -546,9 +546,21 @@ def de_pdf(origen: str | Path) -> str:
             partes.extend([f"## Página {numero}", "", texto, ""])
 
     if not con_texto:
+        # **Lo que sigue a «no se puede» importa más que el «no se puede».** Durante seis días
+        # esto acabó en «que todavía no está», que es un callejón sin salida escrito en
+        # pantalla. Ahora la salida existe, así que se nombra — y cuando en esta máquina no
+        # esté Tesseract, se dice eso en vez de mandar a nadie a una pantalla apagada.
+        from . import ocr
+
+        reconocimiento = ocr.sondar()
+        if reconocimiento:
+            salida = (
+                "Pásalo antes por «Reconocer el texto de un escaneo» y vuelve con el PDF que salga."
+            )
+        else:
+            salida = f"Para sacarlo hace falta reconocimiento óptico. {reconocimiento.motivo}"
         raise SinTextoQueSacar(
-            f"{origen.name} no tiene texto: es un escaneo, o sea una imagen de un texto. "
-            "Para sacarlo hace falta reconocimiento óptico, que todavía no está."
+            f"{origen.name} no tiene texto: es un escaneo, o sea una imagen de un texto. {salida}"
         )
 
     salida = _apretar("\n".join(partes))

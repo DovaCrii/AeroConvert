@@ -50,6 +50,7 @@ from . import desde_markdown as desde_markdown_mod
 from . import dividir as dividir_mod
 from . import marcas as marcas_mod
 from . import miniaturas
+from . import ocr as ocr_mod
 from . import office as office_mod
 from . import receta as receta_mod
 from . import seguridad as seguridad_mod
@@ -233,6 +234,18 @@ HERRAMIENTAS = (
         "url": "documents:comprimir",
         "nombre": "Comprimir PDF",
         "que_hace": "Para que un juego de planos entre en un correo. Dice cuánto baja antes.",
+    },
+    {
+        "id": "ocr",
+        "icono": "icon-pdf-ocr",
+        "sale": "el mismo PDF, con el texto dentro",
+        "familia": "transformar",
+        "url": "documents:ocr",
+        "nombre": "Reconocer el texto de un escaneo",
+        "que_hace": "Un PDF escaneado pasa a poder buscarse y copiarse. Se ve igual.",
+        # La tercera que depende de algo de fuera, y con el mismo trato que Office y Access:
+        # cuando Tesseract no esta, la tarjeta **sigue saliendo**, apagada y con el motivo.
+        "exige_tesseract": True,
     },
     {
         "id": "numerar",
@@ -431,11 +444,16 @@ def _agrupar(herramientas):
 
 
 def estado_de_herramientas() -> list[dict]:
-    """Las dieciocho, con si esta máquina puede hacerlas y por qué no.
+    """Las veinte, con si esta máquina puede hacerlas y por qué no.
 
     El número se queda escrito a propósito aunque envejezca: decía «las once» cuando ya eran
     dieciocho, y ese desfase es la señal de que alguien añadió herramientas sin repasar lo que
     las describe. Un «las que haya» no avisaría de nada.
+
+    Pero *avisar* no es lo mismo que *enterarse*: el desfase estuvo escrito semanas y nadie lo
+    vio, porque para verlo había que leer esta línea. Ahora lo comprueba
+    `test_cuenta.py`, que mira también el README y el manual del servidor — que es donde la
+    cifra vieja hacía daño de verdad.
 
     Vive aquí y la consume **también la pantalla de compatibilidad**: es la única forma de
     que lo que no se puede aparezca en un solo sitio y siga apareciendo. Antes las apagadas
@@ -445,6 +463,9 @@ def estado_de_herramientas() -> list[dict]:
     # Los catálogos son bases de Access: el motor es de Microsoft y en Linux no existe. Se
     # sondea igual que Office, y en el servidor salen apagadas con su motivo.
     access = catalogos_mod.sondar()
+    # Tesseract es un programa aparte, como GDAL: no entra en las dependencias y no se da por
+    # hecho. Donde no este, «reconocer el texto» sale apagada y explicando como ponerlo.
+    tesseract = ocr_mod.sondar()
 
     estado = []
     for herramienta in HERRAMIENTAS:
@@ -457,6 +478,10 @@ def estado_de_herramientas() -> list[dict]:
             fila["disponible"] = bool(access)
             fila["motivo"] = access.motivo
             fila["sugerencia"] = access.sugerencia
+        elif herramienta.get("exige_tesseract"):
+            fila["disponible"] = bool(tesseract)
+            fila["motivo"] = tesseract.motivo
+            fila["sugerencia"] = tesseract.sugerencia
         else:
             fila["disponible"] = True
         estado.append(fila)
@@ -1368,6 +1393,64 @@ def comprimir(request):
     messages.success(request, f"Hecho: {destino.name}.")
     contexto["generado"] = destino
     return render(request, "documents/comprimir.html", contexto)
+
+
+@login_required
+def ocr_vista(request):
+    """Reconocer el texto de un escaneo, **mirando antes si hace falta**.
+
+    ## Por qué va en dos tiempos, como «PDF a Word»
+
+    Lo que hay que decir antes de empezar no se puede decir sin abrir el archivo: un PDF que
+    ya trae su capa de texto no necesita nada, y pasarlo por reconocimiento tardaría minutos
+    para dejarlo **peor** — el OCR se equivoca y el texto incrustado no.
+
+    Así que el primer paso mira, lo dice, y el segundo hace. Igual que allí, y por la misma
+    razón: el consejo que llega después de la conversión ya no es un consejo.
+    """
+    tesseract = ocr_mod.sondar()
+    contexto = {
+        "seccion": "pdf",
+        "etiqueta_seccion": "PDF",
+        "titulo_pagina": "Reconocer el texto de un escaneo",
+        "proposito": "Para poder buscar y copiar dentro de un PDF que solo tiene imágenes.",
+        "tesseract": tesseract,
+        "idiomas": ocr_mod.IDIOMAS,
+        "idioma": request.POST.get("idioma") or "spa",
+        "tope_paginas": ocr_mod.TOPE_PAGINAS,
+        "ruta_texto": (request.GET.get("ruta") or "").strip(),
+    }
+
+    if request.method != "POST" or not tesseract:
+        return render(request, "documents/ocr.html", contexto)
+
+    try:
+        origen = _origen_del_formulario(request)
+        ya_tenia = ocr_mod.ya_tiene_texto(origen.ruta)
+    except (modo_mod.RutaNoPermitida, ComposicionInvalida) as fallo:
+        messages.error(request, str(fallo))
+        return render(request, "documents/ocr.html", contexto)
+
+    contexto["ruta_texto"] = contexto["ruta"] = origen.token
+    contexto["nombre_origen"] = origen.nombre
+    contexto["ya_tenia_texto"] = ya_tenia
+
+    if request.POST.get("accion") != "reconocer":
+        return render(request, "documents/ocr.html", contexto)
+
+    try:
+        destino = ocr_mod.reconocer(
+            origen.ruta,
+            idioma=contexto["idioma"],
+            destino=_ruta_de_salida_de(origen, "_con_texto.pdf"),
+        )
+    except ComposicionInvalida as fallo:
+        messages.error(request, str(fallo))
+        return render(request, "documents/ocr.html", contexto)
+
+    messages.success(request, f"Hecho: {destino.name}.")
+    contexto["generado"] = destino
+    return render(request, "documents/ocr.html", contexto)
 
 
 @login_required

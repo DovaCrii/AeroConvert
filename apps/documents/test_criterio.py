@@ -122,6 +122,7 @@ class TestLoQueHayQueSaberVaDelante:
     #: Las que avisan de algo que cambia la decisión: qué entra, qué se pierde, qué se
     #: comprueba. Las de PDF puro no lo necesitan — «Unir PDF» no tiene letra pequeña.
     CON_AVISO = [
+        "ocr.html",
         "a_markdown.html",
         "de_markdown.html",
         "catalogo_a_excel.html",

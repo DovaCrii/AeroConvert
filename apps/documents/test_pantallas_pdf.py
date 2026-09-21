@@ -69,15 +69,37 @@ def sin_office(monkeypatch, settings):
 
 
 class TestElIndice:
+    """**Las disponibles, no las declaradas**, y la diferencia importa.
+
+    Esto recorría `views.HERRAMIENTAS` entero y pasaba solo porque las únicas que podían
+    faltar eran las de Office, que el fixture finge, y las de Access, que en esta estación de
+    Windows están de verdad. En cuanto entró una tercera capacidad externa —Tesseract— la
+    premisa se vio: el índice no enseña lo que existe, enseña **lo que se puede usar ahora**.
+
+    Así que se pregunta por lo mismo que decide la pantalla. Lo que se hace con las apagadas
+    lo cubren las dos pruebas de debajo.
+    """
+
+    def _disponibles(self):
+        return [h for h in views.estado_de_herramientas() if h["disponible"]]
+
     def test_carga_y_lista_las_herramientas(self, sesion, con_office):
         cuerpo = sesion.get(reverse("documents:inicio")).content.decode()
-        for herramienta in views.HERRAMIENTAS:
+        for herramienta in self._disponibles():
             assert herramienta["nombre"] in cuerpo
 
     def test_cada_una_lleva_a_su_pantalla(self, sesion, con_office):
         cuerpo = sesion.get(reverse("documents:inicio")).content.decode()
-        for herramienta in views.HERRAMIENTAS:
+        for herramienta in self._disponibles():
             assert reverse(herramienta["url"]) in cuerpo
+
+    def test_y_ninguna_apagada_se_cuela(self, sesion, con_office):
+        """La otra mitad de la regla, que sin esto se perdía: **un menú es para ir a un
+        sitio**, y una entrada que lleva a una pantalla apagada es un callejón."""
+        cuerpo = sesion.get(reverse("documents:inicio")).content.decode()
+        for herramienta in views.estado_de_herramientas():
+            if not herramienta["disponible"]:
+                assert f'href="{reverse(herramienta["url"])}"' not in cuerpo
 
     def test_sin_office_la_herramienta_no_se_ofrece(self, sesion, sin_office):
         """No se ofrece un botón que lleva a un callejón."""

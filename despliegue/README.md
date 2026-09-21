@@ -92,9 +92,19 @@ sondea, y la matriz de compatibilidad saldría medio apagada sin decir por qué.
 
 - **`python3.12` no está** — la distribución trae 3.14, y la aplicación pide `>=3.12,<3.13`.
 - **`pdal` tampoco está empaquetado.** Sin él las nubes de puntos salen apagadas con su
-  motivo escrito, como las dos de Office; las dieciocho herramientas de documentos, el ráster, el
-  vectorial y LandXML funcionan igual. **No bloquea el despliegue.** Si hace falta, se trae
-  de conda-forge, que es la vía que no arrastra medio sistema de compilación.
+  motivo escrito, como las dos de Office; el ráster, el vectorial, LandXML y quince de las
+  veinte herramientas de documentos funcionan igual. **No bloquea el despliegue.** Si hace
+  falta, se trae de conda-forge, que es la vía que no arrastra medio sistema de compilación.
+
+**Y una que sí conviene poner**, porque es barata y desbloquea una herramienta entera:
+
+```bash
+sudo apt install tesseract-ocr tesseract-ocr-spa
+```
+
+Sin ella, «Reconocer el texto de un escaneo» sale apagada y «PDF a Markdown» sigue sin poder
+hacer nada con un escaneo. Con ella, las dos funcionan. Ver `SERVIDOR.md` para las otras
+cuatro apagadas, que son de Microsoft y no tienen arreglo en Linux.
 
 Python lo pone `uv`, pero **fuera de `/home`**:
 

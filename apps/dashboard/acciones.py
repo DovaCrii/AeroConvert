@@ -198,7 +198,11 @@ def _de_los_perfiles() -> list[Accion]:
 
 
 def _de_los_documentos() -> list[Accion]:
-    """Las once de PDF, con su disponibilidad de verdad."""
+    """Las de documentos y texto, con su disponibilidad de verdad.
+
+    **Sin número escrito aquí**, y es a propósito: decía «las once» cuando ya eran dieciocho.
+    Quien las cuenta es `estado_de_herramientas`, que además es quien las tiene.
+    """
     from apps.documents.views import estado_de_herramientas
 
     #: Por qué alguien las buscaría sin usar su nombre.
@@ -212,6 +216,18 @@ def _de_los_documentos() -> list[Accion]:
         "proteger": ("contrasena", "clave", "cifrar", "desbloquear", "aes"),
         "office": ("word", "excel", "powerpoint", "docx", "xlsx", "pptx"),
         "a_word": ("editar", "docx", "reflow"),
+        "comprimir": ("aligerar", "reducir", "bajar peso", "pesa mucho", "no entra en el correo"),
+        # Casi nadie escribe «OCR» buscando esto: escribe lo que le pasa, que es que no puede
+        # buscar dentro de un escaneo.
+        "ocr": (
+            "ocr",
+            "escaneo",
+            "escaneado",
+            "reconocer texto",
+            "buscar dentro",
+            "copiar el texto",
+            "seleccionar texto",
+        ),
         # Texto y tablas. «md» y «markdown» en todas, porque quien busca escribe una u otra.
         "md_excel": ("md", "markdown", "xlsx", "hoja de calculo", "tabla", "pegar en un correo"),
         "md_csv": ("md", "markdown", "tabla", "separado por comas", "punto y coma"),

@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block titulo %}Reconocer el texto de un escaneo · AeroConvert{% endblock %}
+
+{% block contenido %}
+
+{% comment %}
+  Lo que hay que saber para decidir, **antes** de decidir. Aquí lo importante no es cómo
+  funciona: es que el resultado se equivoca a veces y que el original no se sustituye.
+{% endcomment %}
+<div class="tarjeta antes-de-empezar">
+  <p class="sin-hueco">
+    <strong>Un escaneo no tiene texto: tiene píxeles.</strong> Esto lo mira y escribe debajo de
+    la imagen lo que pone, para que se pueda buscar y copiar. <strong>Se ve igual</strong>: no
+    se redibuja ni se «mejora» nada.
+  </p>
+  <p class="tenue">
+    <strong>El reconocimiento se equivoca.</strong> Una anotación a mano, un sello girado o un
+    fax de tercera generación dan texto con erratas. Sirve para encontrar y reaprovechar; no
+    sustituye al original, que no se toca.
+  </p>
+</div>
+
+{% if not tesseract %}
+  <div class="tarjeta">
+    <div class="eyebrow">Ahora mismo no se puede</div>
+    <p class="sin-hueco"><strong>{{ tesseract.motivo }}</strong></p>
+    {% if tesseract.sugerencia %}<p class="tenue">{{ tesseract.sugerencia }}</p>{% endif %}
+    <p class="tenue">
+      Mientras tanto, «PDF a imágenes» saca las láminas tal cual, que es lo único que un
+      escaneo puede dar sin reconocimiento.
+    </p>
+  </div>
+{% else %}
+
+<form method="post" id="forma-documento" enctype="multipart/form-data">
+  {% csrf_token %}
+
+  {% include "documents/_origen.html" with pregunta="¿Qué escaneo hay que reconocer?" accion="mirar" boton="Ver si hace falta" %}
+
+  <div class="tarjeta">
+    <fieldset>
+      <legend class="eyebrow">En qué idioma está</legend>
+      <p class="tenue">
+        Importa más de lo que parece: con el idioma equivocado, «ñ» y «á» salen como otra cosa
+        y el texto deja de encontrarse al buscarlo.
+      </p>
+
+      {% for codigo, nombre in idiomas.items %}
+        <label class="opcion">
+          <input type="radio" name="idioma" value="{{ codigo }}" {% if idioma == codigo %}checked{% endif %}>
+          <span><strong>{{ nombre }}</strong></span>
+        </label>
+      {% endfor %}
+    </fieldset>
+  </div>
+
+  {% if nombre_origen %}
+    <div class="tarjeta">
+      <div class="cabecera-tarjeta">
+        <div>
+          <div class="eyebrow">Lo que hay dentro</div>
+          <h2>{{ nombre_origen }}</h2>
+        </div>
+        <button type="submit" name="accion" value="reconocer" class="boton">Reconocer el texto</button>
+      </div>
+
+      {% if ya_tenia_texto %}
+        {% comment %}
+          **Ni error ni éxito.** El archivo está bien: lo que pasa es que ya trae su texto, y
+          reconocerlo otra vez tardaría minutos para dejarlo peor. Se avisa y se deja decidir,
+          porque un PDF mixto —texto en unas hojas y escaneo en otras— sí puede quererlo.
+        {% endcomment %}
+        <div class="aviso">
+          <strong>Este PDF ya tiene texto dentro.</strong>
+          Se puede buscar y copiar tal como está, así que probablemente no haga falta — y el
+          reconocimiento daría una versión con más erratas que la que ya hay. Si solo algunas
+          hojas son escaneos, hazlo igualmente.
+        </div>
+      {% else %}
+        <p class="tenue">
+          No tiene texto, así que es un escaneo y esto es justo lo que le falta. Tarda unos
+          segundos por página; el tope son {{ tope_paginas }}.
+        </p>
+      {% endif %}
+    </div>
+  {% endif %}
+</form>
+
+{% if generado %}
+  <div class="tarjeta tarjeta-acento">
+    <div class="eyebrow">Hecho</div>
+    <div class="recibo">
+      <strong class="recibo-titulo">✓ Reconocido</strong>
+      <p class="mono">{{ generado.name }}</p>
+      <p class="tenue">
+        El original no se ha tocado. Repasa el texto antes de fiarte de una búsqueda: lo que no
+        se reconoció bien no aparece.
+      </p>
+    </div>
+  </div>
+{% endif %}
+
+{% endif %}
+{% endblock %}

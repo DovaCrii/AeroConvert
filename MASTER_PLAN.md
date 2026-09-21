@@ -94,8 +94,14 @@ sería pedir que alguien espere a un proceso en segundo plano para reordenar tre
 | F5.7 | Números de página y marca de agua, con la geometría del giro resuelta | ✅ 2026-09-11 |
 | F5.8 | Word/Excel/PowerPoint → PDF por COM, **solo en taller** | ✅ 2026-09-11 |
 | F5.9 | PDF → Word, con el aviso de qué se recibe de verdad | ✅ 2026-09-11 |
-| F5.10 | Comprimir, con vista previa antes de escribir | ⬜ |
-| F5.11 | OCR con Tesseract sondeado, no declarado | ⬜ |
+| F5.10 | Comprimir, **y negarse cuando comprimir empeoraría el archivo** | ✅ 2026-09-21 |
+| F5.11 | OCR con Tesseract sondeado, no declarado | ✅ 2026-09-21 ⚠ |
+
+> **La ⚠ de F5.11.** El motor, el sondeo y las negativas están y se comprueban; **la
+> conversión de extremo a extremo no**, porque Tesseract no está instalado ni en esta estación
+> ni en el servidor. Las cuatro pruebas que la ejercitan se saltan solas diciéndolo. Hasta que
+> se corran donde el programa esté —`sudo apt install tesseract-ocr tesseract-ocr-spa`— no se
+> puede afirmar que reconozca nada.
 
 ---
 
@@ -156,7 +162,7 @@ para leerse**.
 | # | Entrega | Notas | Estado |
 | --- | --- | --- | --- |
 | F7.1a | **Excel → Markdown** | Una hoja es una tabla y Markdown tiene tablas. Es la conversión más directa del grupo y probablemente la más pedida | ✅ 2026-09-15 |
-| F7.1b | **PDF → Markdown** | Solo del texto que el PDF ya tiene. Un PDF escaneado no tiene texto y hay que **decirlo**, no entregar una página en blanco: eso es OCR, y es F5.11 | ✅ 2026-09-15 |
+| F7.1b | **PDF → Markdown** | Solo del texto que el PDF ya tiene. Un PDF escaneado no tiene texto y hay que **decirlo**, no entregar una página en blanco: eso es OCR, y es F5.11 — **que ya está**, así que desde el 2026-09-21 el aviso nombra la herramienta en vez de decir «todavía no» | ✅ 2026-09-15 |
 | F7.1c | **Word → Markdown** | Títulos, listas, tablas y negritas. Lo que no sobrevive —cuadros de texto, columnas— se avisa antes | ✅ 2026-09-15 |
 | F7.1d | **Markdown → PDF** | El camino de vuelta, para entregar lo que se redactó en Markdown | ✅ 2026-09-15 |
 | F7.1e | **CSV, EPUB y página web → Markdown** | No estaban en el plan y entraron con el resto: el EPUB salió casi gratis porque por dentro es un ZIP con XHTML | ✅ 2026-09-15 |
@@ -189,10 +195,10 @@ De la lista de iLovePDF, ordenadas por lo que se pide de verdad en una oficina d
 
 | # | Entrega | Por qué, y qué cuesta |
 | --- | --- | --- |
-| F7.3a | **Comprimir PDF** | Un juego de planos no entra en un correo. Con `pypdf` se recomprimen las imágenes; vista previa antes de escribir |
+| F7.3a | ~~**Comprimir PDF**~~ | ✅ 2026-09-21, como F5.10. Medido sobre un escaneo real: 7,2 MB → 1,19 MB |
 | F7.3b | **Ordenar, eliminar y extraer páginas** | Ya está medio hecho: la receta de «unir» sabe hacerlo, falta la pantalla de una sola entrada |
 | F7.3c | **Rotar PDF** | Tres líneas con `pypdf`. Está ya dentro de «unir», suelto no |
-| F7.3d | **OCR** | Tesseract **sondeado, no declarado**, como todo lo externo aquí. Es lo que convierte un escaneo en algo buscable, y es la puerta de F7.1b |
+| F7.3d | ~~**OCR**~~ | ✅ 2026-09-21 ⚠, como F5.11. Ver la nota de la fase 5: falta correrlo donde Tesseract esté instalado |
 | F7.3e | **Firmar PDF** | El caso real es el acta firmada. Firma dibujada primero; la digital con certificado es otra cosa y otra fase |
 | F7.3f | Comparar, censurar, recortar, reparar, HTML a PDF, PDF/A, formularios | La cola larga. Cada una entra cuando alguien la pida dos veces |
 

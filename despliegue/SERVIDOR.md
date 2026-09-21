@@ -197,7 +197,18 @@ servicio, con un error que no menciona `/home` por ningún lado.
 
 **PDAL no está empaquetado en 26.04** (`apt-cache policy pdal` no devuelve nada). Sin él las
 nubes de puntos salen apagadas con su motivo, igual que las dos herramientas de Office; el
-ráster, el vectorial, LandXML y las dieciocho de documentos funcionan. No bloquea nada.
+ráster, el vectorial y LandXML funcionan. No bloquea nada.
+
+De las **veinte de documentos**, en este servidor funcionan **quince**. Las cinco
+apagadas no son un fallo del montaje y no hay que buscarles arreglo: dos piden Office, dos
+piden el motor de Access —los dos son de Microsoft y en Linux no existen— y la de reconocer
+texto pide **Tesseract**, que sí se puede poner:
+
+```bash
+sudo apt install tesseract-ocr tesseract-ocr-spa
+```
+
+Cada una dice en pantalla cuál le falta. `/motores/` las lista todas con su motivo.
 
 ---
 

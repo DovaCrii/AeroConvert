@@ -20,6 +20,9 @@ urlpatterns = [
     path("office/", views.office_vista, name="office"),
     path("a-word/", views.a_word_vista, name="a_word"),
     path("comprimir/", views.comprimir, name="comprimir"),
+    # Reconocer el texto de un escaneo. Necesita Tesseract, que se sondea: donde no esta, la
+    # pantalla existe igual y dice como ponerlo, como las de Office.
+    path("ocr/", views.ocr_vista, name="ocr"),
     # «Texto y tablas» tiene su propio índice. Compartía el de PDF, y entonces el desplegable
     # ofrecía dos columnas distintas que llevaban al mismo sitio.
     path("texto/", views.texto, name="texto"),

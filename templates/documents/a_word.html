@@ -57,10 +57,12 @@
           <strong>Esto es un escaneo: no hay texto dentro.</strong>
           Son fotos de un papel, así que Word no tiene letras que reconstruir. Lo que saldría
           es un documento con esas mismas fotos pegadas y ni una palabra editable — pesado e
-          inútil. Hace falta reconocimiento de texto (OCR), que todavía no está.
+          inútil. Lo que hace falta es reconocer el texto primero.
         </div>
         <p class="tenue" style="margin:10px 0 0;">
-          Si lo que quieres es la imagen, «PDF a imágenes» te la da directamente y mejor.
+          <a href="{% url 'documents:ocr' %}">Reconocer el texto de un escaneo</a> deja el texto
+          dentro del PDF; con eso, esta pantalla ya tiene letras que reconstruir. Y si lo que
+          quieres es la imagen, «PDF a imágenes» te la da directamente y mejor.
         </p>
       {% else %}
         <p class="tenue" style="margin:10px 0 0;">

@@ -311,6 +311,20 @@
     <path d="M9.5 19.5L12 17.1l2.5 2.4" />
   </symbol>
 
+  <symbol id="icon-pdf-ocr" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Una hoja con las cuatro esquinas de un visor encima: lo que se hace es **mirar** la
+         imagen y reconocer lo que pone, no reescribirla. Las lineas de dentro son texto que
+         aparece donde antes solo habia pixeles. -->
+    <path d="M3 7.5V5a1.5 1.5 0 011.5-1.5H7" />
+    <path d="M17 3.5h2.5A1.5 1.5 0 0121 5v2.5" />
+    <path d="M21 16.5V19a1.5 1.5 0 01-1.5 1.5H17" />
+    <path d="M7 20.5H4.5A1.5 1.5 0 013 19v-2.5" />
+    <rect x="7" y="8" width="10" height="8" rx="1" fill="currentColor" fill-opacity=".16" />
+    <path d="M9.5 11h5" />
+    <path d="M9.5 13.5h3" />
+  </symbol>
+
   <!-- Texto y tablas: sacar el contenido del archivo y meterlo en otro sitio. -->
 
   <symbol id="icon-texto-tabla" viewBox="0 0 24 24" fill="none" stroke="currentColor"

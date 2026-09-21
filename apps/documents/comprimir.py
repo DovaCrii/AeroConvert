@@ -118,7 +118,7 @@ def comprimir(
     for hoja in escritor.pages:
         try:
             hoja.compress_content_streams()
-        except Exception:
+        except Exception:  # nosec B112 - saltar es la respuesta correcta, ver debajo
             # Un flujo que pypdf no sabe recomprimir se queda como está. Perder la página
             # entera por no poder apretarla sería cambiar peso por contenido.
             continue
@@ -163,7 +163,7 @@ def _encoger_imagenes(escritor, ppp: int) -> int:
     for hoja in escritor.pages:
         try:
             imagenes = list(hoja.images)
-        except Exception:
+        except Exception:  # nosec B112 - una hoja cuyo inventario no se lee se deja entera
             continue
 
         for imagen in imagenes:
@@ -190,6 +190,6 @@ def _encoger_imagenes(escritor, ppp: int) -> int:
                 nuevo.save(crudo, format="JPEG", quality=CALIDAD, optimize=True)
                 imagen.replace(nuevo, quality=CALIDAD)
                 tocadas += 1
-            except Exception:
+            except Exception:  # nosec B112 - la imagen se deja como venía, nunca se pierde
                 continue
     return tocadas
