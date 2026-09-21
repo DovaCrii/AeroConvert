@@ -119,7 +119,21 @@ class Command(BaseCommand):
             self.stdout.write(f"Se conservarian {dias} dias. No se escribio nada.")
             return
 
-        carpeta.mkdir(parents=True, exist_ok=True)
+        # **El error que costó semanas de respaldos vacíos.** Bajo `ProtectSystem=strict`,
+        # `/opt` es de solo lectura para el propio servicio, así que el destino por omisión
+        # —`<repo>/respaldos`— no se puede crear. Sin este mensaje, lo que quedaba en el
+        # diario era un rastro de pila con «Read-only file system» y **ninguna mención a
+        # dónde estaba intentando escribir ni a por qué no podía**.
+        try:
+            carpeta.mkdir(parents=True, exist_ok=True)
+        except OSError as fallo:
+            raise CommandError(
+                f"No se puede escribir en {carpeta}: {fallo}. Si esto corre como servicio, "
+                "`ProtectSystem=strict` deja todo en solo lectura salvo lo que el propio "
+                "servicio declare en `ReadWritePaths` — y el destino tiene que ser uno de "
+                "esos. Pásalo con --carpeta, como hace aeroconvert-respaldo.service."
+            ) from fallo
+
         sello = timezone.localtime().strftime("%Y%m%d-%H%M%S")
         crudo = carpeta / f"aeroconvert-{sello}.sqlite3"
         # El nombre lleva la marca de tiempo, y ademas se comprueba: **nunca se pisa un

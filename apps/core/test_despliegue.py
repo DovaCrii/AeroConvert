@@ -62,8 +62,77 @@ def nginx() -> str:
 
 
 @pytest.fixture(scope="module")
+def respaldo() -> str:
+    return _leer(DESPLIEGUE / "aeroconvert-respaldo.service")
+
+
+@pytest.fixture(scope="module")
 def desplegar() -> str:
     return _leer(GUIONES / "desplegar.sh")
+
+
+class TestElRespaldoEscribeDondePuede:
+    """**El fallo que dejó al servidor semanas con cero respaldos, y con buen aspecto.**
+
+    El 2026-09-21 `revisar-servidor.sh` encontró el temporizador puesto y
+    `/var/backups/aeroconvert` vacía. La causa estaba en el repositorio y eran dos cosas a la
+    vez, cada una suficiente por sí sola:
+
+    1. El `ExecStart` no pasaba `--carpeta`, así que el comando caía en su valor por
+       omisión —`<repo>/respaldos`— y `ProtectSystem=strict` deja `/opt` en solo lectura.
+       **El servicio escribía cada noche en un sitio que él mismo se prohíbe.**
+    2. El paso 4 del README nunca creaba `/var/backups/aeroconvert`, y systemd se niega a
+       arrancar una unidad cuya `ReadWritePaths` no existe — falla antes de ejecutar nada,
+       con un `226/NAMESPACE` que no menciona la palabra respaldo.
+
+    Lo que las dos tienen en común: **el destino estaba declarado en dos sitios que podían
+    discrepar**, que es el modo de fallo que este proyecto repite. Ahora van en líneas
+    contiguas del mismo archivo, y esto lo comprueba.
+    """
+
+    def test_el_destino_va_escrito_y_no_se_deja_al_valor_por_omision(self, respaldo: str):
+        assert "--carpeta" in respaldo, (
+            "sin --carpeta el comando cae en <repo>/respaldos, que ProtectSystem=strict "
+            "deja en solo lectura: el servicio falla cada noche y nadie lo ve"
+        )
+
+    def test_y_ese_destino_es_uno_en_el_que_puede_escribir(self, respaldo: str):
+        """La comprobación de verdad: que las dos declaraciones digan lo mismo."""
+        import re
+
+        escrito = re.search(r"--carpeta\s+(\S+)", respaldo)
+        assert escrito, "no se encontró el destino en el ExecStart"
+        destino = escrito.group(1)
+
+        permitidos = []
+        for linea in respaldo.splitlines():
+            if linea.startswith("ReadWritePaths="):
+                permitidos += linea.split("=", 1)[1].split()
+
+        assert destino in permitidos, (
+            f"el respaldo escribe en {destino} y solo puede escribir en {permitidos}. "
+            "Con ProtectSystem=strict eso es un fallo cada noche, en silencio."
+        )
+
+    def test_la_ruta_de_respaldos_no_es_opcional(self, respaldo: str):
+        """Los otros servicios usan `-/mnt/entregas` porque pueden arrancar sin esa carpeta.
+        Aquí es al revés: sin sitio donde respaldar, lo correcto es **no arrancar**."""
+        assert "ReadWritePaths=-/var/backups" not in respaldo
+
+    def test_el_readme_crea_la_carpeta_antes_de_habilitar_el_servicio(self):
+        """Faltaba, y es la mitad del fallo: systemd no arranca una unidad cuya ruta de
+        escritura no existe."""
+        texto = _leer(DESPLIEGUE / "README.md")
+        assert "install -d" in texto and "/var/backups/aeroconvert" in texto
+        assert texto.index("install -d") < texto.index("enable --now"), (
+            "la carpeta se crea después de habilitar el servicio, que es demasiado tarde"
+        )
+
+    def test_y_el_readme_manda_comprobar_que_escribio(self):
+        """**Es el único de los tres servicios cuyo fallo no se nota usando la aplicación.**
+        Sin una comprobación en el momento, se descubre el día que hace falta el respaldo."""
+        texto = _leer(DESPLIEGUE / "README.md")
+        assert "systemctl start aeroconvert-respaldo.service" in texto
 
 
 class TestElServicioWeb:

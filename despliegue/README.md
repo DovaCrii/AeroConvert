@@ -187,6 +187,18 @@ python3 -c "import secrets; print(secrets.token_urlsafe(64))"
 
 ## 4. Los servicios
 
+**Primero la carpeta de respaldos, y no es un paso de adorno.** Faltaba en esta lista, y por
+eso el servidor estuvo semanas con el temporizador puesto y **cero respaldos escritos**: el
+servicio declara `ReadWritePaths=/var/backups/aeroconvert` y systemd no arranca una unidad
+cuya ruta de escritura no existe. Falla antes de ejecutar nada, en el montaje del espacio de
+nombres, y en el diario sale un `226/NAMESPACE` que no menciona la palabra respaldo.
+
+```bash
+sudo install -d -o aeroconvert -g aeroconvert -m 0700 /var/backups/aeroconvert
+```
+
+`0700` porque ahí dentro va la bitácora entera de la oficina.
+
 ```bash
 sudo cp despliegue/aeroconvert.service        /etc/systemd/system/
 sudo cp despliegue/aeroconvert-obrero.service /etc/systemd/system/
@@ -197,6 +209,16 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now aeroconvert-obrero aeroconvert aeroconvert-respaldo.timer
 sudo nginx -t && sudo systemctl reload nginx
 ```
+
+**Y se comprueba que el respaldo escribe de verdad, ahora y no en tres semanas.** Es el
+único de los tres servicios cuyo fallo no se nota usando la aplicación:
+
+```bash
+sudo systemctl start aeroconvert-respaldo.service && ls -lh /var/backups/aeroconvert/
+```
+
+Tiene que aparecer un `.sqlite3.gz`. Si no aparece, el motivo está en
+`journalctl -u aeroconvert-respaldo -n 30`.
 
 **Son dos servicios y no uno.** El web no despacha conversiones
 (`AEROCONVERT_DESPACHADOR=0`): con varios obreros de gunicorn arrancarían varios

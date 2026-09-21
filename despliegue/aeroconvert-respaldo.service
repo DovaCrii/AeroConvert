@@ -11,7 +11,17 @@ Environment=DJANGO_SETTINGS_MODULE=config.settings.prod
 # Que este servicio no arranque un despachador: solo copia y sale.
 Environment=AEROCONVERT_DESPACHADOR=0
 
-ExecStart=/opt/aeroconvert/.venv/bin/python manage.py respaldar
+# **`--carpeta` va escrito aqui y no se deja al valor por omision**, y esto no es estilo:
+# es el arreglo de un fallo que dejo al servidor sin un solo respaldo durante semanas.
+#
+# El comando, sin `AEROCONVERT_RESPALDOS` en el `.env`, cae en `<repo>/respaldos`, o sea
+# `/opt/aeroconvert/respaldos`. Y `ProtectSystem=strict` deja `/opt` en solo lectura. Asi
+# que el servicio intentaba escribir cada noche en un sitio que el mismo se prohibe, fallaba,
+# y nadie lo veia: un temporizador con buen aspecto sobre una carpeta vacia.
+#
+# El destino y el permiso para escribir en el **se declaran ahora en las dos lineas de abajo,
+# juntas y en el mismo archivo**. Separados, uno de los dos se mueve y el otro no.
+ExecStart=/opt/aeroconvert/.venv/bin/python manage.py respaldar --carpeta /var/backups/aeroconvert
 
 StandardOutput=journal
 StandardError=journal
@@ -21,4 +31,11 @@ NoNewPrivileges=yes
 PrivateTmp=yes
 ProtectSystem=strict
 ProtectHome=yes
-ReadWritePaths=/var/lib/aeroconvert /var/backups/aeroconvert
+
+# **Sin el `-` delante, a proposito.** Los otros servicios escriben `ReadWritePaths=-/mnt/entregas`
+# porque esa carpeta puede no estar montada y el servicio tiene que arrancar igual. Aqui es
+# al reves: si `/var/backups/aeroconvert` no existe, **no hay donde respaldar**, y lo que
+# tiene que pasar es que el servicio falle ruidosamente en vez de correr y no guardar nada.
+# La crea el paso 4 del README.
+ReadWritePaths=/var/lib/aeroconvert
+ReadWritePaths=/var/backups/aeroconvert

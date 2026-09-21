@@ -94,6 +94,35 @@ class TestElRespaldo:
         assert list(tmp_path.glob("*.gz")) == []
 
 
+class TestCuandoNoSePuedeEscribir:
+    def test_el_motivo_nombra_lo_que_de_verdad_lo_impide(self, con_trabajos, monkeypatch):
+        """**Lo que quedaba en el diario era «Read-only file system» y nada más.**
+
+        Ni dónde estaba intentando escribir, ni por qué no podía. El servicio corre bajo
+        `ProtectSystem=strict`, que deja `/opt` en solo lectura, y el destino por omisión
+        del comando está justo ahí dentro — así que fallaba cada noche y el mensaje no
+        daba ninguna pista de la relación entre las dos cosas.
+        """
+        from pathlib import Path
+
+        from apps.core.management.commands import respaldar as mandato
+
+        def de_solo_lectura(self, *args, **kwargs):
+            raise OSError(30, "Read-only file system")
+
+        monkeypatch.setattr(Path, "mkdir", de_solo_lectura)
+        with pytest.raises(CommandError) as fallo:
+            call_command("respaldar", carpeta="/opt/aeroconvert/respaldos")
+
+        texto = str(fallo.value)
+        # Con `Path` y no con la cadena literal: en Windows los separadores son otros, y
+        # una prueba que solo pasa en Linux no vigila nada en la máquina donde se escribe.
+        assert str(Path("/opt/aeroconvert/respaldos")) in texto, "no dice dónde intentaba escribir"
+        assert "ProtectSystem" in texto, "no dice qué se lo impide"
+        assert "--carpeta" in texto, "no dice cómo se arregla"
+        assert mandato  # el módulo se usa arriba; esto lo deja explícito
+
+
 class TestLaVerificacion:
     def test_una_copia_rota_se_detecta(self, con_trabajos, tmp_path, monkeypatch):
         """El paso que convierte «se escribió un archivo» en «hay un respaldo»."""

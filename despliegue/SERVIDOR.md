@@ -252,17 +252,41 @@ aplicación se entera sola y rechaza por adelantado lo que no cabe, diciendo por
 > hay que ir comprobándolos, nadie lo hace, y envejece hasta decir cosas falsas en las dos
 > direcciones — que es exactamente lo que le pasó al punto 1 de esta lista.
 
-1. **El respaldo — y una corrección de este documento.**
+1. **El respaldo — y dos correcciones de este documento, una encima de la otra.**
 
    Este punto decía «no hay ningún respaldo automático», y esa frase se repitió durante días
-   sin comprobarla. **AeroConvert trae el suyo montado**: `manage.py respaldar` —que verifica
-   la copia abriéndola y falla ruidosamente si no cuadra—, más
-   `aeroconvert-respaldo.service` y `aeroconvert-respaldo.timer` (03:15, `Persistent=true`),
-   que el paso 4 del README habilita. Comprobarlo lleva treinta segundos:
+   sin comprobarla. La corrección fue que **AeroConvert trae el suyo montado**:
+   `manage.py respaldar` —que verifica la copia abriéndola y falla ruidosamente si no
+   cuadra—, más `aeroconvert-respaldo.service` y `aeroconvert-respaldo.timer` (03:15,
+   `Persistent=true`), que el paso 4 del README habilita.
 
-   ```bash
-   systemctl list-timers aeroconvert-respaldo.timer; ls -lh /var/backups/aeroconvert/ | tail -5
+   **Y esa corrección también estaba incompleta.** El 2026-09-21, la primera ejecución de
+   `scripts/revisar-servidor.sh` contra la máquina devolvió esto:
+
    ```
+   [hecho] el temporizador esta puesto
+   [grave] no hay ningun respaldo en /var/backups/aeroconvert
+   ```
+
+   El temporizador existía, estaba habilitado, tenía buen aspecto, y **no había escrito un
+   solo respaldo**. La causa estaba en el repositorio y eran dos cosas a la vez, cada una
+   suficiente por sí sola:
+
+   - El `ExecStart` no pasaba `--carpeta`, así que el comando caía en su valor por omisión
+     —`<repo>/respaldos`—, y `ProtectSystem=strict` deja `/opt` en solo lectura. **El
+     servicio intentaba escribir cada noche en un sitio que él mismo se prohíbe.**
+   - El paso 4 del README nunca creaba `/var/backups/aeroconvert`, y systemd se niega a
+     arrancar una unidad cuya `ReadWritePaths` no existe: falla en el montaje del espacio de
+     nombres, antes de ejecutar nada, con un `226/NAMESPACE` que no menciona la palabra
+     respaldo.
+
+   Las dos son el mismo defecto de fondo: **el destino estaba declarado en dos sitios que
+   podían discrepar.** Ahora va en líneas contiguas del mismo archivo y lo comprueba
+   `apps/core/test_despliegue.py`.
+
+   La lección que hay que quedarse, porque es la tercera vez en este documento: **de un
+   respaldo no se afirma nada sin mirar la carpeta.** Que el temporizador esté puesto no
+   dice nada; que el servicio esté habilitado tampoco.
 
    Lo que **sí falta con certeza**, y es lo que de verdad importa:
 
@@ -287,8 +311,13 @@ aplicación se entera sola y rechaza por adelantado lo que no cabe, diciendo por
      respaldo de fuera que lleva tres meses sin escribirse y nadie lo sabe.
 
      Mientras no se decida, cada ejecución lo avisa en el diario.
-   - **El equivalente para AeroControl y AeroBim**, que no tienen ni el comando. Y AeroLink
-     arrastra PostgreSQL y MinIO, que piden otra cosa.
+   - **El equivalente para AeroControl**, que no tiene ni el comando. **AeroBim sí lo
+     tiene** desde antes del 2026-09-21 — medido ese día, no supuesto; este documento decía
+     que a las dos les faltaba. Y AeroLink arrastra PostgreSQL y MinIO, que piden otra cosa.
+
+     El de AeroConvert es portable tal cual: `apps/core/management/commands/respaldar.py`.
+     Y si se copia, **cópiese con el `--carpeta` del `ExecStart`**, que es justo lo que aquí
+     faltaba.
 
 2. **No hay límite de peticiones.** Contra un extremo público, alguien puede probar
    contraseñas tan rápido como aguante la máquina. El bloqueo de axes es por usuario: no frena
