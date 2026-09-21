@@ -326,6 +326,21 @@ APODOS = {
 _POR_CODIGO, _POR_APODO, _POR_NOMBRE, _POR_EXTENSION_ = 0, 1, 2, 3
 
 
+def _sin_signos(texto: str) -> str:
+    """Todo lo que no sea letra o número pasa a ser un espacio, y los espacios se colapsan.
+
+    **Un signo de interrogación bastaba para que no se reconociera nada.** La búsqueda mira
+    palabras completas —«jp2» rodeado de espacios— y «¿tif a jp2?» deja el código pegado al
+    cierre, así que no lo encontraba: «tif a jp2» contestaba y «¿tif a jp2?» no. Salió al
+    escribir a Tino, que recibe preguntas enteras y no dos palabras sueltas.
+
+    Se aplica **a los dos lados**, a lo escrito y a lo buscable: un nombre del catálogo como
+    «Survey point file (PNEZD/PENZD)» también lleva signos, y normalizar solo uno de los dos
+    lados lo dejaría fuera.
+    """
+    return " ".join("".join(c if c.isalnum() else " " for c in texto).split())
+
+
 def _indice_de_formatos() -> list[tuple[str, str]]:
     """Pares `(texto buscable, código)`, en el orden en que hay que probarlos.
 
@@ -336,16 +351,19 @@ def _indice_de_formatos() -> list[tuple[str, str]]:
     """
     from apps.formats import catalogo
 
+    def limpio(texto: str) -> str:
+        return _sin_signos(sin_tildes(texto))
+
     entradas: list[tuple[str, str, int]] = []
     for codigo, formato in catalogo.FORMATOS.items():
-        entradas.append((sin_tildes(codigo), codigo, _POR_CODIGO))
-        entradas.append((sin_tildes(str(formato.nombre)), codigo, _POR_NOMBRE))
+        entradas.append((limpio(codigo), codigo, _POR_CODIGO))
+        entradas.append((limpio(str(formato.nombre)), codigo, _POR_NOMBRE))
         for extension in formato.extensiones:
-            entradas.append((sin_tildes(extension.lstrip(".")), codigo, _POR_EXTENSION_))
+            entradas.append((limpio(extension.lstrip(".")), codigo, _POR_EXTENSION_))
         for apodo in APODOS.get(codigo, ()):
-            entradas.append((sin_tildes(apodo), codigo, _POR_APODO))
+            entradas.append((limpio(apodo), codigo, _POR_APODO))
 
-    ordenadas = sorted(set(entradas), key=lambda e: (-len(e[0]), e[2]))
+    ordenadas = sorted({e for e in entradas if e[0]}, key=lambda e: (-len(e[0]), e[2]))
     return [(texto, codigo) for texto, codigo, _ in ordenadas]
 
 
@@ -361,7 +379,7 @@ def formatos_nombrados(busqueda: str) -> list[str]:
     quedaba con el espacio y el segundo dejaba de encontrarse. La búsqueda devolvía uno solo y
     por tanto ninguna respuesta.
     """
-    texto = " " + sin_tildes(busqueda).replace("→", " ").replace("-", " ") + " "
+    texto = " " + _sin_signos(sin_tildes(busqueda)) + " "
     hallados: list[tuple[int, str]] = []
     gastado = [False] * len(texto)
 
@@ -422,17 +440,71 @@ def conversion_pedida(busqueda: str) -> Conversion | None:
     )
 
 
-def por_categoria(busqueda: str = "") -> list[dict]:
-    """Las acciones agrupadas, filtradas por lo que se haya escrito.
+#: Palabras que no distinguen nada, y que **estropeaban la búsqueda por dar puntos gratis**.
+#:
+#: La coincidencia es por subcadena, así que «de» aparece dentro de casi todas las fichas y
+#: «la» dentro de «láminas», «plano», «archivo»… Con «quitar la contraseña de un pdf», las
+#: veinte herramientas empataban gracias a «la», «de» y «un», y la única que de verdad
+#: contestaba —«Proteger PDF»— quedaba indistinguible del resto.
+#:
+#: No se notó antes porque los ejemplos de la portada son dos palabras sueltas. Se notó al
+#: escribir a Tino, que recibe frases enteras.
+VACIAS = frozenset(
+    {
+        "a",
+        "al",
+        "de",
+        "del",
+        "el",
+        "la",
+        "las",
+        "lo",
+        "los",
+        "un",
+        "una",
+        "unos",
+        "unas",
+        "y",
+        "o",
+        "en",
+        "con",
+        "para",
+        "por",
+        "que",
+        "se",
+        "su",
+        "sus",
+        "mi",
+        "este",
+        "esta",
+        "esto",
+        "eso",
+        "como",
+        "hay",
+        "es",
+        "son",
+        "me",
+        "te",
+        "le",
+        "les",
+        "no",
+        "si",
+    }
+)
+
+
+def buscar(busqueda: str = "") -> list[Accion]:
+    """Las acciones que encajan con lo escrito, sin agrupar.
 
     **Todas las palabras tienen que aparecer, en cualquier orden y en cualquier campo.** Es
     lo que hace que «juntar pdf» encuentre «Unir PDF» aunque ninguna de las dos palabras esté
     en su nombre — «juntar» está en los sinónimos y «pdf» en la descripción.
 
-    Una categoría sin resultados no se pinta: un encabezado sobre un hueco hace pensar que
-    algo se rompió.
+    Vive aparte de `por_categoria` desde que Tino también pregunta: **un ayudante que busque
+    distinto que el buscador daría dos respuestas a la misma pregunta**, que es peor que no
+    tener ayudante.
     """
-    terminos = [t for t in sin_tildes(busqueda).split() if t]
+    terminos = terminos_utiles(busqueda)
     catalogo = todas()
     encontradas = [a for a in catalogo if all(t in a.texto_de_busqueda for t in terminos)]
 
@@ -447,10 +519,65 @@ def por_categoria(busqueda: str = "") -> list[dict]:
     # que aciertan una no salen. Y si el máximo es cero, no sale nada — «xilofono» sigue sin
     # devolver resultados, que es la respuesta correcta.
     if terminos and not encontradas:
-        aciertos = {a.id: sum(t in a.texto_de_busqueda for t in terminos) for a in catalogo}
+        aciertos = puntuar(busqueda)
         techo = max(aciertos.values(), default=0)
         if techo:
             encontradas = [a for a in catalogo if aciertos[a.id] == techo]
+
+    return encontradas
+
+
+def terminos_utiles(busqueda: str) -> list[str]:
+    """Lo escrito, sin tildes, sin signos y **sin las palabras que no distinguen nada**."""
+    crudos = _sin_signos(sin_tildes(busqueda)).split()
+    return [t for t in crudos if t and t not in VACIAS]
+
+
+def puntuar(busqueda: str) -> dict[str, int]:
+    """Cuántos términos útiles acierta cada acción, por identificador."""
+    terminos = terminos_utiles(busqueda)
+    return {a.id: sum(t in a.texto_de_busqueda for t in terminos) for a in todas()}
+
+
+def mejor(busqueda: str) -> Accion | None:
+    """La acción que contesta, **o nada si no hay una que destaque**.
+
+    Existe para Tino, y la regla que la define es la que separa un ayudante de un adivino:
+    devolver el primero de una lista empatada es contestar al azar con cara de seguridad.
+
+    Dos condiciones, y las dos hacen falta:
+
+    1. **Que gane sola.** Un empate no es una respuesta: es el catálogo otra vez, y el
+       catálogo ya está a un clic.
+    2. **Que acierte lo suficiente.** Con «me falla al abrir el vuelo tif en el equipo del
+       cliente» alguna herramienta acierta un término suelto y queda sola en lo alto — sola,
+       pero por casualidad. Se exige acertar al menos dos términos y al menos la mitad de
+       los que se escribieron.
+    """
+    terminos = terminos_utiles(busqueda)
+    if not terminos:
+        return None
+
+    disponibles = {a.id: a for a in todas() if a.disponible}
+    aciertos = {i: n for i, n in puntuar(busqueda).items() if i in disponibles}
+    if not aciertos:
+        return None
+
+    techo = max(aciertos.values())
+    if techo < 2 or techo * 2 < len(terminos):
+        return None
+
+    ganadoras = [i for i, n in aciertos.items() if n == techo]
+    return disponibles[ganadoras[0]] if len(ganadoras) == 1 else None
+
+
+def por_categoria(busqueda: str = "") -> list[dict]:
+    """Lo mismo que `buscar`, agrupado para la pantalla.
+
+    Una categoría sin resultados no se pinta: un encabezado sobre un hueco hace pensar que
+    algo se rompió.
+    """
+    encontradas = buscar(busqueda)
 
     grupos = []
     for clave, titulo, cuando, seccion in CATEGORIAS:

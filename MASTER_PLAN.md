@@ -204,6 +204,23 @@ De la lista de iLovePDF, ordenadas por lo que se pide de verdad en una oficina d
 
 ### F7.4 — Un ayudante que guíe
 
+> **Hecho el 2026-09-21, y con una vuelta de tuerca que conviene leer.**
+>
+> Al ir a escribirlo salió que **las tres cosas de la lista de abajo las contesta esta
+> máquina sola**: están en la matriz de capacidades, en el catálogo de formatos y en el de
+> herramientas. Así que Tino empieza por ahí, y lo que contesta desde aquí es *exacto* —sale
+> de lo mismo que decide la conversión—, **no sale del equipo**, y funciona sin configurar
+> nada ni pagar nada.
+>
+> La puerta hacia fuera existe, está escrita, y **nace cerrada**: sin `AEROCONVERT_TINO_CLAVE`
+> no se ejecuta una sola línea de ella. **El proveedor se deja sin decidir a propósito**: a
+> quién se le manda la pregunta de alguien es una decisión sobre los datos de la oficina, y
+> esa no es de quien escribe el código. Hay una prueba que comprueba que sigue sin decidir.
+>
+> De paso salieron dos fallos del buscador que nadie había visto porque los ejemplos de la
+> portada son dos palabras sueltas: **un signo de interrogación bastaba para no reconocer
+> ningún formato**, y «la», «de» y «un» daban puntos gratis a las veinte herramientas.
+
 La idea es buena y **es transversal a la familia**: la misma pieza sirve en AeroBim, AeroControl
 y AeroConvert, y lo que cambia es de qué sabe.
 

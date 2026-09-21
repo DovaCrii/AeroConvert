@@ -55,6 +55,9 @@ PROPIOS = {
     "aerocontrol",
     "aerobim",
     "aerolink",
+    # El ayudante. Es un nombre propio y va en mayúscula donde sea: «pregúntale a tino»
+    # se lee como una palabra que nadie conoce, y con mayúscula se lee como alguien.
+    "tino",
     "tailscale",
     "markdown",
     # Los catálogos de tubería: «Access» es el programa de Microsoft y «Plant 3D» el de

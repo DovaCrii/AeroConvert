@@ -11,6 +11,7 @@ urlpatterns = [
     path("motores/", include("apps.engines.urls")),
     path("preajustes/", include("apps.presets.urls")),
     path("documentos/", include("apps.documents.urls")),
+    path("tino/", include("apps.tino.urls")),
     path("api/v1/", include("apps.engines.api_urls")),
     path("salud/", core_views.salud, name="salud"),
     path(

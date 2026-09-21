@@ -88,6 +88,18 @@ ECW_ENCODE_COMPANY = config("AEROCONVERT_ECW_ENCODE_COMPANY", default="")
 ECW_BIN = config("AEROCONVERT_ECW_BIN", default="")
 ODA_CONVERTER = config("AEROCONVERT_ODA_CONVERTER", default="")
 
+# --- Tino, y la unica puerta por la que algo puede salir de este equipo ----
+#
+# **Vacias a proposito y no es un pendiente.** Tino contesta desde esta maquina lo que esta
+# maquina sabe -- la matriz, el catalogo de formatos, el de herramientas -- y eso es la
+# mayor parte de lo que se le pregunta. Preguntar fuera exige poner una clave **a mano**,
+# a sabiendas, y decidir antes a quien se le pregunta.
+#
+# Esa decision no es tecnica: es sobre los datos de la oficina, y la aplicacion esta
+# publicada en internet abierto. Ver `apps/tino/fuera.py`.
+TINO_PROVEEDOR = config("AEROCONVERT_TINO_PROVEEDOR", default="")
+TINO_CLAVE = config("AEROCONVERT_TINO_CLAVE", default="")
+
 # --- Ejecucion -------------------------------------------------------------
 
 # Por omision uno. GDAL ya usa todos los nucleos con `GDAL_NUM_THREADS=ALL_CPUS`, y dos
@@ -140,6 +152,8 @@ INSTALLED_APPS = [
     "apps.mesh",
     "apps.documents",
     "apps.dashboard",
+    # Tino contesta con lo que las de arriba ya saben, asi que va detras de todas.
+    "apps.tino",
 ]
 
 MIDDLEWARE = [

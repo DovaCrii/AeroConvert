@@ -125,8 +125,17 @@
               </div>
             {% endfor %}
 
+            {% comment %}
+              **Tino va aquí y no en la barra**, y es una decisión ya tomada dos veces: con
+              seis entradas más el buscador la barra no cabe en una línea y se parte en dos,
+              que duplica la altura de la cabecera en todas las pantallas.
+
+              Y donde de verdad se encuentra es en otro sitio: cuando el buscador de la
+              portada no encuentra nada, que es el momento exacto en que hace falta.
+            {% endcomment %}
             <p class="menu-pie">
               <a href="{% url 'dashboard:que_puedo_hacer' %}">Verlas todas y buscar</a>
+              · <a href="{% url 'tino:preguntar' %}">Preguntarle a Tino</a>
               · <a href="{% url 'presets:lista' %}">Preajustes guardados</a>
               · <a href="{% url 'engines:matriz' %}">Qué no se puede, y por qué</a>
             </p>

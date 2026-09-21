@@ -84,6 +84,15 @@
       Si lo que buscas no está, en
       <a href="{% url 'engines:matriz' %}">Compatibilidad</a> se dice qué falta y por qué.
     </p>
+    {% comment %}
+      **Aquí es donde Tino hace falta**, y por eso se ofrece aquí y no en una barra flotante
+      que persigue a la gente por la aplicación. El momento de necesitar un ayudante es este:
+      el buscador no encontró nada, y la pregunta se lleva escrita tal cual.
+    {% endcomment %}
+    <p class="tenue" style="margin:8px 0 0;">
+      O <a href="{% url 'tino:preguntar' %}?p={{ q|urlencode }}">pregúntale a Tino</a>, que
+      contesta con lo que esta máquina sabe.
+    </p>
   </div>
 {% endif %}
 

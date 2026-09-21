@@ -1,0 +1,70 @@
+{% comment %}
+  La respuesta. Fragmento aparte porque htmx lo reemplaza con cada tecla.
+{% endcomment %}
+
+{% if respuesta %}
+  <div class="tarjeta">
+    <div class="eyebrow">Respuesta</div>
+    <h2 class="recibo-titulo">{{ respuesta.titulo }}</h2>
+    {% if respuesta.detalle %}<p>{{ respuesta.detalle }}</p>{% endif %}
+
+    {% if respuesta.enlace %}
+      <p><a class="boton" href="{{ respuesta.enlace }}">{{ respuesta.accion }}</a></p>
+    {% endif %}
+
+    {% comment %}
+      **De dónde sale**, y no es adorno: es lo que permite comprobar la respuesta en vez de
+      creérsela. Es la diferencia entre un ayudante y un oráculo — y en una herramienta cuyo
+      valor es decir la verdad sobre lo que se puede, esa diferencia lo es todo.
+    {% endcomment %}
+    <p class="tenue sin-hueco">Sale de {{ respuesta.fuente }}, en este equipo.</p>
+  </div>
+
+{% elif p %}
+  {% comment %}
+    **«No sé» dicho como respuesta y no como error.**
+
+    En una herramienta cuyo valor es decir la verdad sobre lo que se puede y lo que no, una
+    respuesta inventada sobre un sistema de referencia hace daño de verdad: alguien entrega
+    un KML a cientos de kilómetros de la obra. Así que cuando no se sabe, se dice — y se
+    ofrece lo que sí hay, que es el catálogo y la tabla de compatibilidad.
+  {% endcomment %}
+  <div class="tarjeta">
+    <div class="eyebrow">No lo sé</div>
+    <h2 class="recibo-titulo">Esto no lo sé contestar.</h2>
+    <p>
+      Prefiero decirlo a inventarme algo: una respuesta equivocada sobre un formato o un
+      sistema de referencia acaba en un archivo entregado mal.
+    </p>
+    <p class="tenue">
+      Lo que sí hay: <a href="{% url 'dashboard:que_puedo_hacer' %}">el catálogo entero con
+      buscador</a> y <a href="{% url 'engines:matriz' %}">la tabla de lo que se puede
+      convertir en este equipo</a>, con el motivo de lo que no.
+    </p>
+
+    {% if saldria %}
+      {% comment %}
+        **Lo que saldría, enseñado antes de que salga**, y solo en el caso en que saldría.
+
+        Con la puerta cerrada esto explica por qué no hay más respuesta. Con la puerta
+        abierta, enseña la frase exacta que viajaría — que es la única forma honesta de
+        pedir permiso.
+      {% endcomment %}
+      <div class="aviso">
+        {% if de_fuera %}
+          <strong>Se puede preguntar fuera.</strong> Saldría esto y solo esto:
+        {% else %}
+          <strong>Preguntar fuera está apagado en este equipo.</strong> Si se encendiera,
+          saldría esto y solo esto:
+        {% endif %}
+        <p class="mono">{{ saldria.texto }}</p>
+        {% if saldria.se_toco %}
+          <p class="tenue sin-hueco">
+            Se ha quitado <strong>{{ saldria.retirado|join:", " }}</strong>: una ruta dice el
+            cliente, la obra y el nombre del proyecto, y no hace falta para contestar.
+          </p>
+        {% endif %}
+      </div>
+    {% endif %}
+  </div>
+{% endif %}

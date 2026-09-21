@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block titulo %}Pregúntale a Tino · AeroConvert{% endblock %}
+
+{% block contenido %}
+
+{% comment %}
+  **La nota de privacidad va arriba y va siempre**, no en una página de condiciones.
+
+  El argumento entero de esta aplicación es que un plano bajo acuerdo de confidencialidad no
+  sale del equipo, y está publicada en internet abierto. Un ayudante es justo donde eso se
+  podría romper sin que nadie se entere, así que se dice aquí, en la pantalla, cada vez.
+
+  Y dice lo que es verdad **en este equipo**: con la puerta de fuera cerrada —como viene de
+  fábrica— no sale absolutamente nada, y eso es más tranquilizador que cualquier promesa.
+{% endcomment %}
+<div class="tarjeta antes-de-empezar">
+  {% if de_fuera %}
+    <p class="sin-hueco">
+      <strong>Sale la pregunta que escribes. Nada más.</strong> Ni el archivo, ni su nombre,
+      ni su contenido, ni la ruta donde estaba. Y solo cuando esta máquina no sepa contestar.
+    </p>
+    <p class="tenue">Lo de fuera lo contesta {{ de_fuera.proveedor }}.</p>
+  {% else %}
+    <p class="sin-hueco">
+      <strong>No sale nada de este equipo.</strong> Tino contesta con lo que AeroConvert ya
+      sabe: la tabla de lo que se puede convertir aquí, el catálogo de formatos y el de
+      herramientas. Las mismas fuentes que deciden la conversión, así que la respuesta es
+      exacta y no una aproximación.
+    </p>
+    <p class="tenue">{{ de_fuera.sugerencia }}</p>
+  {% endif %}
+</div>
+
+<form class="buscador-acciones"
+      hx-get="{% url 'tino:preguntar' %}"
+      hx-target="#respuesta"
+      hx-swap="innerHTML"
+      hx-trigger="input changed delay:300ms from:#q, submit"
+      hx-indicator="#pensando">
+  <label class="visually-hidden" for="q">Qué quieres saber</label>
+  <svg class="buscador-lupa" aria-hidden="true">
+    <use href="{% static 'img/icons.svg' %}#icon-mirar"></use>
+  </svg>
+  <input type="search" id="q" name="p" value="{{ p }}" class="form-control"
+         placeholder="¿puedo pasar un tif a jp2?, ¿qué es un COG?…"
+         autocomplete="off" autofocus>
+  <kbd class="atajo-pista" aria-hidden="true">/</kbd>
+  <span id="pensando" class="tenue htmx-indicator">mirando…</span>
+</form>
+
+{% comment %}
+  Los tres ejemplos se contestan **desde esta máquina**, y ahí está el argumento entero
+  demostrado sin explicarlo: pulsas uno, recibes una respuesta exacta, y no ha salido nada.
+{% endcomment %}
+<nav class="ejemplos" aria-label="Ejemplos de pregunta">
+  <span class="ejemplos-rotulo">Prueba con</span>
+  {% for texto in ejemplos %}
+    <a class="ejemplo" href="?p={{ texto|urlencode }}">{{ texto }}</a>
+  {% endfor %}
+</nav>
+
+<div id="respuesta">
+  {% include "tino/_respuesta.html" %}
+</div>
+{% endblock %}
