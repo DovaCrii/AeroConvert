@@ -81,16 +81,116 @@
 
   --av-radius: 12px;
   --av-radius-sm: 8px;
+  /* Para las píldoras y los círculos. Estaba escrito `999px` a mano seis veces. */
+  --av-radius-pill: 999px;
   --av-control-height: 42px;
   --av-touch-min: 44px;
+
+  /* --- Espaciado -----------------------------------------------------------
+   *
+   * **Base 4, que es lo que usa Primer.** No había ninguna escala: 17 valores distintos de
+   * `gap` —3, 4, 5, 6, 7, 8, 10, 12, 14, 16, 28, 48— que no forman progresión, 35 de
+   * `padding` y 39 de `margin`. Cada sitio ponía el suyo, y por eso el ritmo vertical de la
+   * aplicación vivía en un `style="margin-bottom:14px"` escrito a mano 19 veces.
+   *
+   * Todo múltiplo de 8 es múltiplo de 4, así que los dos criterios que se discuten conviven
+   * sin conflicto: 4 para el espacio **dentro** de una pieza pequeña, 8 y arriba para el
+   * espacio **entre** piezas.
+   *
+   * **Ajustar a la escala mueve algunas medidas hasta 2 px.** Eso no es un efecto secundario:
+   * es el trabajo. Lo que no puede mover es la estructura, y de eso se encarga la
+   * comparación de capturas antes y después. */
+  --av-s-1: 4px;
+  --av-s-2: 8px;
+  --av-s-3: 12px;
+  --av-s-4: 16px;
+  --av-s-5: 20px;
+  --av-s-6: 24px;
+  --av-s-8: 32px;
+  --av-s-10: 40px;
+  --av-s-12: 48px;
+
+  /* El ritmo vertical entre bloques de una pantalla. Es el que estaba en las plantillas. */
+  --av-ritmo: var(--av-s-4);
+
+  /* --- Elevación -----------------------------------------------------------
+   *
+   * **Tres niveles con papel asignado**, como hace Radix: reposo para lo que está en la
+   * página, flotante para lo que se despliega encima, y modal. Seis niveles aquí sobran.
+   *
+   * Había dos, y de un salto enorme: `0 10px 30px` → `0 14px 34px`. Nada entre «plano» y
+   * «flotando treinta píxeles», y en la práctica **solo tres reglas en toda la hoja tenían
+   * sombra proyectada**: las otras doce superficies se apoyaban en `border: 1px`.
+   *
+   * Tres cosas medidas en Primer, Polaris y Material que separan esto de una sombra casera:
+   *
+   * 1. **El anillo va dentro de la sombra** (`0 0 0 1px`). Así el borde y la profundidad son
+   *    una sola decisión y se coordinan solas entre temas, en vez de un `border` por un lado
+   *    y un `box-shadow` por otro.
+   * 2. **Dos capas de alfa muy baja** en lugar de una fuerte — Primer se mueve entre el 3 % y
+   *    el 12 %. Una sombra sola y marcada es lo que delata una interfaz hecha a ojo.
+   * 3. **Spread negativo** (Polaris): recoge la sombra hacia dentro y evita el halo gris
+   *    sucio. Y el desplazamiento apenas crece mientras el difuminado sí — en Material el
+   *    offset va de 1 a 4 px y el blur de 3 a 12. La profundidad se gana con difusión. */
+  --av-anillo: rgb(18 34 59 / 12%);
+  --av-elev-0: 0 0 0 1px var(--av-anillo);
+  --av-elev-1:
+    0 0 0 1px var(--av-anillo),
+    0 1px 2px -1px rgb(18 34 59 / 10%),
+    0 2px 6px -2px rgb(18 34 59 / 8%);
+  --av-elev-2:
+    0 0 0 1px var(--av-anillo),
+    0 4px 8px -4px rgb(18 34 59 / 12%),
+    0 12px 24px -8px rgb(18 34 59 / 14%);
+  --av-elev-3:
+    0 0 0 1px var(--av-anillo),
+    0 8px 16px -6px rgb(18 34 59 / 16%),
+    0 24px 48px -12px rgb(18 34 59 / 20%);
+
+  /* Los dos de antes, conservados: `.tarjeta` y `.menu-panel` los usan y el objetivo de esta
+   * tanda es no mover nada todavía. Se retiran en la siguiente, al aplicar la elevación. */
   --av-shadow: 0 10px 30px rgb(18 34 59 / 8%);
   --av-shadow-alto: 0 14px 34px rgb(18 34 59 / 14%);
 
+  /* --- Tipografía ----------------------------------------------------------
+   *
+   * **Siete escalones, no veintiocho.** La escala real medida tenía ~28 pasos, con **nueve
+   * tamaños apiñados entre 0,82 y 0,95 rem** — ninguno distinguible de su vecino. Eso es la
+   * planitud de la que se quejaba el equipo: sin saltos claros no hay jerarquía, y no se
+   * arregla con sombras.
+   *
+   * `--av-fs-base` era 1rem y **no se usaba nunca**, mientras el `body` fijaba 0.95rem a
+   * mano: el tamaño base real de la aplicación no estaba tokenizado. Ahora `base` **es** ese
+   * 0,95, que es lo que de verdad se lee. Carbon llama a esto «productive»: 14-15 px de base
+   * para herramientas densas de trabajo, frente a los 16 de una página de marketing. */
   --av-fs-xs: 0.78rem;
   --av-fs-sm: 0.85rem;
-  --av-fs-base: 1rem;
+  --av-fs-base: 0.95rem;
+  --av-fs-md: 1.05rem;
   --av-fs-lg: 1.25rem;
   --av-fs-xl: 1.5rem;
+  --av-fs-2xl: 2.1rem;
+
+  /* Peso, interlineado y tracking no tenían token, y se escribían a mano: 5 pesos —incluido
+   * un `650` que la mayoría de fuentes de sistema no tiene y redondea a 700—, 8 interlineados
+   * y 8 valores de tracking.
+   *
+   * **Con esto se puede marcar jerarquía sin tocar el tamaño**, que es lo que hace Material:
+   * distingue dos roles distintos a 16 px usando solo peso y tracking. Y la regla de
+   * *Refactoring UI* que conviene tener a mano: para restar importancia, **color antes que
+   * peso ligero**. */
+  --av-peso-normal: 400;
+  --av-peso-medio: 600;
+  --av-peso-fuerte: 700;
+  --av-alto-apretado: 1.25;
+  --av-alto-normal: 1.5;
+  --av-alto-suelto: 1.65;
+  --av-track-rotulo: 0.08em;
+
+  /* Movimiento. Había 5 reglas con transición sobre ~308 selectores, cada una con su propio
+   * tiempo. El bloque `prefers-reduced-motion` del final las desactiva todas. */
+  --av-rapido: 0.12s ease;
+  --av-medio: 0.2s ease;
 }
 
 :root[data-theme="dark"] {
@@ -139,6 +239,27 @@
   --av-fam-destino-soft: #1d2c52;
   --av-fam-texto: #f0b088;
   --av-fam-texto-soft: #4a2a14;
+
+  /* **En oscuro la sombra casi no se ve, así que hacen falta las tres cosas a la vez.**
+   *
+   * Atlassian, Primer y Material coinciden en esto y lo dicen por separado: al subir de
+   * nivel, la superficie se **aclara**, el anillo se **contrasta más**, y el alfa del negro
+   * **sube**. Con solo una de las tres, un panel flotante sobre una tarjeta oscura se ve
+   * exactamente igual que la tarjeta. */
+  --av-anillo: rgb(255 255 255 / 14%);
+  --av-elev-0: 0 0 0 1px var(--av-anillo);
+  --av-elev-1:
+    0 0 0 1px var(--av-anillo),
+    0 1px 2px -1px rgb(0 0 0 / 40%),
+    0 2px 6px -2px rgb(0 0 0 / 30%);
+  --av-elev-2:
+    0 0 0 1px rgb(255 255 255 / 18%),
+    0 4px 8px -4px rgb(0 0 0 / 45%),
+    0 12px 24px -8px rgb(0 0 0 / 50%);
+  --av-elev-3:
+    0 0 0 1px rgb(255 255 255 / 22%),
+    0 8px 16px -6px rgb(0 0 0 / 55%),
+    0 24px 48px -12px rgb(0 0 0 / 60%);
 
   --av-shadow: 0 10px 30px rgb(0 0 0 / 35%);
   --av-shadow-alto: 0 14px 34px rgb(0 0 0 / 50%);
@@ -191,6 +312,25 @@
     --av-fam-texto: #f0b088;
     --av-fam-texto-soft: #4a2a14;
 
+    /* Los mismos que el bloque de arriba. Este es el que manda **por omisión** —quien tiene
+     * el sistema en oscuro y no ha tocado el interruptor— y ya se olvidó una vez: los colores
+     * de familia faltaban aquí y se heredaban los del tema claro, o sea baldosas casi blancas
+     * sobre tarjetas oscuras. */
+    --av-anillo: rgb(255 255 255 / 14%);
+    --av-elev-0: 0 0 0 1px var(--av-anillo);
+    --av-elev-1:
+      0 0 0 1px var(--av-anillo),
+      0 1px 2px -1px rgb(0 0 0 / 40%),
+      0 2px 6px -2px rgb(0 0 0 / 30%);
+    --av-elev-2:
+      0 0 0 1px rgb(255 255 255 / 18%),
+      0 4px 8px -4px rgb(0 0 0 / 45%),
+      0 12px 24px -8px rgb(0 0 0 / 50%);
+    --av-elev-3:
+      0 0 0 1px rgb(255 255 255 / 22%),
+      0 8px 16px -6px rgb(0 0 0 / 55%),
+      0 24px 48px -12px rgb(0 0 0 / 60%);
+
     --av-shadow: 0 10px 30px rgb(0 0 0 / 35%);
     --av-shadow-alto: 0 14px 34px rgb(0 0 0 / 50%);
   }
@@ -200,8 +340,8 @@ body {
   background: var(--av-bg);
   color: var(--av-text);
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  font-size: 0.95rem;
-  line-height: 1.5;
+  font-size: var(--av-fs-base);
+  line-height: var(--av-alto-normal);
   min-height: 100vh;
 }
 
@@ -236,7 +376,7 @@ body::before {
 /* --- La cabecera de página: dónde estás y para qué sirve esto ------------- */
 
 .cabecera-pagina {
-  margin-bottom: 26px;
+  margin-bottom: var(--av-s-6);
 }
 
 /* 1,5 rem competía de tú a tú con los nombres de las tarjetas y la pantalla se leía como una
@@ -252,8 +392,8 @@ body::before {
   color: var(--av-text-secondary);
   margin: 0;
   max-width: 68ch;
-  font-size: 0.95rem;
-  line-height: 1.55;
+  font-size: var(--av-fs-base);
+  line-height: var(--av-alto-normal);
   text-wrap: pretty;
 }
 
@@ -277,7 +417,7 @@ td.cifra,
   background: linear-gradient(180deg, #22335a 0%, var(--av-navy) 100%);
   border-bottom: 1px solid rgb(241 91 181 / 22%);
   color: #fff;
-  padding: 10px 20px;
+  padding: 10px var(--av-s-5);
   display: flex;
   align-items: center;
   gap: 14px;
@@ -323,8 +463,8 @@ td.cifra,
   cursor: pointer;
   font: inherit;
   font-size: var(--av-fs-xs);
-  font-weight: 700;
-  letter-spacing: 0.08em;
+  font-weight: var(--av-peso-fuerte);
+  letter-spacing: var(--av-track-rotulo);
   text-transform: uppercase;
 }
 
@@ -354,7 +494,7 @@ td.cifra,
   display: flex;
   align-items: center;
   gap: 10px;
-  font-weight: 700;
+  font-weight: var(--av-peso-fuerte);
   letter-spacing: 0.02em;
 }
 
@@ -367,11 +507,11 @@ td.cifra,
    que ver, no algo que se averigua entrando a una pantalla de ajustes. */
 .chapa {
   font-size: var(--av-fs-xs);
-  font-weight: 700;
-  letter-spacing: 0.08em;
+  font-weight: var(--av-peso-fuerte);
+  letter-spacing: var(--av-track-rotulo);
   text-transform: uppercase;
   padding: 2px 10px;
-  border-radius: 999px;
+  border-radius: var(--av-radius-pill);
   border: 1px solid currentcolor;
 }
 
@@ -391,19 +531,19 @@ td.cifra,
 .portada {
   display: grid;
   grid-template-columns: minmax(0, 1.15fr) minmax(20rem, 24rem);
-  gap: 48px;
+  gap: var(--av-s-12);
   align-items: center;
   min-height: 72vh;
 }
 
 .portada-presentacion h1 {
-  font-size: 2.1rem;
+  font-size: var(--av-fs-2xl);
   margin: 14px 0 6px;
   letter-spacing: -0.02em;
 }
 
 .portada-lema {
-  font-size: 1.05rem;
+  font-size: var(--av-fs-md);
   color: var(--av-text-secondary);
   max-width: 46ch;
   margin-bottom: 22px;
@@ -418,7 +558,7 @@ td.cifra,
   padding: 0;
   margin: 0 0 22px;
   display: grid;
-  gap: 12px;
+  gap: var(--av-s-3);
   max-width: 50ch;
 }
 
@@ -446,7 +586,7 @@ td.cifra,
 }
 
 .portada-acceso {
-  padding: 24px 26px;
+  padding: var(--av-s-6) var(--av-s-6);
 }
 
 .formulario-vertical {
@@ -456,7 +596,7 @@ td.cifra,
 
 .formulario-vertical label {
   display: block;
-  font-weight: 600;
+  font-weight: var(--av-peso-medio);
   margin-bottom: 4px;
 }
 
@@ -512,7 +652,7 @@ td.cifra,
   border: 1px solid var(--av-border);
   border-radius: var(--av-radius);
   box-shadow: var(--av-shadow);
-  padding: 18px 20px;
+  padding: 18px var(--av-s-5);
   position: relative;
   overflow: hidden;
 }
@@ -539,7 +679,7 @@ td.cifra,
  */
 .eyebrow {
   font-size: 0.84rem;
-  font-weight: 700;
+  font-weight: var(--av-peso-fuerte);
   letter-spacing: 0.09em;
   text-transform: uppercase;
   color: var(--av-primary);
@@ -595,7 +735,7 @@ td.cifra,
   width: 0.9rem;
   height: 0.9rem;
   opacity: 0.7;
-  transition: transform 0.15s ease;
+  transition: transform var(--av-rapido);
 }
 
 .menu[open] .menu-boton {
@@ -622,7 +762,7 @@ td.cifra,
   gap: 10px 26px;
   width: max-content;
   max-width: min(58rem, calc(100vw - 32px));
-  padding: 18px 20px;
+  padding: 18px var(--av-s-5);
   border: 1px solid var(--av-border);
   border-radius: var(--av-radius);
   background: var(--av-surface);
@@ -636,7 +776,7 @@ td.cifra,
   padding-bottom: 6px;
   border-bottom: 1px solid var(--av-border);
   font-size: var(--av-fs-xs);
-  font-weight: 700;
+  font-weight: var(--av-peso-fuerte);
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--av-text-secondary);
@@ -669,7 +809,7 @@ a.menu-titulo:hover {
   margin: 0 -8px;
   border-radius: var(--av-radius-sm);
   font-size: 0.9rem;
-  line-height: 1.3;
+  line-height: var(--av-alto-apretado);
 }
 
 .menu-enlace:hover,
@@ -759,7 +899,7 @@ a.menu-titulo:hover {
   min-height: 34px;
   padding: 4px 10px 4px 30px;
   border: 1px solid rgb(255 255 255 / 22%);
-  border-radius: 999px;
+  border-radius: var(--av-radius-pill);
   background: rgb(255 255 255 / 8%);
   color: #fff;
   font: inherit;
@@ -1006,9 +1146,9 @@ a.menu-titulo:hover {
   display: block;
   margin-bottom: 2px;
   font-size: 1.02rem;
-  font-weight: 650;
+  font-weight: var(--av-peso-medio);
   letter-spacing: -0.008em;
-  line-height: 1.3;
+  line-height: var(--av-alto-apretado);
 }
 
 /* `.pasos div span` y no `.pasos span`: el segundo alcanzaría también al número dentro de
@@ -1016,7 +1156,7 @@ a.menu-titulo:hover {
 .pasos div span {
   color: var(--av-text-secondary);
   font-size: var(--av-fs-sm);
-  line-height: 1.5;
+  line-height: var(--av-alto-normal);
   text-wrap: pretty;
 }
 
@@ -1034,7 +1174,7 @@ a.menu-titulo:hover {
 .origenes {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(24rem, 1fr));
-  gap: 16px;
+  gap: var(--av-s-4);
   margin-bottom: 16px;
   align-items: stretch;
 }
@@ -1069,7 +1209,7 @@ a.menu-titulo:hover {
 .origen-cabeza {
   display: grid;
   grid-template-columns: 2.6rem 1fr;
-  gap: 12px;
+  gap: var(--av-s-3);
   align-items: center;
   margin-bottom: 14px;
 }
@@ -1093,7 +1233,7 @@ a.menu-titulo:hover {
 
 .origen-titulo {
   font-size: 1.02rem;
-  font-weight: 650;
+  font-weight: var(--av-peso-medio);
   letter-spacing: -0.008em;
   margin: 0;
 }
@@ -1122,7 +1262,7 @@ a.menu-titulo:hover {
 .origen-elegido {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--av-s-2);
   flex-wrap: wrap;
   margin: 0 0 14px;
   padding: 9px 12px;
@@ -1157,7 +1297,7 @@ a.menu-titulo:hover {
 .buscador-acciones input {
   min-height: 52px;
   padding-left: 44px;
-  font-size: 1.05rem;
+  font-size: var(--av-fs-md);
   border-radius: var(--av-radius);
 }
 
@@ -1173,14 +1313,14 @@ a.menu-titulo:hover {
   background: var(--av-surface-alt);
   color: var(--av-text-secondary);
   font-size: 0.82rem;
-  line-height: 1.5;
+  line-height: var(--av-alto-normal);
   white-space: pre;
 }
 
 .lista-simple {
   margin: 0;
   padding-left: 1.1rem;
-  line-height: 1.8;
+  line-height: var(--av-alto-suelto);
 }
 
 /*
@@ -1214,8 +1354,8 @@ a.menu-titulo:hover {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
-  margin: 10px 0 20px;
+  gap: var(--av-s-2);
+  margin: 10px 0 var(--av-s-5);
 }
 
 .ejemplos-rotulo {
@@ -1226,7 +1366,7 @@ a.menu-titulo:hover {
 .ejemplo {
   padding: 4px 11px;
   border: 1px solid var(--av-border);
-  border-radius: 999px;
+  border-radius: var(--av-radius-pill);
   background: var(--av-surface);
   color: var(--av-text-secondary);
   font-size: var(--av-fs-sm);
@@ -1242,11 +1382,30 @@ a.menu-titulo:hover {
   text-decoration: none;
 }
 
+/*
+ * **El ritmo vertical, que vivía en las plantillas.**
+ *
+ * `style="margin-bottom:14px"` sobre `.tarjeta`, escrito a mano **19 veces**. Era literalmente
+ * la separación estándar entre bloques de la aplicación, y no estaba en ninguna hoja: cada
+ * pantalla la repetía, y cambiarla exigía tocar diecinueve ficheros.
+ *
+ * Con `--av-ritmo` es una decisión en un sitio. Y el `:last-child` quita el hueco del final,
+ * que hoy lo deja el último `margin-bottom` de cada pantalla y nadie ve porque está debajo de
+ * todo.
+ */
+.apilado > * {
+  margin-bottom: var(--av-ritmo);
+}
+
+.apilado > :last-child {
+  margin-bottom: 0;
+}
+
 /* --- La bienvenida de la primera vez -------------------------------------- */
 
 .bienvenida {
   margin: 0 0 22px;
-  padding: 18px 20px;
+  padding: 18px var(--av-s-5);
   border: 1px solid var(--av-border);
   border-radius: var(--av-radius);
   background: var(--av-surface);
@@ -1254,7 +1413,7 @@ a.menu-titulo:hover {
 
 .bienvenida-titulo {
   margin: 0 0 14px;
-  font-size: 1.05rem;
+  font-size: var(--av-fs-md);
 }
 
 .bienvenida-ideas {
@@ -1269,7 +1428,7 @@ a.menu-titulo:hover {
 .bienvenida-ideas li {
   display: grid;
   grid-template-columns: 2.4rem 1fr;
-  gap: 12px;
+  gap: var(--av-s-3);
   align-items: start;
 }
 
@@ -1300,11 +1459,11 @@ a.menu-titulo:hover {
   place-items: center;
   width: 1.1rem;
   height: 1.1rem;
-  border-radius: 999px;
+  border-radius: var(--av-radius-pill);
   background: var(--av-primary);
   color: var(--av-sobre-accion, #fff);
   font-size: 0.68rem;
-  font-weight: 700;
+  font-weight: var(--av-peso-fuerte);
   line-height: 1;
 }
 
@@ -1317,7 +1476,7 @@ a.menu-titulo:hover {
 .bienvenida-ideas p {
   margin: 0;
   font-size: 0.9rem;
-  line-height: 1.5;
+  line-height: var(--av-alto-normal);
   color: var(--av-text-secondary);
 }
 
@@ -1354,7 +1513,7 @@ a.menu-titulo:hover {
 .respuesta-par {
   margin: 0 0 6px;
   font-size: 1.15rem;
-  line-height: 1.3;
+  line-height: var(--av-alto-apretado);
 }
 
 .respuesta-par span {
@@ -1372,7 +1531,7 @@ a.menu-titulo:hover {
   border: 1px dashed var(--av-border-control);
   border-radius: var(--av-radius);
   font-size: var(--av-fs-sm);
-  line-height: 1.55;
+  line-height: var(--av-alto-normal);
 }
 
 /* --- El buscador plegable, en las pantallas de PDF ----------------------- */
@@ -1387,11 +1546,11 @@ a.menu-titulo:hover {
 .buscador-resumen {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--av-s-2);
   padding: 9px 12px;
   cursor: pointer;
   font-size: var(--av-fs-sm);
-  font-weight: 600;
+  font-weight: var(--av-peso-medio);
   color: var(--av-primary);
 }
 
@@ -1435,7 +1594,7 @@ a.menu-titulo:hover {
 
 .miga-actual {
   color: var(--av-text);
-  font-weight: 600;
+  font-weight: var(--av-peso-medio);
   padding: 2px 4px;
 }
 
@@ -1450,7 +1609,7 @@ a.menu-titulo:hover {
   border: 1px dashed var(--av-border-control);
   border-radius: var(--av-radius-sm);
   font-size: var(--av-fs-sm);
-  line-height: 1.5;
+  line-height: var(--av-alto-normal);
 }
 
 .listado {
@@ -1552,14 +1711,14 @@ a.menu-titulo:hover {
 
 .remate-titulo {
   font-size: 1.08rem;
-  font-weight: 650;
+  font-weight: var(--av-peso-medio);
   letter-spacing: -0.008em;
 }
 
 .remate-detalle {
   color: var(--av-text-secondary);
   font-size: var(--av-fs-sm);
-  line-height: 1.5;
+  line-height: var(--av-alto-normal);
   text-wrap: pretty;
 }
 
@@ -1613,8 +1772,8 @@ a.menu-titulo:hover {
 }
 
 .soltar-titulo {
-  font-size: 1.05rem;
-  font-weight: 600;
+  font-size: var(--av-fs-md);
+  font-weight: var(--av-peso-medio);
   margin: 0 0 3px;
 }
 
@@ -1635,7 +1794,7 @@ a.menu-titulo:hover {
 
 .soltar-campo {
   display: flex;
-  gap: 8px;
+  gap: var(--av-s-2);
   max-width: 46rem;
   margin: 0 auto;
 }
@@ -1652,13 +1811,13 @@ a.menu-titulo:hover {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 16px;
+  gap: var(--av-s-4);
   margin-bottom: 10px;
 }
 
 .cabecera-tarjeta h2 {
   margin: 0;
-  font-size: 1.05rem;
+  font-size: var(--av-fs-md);
 }
 
 .enlace-suave {
@@ -1683,7 +1842,7 @@ a.menu-titulo:hover {
 
 .ficha dd {
   margin: 0;
-  font-weight: 600;
+  font-weight: var(--av-peso-medio);
 }
 
 /* --- Los veredictos -------------------------------------------------------
@@ -1693,7 +1852,7 @@ a.menu-titulo:hover {
 
 .veredictos {
   display: grid;
-  gap: 8px;
+  gap: var(--av-s-2);
 }
 
 .veredicto {
@@ -1714,7 +1873,7 @@ a.menu-titulo:hover {
 }
 
 .veredicto-destino {
-  font-weight: 700;
+  font-weight: var(--av-peso-fuerte);
 }
 
 .veredicto-abre {
@@ -1805,7 +1964,7 @@ a.menu-titulo:hover {
 
 .avance {
   height: 10px;
-  border-radius: 999px;
+  border-radius: var(--av-radius-pill);
   background: var(--av-border);
   overflow: hidden;
 }
@@ -1814,7 +1973,7 @@ a.menu-titulo:hover {
   display: block;
   height: 100%;
   background: var(--av-primary);
-  transition: width 200ms ease;
+  transition: width var(--av-medio);
 }
 
 /* La línea de debajo de la barra de subida: «42 % · 250 MB de 600 MB · falta unos 2 min». */
@@ -1852,7 +2011,7 @@ a.menu-titulo:hover {
 
 .recibo dd {
   margin: 0;
-  font-weight: 600;
+  font-weight: var(--av-peso-medio);
 }
 
 /* --- Píldoras de estado --------------------------------------------------- */
@@ -1860,9 +2019,9 @@ a.menu-titulo:hover {
 .pildora {
   display: inline-block;
   padding: 1px 9px;
-  border-radius: 999px;
+  border-radius: var(--av-radius-pill);
   font-size: var(--av-fs-xs);
-  font-weight: 700;
+  font-weight: var(--av-peso-fuerte);
   border: 1px solid currentcolor;
   background: color-mix(in srgb, currentcolor 14%, transparent);
 }
@@ -1893,7 +2052,7 @@ a.menu-titulo:hover {
   padding: 0 18px;
   border-radius: var(--av-radius-sm);
   border: 1px solid transparent;
-  font-weight: 600;
+  font-weight: var(--av-peso-medio);
   cursor: pointer;
   background: var(--av-primary);
   color: var(--av-sobre-accion);
@@ -1930,7 +2089,7 @@ a.menu-titulo:hover {
 
 .matriz th {
   background: var(--av-surface-alt);
-  font-weight: 700;
+  font-weight: var(--av-peso-fuerte);
 }
 
 .matriz th[scope="row"] {
@@ -1940,13 +2099,13 @@ a.menu-titulo:hover {
 .celda-disponible {
   background: var(--av-ok-soft);
   color: var(--av-ok);
-  font-weight: 700;
+  font-weight: var(--av-peso-fuerte);
 }
 
 .celda-instalable {
   background: var(--av-warn-soft);
   color: var(--av-warn);
-  font-weight: 700;
+  font-weight: var(--av-peso-fuerte);
 }
 
 .celda-no-soportado {
@@ -2001,7 +2160,7 @@ code {
 
 .vacio {
   color: var(--av-text-muted);
-  padding: 24px;
+  padding: var(--av-s-6);
   text-align: center;
 }
 
@@ -2074,7 +2233,7 @@ code {
   background: var(--av-surface);
   color: inherit;
   text-decoration: none;
-  transition: border-color 0.12s ease, background 0.12s ease, transform 0.12s ease;
+  transition: border-color var(--av-rapido), background var(--av-rapido), transform var(--av-rapido);
 }
 
 .herramienta:hover,
@@ -2126,7 +2285,7 @@ code {
   box-shadow:
     inset 0 0 0 1px color-mix(in srgb, var(--marca-color, var(--av-primary)) 24%, transparent),
     0 1px 2px rgb(18 34 59 / 10%);
-  transition: transform 0.12s ease, box-shadow 0.12s ease;
+  transition: transform var(--av-rapido), box-shadow var(--av-rapido);
 }
 
 .herramienta:hover .herramienta-marca {
@@ -2183,16 +2342,16 @@ code {
  * nueve, el nombre es lo que se busca y la explicación lo que se lee después. */
 .herramienta-texto strong {
   font-size: 1.02rem;
-  font-weight: 650;
+  font-weight: var(--av-peso-medio);
   letter-spacing: -0.008em;
-  line-height: 1.3;
+  line-height: var(--av-alto-apretado);
   color: var(--av-text);
 }
 
 .herramienta-que {
   color: var(--av-text-secondary);
   font-size: var(--av-fs-sm);
-  line-height: 1.5;
+  line-height: var(--av-alto-normal);
   text-wrap: pretty;
 }
 
@@ -2208,7 +2367,7 @@ code {
 
 .herramienta-sale strong {
   color: var(--av-text-secondary);
-  font-weight: 600;
+  font-weight: var(--av-peso-medio);
 }
 
 /* --- La nota de por que esto no es una web de internet -------------------- */
@@ -2270,7 +2429,7 @@ code {
 
 .herramienta-apagada strong {
   color: var(--av-text-secondary);
-  font-weight: 600;
+  font-weight: var(--av-peso-medio);
 }
 
 .herramienta-apagada .motivo {
@@ -2285,12 +2444,12 @@ code {
  * que permite saltar directo a «lo que falta» sin leer lo demás, que es a lo que se viene.
  */
 .bloque {
-  margin-bottom: 30px;
+  margin-bottom: var(--av-s-8);
 }
 
 .bloque-titulo {
   font-size: 1.12rem;
-  font-weight: 650;
+  font-weight: var(--av-peso-medio);
   letter-spacing: -0.01em;
   margin: 0 0 4px;
 }
@@ -2306,8 +2465,8 @@ code {
 .resumen-tiras {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
-  gap: 12px;
-  margin-bottom: 30px;
+  gap: var(--av-s-3);
+  margin-bottom: var(--av-s-8);
 }
 
 .tira-dato {
@@ -2327,16 +2486,16 @@ code {
 }
 
 .tira-cifra {
-  font-size: 1.7rem;
-  font-weight: 700;
+  font-size: var(--av-fs-xl);
+  font-weight: var(--av-peso-fuerte);
   line-height: 1.1;
   font-variant-numeric: tabular-nums;
 }
 
 /* El denominador, medio tono más bajo: «7 de 9» se lee de un golpe y el 9 no compite. */
 .tira-de {
-  font-size: 1.05rem;
-  font-weight: 600;
+  font-size: var(--av-fs-md);
+  font-weight: var(--av-peso-medio);
   color: var(--av-text-muted);
 }
 
@@ -2414,7 +2573,7 @@ code {
 .motor-alternativa {
   margin: 0 0 6px;
   font-size: var(--av-fs-sm);
-  line-height: 1.5;
+  line-height: var(--av-alto-normal);
   text-wrap: pretty;
 }
 
@@ -2453,7 +2612,7 @@ code {
   margin: 8px 0 0;
   padding-left: 18px;
   display: grid;
-  gap: 4px;
+  gap: var(--av-s-1);
 }
 
 /* --- La tira de miniaturas de un documento -------------------------------- */
@@ -2463,7 +2622,7 @@ code {
  */
 .tira {
   display: flex;
-  gap: 8px;
+  gap: var(--av-s-2);
   overflow-x: auto;
   padding-bottom: 6px;
 }
@@ -2540,7 +2699,7 @@ code {
 .pagina {
   display: grid;
   grid-template-columns: 2.1rem auto 1fr auto;
-  gap: 12px;
+  gap: var(--av-s-3);
   align-items: center;
   padding: 8px 12px;
   border: 1px solid var(--av-border);
@@ -2580,7 +2739,7 @@ code {
   border-radius: var(--av-radius-sm);
   background: var(--av-surface-alt);
   font-variant-numeric: tabular-nums;
-  font-weight: 700;
+  font-weight: var(--av-peso-fuerte);
   font-size: var(--av-fs-sm);
 }
 
@@ -2601,7 +2760,7 @@ code {
 
 .pagina-acciones {
   display: flex;
-  gap: 4px;
+  gap: var(--av-s-1);
 }
 
 .pagina-acciones .boton-icono {
