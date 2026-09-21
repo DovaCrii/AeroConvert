@@ -15,6 +15,21 @@
     {% if access.sugerencia %}<p class="tenue" style="margin:6px 0 0;">{{ access.sugerencia }}</p>{% endif %}
   </div>
 {% else %}
+  {% comment %}
+    Qué va a pasar, antes de elegir. Estaba al final de la pantalla, o sea después de decidir.
+  {% endcomment %}
+  <div class="tarjeta antes-de-empezar">
+    <p style="margin:0;">
+      Los catálogos de AutoCAD Plant 3D son bases de Access: <strong>una hoja de Excel por
+      tabla</strong> —<code>PIPE</code>, <code>ELBOW</code>, <code>TEE</code>,
+      <code>FLANGE</code> y las demás—, con hasta cincuenta columnas cada una.
+    </p>
+    <p class="tenue" style="margin:8px 0 0;">
+      Se saca todo, <strong>incluidas las tablas vacías</strong>: sus encabezados son la
+      plantilla para rellenarlas. El catálogo original no se toca.
+    </p>
+  </div>
+
   <form id="forma-documento" method="post" enctype="multipart/form-data">
     {% csrf_token %}
     {% include "documents/_origen.html" with pregunta="¿Qué catálogo?" accion="convertir" boton="Sacar a Excel" acepta=".mdb,.accdb" %}
@@ -47,16 +62,4 @@
   </div>
 {% endif %}
 
-<div class="tarjeta">
-  <div class="eyebrow">Qué es esto</div>
-  <p style="margin:6px 0 0;">
-    Los catálogos de tubería de AutoCAD Plant 3D son bases de Access: nueve tablas —
-    <code>PIPE</code>, <code>ELBOW</code>, <code>TEE</code>, <code>FLANGE</code>,
-    <code>REDUCER</code> y las demás— con hasta cincuenta columnas cada una.
-  </p>
-  <p class="tenue" style="margin:10px 0 0;">
-    Se saca todo, incluidas las tablas vacías: sus encabezados son la plantilla para
-    rellenarlas, y sin ellos habría que inventarse los nombres de las columnas.
-  </p>
-</div>
 {% endblock %}

@@ -11,6 +11,23 @@
     {% if access.sugerencia %}<p class="tenue" style="margin:6px 0 0;">{{ access.sugerencia }}</p>{% endif %}
   </div>
 {% else %}
+  {% comment %}
+    Qué se comprueba, **antes** de elegir los archivos. Estaba al final: alguien llegaba ahí
+    después de recibir un error sobre una columna, no antes de poder evitarlo.
+  {% endcomment %}
+  <div class="tarjeta antes-de-empezar">
+    <p style="margin:0;">
+      <strong>Hacen falta los dos archivos:</strong> la hoja editada y el catálogo del que
+      salió. El segundo pone el esquema, así que el resultado es una copia suya con las filas
+      del Excel dentro — <strong>idéntico</strong>, no parecido.
+    </p>
+    <p class="tenue" style="margin:8px 0 0;">
+      Antes de escribir nada se comprueba que cada hoja sea una tabla del catálogo, que cada
+      columna exista, y que los valores quepan. <strong>Una columna que no exista para el
+      trabajo</strong> en vez de descartarse en silencio. Es todo o nada.
+    </p>
+  </div>
+
   <form id="forma-documento" method="post" enctype="multipart/form-data">
     {% csrf_token %}
 
@@ -74,17 +91,4 @@
   </div>
 {% endif %}
 
-<div class="tarjeta">
-  <div class="eyebrow">Qué se comprueba antes de escribir</div>
-  <ul class="lista-simple">
-    <li>Que cada hoja del Excel sea una tabla del catálogo.</li>
-    <li>Que cada columna exista en esa tabla. <strong>Una que no exista para el trabajo</strong>
-        en vez de descartarse en silencio.</li>
-    <li>Que los valores quepan en su campo, diciendo la fila cuando alguno no cabe.</li>
-  </ul>
-  <p class="tenue" style="margin:10px 0 0;">
-    Es todo o nada: si algo falla, no se escribe nada. Un catálogo a medio llenar se abre igual,
-    y el fallo aparece cuando alguien está usando una pieza que no lleva su espesor.
-  </p>
-</div>
 {% endblock %}

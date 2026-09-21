@@ -107,6 +107,36 @@ class TestElTopeYElAvance:
         assert "data-avance-subida" in html, f"{pantalla} sube sin sitio para el avance"
 
 
+class TestLoQueHayQueSaberVaDelante:
+    """**Lo que hace falta para decidir se lee antes de decidir.**
+
+    Las advertencias de cada pantalla —de qué formatos se saca, qué se pierde por el camino,
+    qué se comprueba— vivían en una tarjeta al final, debajo del formulario y del resultado.
+    Quien bajaba hasta ahí lo hacía porque algo le había salido raro; quien no bajaba, no se
+    enteraba nunca.
+
+    Es la misma clase de error que el `accept=".pdf"` heredado: la información estaba, y en un
+    sitio donde no servía.
+    """
+
+    #: Las que avisan de algo que cambia la decisión: qué entra, qué se pierde, qué se
+    #: comprueba. Las de PDF puro no lo necesitan — «Unir PDF» no tiene letra pequeña.
+    CON_AVISO = [
+        "a_markdown.html",
+        "de_markdown.html",
+        "catalogo_a_excel.html",
+        "excel_a_catalogo.html",
+    ]
+
+    @pytest.mark.parametrize("pantalla", CON_AVISO)
+    def test_el_aviso_va_antes_del_formulario(self, textos, pantalla):
+        html = _sin_comentarios(textos[pantalla])
+        assert "antes-de-empezar" in html, f"{pantalla} no dice qué va a pasar"
+        assert html.index("antes-de-empezar") < html.index("<form"), (
+            f"{pantalla} lo dice después del formulario, que es cuando ya no sirve"
+        )
+
+
 class TestElFiltroDeTipo:
     """**El fallo que se reportó como «no funciona».**
 

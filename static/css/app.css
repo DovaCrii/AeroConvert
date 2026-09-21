@@ -1183,6 +1183,25 @@ a.menu-titulo:hover {
   line-height: 1.8;
 }
 
+/*
+ * Lo que hay que saber **antes** de elegir el archivo.
+ *
+ * Todo esto vivía en tarjetas al final de la pantalla, debajo del formulario y del resultado:
+ * o sea que lo que hace falta para decidir se leía cuando ya estaba decidido. Quien bajaba
+ * hasta ahí lo hacía porque algo le había salido raro; quien no bajaba, no se enteraba.
+ *
+ * Sin fondo de color ni icono de aviso: no es una alerta, es la descripción de lo que va a
+ * pasar. Un recuadro amarillo delante de cada formulario acaba siendo invisible.
+ */
+.antes-de-empezar {
+  margin-bottom: 14px;
+  border-left: 3px solid var(--av-border-control);
+}
+
+.antes-de-empezar code {
+  margin-right: 2px;
+}
+
 /* --- Los ejemplos de búsqueda --------------------------------------------- */
 
 /*

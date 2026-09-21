@@ -5,6 +5,29 @@
 
 {% block contenido %}
 
+{% comment %}
+  **Qué va a pasar, antes de elegir el archivo y no después.**
+
+  Esto vivía en una tarjeta al final de la pantalla, debajo del formulario y del resultado. O
+  sea que lo que hay que saber **para decidir** —de qué formatos se saca, y qué se pierde por
+  el camino— se leía cuando ya estaba decidido. Quien bajaba hasta ahí lo hacía porque algo le
+  había salido raro; quien no bajaba, no se enteraba.
+
+  Va compacto a propósito: una línea de formatos y otra de advertencias. Un párrafo largo
+  delante del formulario es otra forma de que no se lea.
+{% endcomment %}
+<div class="tarjeta antes-de-empezar">
+  <p style="margin:0;">
+    <strong>Se saca de:</strong>
+    {% for extension in origenes.keys %}<code>{{ extension }}</code>{% if not forloop.last %} {% endif %}{% endfor %}
+  </p>
+  <p class="tenue" style="margin:8px 0 0;">
+    De un <strong>Word</strong> no sobreviven {{ no_sobrevive }}. De un <strong>PDF</strong>
+    sale solo el texto que ya tiene dentro: si es un escaneo no tiene ninguno, y se dice en vez
+    de entregar un archivo vacío. De un <strong>Excel</strong>, una tabla por hoja.
+  </p>
+</div>
+
 <form id="forma-documento" method="post" enctype="multipart/form-data">
   {% csrf_token %}
 
@@ -36,18 +59,16 @@
   </div>
 {% endif %}
 
-<div class="tarjeta">
-  <h2 class="origen-titulo" style="margin:0 0 10px;">De qué se puede sacar</h2>
-  <ul class="lista-simple">
+{% comment %}
+  El detalle de cada formato se queda abajo y plegado: es referencia, no es lo que hay que
+  leer para decidir. Lo que hace falta para decidir ya está arriba.
+{% endcomment %}
+<details class="buscador">
+  <summary class="buscador-resumen">Qué sale de cada formato</summary>
+  <ul class="lista-simple" style="margin-top:10px;">
     {% for extension, que_es in origenes.items %}
       <li><code>{{ extension }}</code> — {{ que_es }}</li>
     {% endfor %}
   </ul>
-
-  <p class="tenue" style="margin:14px 0 0;">
-    <strong>De un Word no sobreviven</strong> {{ no_sobrevive }}. Y de un PDF sale
-    <strong>solo el texto que ya tiene dentro</strong>: si es un escaneo no tiene ninguno, y
-    se dice en vez de entregar un archivo vacío.
-  </p>
-</div>
+</details>
 {% endblock %}
