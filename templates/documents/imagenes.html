@@ -8,7 +8,7 @@
 <form method="post" enctype="multipart/form-data">
   {% csrf_token %}
 
-  <div class="tarjeta tarjeta-acento" style="margin-bottom:14px;">
+  <div class="tarjeta tarjeta-acento">
     <div class="eyebrow">Las imágenes</div>
     <h2 style="font-size:1.1rem;">¿Cuáles y en qué orden?</h2>
     <p class="tenue" style="margin:6px 0 10px;">
@@ -60,8 +60,8 @@
     <textarea name="archivos_texto" id="id_imagenes" hidden>{{ rutas_texto }}</textarea>
     <div data-avance-subida hidden style="margin-top:10px;"></div>
 
-    <fieldset style="border:0; padding:0; margin:14px 0 0;">
-      <legend class="eyebrow" style="padding:0;">Tamaño de la hoja</legend>
+    <fieldset>
+      <legend class="eyebrow">Tamaño de la hoja</legend>
 
       {% comment %}
         Las dos respuestas razonables, y son distintas de verdad: para una monografía se
@@ -96,10 +96,9 @@
   <div class="tarjeta tarjeta-acento">
     <div class="eyebrow">Hecho</div>
     <div class="recibo">
-      <strong style="color:var(--av-ok);">✓ {{ generado.name }}</strong>
+      <strong class="recibo-titulo">✓ {{ generado.name }}</strong>
       {% if not solo_descarga %}
-        <p class="tenue" style="margin:8px 0 0; font-family:ui-monospace, Consolas, monospace;
-                                font-size:.85rem;">{{ generado }}</p>
+        <p class="tenue mono" style="margin-top:8px;">{{ generado }}</p>
       {% endif %}
       {% if descarga %}
         <a class="boton" style="margin-top:10px; display:inline-block;"

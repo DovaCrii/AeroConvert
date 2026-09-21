@@ -11,7 +11,7 @@
 
   {% if cabecera or cifrado %}
 
-    <div class="tarjeta" style="margin-bottom:14px;">
+    <div class="tarjeta">
       <div class="eyebrow">Cómo está ahora</div>
 
       {% if cifrado %}
@@ -72,10 +72,10 @@
   <div class="tarjeta tarjeta-acento">
     <div class="eyebrow">Hecho</div>
     <div class="recibo">
-      <strong style="color:var(--av-ok);">
+      <strong class="recibo-titulo">
         ✓ {% if hecho == 'proteger' %}Protegido{% else %}Sin contraseña{% endif %}
       </strong>
-      <p style="margin:8px 0 0; font-family:ui-monospace, Consolas, monospace; font-size:.9rem;">
+      <p class="mono" style="margin-top:8px;">
         {{ generado.name }}
       </p>
       <p class="tenue" style="margin:10px 0 0;">Junto al original, que no se tocó.</p>

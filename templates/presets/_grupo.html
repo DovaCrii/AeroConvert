@@ -1,4 +1,4 @@
-<div class="tarjeta" style="margin-bottom:14px;">
+<div class="tarjeta">
   <div class="eyebrow">{{ titulo }}</div>
   <table class="table table-sm align-middle" style="margin:0;">
     <thead>
@@ -29,14 +29,14 @@
           <td class="text-end" style="white-space:nowrap;">
             <form method="post" action="{% url 'presets:copiar' p.slug %}" style="display:inline; margin:0;">
               {% csrf_token %}
-              <button type="submit" class="boton boton-suave" style="padding:4px 12px; min-height:auto;">
+              <button type="submit" class="boton boton-suave boton-pequeno">
                 Copiar
               </button>
             </form>
             {% if p.editable %}
               <form method="post" action="{% url 'presets:borrar' p.slug %}" style="display:inline; margin:0;">
                 {% csrf_token %}
-                <button type="submit" class="boton boton-suave" style="padding:4px 12px; min-height:auto;">
+                <button type="submit" class="boton boton-suave boton-pequeno">
                   Borrar
                 </button>
               </form>

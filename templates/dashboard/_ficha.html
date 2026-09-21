@@ -8,10 +8,10 @@
   </div>
 {% elif i %}
 
-<div class="tarjeta tarjeta-acento" style="margin-bottom:14px;">
+<div class="tarjeta tarjeta-acento">
   <div class="eyebrow">Lo que hay dentro</div>
   <h2>{{ i.nombre }}</h2>
-  <p class="tenue" style="margin-bottom:14px;">
+  <p class="tenue">
     {{ i.bytes_totales|filesizeformat }} ·
     {% if i.formato %}{{ i.formato.nombre }}{% else %}formato no reconocido{% endif %} ·
     {{ i.etiqueta_confianza }}
@@ -152,7 +152,7 @@
     la CSP es 'self' y un mapa base son teselas de un servidor ajeno; lo que se dibuja es la
     geometría propia.
   {% endcomment %}
-  <div class="tarjeta" style="margin-bottom:14px;">
+  <div class="tarjeta">
     <div class="cabecera-tarjeta">
       <div>
         <div class="eyebrow">Míralos antes</div>
@@ -196,7 +196,7 @@
     probable»: un desplegable que ya viene con EPSG:32719 puesto es una forma de adivinar
     con la firma de otra persona.
   {% endcomment %}
-  <div class="tarjeta tarjeta-acento" style="margin-bottom:14px;">
+  <div class="tarjeta tarjeta-acento">
     <div class="eyebrow">Hace falta</div>
     <h2 style="font-size:1.1rem;">¿En qué sistema de referencia están estas coordenadas?</h2>
     <p class="tenue" style="margin:6px 0 10px;">
@@ -221,7 +221,7 @@
 {% endif %}
 
 {% if veredictos %}
-<div class="tarjeta" style="margin-bottom:14px;">
+<div class="tarjeta">
   <div class="eyebrow">Dónde abre y dónde no</div>
   <p class="tenue" style="margin-bottom:12px;">
     Esto es lo que ninguna otra herramienta te dice.
@@ -252,7 +252,7 @@
     Pero callar del todo dejaría a alguien mirando una ficha sin nada que hacer, así que se
     dice qué sí se puede hacer con esto.
   {% endcomment %}
-  <div class="tarjeta tarjeta-acento" style="margin-bottom:14px;">
+  <div class="tarjeta tarjeta-acento">
     <div class="eyebrow">Qué se puede hacer con esto</div>
     {% if i.pdf %}
       <p style="margin:6px 0 12px;">
@@ -303,7 +303,7 @@
     {% endcomment %}
     <input type="hidden" name="ruta" value="{{ token }}">
 
-    <div class="destinos" style="margin-bottom:14px;">
+    <div class="destinos">
       {% for p in perfiles %}
         {% comment %}
           `destino-elegido` marca el que se pidió desde el catálogo. Es una marca visual, no
@@ -353,7 +353,7 @@
     </div>
 
     {% if preajustes %}
-      <div style="margin-bottom:14px;">
+      <div>
         <strong style="font-size:.9rem;">Preajustes</strong>
         <p class="tenue" style="margin:2px 0 8px; font-size:.85rem;">
           Un destino guardado con nombre propio, de esta oficina.
@@ -361,7 +361,7 @@
         <div style="display:flex; flex-wrap:wrap; gap:8px;">
           {% for pre in preajustes %}
             <button type="submit" name="preajuste" value="{{ pre.slug }}"
-                    class="boton boton-suave" style="padding:6px 14px; min-height:auto;"
+                    class="boton boton-suave boton-pequeno"
                     title="{{ pre.descripcion }}">
               {{ pre.nombre }}
               {% if pre.veces_usado %}<span class="tenue cifra">· {{ pre.veces_usado }}</span>{% endif %}

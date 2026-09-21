@@ -68,7 +68,7 @@
 
       {% if trabajo.source_sha256 %}
         <dt>sha256 del original</dt>
-        <dd style="font-family:ui-monospace, Consolas, monospace; font-size:.8rem;">
+        <dd class="mono">
           {{ trabajo.source_sha256|slice:":32" }}…
         </dd>
       {% endif %}

@@ -23,7 +23,7 @@
 <form method="post" action="{% url 'documents:componer' %}" enctype="multipart/form-data">
   {% csrf_token %}
 
-  <div class="tarjeta tarjeta-acento" style="margin-bottom:14px;">
+  <div class="tarjeta tarjeta-acento">
     <div class="eyebrow">Los archivos</div>
     <h2 style="font-size:1.1rem;">¿Qué PDF hay que juntar?</h2>
 
@@ -99,7 +99,7 @@
   {% if filas %}
     <input type="hidden" name="receta" value="{{ receta }}">
 
-    <div class="tarjeta" style="margin-bottom:14px;">
+    <div class="tarjeta">
       <div class="cabecera-tarjeta">
         <div>
           <div class="eyebrow">El resultado</div>
@@ -175,10 +175,10 @@
   <div class="tarjeta tarjeta-acento">
     <div class="eyebrow">Hecho</div>
     <div class="recibo">
-      <strong style="color:var(--av-ok);">✓ {{ resultado.paginas_escritas }} páginas escritas</strong>
+      <strong class="recibo-titulo">✓ {{ resultado.paginas_escritas }} páginas escritas</strong>
       <dl style="margin-top:8px;">
         <dt>Archivo</dt>
-        <dd style="font-family:ui-monospace, Consolas, monospace; font-size:.85rem;">
+        <dd class="mono">
           {% comment %}
             Si salió de archivos subidos, la ruta es la del servidor y no sirve para pegarla
             en ninguna parte: el navegador está en el equipo de la persona. Ahí lo único útil

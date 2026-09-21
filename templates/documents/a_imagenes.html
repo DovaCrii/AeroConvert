@@ -11,7 +11,7 @@
 
   {% if cabecera %}
 
-    <div class="tarjeta" style="margin-bottom:14px;">
+    <div class="tarjeta">
       <div class="cabecera-tarjeta">
         <div>
           <div class="eyebrow">Lo que hay dentro</div>
@@ -47,8 +47,8 @@
         </p>
       </div>
 
-      <fieldset style="border:0; padding:0; margin:16px 0 0;">
-        <legend class="eyebrow" style="padding:0;">En qué formato</legend>
+      <fieldset>
+        <legend class="eyebrow">En qué formato</legend>
 
         <label class="opcion">
           <input type="radio" name="formato" value="png" {% if formato != 'jpg' %}checked{% endif %}>
@@ -71,8 +71,8 @@
         </label>
       </fieldset>
 
-      <fieldset style="border:0; padding:0; margin:16px 0 0;">
-        <legend class="eyebrow" style="padding:0;">Con cuánto detalle</legend>
+      <fieldset>
+        <legend class="eyebrow">Con cuánto detalle</legend>
         {% for valor, para_que in ppp.items %}
           <label class="opcion">
             <input type="radio" name="ppp" value="{{ valor }}"
@@ -92,10 +92,10 @@
   <div class="tarjeta tarjeta-acento">
     <div class="eyebrow">Hecho</div>
     <div class="recibo">
-      <strong style="color:var(--av-ok);">✓ {{ escritas|length }} imagen(es)</strong>
+      <strong class="recibo-titulo">✓ {{ escritas|length }} imagen(es)</strong>
       <ul style="margin:8px 0 0; padding-left:18px; font-size:.9rem;">
         {% for archivo in escritas %}
-          <li style="font-family:ui-monospace, Consolas, monospace;">{{ archivo.name }}</li>
+          <li class="mono">{{ archivo.name }}</li>
         {% endfor %}
       </ul>
       <p class="tenue" style="margin:10px 0 0;">Junto al original, que no se tocó.</p>

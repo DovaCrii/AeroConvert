@@ -137,6 +137,51 @@ class TestLoQueHayQueSaberVaDelante:
         )
 
 
+class TestNoVuelvenLosEstilosEnLinea:
+    """**Un estilo en línea es una decisión que nadie puede cambiar en un sitio.**
+
+    Había **278** repartidos en 33 de las 34 plantillas, y los que más se repetían decían
+    exactamente qué clase faltaba: `margin-bottom:14px` sobre `.tarjeta` 19 veces —el ritmo
+    vertical de la aplicación viviendo en las plantillas—, la fuente monoespaciada 10, el
+    verde del recibo 8, el reset del `<fieldset>` 7 pares.
+
+    Esta prueba no los prohíbe todos: quedan los de posición puntual, que son legítimos. Lo
+    que prohíbe es **volver a escribir a mano lo que ya tiene clase**, que es como se llegó
+    aquí.
+    """
+
+    #: Cada patrón con la clase que lo sustituye. El mensaje de fallo la nombra, para que
+    #: quien lo rompa no tenga que buscarla.
+    PROHIBIDOS = [
+        (r'style="margin-bottom:\s*14px', "`.tarjeta` ya lo pone: quita el estilo"),
+        (r"font-family:\s*ui-monospace", "usa la clase `.mono`"),
+        (r'<strong style="color:\s*var\(--av-ok\)', "usa la clase `.recibo-titulo`"),
+        (r"<fieldset style=", "el reset del fieldset está en la hoja"),
+        (r"min-height:\s*auto", "usa la clase `.boton-pequeno`"),
+    ]
+
+    @pytest.mark.parametrize(("patron", "consejo"), PROHIBIDOS)
+    def test_no_reaparece(self, textos, patron, consejo):
+        culpables = [
+            nombre for nombre, html in textos.items() if re.search(patron, _sin_comentarios(html))
+        ]
+        assert not culpables, f"{culpables}: {consejo}"
+
+    def test_y_el_total_no_crece(self):
+        """**Un tope que solo puede bajar.**
+
+        Empezó en 278 y va por menos de 220. No se fija en cero porque los de posición
+        puntual son legítimos y perseguirlos todos sería trabajo sin beneficio — pero el
+        número no puede volver a subir sin que alguien lo vea y lo justifique bajando este.
+        """
+        raiz = Path(settings.BASE_DIR) / "templates"
+        total = sum(len(re.findall(r'style="', f.read_text("utf-8"))) for f in raiz.rglob("*.html"))
+        assert total <= 220, (
+            f"Hay {total} estilos en línea y el tope está en 220. "
+            "Si añades uno, primero quita otro — o saca una clase, que es de lo que se trata."
+        )
+
+
 class TestElFiltroDeTipo:
     """**El fallo que se reportó como «no funciona».**
 

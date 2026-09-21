@@ -11,7 +11,7 @@
 
   {% if cabecera %}
 
-    <div class="tarjeta" style="margin-bottom:14px;">
+    <div class="tarjeta">
       <div class="cabecera-tarjeta">
         <div>
           <div class="eyebrow">Lo que hay dentro</div>
@@ -20,8 +20,8 @@
         <button type="submit" name="accion" value="numerar" class="boton">Numerar</button>
       </div>
 
-      <fieldset style="border:0; padding:0; margin:14px 0 0;">
-        <legend class="eyebrow" style="padding:0;">Cómo se escribe</legend>
+      <fieldset>
+        <legend class="eyebrow">Cómo se escribe</legend>
         {% for patron, ejemplo in formatos.items %}
           <label class="opcion">
             <input type="radio" name="formato" value="{{ patron }}"
@@ -74,8 +74,8 @@
   <div class="tarjeta tarjeta-acento">
     <div class="eyebrow">Hecho</div>
     <div class="recibo">
-      <strong style="color:var(--av-ok);">✓ {{ resultado.marcadas }} de {{ resultado.paginas }} página(s)</strong>
-      <p style="margin:8px 0 0; font-family:ui-monospace, Consolas, monospace; font-size:.9rem;">
+      <strong class="recibo-titulo">✓ {{ resultado.marcadas }} de {{ resultado.paginas }} página(s)</strong>
+      <p class="mono" style="margin-top:8px;">
         {{ generado.name }}
       </p>
       <p class="tenue" style="margin:10px 0 0;">Junto al original, que no se tocó.</p>

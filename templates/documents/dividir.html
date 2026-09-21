@@ -11,7 +11,7 @@
 
   {% if cabecera %}
 
-    <div class="tarjeta" style="margin-bottom:14px;">
+    <div class="tarjeta">
       <div class="cabecera-tarjeta">
         <div>
           <div class="eyebrow">Lo que hay dentro</div>
@@ -42,8 +42,8 @@
         </div>
       {% endif %}
 
-      <fieldset style="border:0; padding:0; margin:14px 0 0;">
-        <legend class="eyebrow" style="padding:0;">Cómo partirlo</legend>
+      <fieldset>
+        <legend class="eyebrow">Cómo partirlo</legend>
 
         <label class="opcion">
           <input type="radio" name="modo" value="rangos" {% if modo != 'hojas' %}checked{% endif %}>
@@ -80,10 +80,10 @@
   <div class="tarjeta tarjeta-acento">
     <div class="eyebrow">Hecho</div>
     <div class="recibo">
-      <strong style="color:var(--av-ok);">✓ {{ escritos|length }} archivo(s)</strong>
+      <strong class="recibo-titulo">✓ {{ escritos|length }} archivo(s)</strong>
       <ul style="margin:8px 0 0; padding-left:18px; font-size:.9rem;">
         {% for archivo in escritos %}
-          <li style="font-family:ui-monospace, Consolas, monospace;">{{ archivo.name }}</li>
+          <li class="mono">{{ archivo.name }}</li>
         {% endfor %}
       </ul>
       <p class="tenue" style="margin:10px 0 0;">Junto al original, que no se tocó.</p>

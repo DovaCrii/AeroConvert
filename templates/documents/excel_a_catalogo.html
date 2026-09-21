@@ -41,7 +41,7 @@
       dejó puestas — y el resultado se abriría igual, para fallar más tarde. Ver el docstring
       de `catalogos.desde_excel`.
     {% endcomment %}
-    <div class="tarjeta" style="margin-bottom:14px;">
+    <div class="tarjeta">
       <div class="eyebrow">Y el catálogo original</div>
       <h2 class="origen-titulo" style="margin:2px 0 6px;">¿De cuál salió esa hoja?</h2>
       <p class="tenue" style="margin:0 0 12px;">
@@ -74,9 +74,9 @@
 {% endif %}
 
 {% if generado %}
-  <div class="tarjeta tarjeta-acento" style="margin-bottom:14px;">
+  <div class="tarjeta tarjeta-acento">
     <div class="eyebrow">Hecho</div>
-    <strong style="color:var(--av-ok);">✓ {{ generado.name }}</strong>
+    <strong class="recibo-titulo">✓ {{ generado.name }}</strong>
     {% if avisos %}
       {% comment %}
         Los avisos salen **con el resultado**, no en lugar de él: el catálogo está hecho y es

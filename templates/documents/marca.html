@@ -11,7 +11,7 @@
 
   {% if cabecera %}
 
-    <div class="tarjeta" style="margin-bottom:14px;">
+    <div class="tarjeta">
       <div class="cabecera-tarjeta">
         <div>
           <div class="eyebrow">Lo que hay dentro</div>
@@ -31,8 +31,8 @@
         </p>
       </div>
 
-      <fieldset style="border:0; padding:0; margin:16px 0 0;">
-        <legend class="eyebrow" style="padding:0;">Cuánto se tiene que ver</legend>
+      <fieldset>
+        <legend class="eyebrow">Cuánto se tiene que ver</legend>
         {% comment %}
           Tres valores medidos y no un deslizador: al 100 % la marca tapa las cotas del plano,
           que es exactamente lo que no se puede hacer con un documento técnico.
@@ -60,8 +60,8 @@
         </label>
       </fieldset>
 
-      <fieldset style="border:0; padding:0; margin:16px 0 0;">
-        <legend class="eyebrow" style="padding:0;">Cómo se cruza</legend>
+      <fieldset>
+        <legend class="eyebrow">Cómo se cruza</legend>
         <label class="opcion">
           <input type="radio" name="orientacion" value="diagonal" {% if diagonal %}checked{% endif %}>
           <span>
@@ -87,8 +87,8 @@
   <div class="tarjeta tarjeta-acento">
     <div class="eyebrow">Hecho</div>
     <div class="recibo">
-      <strong style="color:var(--av-ok);">✓ Marcado</strong>
-      <p style="margin:8px 0 0; font-family:ui-monospace, Consolas, monospace; font-size:.9rem;">
+      <strong class="recibo-titulo">✓ Marcado</strong>
+      <p class="mono" style="margin-top:8px;">
         {{ generado.name }}
       </p>
       <p class="tenue" style="margin:10px 0 0;">Junto al original, que no se tocó.</p>

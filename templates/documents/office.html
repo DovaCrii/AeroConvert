@@ -28,7 +28,7 @@
 
   {% include "documents/_origen.html" with pregunta="¿Cuál hay que pasar a PDF?" accion="convertir" boton="Pasar a PDF" acepta=".doc,.docx,.xls,.xlsx,.ppt,.pptx" %}
 
-  <div class="tarjeta" style="margin-bottom:14px;">
+  <div class="tarjeta">
     <p class="tenue" style="margin:0;">
       Vale {% for nombre in office.nombres %}{{ nombre }}{% if not forloop.last %}, {% endif %}{% endfor %}:
       <code>{{ office.extensiones|join:"</code> <code>" }}</code>.
@@ -37,7 +37,7 @@
     </p>
   </div>
 
-  <div class="tarjeta" style="margin-bottom:14px;">
+  <div class="tarjeta">
     <div class="eyebrow">Si es una hoja de cálculo</div>
     <label class="opcion">
       <input type="checkbox" name="ajustar_ancho" value="si" {% if ajustar_ancho %}checked{% endif %}>
@@ -57,8 +57,8 @@
   <div class="tarjeta tarjeta-acento">
     <div class="eyebrow">Hecho</div>
     <div class="recibo">
-      <strong style="color:var(--av-ok);">✓ {{ cabecera.resumen|default:"Convertido" }}</strong>
-      <p style="margin:8px 0 0; font-family:ui-monospace, Consolas, monospace; font-size:.9rem;">
+      <strong class="recibo-titulo">✓ {{ cabecera.resumen|default:"Convertido" }}</strong>
+      <p class="mono" style="margin-top:8px;">
         {{ generado.name }}
       </p>
       <p class="tenue" style="margin:10px 0 0;">Junto al original, que no se tocó.</p>

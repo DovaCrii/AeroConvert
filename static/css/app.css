@@ -1412,6 +1412,65 @@ a.menu-titulo:hover {
   text-decoration: none;
 }
 
+/* --- Las clases que faltaban, y por eso había 278 estilos en línea -------
+ *
+ * Cada patrón repetido a mano en las plantillas era una clase que no existía. Estas son las
+ * que más veces aparecían, y con ellas se vacían más de la mitad.
+ */
+
+/* Aparecía **19 veces** como `style="margin-bottom:14px"` sobre `.tarjeta`. Era literalmente
+ * la separación estándar entre bloques de la aplicación, escrita a mano en cada pantalla:
+ * cambiarla exigía tocar diecinueve ficheros. El `:last-child` quita además el hueco sobrante
+ * del final, que hoy deja el último bloque de cada pantalla. */
+.tarjeta {
+  margin-bottom: var(--av-ritmo);
+}
+
+/* **Sin excepción de `:last-child`**, aunque parezca la obvia. `:last-child` mira al padre,
+ * no a la página: una tarjeta que es la última de su `<form>` y tiene contenido después
+ * perdería el hueco de en medio, y eso es un fallo silencioso repartido por doce pantallas.
+ * El margen sobrante del final se lo come el `padding-bottom` de 64 px del envoltorio. */
+
+/* **10 veces** como `style="font-family:ui-monospace, Consolas, monospace;"`, para enseñar
+ * una ruta. Ya existía `.soltar-campo .ruta` haciendo justo esto, pero atada a su sitio. */
+.mono {
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: var(--av-fs-sm);
+  word-break: break-all;
+}
+
+/* **8 veces** como `style="color:var(--av-ok);"` en el `<strong>` del recibo. */
+.recibo-titulo {
+  color: var(--av-ok);
+  font-weight: var(--av-peso-fuerte);
+}
+
+/* El reset del `<fieldset>`, copiado **7 pares de veces** entre el elemento y su `<legend>`.
+ * Un reset no es una decisión de pantalla: es una corrección del navegador, y va aquí. */
+fieldset {
+  min-inline-size: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+legend {
+  padding: 0;
+}
+
+/* El ancho de lectura de un formulario estrecho. Había cinco valores distintos escritos a
+ * mano —16, 22, 26, 38 y 42 rem— para la misma idea. */
+.estrecho {
+  max-width: 26rem;
+}
+
+/* Botón pequeño. Estaba inventado dos veces en línea con dos rellenos distintos. */
+.boton-pequeno {
+  min-height: auto;
+  padding: var(--av-s-1) var(--av-s-3);
+  font-size: var(--av-fs-sm);
+}
+
 /*
  * **El ritmo vertical, que vivía en las plantillas.**
  *

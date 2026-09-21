@@ -84,7 +84,7 @@ generar 10.800 peticiones.
     </div>
 
     <div class="recibo">
-      <strong style="color:var(--av-ok);">✓ Verificado contra el original</strong>
+      <strong class="recibo-titulo">✓ Verificado contra el original</strong>
       <dl style="margin-top:8px;">
         <dt>Tamaño</dt>
         <dd>
@@ -125,7 +125,7 @@ generar 10.800 peticiones.
         <dd>{{ trabajo.engine_version|default:trabajo.engine_id }}</dd>
 
         <dt>sha256 del original</dt>
-        <dd style="font-family:ui-monospace, Consolas, monospace; font-size:.8rem;">
+        <dd class="mono">
           {{ trabajo.source_sha256|slice:":32" }}…
           <span class="tenue">(el original no se tocó)</span>
         </dd>
