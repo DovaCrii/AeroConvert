@@ -116,6 +116,24 @@ gestionar collectstatic --noinput --clear
 echo "==> preajustes de fabrica"
 gestionar sembrar_preajustes
 
+# --- La carpeta de respaldos ------------------------------------------------
+#
+# **Esto era un paso del README y por eso se salto.** El 2026-09-21 se descubrio que el
+# servidor llevaba semanas con el temporizador puesto y cero respaldos escritos: la carpeta
+# no existia, y systemd **se niega a arrancar** una unidad cuya `ReadWritePaths` no existe.
+# Falla en el montaje del espacio de nombres, antes de ejecutar nada, con un `226/NAMESPACE`
+# que no menciona la palabra respaldo.
+#
+# Un paso de una lista que alguien tiene que acordarse de hacer es un paso que un dia no se
+# hace. Aqui se hace solo, y es idempotente.
+#
+# `0700` porque ahi dentro va la bitacora entera de la oficina.
+RESPALDOS="/var/backups/aeroconvert"
+if [ ! -d "$RESPALDOS" ]; then
+    echo "==> creando ${RESPALDOS} (faltaba: el respaldo no podia escribir)"
+    sudo install -d -o "$DUENO" -g "$DUENO" -m 0700 "$RESPALDOS"
+fi
+
 echo "==> servicios"
 # El obrero primero: si no arranca, el web sigue sirviendo la version anterior.
 sudo systemctl restart aeroconvert-obrero
@@ -160,3 +178,18 @@ sonda | python3 -m json.tool
 # fichero: el .env manda sobre el codigo, y ahi es donde se ha escondido la discrepancia.
 echo "==> tope de subida"
 gestionar shell -c 'from django.conf import settings; print(f"{settings.TOPE_MB} MB")'
+
+# **El respaldo, dicho en cada despliegue.**
+#
+# Es el unico de los tres servicios cuyo fallo no se nota usando la aplicacion: los otros dos
+# se caen y alguien lo ve el mismo dia; este se descubre el dia que hace falta el respaldo,
+# que es el peor dia posible. Aqui cuesta una linea y sale delante de quien despliega.
+echo "==> respaldo"
+ultimo=$(find "$RESPALDOS" -maxdepth 1 -name 'aeroconvert-*.sqlite3.gz' -printf '%T@ %p\n' \
+    2>/dev/null | sort -rn | head -1 | cut -d' ' -f2-)
+if [ -n "$ultimo" ]; then
+    echo "  ultimo: $(basename "$ultimo")"
+else
+    echo "  NINGUNO todavia. Para probarlo ahora mismo:" >&2
+    echo "  sudo systemctl start aeroconvert-respaldo.service" >&2
+fi

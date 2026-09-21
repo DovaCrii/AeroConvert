@@ -128,6 +128,18 @@ class TestElRespaldoEscribeDondePuede:
             "la carpeta se crea después de habilitar el servicio, que es demasiado tarde"
         )
 
+    def test_el_despliegue_crea_la_carpeta_el_solo(self, desplegar: str):
+        """**Un paso de una lista que alguien tiene que acordarse de hacer es un paso que un
+        día no se hace.** Estaba solo en el README, no se hizo, y el resultado fueron semanas
+        sin respaldos. Ahora el despliegue lo hace él, y es idempotente."""
+        assert "/var/backups/aeroconvert" in desplegar
+        assert "install -d" in desplegar
+
+    def test_y_el_despliegue_dice_si_hay_respaldo(self, desplegar: str):
+        """Sale delante de quien despliega, cada vez. Cuesta una línea y convierte el fallo
+        invisible en uno que se ve."""
+        assert "==> respaldo" in desplegar
+
     def test_y_el_readme_manda_comprobar_que_escribio(self):
         """**Es el único de los tres servicios cuyo fallo no se nota usando la aplicación.**
         Sin una comprobación en el momento, se descubre el día que hace falta el respaldo."""
