@@ -143,19 +143,52 @@ else
     nota "Luego: PasswordAuthentication no  en /etc/ssh/sshd_config.d/10-aeroconvert.conf"
 fi
 
-# --- E1.4 · La direccion del servidor --------------------------------------
-titulo "Direccion fija en la red de oficina"
-nota "Ya cambio una vez (.51 -> .143), y con ella se cayeron las tres aplicaciones."
+# --- E1.4 · Como se llega a esta maquina -----------------------------------
+titulo "Como se llega a esta maquina desde la oficina"
 
 ip4=$(hostname -I 2>/dev/null | awk '{print $1}')
-if grep -qs 'dhcp4: *false' /etc/netplan/*.yaml; then
+tarjeta=$(ip route show default 2>/dev/null | awk '{print $5; exit}')
+mac=$(cat "/sys/class/net/${tarjeta:-lo}/address" 2>/dev/null)
+puerta=$(ip route show default 2>/dev/null | awk '{print $3; exit}')
+
+# **El consejo que este guion daba antes era falso en esta maquina**, y costo una mañana.
+#
+# Decia «pon una reserva en el router por MAC». Con la MAC empezando en `00:15:5d` esto es
+# una maquina virtual de Hyper-V, y si ademas la puerta de enlace es el `.1` de su propia
+# `/24` privada, la red es el **Default Switch**: una NAT interna del anfitrion, con su
+# propio DHCP. El router de la oficina no la ve, no la reparte y **no puede reservar nada
+# en ella**.
+#
+# Y lo que de verdad importa: esa direccion **no es alcanzable desde ningun otro equipo de
+# la oficina**. Solo existe dentro del anfitrion. Quien entra desde un puesto lo hace por
+# el nombre de Tailscale, que no depende de esto.
+es_hyperv=""
+case "$mac" in
+00:15:5d:*) es_hyperv=1 ;;
+esac
+
+if [ -n "$es_hyperv" ] && [ "${puerta%.*}" = "${ip4%.*}" ]; then
+    grave "esta direccion (${ip4:-?}) es de una NAT interna de Hyper-V"
+    nota "NO es alcanzable desde otros equipos de la oficina, y nunca lo fue."
+    nota "Una reserva en el router no arregla esto: quien reparte es el anfitrion."
+    nota "Desde los puestos se entra por el nombre de Tailscale, que no depende de la LAN."
+    nota "Si algun dia hace falta llegar por IP de oficina, hay que mover la maquina"
+    nota "virtual a un conmutador EXTERNO y entonces si reservar por MAC en el router."
+elif grep -qs 'dhcp4: *false' /etc/netplan/*.yaml; then
     bien "la maquina tiene direccion estatica (${ip4:-?})"
 else
-    tarjeta=$(ip route show default 2>/dev/null | awk '{print $5; exit}')
-    mac=$(cat "/sys/class/net/${tarjeta:-lo}/address" 2>/dev/null)
-    falta "la direccion (${ip4:-?}) la da el DHCP y puede volver a cambiar"
-    nota "Lo correcto es una reserva en el router por MAC, no fijarla aqui."
-    nota "MAC de ${tarjeta:-?}: ${mac:-?}"
+    falta "la direccion (${ip4:-?}) la da el DHCP y puede cambiar"
+    nota "Reserva en el router por MAC ${mac:-?} (${tarjeta:-?})."
+fi
+
+# **La via que de verdad usa la gente.** Es la unica que funciona desde un puesto, asi que
+# es la que hay que mirar -- y es la que se cayo el 2026-09-24 sin que el servidor tuviera
+# nada: era una regla NRPT pegada en el PC de quien lo intentaba.
+if command -v tailscale >/dev/null 2>&1 && tailscale status >/dev/null 2>&1; then
+    bien "Tailscale levantado: es asi como se entra desde los puestos"
+    tailscale funnel status 2>/dev/null | sed 's/^/          /' || true
+else
+    grave "Tailscale no responde: nadie puede entrar desde ningun puesto"
 fi
 
 # --- E1.5 · Las otras dos aplicaciones -------------------------------------

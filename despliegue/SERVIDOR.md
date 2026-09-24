@@ -18,11 +18,21 @@ pero ya hospeda a las tres— sobre un anfitrión Windows.
 | Anfitrión | `DSK0006CC210` · Intel **i7-10700** (8 núcleos, 16 hilos) · **48 GB** de RAM |
 | Disco del anfitrión | un solo **NVMe Kingston SNV2S1000G**, 932 GB, SSD |
 | Invitado | `p340` · **Ubuntu 26.04.1 LTS** (núcleo 7.0.0-31) |
-| Red | LAN-External · `172.22.10.143` **por DHCP** · Tailscale `100.121.16.118` |
+| Red | NAT interna de Hyper-V · `172.22.10.143/24`, puerta `.1` · Tailscale `100.121.16.118` |
 
-La dirección de la LAN **cambia sola**: era `.51` y hoy es `.143`. Como la puerta principal es
-el nombre de Tailscale, que sí es estable, no rompe nada; pero conviene reservarla en el router
-antes de que algo quede apuntando a la vieja.
+**Esa `172.22.10.143` no es una dirección de la oficina, y no se llega a ella desde ningún
+puesto.** Corregido el 2026-09-24 mirando la máquina: MAC `00:15:5d:…` —Hyper-V— y puerta de
+enlace en el `.1` de su propia `/24`. Es el *Default Switch*, una NAT interna del anfitrión
+con su propio DHCP, que **solo existe dentro de `DSK0006CC210`**.
+
+Este documento decía «LAN-External» y proponía «reservarla en el router». Las dos cosas eran
+falsas: el router de la oficina no ve esa red, no la reparte y no puede reservar nada en
+ella. Que cambiara de `.51` a `.143` fue el anfitrión rehaciendo su subred, no un
+arrendamiento de la oficina.
+
+**La única vía por la que entra alguien es el nombre de Tailscale**, y es estable. Si algún
+día hiciera falta llegar por IP de oficina, el arreglo es mover la máquina virtual a un
+conmutador **externo** y *entonces* reservar por MAC.
 
 ### Lo que se cambió el 2026-09-14, y por qué
 
@@ -337,8 +347,25 @@ aplicación se entera sola y rechaza por adelantado lo que no cabe, diciendo por
 5. **Los puntos de control no son un respaldo.** Están en «solo producción», que es lo
    correcto, pero viven en el mismo disco y crecen. Hoy no hay ninguno colgando.
 
-6. **La dirección de la LAN es DHCP y ya cambió una vez** (`.51` → `.143`). Una reserva en el
-   router cuesta un minuto y evita perseguirla el día que algo la tenga escrita.
+6. ~~**La dirección de la LAN es DHCP**~~ — **retirado el 2026-09-24: el riesgo no era el que
+   decía aquí.** No hay dirección de LAN. La `172.22.10.143` es la NAT interna de Hyper-V y no
+   la alcanza ningún puesto; ver el cuadro del principio. Lo que sí importa es lo de abajo.
+
+7. **Toda la entrada depende de Tailscale, y del lado del cliente.** No es una queja: es la
+   arquitectura, y funciona. Pero el 2026-09-24 «se cayó» para la oficina con las tres
+   aplicaciones **sanas y respondiendo desde internet** — el fallo estaba en el PC de quien
+   lo intentaba. Ya había pasado antes con una regla NRPT pegada.
+
+   Cuando alguien diga que no carga, **antes de tocar el servidor**, en su equipo:
+
+   ```powershell
+   Resolve-DnsName p340.tailccd107.ts.net | Select-Object Name, IPAddress
+   Test-NetConnection p340.tailccd107.ts.net -Port 8443
+   Get-DnsClientNrptPolicy | Where-Object { $_.Namespace -like "*ts.net*" }
+   ```
+
+   Una `100.x` que no conecta es la regla NRPT secuestrando el nombre con Tailscale caído.
+   Y comprobar el servidor desde fuera cuesta un segundo: `https://p340.tailccd107.ts.net:8443/salud/`.
 
 ---
 
