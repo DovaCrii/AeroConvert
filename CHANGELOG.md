@@ -5,6 +5,23 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Sin publicar]
 
+### Corregido — contraste y foco, medidos (fase 9.3, 2026-09-25)
+
+Siete pares estaban por debajo de WCAG 2.1 AA y ninguna prueba los miraba.
+
+- **El foco de teclado no se veía en la barra**: 1,97:1 sobre el navy. Ahora es magenta, 4,5.
+- **Enfocar un campo solo cambiaba el color del borde**, a 2,09:1 del anterior. Ahora lleva
+  el anillo de 2 px del resto de la aplicación.
+- **Los enlaces usaban el azul de Bootstrap**, a 3,39:1 en oscuro. Ahora tienen su token.
+- **El rojo sobre su fondo, las píldoras de «hecho», «error» y «cancelado», y el texto
+  atenuado sobre el fondo del menú** estaban entre 4,19 y 4,35. Los tonos bajan lo justo
+  para pasar de 4,5 con margen.
+- **El borde del buscador de la barra** daba 2,02 y no se veía como caja. Ahora pasa de 3.
+- **Las migas del explorador, los ejemplos del buscador y el botón pequeño** medían entre 20
+  y 22 px de alto; ahora al menos 24 (WCAG 2.5.8).
+- **La página de error 500** llevaba un tema oscuro desviado de la paleta, y la cabecera del
+  CSS prometía 8,9:1 donde se miden 8,3. Los dos se comprueban ahora.
+
 ### Cambiado — las veinte herramientas de documentos, por la cola (fase 9.2, 2026-09-25)
 
 Hasta ahora corrían dentro de la petición. Ahora la pantalla mira y comprueba, y la acción

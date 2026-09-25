@@ -6,12 +6,23 @@
 
 | Etapa | Rama | Estado |
 | --- | --- | --- |
-| F9.0 | `codex/fase-9-0-cierre` | PR abierto, **esperando que lo fusiones** |
-| F9.1 | `codex/fase-9-1-lo-que-rompe` | PR abierto sobre F9.0, esperando |
-| F9.2 | `codex/fase-9-2-documentos-en-cola` | Hecha, portón verde; PR sobre F9.1 |
-| F9.3 | — | **La siguiente**: contraste y foco, con `test_paleta.py` en tabla |
+| F9.0 – F9.2 | — | **En `main` y desplegadas en p340** el 2026-09-25 |
+| F9.3 | `codex/fase-9-3-contraste` | Hecha, portón verde; PR contra `main`, esperando |
+| F9.4 | — | **La siguiente**: lo visual (una acción principal, profundidad, radios, móvil) |
 
-Los PR van apilados: cada uno parte del anterior. **Ninguno se fusiona sin tu permiso.**
+**Ninguno se fusiona sin tu permiso.** Y los PR van ahora **contra `main`**, no apilados: al
+fusionar el #1, el #2 y el #3 entraron en sus ramas intermedias y no en `main`, porque GitHub
+solo cambia la base de un PR apilado si se borra la rama de abajo. Hizo falta el #4 para
+llevarlos.
+
+**Verificado en p340 tras desplegar**: `/salud/` en `ok` con la migración `jobs/0002`
+aplicada, y el OCR con el Tesseract de verdad por el camino del proceso hijo —
+`PROGRESO 1.000`, una página verificada, `texto: True`—. En producción no hay pytest, y así
+debe ser: la comprobación se hizo desde `manage.py shell`.
+
+**Pendiente de F9.3**: la pasada de teclado sin ratón por la barra y un formulario, en los dos
+temas. Las reglas están cargadas y los tokens se resuelven bien, pero el estado de foco no se
+puede provocar desde el panel del navegador.
 
 **F9.2 en una frase: las veinte herramientas de documentos pasan por la cola.** La pantalla
 mira y comprueba; la acción final crea un trabajo, y la ficha trae progreso, recibo, descarga
