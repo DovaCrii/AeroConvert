@@ -28,6 +28,52 @@ class TestCatalogoCerrado:
         assert motivos.REINTENTABLES <= set(motivos.MOTIVOS)
 
 
+class TestLosDesenlaces:
+    """**Terminó bien pero sin archivo, o con algo que leer.** Otro catálogo, y cerrado igual.
+
+    Existe porque la cola suponía que «hecho» es «hay un archivo», y tres herramientas de
+    documentos contestan legítimamente con otra cosa.
+    """
+
+    def test_misma_forma_que_los_motivos(self):
+        for codigo, desenlace in motivos.DESENLACES.items():
+            assert codigo == desenlace.codigo
+            assert codigo == codigo.lower() and " " not in codigo and "_" not in codigo
+            assert desenlace.mensaje.strip(), codigo
+
+    def test_no_se_cruzan_con_los_motivos(self):
+        """Un desenlace no es un fallo. Si un código estuviera en los dos catálogos, la
+        misma palabra significaría «hecho» en una pantalla y «falló» en otra."""
+        assert not set(motivos.DESENLACES) & set(motivos.MOTIVOS)
+
+    def test_estan_los_tres_que_hacen_falta(self):
+        assert {"no-valio-la-pena", "sin-texto-que-sacar", "con-avisos"} <= set(
+            motivos.DESENLACES
+        )
+
+    def test_ninguno_se_reintenta(self):
+        """Reintentar «ya estaba comprimido» daría la misma respuesta, correcta, otra vez."""
+        assert not set(motivos.DESENLACES) & motivos.REINTENTABLES
+
+
+class TestLosMotivosDeDocumentos:
+    def test_estan(self):
+        for codigo in (
+            "documento-invalido",
+            "contrasena-incorrecta",
+            "falta-la-contrasena",
+            "demasiadas-paginas",
+            "sin-office",
+            "sin-access",
+            "sin-tesseract",
+        ):
+            assert codigo in motivos.MOTIVOS, codigo
+
+    def test_la_contrasena_perdida_no_se_reintenta(self):
+        """Por diseño no se guarda. Reintentar volvería a no encontrarla."""
+        assert not motivos.es_reintentable("falta-la-contrasena")
+
+
 class TestVocabularioHeredado:
     """Se extiende el vocabulario que ya usa AeroBim en vez de inventar uno paralelo."""
 

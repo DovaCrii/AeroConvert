@@ -110,6 +110,54 @@ MOTIVOS: dict[str, Motivo] = dict(
         _m("tardo-demasiado", "La conversión agoto su presupuesto de tiempo."),
         _m("cancelado-por-el-usuario", "Se cancelo."),
         _m("interrumpido", "El proceso que lo ejecutaba desaparecio."),
+        # --- Documentos ------------------------------------------------------
+        #
+        # Las herramientas de PDF pasan por la cola desde la fase 9 y traen sus propios
+        # motivos. Los tres de «sin-» son **la herramienta de fuera que falta**, con el mismo
+        # trato que el resto de la casa: se dice cuál y no se esconde el botón.
+        _m("documento-invalido", "El documento no se pudo abrir o no es lo que dice ser."),
+        _m("contrasena-incorrecta", "La contraseña no abre el documento."),
+        _m(
+            "falta-la-contrasena",
+            "La contraseña ya no está: por seguridad no se guarda, y hay que volver a escribirla.",
+        ),
+        _m(
+            "demasiadas-paginas",
+            "El documento pasa del tope de páginas de esta herramienta.",
+            "Pártelo antes con «Dividir PDF».",
+        ),
+        _m("sin-office", "Esta máquina no tiene Office, que es lo que hace esta conversión."),
+        _m("sin-access", "Esta máquina no tiene el motor de Access que abre los catálogos."),
+        _m(
+            "sin-tesseract",
+            "Esta máquina no tiene Tesseract, que es lo que reconoce el texto.",
+            "sudo apt install tesseract-ocr tesseract-ocr-spa",
+        ),
+    ]
+)
+
+
+#: **Terminó bien, pero sin archivo, o con algo que decir.** No son fallos y no van en
+#: `MOTIVOS`: el trabajo queda `HECHO`, y esto dice por qué no hay descarga o qué hay que
+#: leer antes de usarla.
+#:
+#: Existen porque la cola suponía que «hecho» es «hay un archivo», y tres herramientas de
+#: documentos contestan con otra cosa legítima. Comprimir un PDF que ya venía comprimido lo
+#: engordaría, y entregar eso sería la peor respuesta; un escaneo no tiene texto que sacar;
+#: y un catálogo puede escribirse con filas que no cuadraban.
+DESENLACES: dict[str, Motivo] = dict(
+    [
+        _m(
+            "no-valio-la-pena",
+            "Ya estaba comprimido: comprimirlo otra vez lo habría hecho más grande, así que "
+            "no se ha tocado.",
+        ),
+        _m(
+            "sin-texto-que-sacar",
+            "El PDF no tiene texto: es un escaneo, una imagen de un texto.",
+            "Pásalo antes por «Reconocer el texto de un escaneo».",
+        ),
+        _m("con-avisos", "Hecho, con avisos que conviene leer antes de usarlo."),
     ]
 )
 

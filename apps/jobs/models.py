@@ -104,6 +104,19 @@ class ConversionJob(BaseModel):
     target_crs_authority = models.CharField(max_length=16, blank=True)
     target_crs_code = models.CharField(max_length=16, blank=True)
 
+    # --- Herramienta de documentos -----------------------------------------
+    #: Vacío para una conversión geoespacial; el id de `HERRAMIENTAS` para las de documentos.
+    #:
+    #: **Es lo que las separa en el corredor**, y tiene que separarlas: el camino geoespacial
+    #: re-detecta el formato, exige el sistema de referencia y pregunta a la matriz de
+    #: capacidades. Con un documento, un `.csv` acababa leído como libreta de puntos y
+    #: rechazado por `crs-ausente`. Ver `runner._ejecutar_documento`.
+    herramienta = models.CharField(max_length=40, blank=True, db_index=True)
+    #: **Terminó bien pero sin archivo, o con algo que leer.** Código de `motivos.DESENLACES`.
+    #: No es un estado nuevo a propósito: el trabajo está `HECHO`, y un estado más habría
+    #: que enseñárselo a cada filtro, píldora y lista que ya existe.
+    desenlace = models.CharField(max_length=40, blank=True)
+
     # --- Destino -----------------------------------------------------------
     target_format_code = models.CharField(max_length=40)
     target_profile_id = models.CharField(max_length=40, blank=True)
@@ -177,10 +190,28 @@ class ConversionJob(BaseModel):
         `gpkg` o `xyz_nube` mentalmente, y a `landxml` le quita las mayúsculas que sí tiene.
         El nombre bonito ya existe en el catálogo, traducido incluido.
         """
+        # Un trabajo de documentos no tiene «formato de destino» que nombrar: tiene una
+        # herramienta. «doc:numerar» en el historial sería el mismo defecto que `geotiff`.
+        if self.herramienta:
+            from apps.documents.herramientas import nombre_de
+
+            return nombre_de(self.herramienta)
+
         from apps.formats import catalogo
 
         formato = catalogo.FORMATOS.get(self.target_format_code)
         return str(formato.nombre) if formato else self.target_format_code
+
+    @property
+    def es_de_documentos(self) -> bool:
+        return bool(self.herramienta)
+
+    @property
+    def desenlace_motivo(self):
+        """El `Motivo` del desenlace, para la plantilla. `None` si no hubo."""
+        from . import motivos
+
+        return motivos.DESENLACES.get(self.desenlace) if self.desenlace else None
 
     @property
     def nombre_del_perfil(self) -> str:
@@ -330,3 +361,52 @@ class JobEvent(BaseModel):
             reason_code=carga.pop("reason_code", ""),
             payload=carga,
         )
+
+
+class EntradaDeTrabajo(BaseModel):
+    """Un archivo de entrada de un trabajo de documentos, **con su huella**.
+
+    ## Por qué un modelo y no una lista en `options`
+
+    `options` es configuración: se copia tal cual al reintentar. Esto es **procedencia**: la
+    huella se recalcula en cada intento, y sin ella la regla de que el original no se toca no
+    se puede comprobar para la segunda y la tercera entrada de un «Unir» — solo para la
+    primera, que es la que cabe en `source_path`.
+
+    Y el enlace a la subida es lo que impide que el barrido se la lleve mientras el trabajo
+    todavía la necesita. Con una cadena en JSON, el barrido no tendría forma de saberlo.
+
+    `source_path` del trabajo sigue reflejando la primera, para que el historial y todo lo
+    que ya lee ese campo siga funcionando.
+    """
+
+    #: Para Excel a catálogo, que lleva dos entradas que no son intercambiables: la hoja y la
+    #: base de Access que pone el esquema.
+    HOJA = "hoja"
+    PLANTILLA = "plantilla"
+    PAPELES = [("", _("Input")), (HOJA, _("Sheet")), (PLANTILLA, _("Template"))]
+
+    job = models.ForeignKey(ConversionJob, on_delete=models.CASCADE, related_name="entradas")
+    orden = models.PositiveSmallIntegerField()
+    papel = models.CharField(max_length=16, choices=PAPELES, blank=True)
+    ruta = models.CharField(max_length=1000)
+    nombre = models.CharField(max_length=255)
+    subida = models.ForeignKey(
+        "core.ArchivoSubido",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="entradas_de_trabajo",
+    )
+    sha256 = models.CharField(max_length=64, blank=True)
+    bytes = models.BigIntegerField(default=0)
+    #: La fecha del archivo al empezar, para compararla al terminar: si cambió, algo escribió
+    #: en un original, que es lo único que no puede pasar.
+    mtime_ns = models.BigIntegerField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["orden"]
+        unique_together = [("job", "orden")]
+
+    def __str__(self) -> str:
+        return f"{self.orden}: {self.nombre}"
