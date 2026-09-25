@@ -220,10 +220,15 @@ class TestModoExperto:
 
 class TestInspeccionar:
     def test_sin_ruta_no_se_queja_todavia(self, entrado, taller):
-        """Es el estado inicial de la pantalla, no un error."""
+        """Es el estado inicial de la pantalla, no un error.
+
+        Decía «Indica una ruta y pulsa Inspeccionar», y hace semanas que no hay caja de ruta ni
+        ese botón: mandaba a buscar algo que no existe. Esta prueba antes exigía esa frase.
+        """
         respuesta = entrado.get("/inspeccionar/")
         assert respuesta.status_code == 200
-        assert b"Inspeccionar" in respuesta.content
+        assert "Elige un archivo" in respuesta.content.decode()
+        assert b"Inspeccionar" not in respuesta.content
 
     def test_una_ruta_fuera_de_las_raices_se_rechaza_con_su_motivo(self, entrado, taller):
         respuesta = entrado.get("/inspeccionar/", {"ruta": r"C:\Windows\notepad.exe"})

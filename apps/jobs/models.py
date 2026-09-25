@@ -183,6 +183,18 @@ class ConversionJob(BaseModel):
         return str(formato.nombre) if formato else self.target_format_code
 
     @property
+    def nombre_del_perfil(self) -> str:
+        """«Civil 3D / AutoCAD» y no `civil3d`. Vacío si no hubo perfil o ya no existe.
+
+        La misma razón que `nombre_del_destino`: el identificador es la clave estable, y el
+        historial lo enseñaba crudo junto al nombre bonito del formato.
+        """
+        from apps.targets import perfiles
+
+        perfil = perfiles.PERFILES.get(self.target_profile_id or "")
+        return perfil.nombre if perfil else ""
+
+    @property
     def cancelacion_pedida(self) -> bool:
         return self.cancel_requested_at is not None
 

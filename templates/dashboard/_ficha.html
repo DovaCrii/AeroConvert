@@ -1,10 +1,22 @@
 {% load static %}
 {% if error %}
-  <div class="error">
+  {% comment %}
+    **El mensaje delante y el código plegado.** Antes salía «Motivo: `ruta-no-permitida`» a la
+    vista, que es vocabulario de quien programa y no le dice nada a quien convierte. El código
+    sigue ahí porque es lo que hay que dictar por teléfono si algo falla, pero no es lo primero
+    que se lee.
+
+    `role="alert"`: esto llega por htmx sin recargar, y sin él un lector de pantalla no se
+    entera de que ha fallado.
+  {% endcomment %}
+  <div class="error" role="alert">
     <strong>{{ error }}</strong>
-    <div style="font-size:.85rem; opacity:.85; margin-top:2px;">
-      Motivo: <code>{{ codigo_error }}</code>
-    </div>
+    {% if codigo_error %}
+      <details class="detalle-tecnico">
+        <summary>Detalle para soporte</summary>
+        <code>{{ codigo_error }}</code>
+      </details>
+    {% endif %}
   </div>
 {% elif i %}
 
@@ -209,10 +221,19 @@
       {% endif %}
       Míralo en el <code>.prj</code> del levantamiento, o pregúntaselo a quien lo midió.
     </p>
+    {% comment %}
+      El error del EPSG **aquí, junto al campo**, y lo tecleado conservado. Antes salía arriba
+      de una pantalla vacía y había que volver a elegir el archivo para corregir un dígito.
+    {% endcomment %}
+    {% if error_en == "crs" %}
+      <p class="error" role="alert" id="error-crs"><strong>{{ error_al_convertir }}</strong></p>
+    {% endif %}
     <div style="max-width:16rem;">
       <label for="id_crs_declarado" style="font-weight:600;">Código EPSG</label>
       <input type="text" name="crs_declarado" id="id_crs_declarado" class="form-control"
-             form="forma-destino" placeholder="32719" autocomplete="off" inputmode="numeric">
+             form="forma-destino" placeholder="32719" autocomplete="off" inputmode="numeric"
+             value="{{ crs_escrito }}"
+             {% if error_en == "crs" %}aria-invalid="true" aria-describedby="error-crs"{% endif %}>
     </div>
     <p class="tenue" style="margin:8px 0 0; font-size:.85rem;">
       Queda anotado con tu nombre en la bitácora del trabajo.
@@ -283,9 +304,19 @@
 <div class="tarjeta">
   <div class="eyebrow">Convertir</div>
   <h2 style="font-size:1.1rem;">¿Dónde tiene que abrir?</h2>
+  {% comment %}
+    **Que pulsar convierte, dicho antes de pulsar.** Las tarjetas parecen opciones que se
+    marcan y luego se confirma; en realidad cada una es un botón que encola en el acto. Sin
+    decirlo, el primer clic de quien explora arranca una conversión que no quería.
+  {% endcomment %}
   <p class="tenue" style="margin-bottom:12px;">
-    Eliges el programa; el formato y las opciones los pone el perfil.
+    Eliges el programa y <strong>la conversión empieza al pulsarlo</strong>; el formato y las
+    opciones los pone el perfil.
   </p>
+
+  {% if error_al_convertir and error_en != "crs" %}
+    <p class="error" role="alert"><strong>{{ error_al_convertir }}</strong></p>
+  {% endif %}
 
   {% comment %}
     Lleva `id` porque el campo del sistema de referencia vive en **otra tarjeta**, más
@@ -371,7 +402,7 @@
       </div>
     {% endif %}
 
-    <details>
+    <details{% if abrir_ajustes %} open{% endif %}>
       <summary style="cursor:pointer; font-weight:600;">Ajustar a mano</summary>
       <p class="tenue" style="margin:8px 0;">
         Los ajustes salen de lo que el motor declara, así que aquí no hay nada que el motor
@@ -406,5 +437,6 @@
 {% endif %}
 
 {% else %}
-  <div class="vacio">Indica una ruta y pulsa «Inspeccionar».</div>
+  {# Decía «Indica una ruta y pulsa Inspeccionar»: no hay caja de ruta ni ese botón desde hace semanas. #}
+  <div class="vacio">Elige un archivo arriba para ver qué tiene dentro.</div>
 {% endif %}

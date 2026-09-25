@@ -219,14 +219,53 @@
   </header>
 
   <main id="principal" class="envoltorio">
+    {% comment %}
+      **Cada nivel con su color, su icono y su palabra.** Antes todo lo que no era error salía
+      en el ámbar de «cuidado»: un «Hecho: plano.pdf» se leía igual que un aviso de que algo
+      no cuadraba. La palabra va escondida para la vista y presente para el lector de
+      pantalla, que no ve ni el color ni el dibujo.
+
+      `role="alert"` para los errores —interrumpe, porque hay que enterarse— y `role="status"`
+      para el resto, que espera a que se termine de leer lo que se estaba leyendo.
+    {% endcomment %}
     {% if messages %}
+      <div class="mensajes">
       {% for mensaje in messages %}
-        <div class="{% if mensaje.tags == 'error' %}error{% else %}aviso{% endif %}"
-             style="margin-bottom:12px;">
-          {{ mensaje }}
-        </div>
+        {% if mensaje.level_tag == "error" %}
+          <div class="mensaje mensaje-error" role="alert">
+            <svg class="mensaje-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-veredicto-no"></use></svg>
+            <span><span class="visually-hidden">Error: </span>{{ mensaje }}</span>
+          </div>
+        {% elif mensaje.level_tag == "warning" %}
+          <div class="mensaje mensaje-aviso" role="status">
+            <svg class="mensaje-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-veredicto-reparos"></use></svg>
+            <span><span class="visually-hidden">Aviso: </span>{{ mensaje }}</span>
+          </div>
+        {% elif mensaje.level_tag == "success" %}
+          <div class="mensaje mensaje-exito" role="status">
+            <svg class="mensaje-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-veredicto-abre"></use></svg>
+            <span><span class="visually-hidden">Hecho: </span>{{ mensaje }}</span>
+          </div>
+        {% else %}
+          <div class="mensaje mensaje-info" role="status">
+            <svg class="mensaje-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-info"></use></svg>
+            <span><span class="visually-hidden">Información: </span>{{ mensaje }}</span>
+          </div>
+        {% endif %}
       {% endfor %}
+      </div>
     {% endif %}
+
+    {% comment %}
+      **Lo que cambia sin recargar, dicho en voz alta.** Una ficha que llega por htmx, una
+      respuesta de Tino o el final de una conversión aparecen en pantalla sin que el lector
+      de pantalla se entere: no hay página nueva que leer. Aquí escribe `respuestas.js` una
+      frase corta cuando algo llega.
+
+      Una región aparte, pequeña, y no `aria-live` sobre la ficha entera: eso leería en voz
+      alta cuarenta líneas cada vez que llega una.
+    {% endcomment %}
+    <div id="anuncio" class="visually-hidden" role="status" aria-live="polite"></div>
 
     {% comment %}
       La cabecera de página: dónde estás y para qué sirve esta pantalla.
@@ -261,6 +300,12 @@
     ratón igual, que es la regla que impide que descubrirlos sea necesario.
   {% endcomment %}
   <script src="{% static 'js/atajos.js' %}"></script>
+  {% comment %}
+    Lo que pasa cuando una respuesta llega, o no llega: el error que se ve, la ficha a la
+    vista, y el aviso para el lector de pantalla. Sin él, un fallo del servidor dejaba la
+    pantalla quieta y en silencio.
+  {% endcomment %}
+  <script src="{% static 'js/respuestas.js' %}"></script>
   {% block scripts %}{% endblock %}
 </body>
 </html>

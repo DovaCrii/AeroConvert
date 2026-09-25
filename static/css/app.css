@@ -50,6 +50,11 @@
   --av-ok-soft: #e4f6ea;
   --av-warn-soft: #fdf1dc;
   --av-danger-soft: #fce4e6;
+  /* **Información, que faltaba.** Sin ella, un «Hecho» o un «ya estaba comprimido» salían en el
+   * ámbar de «cuidado», que es otra cosa. Azul, porque es el único tono de estado que no
+   * significa ni «bien» ni «mal». */
+  --av-info: #1a5aad;
+  --av-info-soft: #e6eefb;
 
   /* --- Las familias de herramientas ---------------------------------------
    *
@@ -218,6 +223,8 @@
   --av-ok-soft: #14361f;
   --av-warn-soft: #3d2f14;
   --av-danger-soft: #3d1a1e;
+  --av-info: #9cc6f8;
+  --av-info-soft: #17325a;
 
   /* Las familias, subidas de luz y con el fondo hundido: en oscuro el par se invierte.
    *
@@ -283,6 +290,8 @@
     --av-ok-soft: #14361f;
     --av-warn-soft: #3d2f14;
     --av-danger-soft: #3d1a1e;
+    --av-info: #9cc6f8;
+    --av-info-soft: #17325a;
 
     /* **Las familias también aquí, y faltaban.**
      *
@@ -1991,6 +2000,20 @@ legend {
   background: var(--av-primary-soft);
 }
 
+/* **La tarjeta entera es la zona**, y se marca en cuanto entra un archivo en la página. Ver
+ * `static/js/convertir.js`: se puede soltar en cualquier sitio, así que la señal tiene que
+ * decir *dónde va a caer* en cuanto se empieza a arrastrar, no solo cuando se acierta. */
+[data-zona-soltar].encima {
+  box-shadow:
+    0 0 0 2px var(--av-magenta),
+    var(--av-elev-2);
+}
+
+[data-zona-soltar].encima .soltar {
+  border-color: var(--av-magenta);
+  background: var(--av-primary-soft);
+}
+
 /* Dentro de una tarjeta que ya tiene su cabecera, la zona de soltar no necesita el mismo
  * aire que cuando ocupaba ella sola media pantalla. */
 .soltar-compacto {
@@ -2415,6 +2438,75 @@ code {
   color: var(--av-danger);
   border-radius: var(--av-radius-sm);
   padding: 9px 12px;
+}
+
+/* El código del motivo, plegado bajo el mensaje. Es lo que se dicta por teléfono si algo
+ * falla, no lo primero que se lee: «Motivo: `ruta-no-permitida`» a la vista era vocabulario de
+ * quien programa. */
+/* El motivo de un trabajo fallido, en palabras, debajo de su píldora en el historial. */
+.motivo-corto {
+  max-width: 32ch;
+  margin-top: 2px;
+  font-size: var(--av-fs-sm);
+  line-height: var(--av-alto-normal);
+}
+
+.detalle-tecnico {
+  margin-top: var(--av-s-1);
+  font-size: var(--av-fs-sm);
+}
+
+.detalle-tecnico summary {
+  cursor: pointer;
+  opacity: 0.85;
+}
+
+/* --- Los mensajes, por su nivel ------------------------------------------
+ *
+ * Antes `base.html` mandaba **todo lo que no era error al ámbar de «cuidado»**: un «Hecho:
+ * plano.pdf» se pintaba igual que un aviso de que algo no cuadra. Ahora cada nivel tiene su
+ * color **y su icono y su palabra**, que es la regla «color nunca solo» de `AGENTS.md`: uno de
+ * cada doce hombres no distingue el rojo del verde. */
+.mensajes {
+  display: grid;
+  gap: var(--av-s-2);
+  margin-bottom: var(--av-s-3);
+}
+
+.mensaje {
+  display: flex;
+  gap: var(--av-s-2);
+  align-items: flex-start;
+  border-radius: var(--av-radius-sm);
+  padding: 9px 12px;
+  font-size: var(--av-fs-sm);
+}
+
+.mensaje-icono {
+  flex: 0 0 auto;
+  width: 1.1rem;
+  height: 1.1rem;
+  margin-top: 1px;
+}
+
+.mensaje-exito {
+  background: var(--av-ok-soft);
+  color: var(--av-ok);
+}
+
+.mensaje-info {
+  background: var(--av-info-soft);
+  color: var(--av-info);
+}
+
+.mensaje-aviso {
+  background: var(--av-warn-soft);
+  color: var(--av-warn);
+}
+
+.mensaje-error {
+  background: var(--av-danger-soft);
+  color: var(--av-danger);
 }
 
 .salto {
