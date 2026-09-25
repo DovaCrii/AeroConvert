@@ -552,8 +552,18 @@ def de_pdf(origen: str | Path) -> str:
         # esté Tesseract, se dice eso en vez de mandar a nadie a una pantalla apagada.
         from . import ocr
 
-        reconocimiento = ocr.sondar()
-        if reconocimiento:
+        # **Desde la cola esto corre en un proceso hijo sin Django**, y `sondar()` lee la
+        # caché: sin ajustes cargados revienta con `ImproperlyConfigured`, y lo que tenía que
+        # ser «es un escaneo» llegaba como un fallo del motor. Ahí se deja la frase general;
+        # la del OCR la pone la pantalla, que sí sabe si Tesseract está.
+        try:
+            reconocimiento = ocr.sondar()
+        except Exception:  # noqa: BLE001 - sin Django no hay caché que consultar
+            reconocimiento = None
+
+        if reconocimiento is None:
+            salida = "Para sacarlo hace falta reconocer el texto primero."
+        elif reconocimiento:
             salida = (
                 "Pásalo antes por «Reconocer el texto de un escaneo» y vuelve con el PDF que salga."
             )

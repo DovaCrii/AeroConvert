@@ -36,6 +36,12 @@ class Command(BaseCommand):
             action="store_true",
             help="Solo recoger trabajos cuyo obrero desaparecio, sin ejecutar nada.",
         )
+        parser.add_argument(
+            "--carril",
+            choices=despachador.CARRILES,
+            default=None,
+            help="Con --una-vez: solo ese carril. Sin él, la cola entera.",
+        )
 
     def handle(self, *args, **opciones):
         if opciones["recoger"]:
@@ -44,12 +50,17 @@ class Command(BaseCommand):
             return
 
         if opciones["una_vez"]:
-            hechos = despachador.procesar_una_vez()
+            hechos = despachador.procesar_una_vez(opciones["carril"])
             self.stdout.write(f"Procesados {hechos}.")
             return
 
-        self.stdout.write("Procesando la cola. Ctrl+C para parar.")
+        # **Los dos carriles, cada uno en su hilo.** Antes era un solo bucle, y desde que las
+        # herramientas de PDF pasan por aquí un «numerar» esperaría detrás de una ortofoto.
+        self.stdout.write(
+            f"Procesando la cola en los carriles {', '.join(despachador.CARRILES)}. "
+            "Ctrl+C para parar."
+        )
         try:
-            despachador._bucle()
+            despachador.servir()
         except KeyboardInterrupt:
             self.stdout.write("Detenido.")

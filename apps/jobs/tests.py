@@ -47,9 +47,7 @@ class TestLosDesenlaces:
         assert not set(motivos.DESENLACES) & set(motivos.MOTIVOS)
 
     def test_estan_los_tres_que_hacen_falta(self):
-        assert {"no-valio-la-pena", "sin-texto-que-sacar", "con-avisos"} <= set(
-            motivos.DESENLACES
-        )
+        assert {"no-valio-la-pena", "sin-texto-que-sacar", "con-avisos"} <= set(motivos.DESENLACES)
 
     def test_ninguno_se_reintenta(self):
         """Reintentar «ya estaba comprimido» daría la misma respuesta, correcta, otra vez."""

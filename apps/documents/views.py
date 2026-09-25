@@ -184,7 +184,6 @@ def _contexto(origenes: list, entradas, extra: dict | None = None) -> dict:
     return contexto
 
 
-
 #: Los cuatro grupos, en el orden en que se piensan: primero mover páginas de sitio, luego
 #: cambiar de formato, luego estampar encima, y al final cerrar con llave.
 #:
