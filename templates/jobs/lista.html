@@ -19,13 +19,20 @@
       {% for t in trabajos %}
         <tr>
           <td><a href="{% url 'jobs:ficha' t.pk %}">{{ t.source_name }}</a></td>
+          {% comment %}
+            **El nombre del programa y el motivo en palabras**, no `civil3d` ni `sin-motor`. Los
+            códigos son lo que se dicta por teléfono y viven en la bitácora de cada trabajo, que
+            es el registro técnico; aquí se lee qué pasó.
+          {% endcomment %}
           <td>
             {{ t.nombre_del_destino }}
-            {% if t.target_profile_id %}<span class="tenue">· {{ t.target_profile_id }}</span>{% endif %}
+            {% if t.nombre_del_perfil %}<span class="tenue">· {{ t.nombre_del_perfil }}</span>{% endif %}
           </td>
           <td>
             <span class="pildora pildora-{{ t.status }}">{{ t.get_status_display }}</span>
-            {% if t.reason_code %}<code class="tenue">{{ t.reason_code }}</code>{% endif %}
+            {% if t.reason_detail %}
+              <div class="tenue motivo-corto">{{ t.reason_detail|truncatechars:80 }}</div>
+            {% endif %}
           </td>
           <td class="cifra text-end">{{ t.source_size_bytes|filesizeformat }}</td>
           <td class="cifra text-end">

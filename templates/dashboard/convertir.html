@@ -61,7 +61,12 @@
     </span>
     <div>
       <strong>Suelta cualquier archivo</strong>
-      <span>No se copia ni se sube: se queda en tu equipo, y el original no se toca.</span>
+      {% comment %}
+        Decía «no se copia ni se sube: se queda en tu equipo», y dos tarjetas más abajo la
+        de «Desde tu equipo» dice «se sube al servidor». Las dos no pueden ser verdad. Lo que
+        es verdad siempre, venga de donde venga, es lo del original.
+      {% endcomment %}
+      <span>Desde tu equipo o de la carpeta compartida. El original no se toca nunca.</span>
     </div>
   </li>
   <li>
@@ -104,7 +109,13 @@
   tiene por qué navegar hasta ella.
 {% endcomment %}
 <div class="origenes">
-  <div class="tarjeta tarjeta-acento origen">
+  {% comment %}
+    **La zona de soltar es la tarjeta entera**, y soltar en cualquier otro sitio de la pantalla
+    también sube. Antes era un recuadro pequeño que ponía «Arrastra el archivo aquí» y no hacía
+    nada: escribía el nombre en un campo oculto y solo enviaba si llevaba una barra, cosa que
+    un nombre soltado no lleva nunca. Ver `static/js/convertir.js`.
+  {% endcomment %}
+  <div class="tarjeta tarjeta-acento origen" data-zona-soltar>
     <div class="origen-cabeza">
       <span class="origen-marca fam-transformar" aria-hidden="true">
         <svg class="origen-icono"><use href="{% static 'img/icons.svg' %}#icon-equipo"></use></svg>
@@ -123,11 +134,11 @@
       {# La elección hecha en el catálogo, para que la ficha la marque. Ver `_destino_preferido`. #}
       {% if destino_preferido %}<input type="hidden" name="destino" value="{{ destino_preferido }}">{% endif %}
       {% if formato_preferido %}<input type="hidden" name="formato" value="{{ formato_preferido }}">{% endif %}
-      <div class="soltar soltar-compacto" id="zona">
+      <div class="soltar soltar-compacto">
         <svg class="soltar-icono" aria-hidden="true">
           <use href="{% static 'img/icons.svg' %}#icon-soltar"></use>
         </svg>
-        <p class="soltar-titulo">Arrastra el archivo aquí</p>
+        <p class="soltar-titulo">Arrastra el archivo aquí, o elígelo</p>
         {% comment %}
           `data-envia-solo` y no un `onchange=`: la CSP es `script-src 'self'` sin
           `unsafe-inline`, así que un manejador en el atributo no se ejecutaría — y no
@@ -207,7 +218,17 @@
 
 <p id="mirando" class="tenue htmx-indicator" style="margin:12px 0 0;">Mirando el archivo…</p>
 
-<div id="ficha"></div>
+{% comment %}
+  **`data-enfocar`: cuando llega la ficha, se va a ella.** Aparecía debajo de las dos tarjetas
+  de origen, casi siempre fuera de la pantalla, sin moverse nada ni avisar: después de elegir
+  un archivo parecía que no había pasado nada. Ver `static/js/respuestas.js`.
+
+  Y puede venir ya pintada: cuando `encolar` no puede encolar, vuelve aquí con la ficha dentro
+  y el error junto a su campo, en vez de tirar el archivo elegido.
+{% endcomment %}
+<div id="ficha" data-enfocar>
+  {% if i %}{% include "dashboard/_ficha.html" %}{% endif %}
+</div>
 
 {% if recientes %}
   {% comment %}

@@ -53,7 +53,17 @@ class TestLosTresPasos:
         cliente, _ = sesion
         pasos = _pasos(cliente.get(reverse("dashboard:convertir")).content.decode())
         assert "no se toca" in pasos
-        assert "no se copia ni se sube" in pasos.lower()
+
+    def test_y_no_prometen_lo_que_se_contradice_abajo(self, sesion):
+        """**El paso 1 decía «no se copia ni se sube», y la tarjeta de debajo «se sube al
+        servidor».** Las dos no podían ser verdad, y esta prueba antes *exigía* la falsa.
+
+        Lo que es cierto venga de donde venga el archivo es que el original no se toca; si se
+        sube o no depende de la vía, y eso lo dice cada tarjeta.
+        """
+        cliente, _ = sesion
+        pasos = _pasos(cliente.get(reverse("dashboard:convertir")).content.decode())
+        assert "no se copia ni se sube" not in pasos.lower()
 
     def test_el_subtitulo_no_repite_los_pasos(self, sesion):
         """Decían casi lo mismo con otras palabras. Leer dos veces la misma explicación no

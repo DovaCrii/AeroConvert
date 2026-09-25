@@ -84,6 +84,8 @@ generar 10.800 peticiones.
     </div>
 
     <div class="recibo">
+      {# Llega sondeando, sin recargar: sin esto, el lector de pantalla no se entera de que terminó. #}
+      <span class="visually-hidden" data-anunciar>Terminado: {{ trabajo.source_name }}, verificado.</span>
       <strong class="recibo-titulo">✓ Verificado contra el original</strong>
       <dl style="margin-top:8px;">
         <dt>Tamaño</dt>
@@ -145,11 +147,15 @@ generar 10.800 peticiones.
       {% endif %}
     </div>
   {% elif trabajo.status == 'error' %}
-    <div class="error">
-      <strong>{{ trabajo.reason_detail }}</strong>
-      <div style="font-size:.85rem; opacity:.85; margin-top:2px;">
-        Motivo: <code>{{ trabajo.reason_code }}</code>
-      </div>
+    {# El mensaje delante y el código plegado, igual que en la ficha. `role="alert"` porque llega sondeando, sin recargar. #}
+    <div class="error" role="alert">
+      <strong data-anunciar>{{ trabajo.reason_detail }}</strong>
+      {% if trabajo.reason_code %}
+        <details class="detalle-tecnico">
+          <summary>Detalle para soporte</summary>
+          <code>{{ trabajo.reason_code }}</code>
+        </details>
+      {% endif %}
     </div>
 
     {% comment %}

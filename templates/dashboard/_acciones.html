@@ -3,6 +3,18 @@
   Los resultados. Fragmento aparte porque htmx lo reemplaza con cada tecla.
 {% endcomment %}
 
+{% comment %}
+  **Cuántos hay, dicho para quien no lo ve.** La lista cambia con cada tecla y no hay página
+  nueva que leer. Solo se anuncia, no se enfoca: quien busca sigue escribiendo en la caja, y
+  robarle el foco a mitad de palabra sería peor que no decir nada.
+{% endcomment %}
+{% if q %}
+  <span class="visually-hidden" data-anunciar>
+    {% if conversion %}{% if conversion.se_puede %}Sí se puede.{% else %}Aquí no se puede.{% endif %}{% endif %}
+    {% if total_resultados %}{{ total_resultados }} herramienta{{ total_resultados|pluralize }} para «{{ q }}».{% elif not conversion %}Nada coincide con «{{ q }}».{% endif %}
+  </span>
+{% endif %}
+
 {% if repetibles %}
   {% comment %}
     **Lo que ya haces, antes del catálogo de todo lo que se puede hacer.**

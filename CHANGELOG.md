@@ -5,6 +5,25 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Sin publicar]
 
+### Corregido — lo que impedía terminar una conversión (fase 9.1, 2026-09-25)
+
+Ninguno de estos daba un error: la pantalla se quedaba quieta, o hacía otra cosa.
+
+- **Arrastrar y soltar no hacía nada.** Escribía el nombre en un campo oculto y solo enviaba
+  si llevaba una barra, que un nombre soltado nunca tiene. Ahora el archivo entra en el campo
+  de subida y se sube; la zona es la tarjeta entera, y soltarlo fuera ya no abre el archivo
+  en el navegador.
+- **Ningún error de htmx se veía.** Una subida que fallaba se quedaba en «Mirando qué es…».
+  Ahora se pinta el motivo con `role="alert"`, y el código técnico va plegado.
+- **La ficha aparecía fuera de la pantalla**, sin foco ni aviso. Ahora se desplaza, se
+  enfoca y se anuncia por una región `aria-live`, que antes no había en ninguna parte.
+- **Un EPSG mal escrito devolvía la pantalla vacía** y hacía elegir el archivo otra vez.
+  Ahora vuelve la ficha con el error junto al campo y lo escrito conservado.
+- **Los mensajes de éxito salían en el ámbar de «cuidado».** Cada nivel lleva ahora su
+  color, su icono y su palabra.
+- **Textos que se contradecían**: «no se sube» junto a un botón de subir, «sin límite de
+  tamaño» con un tope de 2.048 MB.
+
 ### Añadido — cerrar riesgos, arreglar los cimientos y crecer (fase 8, 2026-09-21 a 24)
 
 - **Comprimir PDF**, que se niega cuando comprimir engordaría el archivo. Medido sobre un
