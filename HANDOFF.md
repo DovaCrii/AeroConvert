@@ -123,11 +123,15 @@ pendiente de hacerse en un puesto con licencia; es un procedimiento manual, igua
 7. **Volver a enseñarle la aplicación al equipo**, y esto no es una tarea de código —es la
    que más rinde de la lista. Medido el 2026-09-21 en el servidor: **seis cuentas, nueve
    entradas correctas, cuatro personas que entraron alguna vez, dos que no entraron nunca, y
-   cero conversiones.** La última entrada de cualquiera fue el **15 de septiembre**.
-   Esa fecha es la de la caída de AeroBim que se llevó a las otras dos por delante, y la del
-   `accept=".pdf"` heredado que impedía elegir un `.xlsx` — el fallo que el equipo reportó
-   como «no funciona». **Entraron, se estrelló, y no han vuelto.** Todo eso está arreglado
-   desde entonces y nadie lo sabe.
+   cero conversiones geoespaciales.** La última entrada de cualquiera fue el **15 de
+   septiembre**, la fecha de la caída de AeroBim y del `accept=".pdf"` heredado que el equipo
+   reportó como «no funciona».
+
+   **Corregido el 2026-09-25**: aquí ponía que «la aplicación lleva seis días funcionando para
+   nadie», y el dato no da para tanto. **Las herramientas de PDF no crean `ConversionJob`**, así
+   que ese cero no cuenta si alguien usó Unir o Comprimir: esas no dejan rastro. Lo que sí se
+   sabe es que nadie ha convertido nada geoespacial, y que desde el 15 nadie ha vuelto a
+   entrar. La fase 9 (F9.2) pasa las herramientas por la cola y hace ese número completo.
 
 Y lo que se contesta solo, sin leer nada:
 

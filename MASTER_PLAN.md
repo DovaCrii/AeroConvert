@@ -333,6 +333,29 @@ viven en el mismo servidor y en puertos distintos que nadie recuerda.
 
 ---
 
+## Fase 9 — Que se pueda terminar una conversión, que se vea y que se lea bien
+
+Plan aprobado el 2026-09-25, con las tres decisiones tomadas: primero lo que rompe y luego lo
+visual; **las 20 herramientas de documentos por la cola de trabajos**; la paleta a OKLCH como
+etapa final. Cada etapa va en su rama `codex/fase-9-*` con su PR.
+
+| # | Entrega | Estado |
+| --- | --- | --- |
+| F9.0 | Cerrar la fase 8 como manda `AGENTS.md`: entrada en `CHANGELOG.md`, corregir `HANDOFF.md`, y dejar de hacer commit directo a `main` | ✅ 2026-09-25 |
+| F9.1 | Lo que rompe y no depende de la cola: soltar archivos de verdad, errores que se ven, la ficha a la vista, un error al encolar no borra nada, `aria-live` | ⬜ |
+| F9.2 | Las 20 herramientas por la cola: descarga, progreso, historial y plazo para todas; OCR sin morir a los 120 s | ⬜ |
+| F9.3 | Contraste y foco medidos y sostenidos por pruebas: anillo en la barra, foco de formularios, enlaces, estados | ⬜ |
+| F9.4 | Lo visual: una acción principal, profundidad, radios, iconos, tipografía, móvil a 375 px | ⬜ |
+| F9.5 | La paleta en OKLCH sin cambiar lo que se ve | ⬜ |
+| F9.6 | Saber si mejoró: `Incidente` y `resumen_de_uso` | ⬜ |
+
+**Lo que la auditoría encontró y motiva el orden**: 13 de las 20 herramientas no dejan
+descargar el resultado de un archivo subido; arrastrar y soltar no hace nada; ningún error de
+htmx se ve; OCR muere a los 120 s de gunicorn. Y siete pares de contraste por debajo de WCAG,
+el peor el anillo de foco sobre la barra en claro, a 1,97:1.
+
+---
+
 ## Deuda conocida
 
 > **Cómo se lee esta tabla, y por qué hizo falta arreglarla.**

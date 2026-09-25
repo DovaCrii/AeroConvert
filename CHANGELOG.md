@@ -5,6 +5,39 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Sin publicar]
 
+### Añadido — cerrar riesgos, arreglar los cimientos y crecer (fase 8, 2026-09-21 a 24)
+
+- **Comprimir PDF**, que se niega cuando comprimir engordaría el archivo. Medido sobre un
+  escaneo real: 7,2 MB → 1,19 MB.
+- **Reconocer el texto de un escaneo** con Tesseract, sondeado y no declarado. Verificado en el
+  servidor sobre un escaneo real (`ACTA DE RECEPCION`, sin erratas).
+- **DWG y DGN v8** por el ODA File Converter, con `xvfb-run` en Linux. Sin verificar de extremo
+  a extremo: el conversor no está en ninguna máquina.
+- **«Seguir donde lo dejaste»** en la portada, por destino y no por archivo, y los atajos `/` y
+  Escape, enseñados junto al campo.
+- **Tino**, que contesta desde esta máquina con la matriz y los catálogos. La puerta hacia un
+  modelo de fuera nace cerrada y sin proveedor elegido.
+- **`respaldar --copiar-a`**, para la segunda copia fuera de la máquina, y
+  **`scripts/revisar-servidor.sh`**, que pregunta los riesgos a la máquina en vez de leerlos.
+- **Tres escalas de diseño** —espaciado, tipografía, elevación— y una prueba que impide
+  declarar tokens sin usarlos.
+
+### Corregido — fase 8
+
+- **El respaldo automático nunca había escrito nada.** El servicio no pasaba `--carpeta` y
+  caía en `/opt`, que `ProtectSystem=strict` deja en solo lectura; y la carpeta de destino no
+  se creaba en ningún paso. Ahora la crea el despliegue y lo dice al terminar.
+- **El buscador no reconocía un formato seguido de un signo** («¿tif a jp2?») y daba puntos
+  gratis por «la», «de» y «un», así que las frases naturales empataban con todo.
+- **`SERVIDOR.md` y el comprobador proponían una reserva DHCP en el router** para una dirección
+  que es la NAT interna de Hyper-V y que ningún puesto de la oficina alcanza.
+- **Bandit fallaba desde la entrada de Comprimir** y se dio el portón por verde sin volver a
+  correrlo.
+- **La cifra de herramientas estaba desfasada** en el README y en `SERVIDOR.md`. Ahora la
+  comprueba `test_cuenta.py`.
+- **Deuda verificada contra el código**: dos filas estaban pagadas desde hacía semanas; la de
+  remuestreo es peor de lo que decía (se lee una opción que nadie puede poner).
+
 ### Añadido y corregido — para que lo use un equipo en una VM (fase F6)
 
 Tres de estos **no son funcionalidad que faltara: son defectos**, y ninguno da un error. Solo
