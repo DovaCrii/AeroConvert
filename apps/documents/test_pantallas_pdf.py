@@ -5,6 +5,8 @@ la misma puerta, que el original no se toque, y que un error deje la pantalla us
 de media entrega repartida por la carpeta.
 """
 
+import zipfile
+
 import pytest
 from django.contrib.auth import get_user_model
 from django.urls import reverse
@@ -27,6 +29,17 @@ def _pdf(carpeta, nombre, cuantas):
     return ruta
 
 
+def _paginas(datos: bytes) -> int:
+    """Contadas con PDFium, no con pypdf, que es quien las escribió."""
+    import pypdfium2
+
+    documento = pypdfium2.PdfDocument(datos)
+    try:
+        return len(documento)
+    finally:
+        documento.close()
+
+
 def _imagen(carpeta, nombre, tamano=(1200, 800)):
     from PIL import Image
 
@@ -38,10 +51,29 @@ def _imagen(carpeta, nombre, tamano=(1200, 800)):
 @pytest.fixture
 def sesion(client, tmp_path, settings):
     settings.RAICES_PERMITIDAS = str(tmp_path)
+    # Las herramientas que pasan por la cola escriben aquí el encargo y el informe del hijo.
+    # Sin esto acabarían en `trabajo/` del repositorio.
+    settings.CARPETA_DE_TRABAJO = str(tmp_path / "trabajo")
     client.force_login(
         get_user_model().objects.create_user("topografo", password="x" * 20)  # nosec B106
     )
     return client
+
+
+def _encolar_y_procesar(sesion, url, datos):
+    """**Desde la fase 9 la acción final encola**: la pantalla redirige a la ficha del
+    trabajo, y el resultado existe cuando el obrero lo procesa. Esto hace las dos cosas y
+    devuelve el trabajo, para que la prueba mire lo que salió como antes."""
+    from apps.jobs import despachador
+    from apps.jobs.models import ConversionJob
+
+    respuesta = sesion.post(url, datos)
+    assert respuesta.status_code == 302, "la acción final tiene que encolar y llevar a la ficha"
+    assert "/trabajos/" in respuesta["Location"]
+    assert despachador.procesar_una_vez() == 1
+    trabajo = ConversionJob.objects.latest("created_at")
+    assert trabajo.status == "done", trabajo.reason_detail
+    return trabajo
 
 
 @pytest.fixture
@@ -145,25 +177,63 @@ class TestDividir:
         assert "8 página(s)" in cuerpo
 
     def test_partir_por_rangos(self, sesion, tmp_path):
+        """Varios trozos salen **juntos en un zip**, con los nombres de siempre dentro."""
         memoria = _pdf(tmp_path, "memoria.pdf", 8)
-        sesion.post(
+        trabajo = _encolar_y_procesar(
+            sesion,
             reverse("documents:dividir"),
             {"ruta": str(memoria), "accion": "partir", "modo": "rangos", "rangos": "1-3, 7"},
         )
-        assert sorted(p.name for p in tmp_path.glob("memoria_*.pdf")) == [
-            "memoria_1-3.pdf",
-            "memoria_7.pdf",
-        ]
+        assert trabajo.output_path == str(tmp_path / "memoria_partes.zip")
+        with zipfile.ZipFile(trabajo.output_path) as paquete:
+            assert sorted(paquete.namelist()) == ["memoria_1-3.pdf", "memoria_7.pdf"]
+            assert _paginas(paquete.read("memoria_1-3.pdf")) == 3
+        assert trabajo.verification["piezas_verificadas"] == 2
+        assert trabajo.verification["verificado_con"] == "PDFium"
+
+    def test_un_solo_trozo_sale_suelto_y_no_en_un_zip(self, sesion, tmp_path):
+        """Un zip con un PDF dentro es un paso más para nada."""
+        memoria = _pdf(tmp_path, "memoria.pdf", 8)
+        trabajo = _encolar_y_procesar(
+            sesion,
+            reverse("documents:dividir"),
+            {"ruta": str(memoria), "accion": "partir", "modo": "rangos", "rangos": "2-4"},
+        )
+        salida = tmp_path / "memoria_2-4.pdf"
+        assert trabajo.output_path == str(salida)
+        assert lector.leer_cabecera(salida).cuantas == 3
 
     def test_partir_en_hojas_sueltas(self, sesion, tmp_path):
         memoria = _pdf(tmp_path, "memoria.pdf", 3)
-        sesion.post(
+        trabajo = _encolar_y_procesar(
+            sesion,
             reverse("documents:dividir"),
             {"ruta": str(memoria), "accion": "partir", "modo": "hojas"},
         )
-        assert len(list(tmp_path.glob("memoria_*.pdf"))) == 3
+        with zipfile.ZipFile(trabajo.output_path) as paquete:
+            assert len(paquete.namelist()) == 3
+        # Ni las piezas ni su carpeta se quedan junto al original.
+        assert sorted(p.name for p in tmp_path.iterdir() if p.name.startswith("memoria")) == [
+            "memoria.pdf",
+            "memoria_partes.zip",
+        ]
+
+    def test_un_trozo_repetido_lo_dice_y_no_encola(self, sesion, tmp_path):
+        """Antes el segundo pisaba al primero sin avisar; dentro de un zip faltaría una pieza."""
+        from apps.jobs.models import ConversionJob
+
+        memoria = _pdf(tmp_path, "memoria.pdf", 8)
+        respuesta = sesion.post(
+            reverse("documents:dividir"),
+            {"ruta": str(memoria), "accion": "partir", "modo": "rangos", "rangos": "1-3, 1-3"},
+        )
+        assert respuesta.status_code == 200
+        assert "más de una vez" in respuesta.content.decode()
+        assert not ConversionJob.objects.exists()
 
     def test_un_rango_al_reves_lo_dice_y_no_escribe_nada(self, sesion, tmp_path):
+        from apps.jobs.models import ConversionJob
+
         memoria = _pdf(tmp_path, "memoria.pdf", 8)
         cuerpo = sesion.post(
             reverse("documents:dividir"),
@@ -172,12 +242,14 @@ class TestDividir:
         ).content.decode()
 
         assert "al revés" in cuerpo
-        assert list(tmp_path.glob("memoria_*.pdf")) == []
+        assert list(tmp_path.glob("memoria_*")) == []
+        assert not ConversionJob.objects.exists()
 
     def test_el_original_no_se_toca(self, sesion, tmp_path):
         memoria = _pdf(tmp_path, "memoria.pdf", 4)
         antes = memoria.read_bytes()
-        sesion.post(
+        _encolar_y_procesar(
+            sesion,
             reverse("documents:dividir"),
             {"ruta": str(memoria), "accion": "partir", "modo": "hojas"},
         )
@@ -203,7 +275,8 @@ class TestDividir:
 class TestImagenesAPdf:
     def test_una_pagina_por_imagen(self, sesion, tmp_path):
         fotos = [_imagen(tmp_path, f"foto{i}.jpg") for i in (1, 2)]
-        sesion.post(
+        _encolar_y_procesar(
+            sesion,
             reverse("documents:imagenes"),
             {"archivos_texto": "\n".join(str(f) for f in fotos), "tamano": "a4"},
         )
@@ -215,7 +288,8 @@ class TestImagenesAPdf:
             _imagen(tmp_path, "ancha.jpg", (1200, 800)),
             _imagen(tmp_path, "alta.jpg", (800, 1200)),
         ]
-        sesion.post(
+        _encolar_y_procesar(
+            sesion,
             reverse("documents:imagenes"),
             {"archivos_texto": "\n".join(str(f) for f in fotos), "tamano": "a4"},
         )
@@ -247,15 +321,20 @@ class TestImagenesAPdf:
 class TestPdfAImagenes:
     def test_sin_rangos_salen_todas(self, sesion, tmp_path):
         lamina = _pdf(tmp_path, "lamina.pdf", 3)
-        sesion.post(
+        trabajo = _encolar_y_procesar(
+            sesion,
             reverse("documents:a_imagenes"),
             {"ruta": str(lamina), "accion": "convertir", "formato": "png", "ppp": "96"},
         )
-        assert len(list(tmp_path.glob("lamina_*.png"))) == 3
+        assert trabajo.output_path == str(tmp_path / "lamina_imagenes_png.zip")
+        with zipfile.ZipFile(trabajo.output_path) as paquete:
+            assert sorted(paquete.namelist()) == ["lamina_1.png", "lamina_2.png", "lamina_3.png"]
+        assert trabajo.verification["verificado_con"] == "Pillow"
 
     def test_con_rangos_salen_esas(self, sesion, tmp_path):
         lamina = _pdf(tmp_path, "lamina.pdf", 6)
-        sesion.post(
+        trabajo = _encolar_y_procesar(
+            sesion,
             reverse("documents:a_imagenes"),
             {
                 "ruta": str(lamina),
@@ -265,10 +344,21 @@ class TestPdfAImagenes:
                 "ppp": "96",
             },
         )
-        assert sorted(p.name for p in tmp_path.glob("lamina_*.jpg")) == [
-            "lamina_2.jpg",
-            "lamina_5.jpg",
-        ]
+        with zipfile.ZipFile(trabajo.output_path) as paquete:
+            assert sorted(paquete.namelist()) == ["lamina_2.jpg", "lamina_5.jpg"]
+
+    def test_una_sola_pagina_sale_suelta(self, sesion, tmp_path):
+        from PIL import Image
+
+        lamina = _pdf(tmp_path, "lamina.pdf", 6)
+        trabajo = _encolar_y_procesar(
+            sesion,
+            reverse("documents:a_imagenes"),
+            {"ruta": str(lamina), "accion": "convertir", "rangos": "4", "ppp": "96"},
+        )
+        assert trabajo.output_path == str(tmp_path / "lamina_4.png")
+        with Image.open(trabajo.output_path) as imagen:
+            assert imagen.format == "PNG"
 
     def test_mirar_no_escribe_nada(self, sesion, tmp_path):
         """El primer botón enseña el documento; solo «convertir» toca el disco."""
@@ -277,7 +367,7 @@ class TestPdfAImagenes:
             reverse("documents:a_imagenes"), {"ruta": str(lamina), "accion": "mirar"}
         ).content.decode()
         assert "3 página(s)" in cuerpo
-        assert list(tmp_path.glob("lamina_*.png")) == []
+        assert list(tmp_path.glob("lamina_*")) == []
 
     def test_un_rango_imposible_lo_dice(self, sesion, tmp_path):
         lamina = _pdf(tmp_path, "lamina.pdf", 3)
@@ -287,7 +377,20 @@ class TestPdfAImagenes:
             follow=True,
         ).content.decode()
         assert "3 página(s)" in cuerpo
-        assert list(tmp_path.glob("lamina_*.png")) == []
+        assert list(tmp_path.glob("lamina_*")) == []
+
+    def test_un_formato_inventado_se_dice_en_la_pantalla(self, sesion, tmp_path):
+        """Y no en una ficha roja después de esperar a la cola."""
+        from apps.jobs.models import ConversionJob
+
+        lamina = _pdf(tmp_path, "lamina.pdf", 1)
+        respuesta = sesion.post(
+            reverse("documents:a_imagenes"),
+            {"ruta": str(lamina), "accion": "convertir", "formato": "bmp", "ppp": "96"},
+        )
+        assert respuesta.status_code == 200
+        assert "no es un formato" in respuesta.content.decode()
+        assert not ConversionJob.objects.exists()
 
     def test_una_ruta_fuera_de_las_raices(self, sesion):
         cuerpo = sesion.post(
@@ -299,11 +402,12 @@ class TestPdfAImagenes:
 
     def test_un_ppp_que_no_es_un_numero_cae_al_de_siempre(self, sesion, tmp_path):
         lamina = _pdf(tmp_path, "lamina.pdf", 1)
-        respuesta = sesion.post(
+        trabajo = _encolar_y_procesar(
+            sesion,
             reverse("documents:a_imagenes"),
             {"ruta": str(lamina), "accion": "convertir", "ppp": "muchísimo"},
         )
-        assert respuesta.status_code == 200
+        assert trabajo.options["ppp"] == 150
         assert (tmp_path / "lamina_1.png").exists()
 
 
@@ -315,7 +419,8 @@ class TestNumerar:
 
     def test_numera_de_punta_a_punta(self, sesion, tmp_path):
         memoria = _pdf(tmp_path, "memoria.pdf", 4)
-        sesion.post(
+        _encolar_y_procesar(
+            sesion,
             reverse("documents:numerar"),
             {
                 "ruta": str(memoria),
@@ -332,7 +437,8 @@ class TestNumerar:
 
     def test_saltando_la_portada(self, sesion, tmp_path):
         memoria = _pdf(tmp_path, "memoria.pdf", 4)
-        sesion.post(
+        _encolar_y_procesar(
+            sesion,
             reverse("documents:numerar"),
             {
                 "ruta": str(memoria),
@@ -358,7 +464,8 @@ class TestNumerar:
     def test_un_numero_disparatado_en_el_campo_no_revienta(self, sesion, tmp_path):
         """Un campo numérico es evadible desde fuera del navegador."""
         memoria = _pdf(tmp_path, "memoria.pdf", 3)
-        respuesta = sesion.post(
+        _encolar_y_procesar(
+            sesion,
             reverse("documents:numerar"),
             {
                 "ruta": str(memoria),
@@ -368,7 +475,6 @@ class TestNumerar:
                 "formato": "{n}",
             },
         )
-        assert respuesta.status_code == 200
         assert (tmp_path / "memoria_numerado.pdf").exists()
 
     def test_empezar_mas_alla_del_final_lo_dice_y_no_escribe(self, sesion, tmp_path):
@@ -408,7 +514,8 @@ class TestMarcaDeAgua:
 
     def test_marca_todas_las_paginas(self, sesion, tmp_path):
         plano = _pdf(tmp_path, "plano.pdf", 3)
-        sesion.post(
+        _encolar_y_procesar(
+            sesion,
             reverse("documents:marca"),
             {
                 "ruta": str(plano),
@@ -424,7 +531,8 @@ class TestMarcaDeAgua:
 
     def test_horizontal_tambien(self, sesion, tmp_path):
         plano = _pdf(tmp_path, "plano.pdf", 1)
-        sesion.post(
+        _encolar_y_procesar(
+            sesion,
             reverse("documents:marca"),
             {
                 "ruta": str(plano),
@@ -597,19 +705,49 @@ class TestProteger:
         ).content.decode()
         assert "No hay forma de recuperarla" in cuerpo
 
+    def _proteger(self, sesion, ruta, clave=None):
+        return _encolar_y_procesar(
+            sesion,
+            reverse("documents:proteger"),
+            {"ruta": str(ruta), "accion": "proteger", "contrasena": clave or self.CLAVE},
+        )
+
     def test_protege_y_deja_el_original(self, sesion, tmp_path):
         from pypdf import PdfReader
 
         informe = _pdf(tmp_path, "informe.pdf", 2)
         antes = informe.read_bytes()
-        sesion.post(
-            reverse("documents:proteger"),
-            {"ruta": str(informe), "accion": "proteger", "contrasena": self.CLAVE},
-        )
+        trabajo = self._proteger(sesion, informe)
 
         salida = tmp_path / "informe_protegido.pdf"
+        assert trabajo.output_path == str(salida)
         assert PdfReader(str(salida)).is_encrypted
+        assert trabajo.verification["cifrado"] == "AES-256"
         assert informe.read_bytes() == antes
+
+    def test_la_contrasena_no_queda_en_ninguna_fila(self, sesion, tmp_path):
+        """**La prueba de la fase 9.** Al pasar por la cola la contraseña cruza de un proceso
+        a otro, y lo fácil habría sido dejarla en `options`. Se vuelca la base entera de
+        trabajos —con su bitácora, su argv y sus entradas— y se busca."""
+        from django.core import serializers
+
+        from apps.jobs.models import ConversionJob, EntradaDeTrabajo, JobEvent
+
+        self._proteger(sesion, _pdf(tmp_path, "informe.pdf", 1))
+        volcado = serializers.serialize(
+            "json",
+            [
+                *ConversionJob.objects.all(),
+                *JobEvent.objects.all(),
+                *EntradaDeTrabajo.objects.all(),
+            ],
+        )
+        assert JobEvent.objects.exists(), "sin bitácora esto no probaría nada"
+        assert self.CLAVE not in volcado
+
+    def test_ni_queda_en_disco_despues(self, sesion, tmp_path):
+        self._proteger(sesion, _pdf(tmp_path, "informe.pdf", 1))
+        assert list((tmp_path / "trabajo").glob("*secreto*")) == []
 
     def test_la_contrasena_no_vuelve_en_la_respuesta(self, sesion, tmp_path):
         """Prueba con clave centinela, igual que con la clave de ECW: no puede quedar
@@ -618,28 +756,29 @@ class TestProteger:
         cuerpo = sesion.post(
             reverse("documents:proteger"),
             {"ruta": str(informe), "accion": "proteger", "contrasena": self.CLAVE},
+            follow=True,
         ).content.decode()
         assert self.CLAVE not in cuerpo
 
     def test_ni_cuando_falla(self, sesion, tmp_path):
         # Corta -- para que la rechace -- y a la vez lo bastante rara como para que
         # encontrarla en el HTML signifique que salio del campo y no de una ruta.
+        from apps.jobs.models import ConversionJob
+
         centinela = "Qzx9w"
         informe = _pdf(tmp_path, "informe.pdf", 1)
-        cuerpo = sesion.post(
+        respuesta = sesion.post(
             reverse("documents:proteger"),
             {"ruta": str(informe), "accion": "proteger", "contrasena": centinela},
-            follow=True,
-        ).content.decode()
+        )
+        cuerpo = respuesta.content.decode()
+        assert respuesta.status_code == 200, "una clave corta se dice en la pantalla"
+        assert "al menos" in cuerpo
         assert centinela not in cuerpo
-        assert not (tmp_path / "informe_protegido.pdf").exists()
+        assert not ConversionJob.objects.exists()
 
     def test_reconoce_uno_cifrado_y_ofrece_quitarla(self, sesion, tmp_path):
-        informe = _pdf(tmp_path, "informe.pdf", 1)
-        sesion.post(
-            reverse("documents:proteger"),
-            {"ruta": str(informe), "accion": "proteger", "contrasena": self.CLAVE},
-        )
+        self._proteger(sesion, _pdf(tmp_path, "informe.pdf", 1))
         cuerpo = sesion.post(
             reverse("documents:proteger"),
             {"ruta": str(tmp_path / "informe_protegido.pdf"), "accion": "mirar"},
@@ -647,12 +786,9 @@ class TestProteger:
         assert "Pide contraseña" in cuerpo
 
     def test_y_la_quita_con_la_clave_buena(self, sesion, tmp_path):
-        informe = _pdf(tmp_path, "informe.pdf", 3)
-        sesion.post(
-            reverse("documents:proteger"),
-            {"ruta": str(informe), "accion": "proteger", "contrasena": self.CLAVE},
-        )
-        sesion.post(
+        self._proteger(sesion, _pdf(tmp_path, "informe.pdf", 3))
+        trabajo = _encolar_y_procesar(
+            sesion,
             reverse("documents:proteger"),
             {
                 "ruta": str(tmp_path / "informe_protegido.pdf"),
@@ -662,14 +798,13 @@ class TestProteger:
         )
         salida = tmp_path / "informe_protegido_sin_clave.pdf"
         assert lector.leer_cabecera(salida).cuantas == 3
+        assert trabajo.verification["cifrado"] == "ninguno"
 
-    def test_con_la_clave_mala_no_escribe_nada(self, sesion, tmp_path):
-        informe = _pdf(tmp_path, "informe.pdf", 1)
-        sesion.post(
-            reverse("documents:proteger"),
-            {"ruta": str(informe), "accion": "proteger", "contrasena": self.CLAVE},
-        )
-        sesion.post(
+    def test_con_la_clave_mala_lo_dice_en_la_pantalla_y_no_encola(self, sesion, tmp_path):
+        from apps.jobs.models import ConversionJob
+
+        self._proteger(sesion, _pdf(tmp_path, "informe.pdf", 1))
+        respuesta = sesion.post(
             reverse("documents:proteger"),
             {
                 "ruta": str(tmp_path / "informe_protegido.pdf"),
@@ -677,8 +812,20 @@ class TestProteger:
                 "contrasena": "la-que-no-es",
             },
         )
+        assert respuesta.status_code == 200
+        assert "no abre el archivo" in respuesta.content.decode()
+        assert ConversionJob.objects.count() == 1, "solo el de proteger"
         assert not (tmp_path / "informe_protegido_sin_clave.pdf").exists()
         assert list(tmp_path.glob("*parcial*")) == []
+
+    def test_reintentar_vuelve_a_pedirla_con_el_archivo_puesto(self, sesion, tmp_path):
+        """**Reintentar sin volver a pedirla es imposible por diseño**: ya no está."""
+        informe = _pdf(tmp_path, "informe.pdf", 1)
+        trabajo = self._proteger(sesion, informe)
+        respuesta = sesion.post(reverse("jobs:reencolar", kwargs={"pk": trabajo.pk}))
+        assert respuesta.status_code == 302
+        assert respuesta["Location"].startswith(reverse("documents:proteger"))
+        assert "informe.pdf" in respuesta["Location"]
 
     def test_una_ruta_fuera_de_las_raices(self, sesion):
         cuerpo = sesion.post(

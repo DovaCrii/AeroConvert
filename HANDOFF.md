@@ -1,6 +1,43 @@
 # HANDOFF — dónde retomar
 
-**Última sesión: 2026-09-21.** Léelo antes que `MASTER_PLAN.md`.
+**Última sesión: 2026-09-25.** Léelo antes que `MASTER_PLAN.md`.
+
+## Punto exacto de retome — fase 9
+
+| Etapa | Rama | Estado |
+| --- | --- | --- |
+| F9.0 | `codex/fase-9-0-cierre` | PR abierto, **esperando que lo fusiones** |
+| F9.1 | `codex/fase-9-1-lo-que-rompe` | PR abierto sobre F9.0, esperando |
+| F9.2 | `codex/fase-9-2-documentos-en-cola` | Hecha, portón verde; PR sobre F9.1 |
+| F9.3 | — | **La siguiente**: contraste y foco, con `test_paleta.py` en tabla |
+
+Los PR van apilados: cada uno parte del anterior. **Ninguno se fusiona sin tu permiso.**
+
+**F9.2 en una frase: las veinte herramientas de documentos pasan por la cola.** La pantalla
+mira y comprueba; la acción final crea un trabajo, y la ficha trae progreso, recibo, descarga
+con dueño, reintentar e historial. El proceso hijo es `apps/documents/tarea.py` (sin Django),
+salvo Office, que es pwsh directamente. Hay dos carriles en el mismo obrero.
+
+**Al desplegar F9.2** no hay que hacer nada a mano: `desplegar.sh` aplica la migración
+`jobs/0002` y reinicia el obrero, que ya arranca los dos carriles. Y después, en p340:
+
+1. **La prueba de extremo a extremo del OCR**, que aquí se salta porque no hay Tesseract:
+   `uv run pytest apps/documents/test_ocr_en_cola.py -k DondeTesseractEsta`.
+2. **Subir un PDF a cada herramienta y descargarlo desde la ficha.** Era lo que no
+   funcionaba en trece de las veinte.
+3. **Proteger un PDF y buscar la contraseña en la base**: no debe aparecer en
+   `jobs_conversionjob`, `jobs_jobevent` ni `jobs_entradadetrabajo`. La prueba
+   `test_la_contrasena_no_queda_en_ninguna_fila` lo hace sobre la base de pruebas.
+
+**Pendiente de F9.2, con fecha**: retirar el modelo `Resultado` y la vista
+`documents:descargar` **un día después de desplegar**, cuando hayan caducado las filas que
+dejaron Unir e Imágenes. Ninguna herramienta crea ya filas nuevas; se mantiene la vista solo
+para no romper un enlace de ayer.
+
+**Lo que no se pudo correr aquí**: Office de verdad (se prueba con un Python en el sitio de
+pwsh), un `.mdb` de verdad (no hay uno de prueba en el repositorio y crearlo exige el propio
+ACE) y Tesseract. El procedimiento manual de los catálogos sigue en
+`docs/PRUEBAS_CON_ORACULO.md`.
 
 > **Aviso sobre este documento.** Estuvo fechado el 11 de septiembre hasta el 21, diez días y
 > 262 pruebas después, mientras pedía en su primera línea que se leyera antes que nada. El
@@ -131,7 +168,8 @@ pendiente de hacerse en un puesto con licencia; es un procedimiento manual, igua
    nadie», y el dato no da para tanto. **Las herramientas de PDF no crean `ConversionJob`**, así
    que ese cero no cuenta si alguien usó Unir o Comprimir: esas no dejan rastro. Lo que sí se
    sabe es que nadie ha convertido nada geoespacial, y que desde el 15 nadie ha vuelto a
-   entrar. La fase 9 (F9.2) pasa las herramientas por la cola y hace ese número completo.
+   entrar. **Desde F9.2 las herramientas de PDF sí crean trabajos**, así que a partir del
+   despliegue ese número ya cuenta todo el uso.
 
 Y lo que se contesta solo, sin leer nada:
 
@@ -376,6 +414,18 @@ desde cero, no como compromiso.
   segunda solo pinta la pantalla, y apuntar ahí deja el botón de convertir sin hacer nada y
   sin dar ningún error. Pasó al renombrar «Mesa» a «Convertir». Lo vigila
   `apps/dashboard/test_libretas.py::TestElFormularioLlegaADondeConvierte`.
+
+- **El cliente de pruebas de Django manda siempre multipart.** Un formulario sin
+  `enctype="multipart/form-data"` pasa todas las pruebas de subida y en un navegador de
+  verdad no manda el archivo. Le pasó a Proteger; lo vigila `test_subir_en_pdf.py`.
+- **`tarea.py` no puede importar nada que traiga Django**, ni las sondas: guardan en la
+  caché. Lo que el hijo necesita saber —la ruta de Tesseract, el controlador de Access, la
+  contraseña— se lo pasa el padre por el entorno. Ver `motor.plan()`.
+- **`ruff check --fix` quita un import que solo se reexporta.** Le pasó a
+  `secretos.VARIABLE`; por eso ahí es una asignación y no un `import ... as`.
+- **La base local de desarrollo no se migra sola.** Tras traer una rama con migraciones,
+  `uv run python manage.py migrate` antes de abrir la pantalla, o el primer POST da
+  `no such column`.
 
 ## Cómo levantarlo
 

@@ -2451,6 +2451,13 @@ code {
   line-height: var(--av-alto-normal);
 }
 
+/* Lo que trae el zip de Dividir o de PDF a imágenes, en el recibo. */
+.lista-piezas {
+  margin: var(--av-s-1) 0 0;
+  padding-left: 18px;
+  font-size: var(--av-fs-sm);
+}
+
 .detalle-tecnico {
   margin-top: var(--av-s-1);
   font-size: var(--av-fs-sm);

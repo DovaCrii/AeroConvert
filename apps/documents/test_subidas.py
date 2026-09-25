@@ -55,6 +55,17 @@ def sesion(client, tmp_path, settings):
     return client
 
 
+def _procesar():
+    """Desde la fase 9, generar encola: el archivo existe cuando el obrero pasa."""
+    from apps.jobs import despachador
+    from apps.jobs.models import ConversionJob
+
+    assert despachador.procesar_una_vez() == 1
+    trabajo = ConversionJob.objects.latest("created_at")
+    assert trabajo.status == "done", trabajo.reason_detail
+    return trabajo
+
+
 def _subir_a_unir(sesion, *nombres, texto=""):
     archivos = [SimpleUploadedFile(n, _pdf(), "application/pdf") for n in nombres]
     return sesion.post(
@@ -120,8 +131,14 @@ class TestLaRecetaSobrevive:
                 "receta": "0:1:0,0:2:0,1:1:0,1:2:0",
             },
         )
-        assert respuesta.status_code == 200
-        assert "páginas en" in respuesta.content.decode()
+        assert respuesta.status_code == 302
+        trabajo = _procesar()
+        assert trabajo.verification["paginas_verificadas"] == 4
+        assert [e.nombre for e in trabajo.entradas.all()] == ["memoria.pdf", "planos.pdf"]
+        # El recibo dice cuántas puso cada uno: es lo que se revisa cuando falta una hoja.
+        ficha = sesion.get(reverse("jobs:ficha", kwargs={"pk": trabajo.pk})).content.decode()
+        assert "De dónde salió" in ficha
+        assert "planos.pdf (2)" in ficha
 
 
 def _receta_de(html: str) -> str:
@@ -141,6 +158,7 @@ class TestDondeCaeElResultado:
             reverse("documents:componer"),
             {"accion": "generar", "archivos_texto": subida.token, "receta": "0:1:0,0:2:0"},
         )
+        _procesar()
         from pathlib import Path
 
         assert (Path(settings.CARPETA_DE_TRABAJO) / "memoria_unido.pdf").exists()
@@ -153,6 +171,7 @@ class TestDondeCaeElResultado:
             reverse("documents:componer"),
             {"accion": "generar", "archivos_texto": str(pegado), "receta": "0:1:0,0:2:0"},
         )
+        _procesar()
         assert (tmp_path / "memoria_unido.pdf").exists()
 
 
@@ -179,6 +198,7 @@ class TestImagenesAPdf:
     def test_se_suben_y_se_componen(self, sesion, settings):
         archivos = [SimpleUploadedFile(f"foto{n}.jpg", _imagen(), "image/jpeg") for n in (1, 2)]
         sesion.post(reverse("documents:imagenes"), {"archivos": archivos, "tamano": "a4"})
+        _procesar()
 
         from pathlib import Path
 

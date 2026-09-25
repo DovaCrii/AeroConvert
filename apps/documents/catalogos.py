@@ -141,8 +141,22 @@ def _mirar() -> Disponible:
     )
 
 
+def _controlador() -> str:
+    """El controlador de Access: el que manda el corredor, o el que diga la sonda.
+
+    **Desde la cola, el proceso hijo no puede sondear**: `sondar()` guarda en la caché de
+    Django y el hijo no arranca Django. El padre ya sondeó para decidir si la herramienta
+    estaba disponible, así que le pasa el nombre del controlador por el entorno.
+    """
+    import os
+
+    from .tarea import VARIABLE_ACCESS
+
+    return os.environ.get(VARIABLE_ACCESS) or sondar().controlador
+
+
 def _cadena(ruta: Path, *, crear: bool = False) -> str:
-    controlador = sondar().controlador
+    controlador = _controlador()
     if not controlador:
         raise ComposicionInvalida(sondar().motivo)
     if crear:

@@ -59,9 +59,31 @@ CICLOS_ENTRE_BARRIDOS = 150
 #: como para escribir en disco cada dos segundos.
 CICLOS_ENTRE_LATIDOS = 20
 
-_hilo: threading.Thread | None = None
+_hilos: list[threading.Thread] = []
 _parar = threading.Event()
 _ciclos = 0
+
+#: **Dos carriles, y cada uno con su despachador.** Desde que las herramientas de PDF pasan
+#: por la cola, un «numerar» de un segundo esperaría detrás de una ortofoto de tres horas si
+#: hubiera una sola fila. `pesado` lleva lo geoespacial y lo que tarda (OCR, comprimir);
+#: `ligero`, el resto. Un despachador por carril mantiene cerrada la carrera del `count()`,
+#: que solo es segura con uno por cola.
+PESADO = "pesado"
+LIGERO = "ligero"
+CARRILES = (PESADO, LIGERO)
+
+
+def _del_carril(consulta, carril: str | None):
+    """Filtra una consulta de trabajos a un carril. Sin carril, todos."""
+    if carril is None:
+        return consulta
+    from apps.documents.motor import ESPECIFICACIONES
+    from apps.documents.motor import LIGERO as DOC_LIGERO
+
+    ligeras = [h for h, e in ESPECIFICACIONES.items() if e.carril == DOC_LIGERO]
+    if carril == LIGERO:
+        return consulta.filter(herramienta__in=ligeras)
+    return consulta.exclude(herramienta__in=ligeras)
 
 
 def latir() -> None:
@@ -84,24 +106,32 @@ def latir() -> None:
 
 
 def vivo() -> bool:
-    """`True` si el hilo de este proceso esta corriendo. Solo tiene sentido en taller."""
-    return _hilo is not None and _hilo.is_alive()
+    """`True` si algún hilo de este proceso está corriendo. Solo tiene sentido en taller."""
+    return any(h.is_alive() for h in _hilos)
 
 
-def procesar_una_vez() -> int:
+def procesar_una_vez(carril: str | None = None) -> int:
     """Un ciclo: recoge muertos y ejecuta el siguiente trabajo. Devuelve cuantos ejecuto.
 
     Es la funcion que usan las pruebas y el comando de gestion. El hilo no hace otra cosa
     que llamarla en bucle, asi que lo que se prueba es exactamente lo que corre.
+
+    Sin `carril` mira la cola entera, que es lo que quieren las pruebas y `--una-vez`. Con
+    carril, solo el suyo, y el tope de simultáneos cuenta **por carril**: un trabajo pesado
+    corriendo no impide que arranque uno ligero.
     """
     recoger_muertos()
 
     simultaneos = getattr(settings, "TRABAJOS_SIMULTANEOS", 1)
-    corriendo = ConversionJob.objects.filter(status=EJECUTANDO).count()
+    corriendo = _del_carril(ConversionJob.objects.filter(status=EJECUTANDO), carril).count()
     if corriendo >= simultaneos:
         return 0
 
-    siguiente = ConversionJob.objects.filter(status=ENCOLADO).order_by("queued_at").first()
+    siguiente = (
+        _del_carril(ConversionJob.objects.filter(status=ENCOLADO), carril)
+        .order_by("queued_at")
+        .first()
+    )
     if siguiente is None:
         return 0
 
@@ -201,8 +231,13 @@ def _vive(pid: int) -> bool:
     return True
 
 
-def _bucle() -> None:
+def _bucle(carril: str | None = None) -> None:
+    """El bucle de un carril. Latir y barrer solo los hace uno, el pesado —o el único, sin
+    carril—: dos hilos barriendo la misma carpeta a la vez es pedir una carrera."""
     global _ciclos
+
+    hace_la_limpieza = carril in (None, PESADO)
+    ciclos = 0
 
     while not _parar.is_set():
         try:
@@ -210,27 +245,51 @@ def _bucle() -> None:
             # por el. Sin esto, SQLite acaba con conexiones colgadas.
             close_old_connections()
 
-            _ciclos += 1
-            if _ciclos % CICLOS_ENTRE_LATIDOS == 1:
+            ciclos += 1
+            _ciclos = ciclos
+            if hace_la_limpieza and ciclos % CICLOS_ENTRE_LATIDOS == 1:
                 latir()
-            if _ciclos % CICLOS_ENTRE_BARRIDOS == 0:
+            if hace_la_limpieza and ciclos % CICLOS_ENTRE_BARRIDOS == 0:
                 from . import retencion
 
                 resultado = retencion.barrer()
                 if resultado.bytes_liberados:
                     registro.info("Barrido: %s", resultado)
 
-            if procesar_una_vez() == 0:
+            if procesar_una_vez(carril) == 0:
                 time.sleep(INTERVALO_S)
         except Exception:  # noqa: BLE001 - el hilo no se puede morir por un trabajo malo
-            registro.exception("Fallo del despachador")
+            registro.exception("Fallo del despachador (%s)", carril or "único")
             time.sleep(INTERVALO_S)
 
 
-def arrancar() -> bool:
-    """Arranca el hilo si toca. Devuelve `True` si lo arranco."""
-    global _hilo
+def _lanzar_carriles() -> None:
+    _parar.clear()
+    _hilos.clear()
+    for carril in CARRILES:
+        hilo = threading.Thread(
+            target=_bucle, args=(carril,), name=f"aeroconvert-{carril}", daemon=True
+        )
+        hilo.start()
+        _hilos.append(hilo)
 
+
+def servir() -> None:
+    """Los dos carriles, y esperar. Es lo que corre el obrero de la VM.
+
+    Un proceso con un hilo por carril, y no dos unidades de systemd: una sola unidad que
+    desplegar y vigilar, y cada carril sigue teniendo un único despachador.
+    """
+    _lanzar_carriles()
+    try:
+        while any(h.is_alive() for h in _hilos):
+            time.sleep(1.0)
+    finally:
+        detener()
+
+
+def arrancar() -> bool:
+    """Arranca los carriles si toca. Devuelve `True` si los arrancó."""
     if not getattr(settings, "CONVERSION_DISPATCHER_ENABLED", False):
         return False
 
@@ -239,7 +298,7 @@ def arrancar() -> bool:
     if os.environ.get("RUN_MAIN") == "false":
         return False
 
-    if _hilo is not None and _hilo.is_alive():
+    if vivo():
         return False
 
     # Un barrido al arrancar. Es el unico momento en que se sabe con certeza que ningun
@@ -252,14 +311,12 @@ def arrancar() -> bool:
     except Exception:  # noqa: BLE001 - un barrido fallido no impide arrancar
         registro.exception("El barrido de arranque fallo")
 
-    _parar.clear()
-    _hilo = threading.Thread(target=_bucle, name="aeroconvert-despachador", daemon=True)
-    _hilo.start()
-    registro.info("Despachador arrancado")
+    _lanzar_carriles()
+    registro.info("Despachador arrancado, con los carriles %s", ", ".join(CARRILES))
     return True
 
 
 def detener(timeout: float = 5.0) -> None:
     _parar.set()
-    if _hilo is not None:
-        _hilo.join(timeout=timeout)
+    for hilo in _hilos:
+        hilo.join(timeout=timeout)

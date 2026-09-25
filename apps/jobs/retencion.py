@@ -283,7 +283,11 @@ def _barrer_huerfanos() -> tuple[int, int]:
     contados = 0
     liberados = 0
     for hijo in carpeta_de_trabajo().rglob("*"):
-        if not hijo.is_file() or not any(marca in hijo.name for marca in MARCAS_DE_TRABAJO):
+        # La carpeta cuenta además del nombre: las piezas de Dividir se llaman `plano_3.pdf`
+        # —el nombre que tendrán dentro del zip— y la marca la lleva la carpeta que las guarda.
+        if not hijo.is_file() or not any(
+            marca in hijo.name or marca in hijo.parent.name for marca in MARCAS_DE_TRABAJO
+        ):
             continue
         if str(hijo) in vivos:
             continue

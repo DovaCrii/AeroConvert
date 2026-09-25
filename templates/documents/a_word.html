@@ -67,27 +67,12 @@
       {% else %}
         <p class="tenue" style="margin:10px 0 0;">
           Trae texto de verdad ({{ que_trae.caracteres }} caracteres en las primeras páginas),
-          así que la conversión tiene sentido. El <code>.docx</code> sale junto al original.
+          así que la conversión tiene sentido. El <code>.docx</code> sale con el mismo nombre.
         </p>
       {% endif %}
     </div>
   {% endif %}
 </form>
-
-{% if generado %}
-  <div class="tarjeta tarjeta-acento">
-    <div class="eyebrow">Hecho</div>
-    <div class="recibo">
-      <strong class="recibo-titulo">✓ Convertido</strong>
-      <p class="mono" style="margin-top:8px;">
-        {{ generado.name }}
-      </p>
-      <p class="tenue" style="margin:10px 0 0;">
-        Junto al original, que no se tocó. Repásalo antes de mandarlo.
-      </p>
-    </div>
-  </div>
-{% endif %}
 
 {% endif %}
 {% endblock %}

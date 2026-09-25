@@ -29,7 +29,7 @@ son distintas de verdad:
 from __future__ import annotations
 
 import re
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -114,8 +114,17 @@ def una_por_pagina(total: int) -> list[Trozo]:
     return [Trozo(numero, numero) for numero in range(1, total + 1)]
 
 
-def partir(origen: str | Path, trozos: Iterable[Trozo], carpeta: Path | None = None) -> list[Path]:
+def partir(
+    origen: str | Path,
+    trozos: Iterable[Trozo],
+    carpeta: Path | None = None,
+    *,
+    progreso: Callable[[float], None] | None = None,
+) -> list[Path]:
     """Escribe un PDF por trozo y devuelve las rutas, en orden.
+
+    `progreso` recibe la fracción hecha después de cada trozo: desde la cola, uno por hoja
+    de un juego de doscientas es lo que separa «va por la mitad» de «se ha colgado».
 
     **Se escriben todos o ninguno.** Si el cuarto de cinco falla, los tres que ya estaban
     se borran: media entrega repartida en la carpeta, con nombres que parecen correctos, es
@@ -151,6 +160,8 @@ def partir(origen: str | Path, trozos: Iterable[Trozo], carpeta: Path | None = N
             with open(destino, "wb") as salida:
                 escritor.write(salida)
             escritos.append(destino)
+            if progreso is not None:
+                progreso(len(escritos) / len(trozos))
     except Exception:
         for hecho in escritos:
             hecho.unlink(missing_ok=True)

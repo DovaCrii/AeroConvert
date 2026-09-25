@@ -162,6 +162,38 @@ def _abrir(origen: Path):
     return lector
 
 
+def comprobar_numeracion(posicion: str, formato: str, desde: int, total_paginas: int, nombre: str):
+    """Lo que se puede decir **antes** de encolar, sin tocar el documento.
+
+    Aparte de `numerar` desde que la herramienta pasa por la cola: la pantalla lo mira antes
+    de encolar, para que una página de inicio imposible falle al instante y no en la ficha
+    del trabajo tres segundos después. Una sola función para los dos, así los mensajes no
+    pueden desalinearse.
+    """
+    if posicion not in POSICIONES:
+        raise ComposicionInvalida(f"«{posicion}» no es una posición de las que se ofrecen.")
+    if formato not in FORMATOS:
+        raise ComposicionInvalida(f"«{formato}» no es un formato de numeración de los que hay.")
+    if desde < 1 or desde > total_paginas:
+        raise ComposicionInvalida(
+            f"{nombre} tiene {total_paginas} página(s): no se puede empezar en la {desde}."
+        )
+
+
+def comprobar_marca(texto: str, opacidad: str) -> str:
+    """La misma idea que `comprobar_numeracion`. Devuelve el texto ya limpio."""
+    texto = " ".join((texto or "").split())
+    if not texto:
+        raise ComposicionInvalida("No escribiste el texto de la marca.")
+    if len(texto) > MAXIMO_TEXTO:
+        raise ComposicionInvalida(
+            f"El texto no puede pasar de {MAXIMO_TEXTO} caracteres: más largo sale ilegible."
+        )
+    if opacidad not in OPACIDADES:
+        raise ComposicionInvalida(f"«{opacidad}» no es una de las intensidades que se ofrecen.")
+    return texto
+
+
 def numerar(
     origen: str | Path,
     destino: str | Path,
@@ -182,18 +214,9 @@ def numerar(
 
     origen, destino = Path(origen), Path(destino)
 
-    if posicion not in POSICIONES:
-        raise ComposicionInvalida(f"«{posicion}» no es una posición de las que se ofrecen.")
-    if formato not in FORMATOS:
-        raise ComposicionInvalida(f"«{formato}» no es un formato de numeración de los que hay.")
-
     lector = _abrir(origen)
     total_paginas = len(lector.pages)
-
-    if desde < 1 or desde > total_paginas:
-        raise ComposicionInvalida(
-            f"{origen.name} tiene {total_paginas} página(s): no se puede empezar en la {desde}."
-        )
+    comprobar_numeracion(posicion, formato, desde, total_paginas, origen.name)
 
     cuantas_marcadas = total_paginas - desde + 1
     # «de 56» tiene que ser el ultimo numero que de verdad aparece impreso. Si la portada no
@@ -259,16 +282,7 @@ def marca_de_agua(
     from reportlab.pdfbase.pdfmetrics import stringWidth
 
     origen, destino = Path(origen), Path(destino)
-    texto = " ".join((texto or "").split())
-
-    if not texto:
-        raise ComposicionInvalida("No escribiste el texto de la marca.")
-    if len(texto) > MAXIMO_TEXTO:
-        raise ComposicionInvalida(
-            f"El texto no puede pasar de {MAXIMO_TEXTO} caracteres: más largo sale ilegible."
-        )
-    if opacidad not in OPACIDADES:
-        raise ComposicionInvalida(f"«{opacidad}» no es una de las intensidades que se ofrecen.")
+    texto = comprobar_marca(texto, opacidad)
 
     lector = _abrir(origen)
     escritor = PdfWriter(clone_from=lector)

@@ -54,7 +54,9 @@ def _alternativas(job: ConversionJob) -> tuple[dict, ...]:
     from apps.engines.base import ParDeFormatos
     from apps.formats import catalogo
 
-    if job.status != ERROR or not job.source_format_code:
+    # Una herramienta de documentos no tiene «otro formato que sí se puede»: numerar un PDF
+    # no se sustituye por otra cosa. Preguntar a la matriz por `doc:numerar` no significa nada.
+    if job.status != ERROR or not job.source_format_code or job.herramienta:
         return ()
 
     celda = registry.celda(ParDeFormatos(job.source_format_code, job.target_format_code))
@@ -70,10 +72,28 @@ def _alternativas(job: ConversionJob) -> tuple[dict, ...]:
     return tuple(salida)
 
 
+def _contexto(job: ConversionJob) -> dict:
+    return {"trabajo": job, "alternativas": _alternativas(job), "asomo": _asomo(job)}
+
+
+def _asomo(job: ConversionJob) -> str:
+    """Las primeras líneas de un `.md` recién hecho, para no tener que descargarlo a ciegas.
+
+    La pantalla de Markdown lo enseñaba antes de que la conversión pasara por la cola; sin
+    esto se habría perdido, y es lo que evita descubrir tras descargar que la hoja que hacía
+    falta era la otra.
+    """
+    if job.status != "done" or not job.output_path.endswith(".md"):
+        return ""
+    from apps.documents.a_markdown import asomarse
+
+    return asomarse(Path(job.output_path))
+
+
 @login_required
 def ficha(request, pk):
     job = _mio(request, pk)
-    return render(request, "jobs/ficha.html", {"trabajo": job, "alternativas": _alternativas(job)})
+    return render(request, "jobs/ficha.html", _contexto(job))
 
 
 @login_required
@@ -84,9 +104,7 @@ def progreso(request, pk):
     plantilla omite el `hx-trigger` cuando el trabajo es terminal.
     """
     job = _mio(request, pk)
-    return render(
-        request, "jobs/_progreso.html", {"trabajo": job, "alternativas": _alternativas(job)}
-    )
+    return render(request, "jobs/_progreso.html", _contexto(job))
 
 
 @login_required
@@ -117,6 +135,9 @@ def reencolar(request, pk):
     versión, ni cuánto tardó en fallar. `retry_of` conserva el hilo.
     """
     anterior = _mio(request, pk)
+    if anterior.herramienta:
+        return _reencolar_documento(request, anterior)
+
     formato = (request.POST.get("formato") or anterior.target_format_code).strip()
 
     nuevo = ConversionJob.objects.create(
@@ -135,6 +156,79 @@ def reencolar(request, pk):
         max_attempts=anterior.max_attempts,
     )
     nuevo.registrar(f"Reencolado desde {anterior.pk} hacia {formato}.")
+    return redirect("jobs:ficha", pk=nuevo.pk)
+
+
+def _reencolar_documento(request, anterior: ConversionJob):
+    """Reintentar una herramienta de documentos: **todas sus entradas**, no solo la primera.
+
+    La rama de arriba copia `source_path`, que para un «Unir» de veinte archivos es uno solo.
+    Aquí se copian las filas de entrada —sin su huella, que se recalcula en cada intento— y
+    se vuelven a reclamar las subidas.
+
+    Lo que **no** se puede reintentar lo dice la herramienta: si la entrada era una subida que
+    ya caducó, no hay de dónde leer, y si hacía falta una contraseña, por diseño ya no está.
+    En los dos casos se vuelve a la pantalla de la herramienta diciendo qué falta.
+    """
+    from django.urls import reverse
+
+    from apps.documents.herramientas import POR_ID
+
+    from .models import EntradaDeTrabajo
+
+    herramienta = POR_ID.get(anterior.herramienta, {})
+    pantalla = reverse(herramienta["url"]) if herramienta.get("url") else reverse("jobs:lista")
+
+    if (anterior.options or {}).get("pide_contrasena"):
+        messages.info(
+            request, "La contraseña no se guarda nunca: vuelve a escribirla para repetirlo."
+        )
+        # **Con el archivo ya puesto**: lo único que falta es la contraseña, y hacer elegir
+        # otra vez el archivo sería pedir dos cosas para devolver una.
+        primera = anterior.entradas.select_related("subida").first()
+        if primera is not None and Path(primera.ruta).exists():
+            from urllib.parse import urlencode
+
+            token = primera.subida.token if primera.subida else primera.ruta
+            return redirect(f"{pantalla}?{urlencode({'ruta': token})}")
+        return redirect(pantalla)
+
+    entradas = list(anterior.entradas.select_related("subida"))
+    faltan = [e.nombre for e in entradas if not Path(e.ruta).exists()]
+    if faltan:
+        messages.error(
+            request,
+            f"Ya no está {', '.join(faltan)}: una subida se borra sola pasado un día. "
+            "Vuelve a elegirlo.",
+        )
+        return redirect(pantalla)
+
+    nuevo = ConversionJob.objects.create(
+        owner=request.user,
+        herramienta=anterior.herramienta,
+        source_path=anterior.source_path,
+        source_name=anterior.source_name,
+        source_format_code=anterior.source_format_code,
+        target_format_code=anterior.target_format_code,
+        options=anterior.options,
+        output_path=anterior.output_path,
+        retry_of=anterior,
+        max_attempts=anterior.max_attempts,
+    )
+    for entrada in entradas:
+        EntradaDeTrabajo.objects.create(
+            job=nuevo,
+            orden=entrada.orden,
+            papel=entrada.papel,
+            ruta=entrada.ruta,
+            nombre=entrada.nombre,
+            subida=entrada.subida,
+        )
+        if entrada.subida is not None:
+            entrada.subida.expires_at = None
+            entrada.subida.save(update_fields=["expires_at", "updated_at"])
+
+    nuevo.registrar(f"Reencolado desde {anterior.pk}.")
     return redirect("jobs:ficha", pk=nuevo.pk)
 
 

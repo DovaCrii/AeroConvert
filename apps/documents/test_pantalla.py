@@ -18,6 +18,7 @@ from django.urls import reverse
 
 from apps.documents import receta as receta_mod
 from apps.formats import pdf as lector
+from apps.jobs import despachador
 
 pytestmark = pytest.mark.django_db
 
@@ -41,6 +42,7 @@ def _crear(carpeta, nombre, paginas):
 @pytest.fixture
 def sesion(client, db, tmp_path, settings):
     settings.RAICES_PERMITIDAS = str(tmp_path)
+    settings.CARPETA_DE_TRABAJO = str(tmp_path / "trabajo")
     client.force_login(
         get_user_model().objects.create_user("topografo", password="x" * 20)  # nosec B106
     )
@@ -94,7 +96,8 @@ class TestElRecorrido:
             assert receta == esperado
 
     def test_generar_escribe_lo_que_dice_la_receta(self, sesion, archivos, tmp_path):
-        _accion(sesion, archivos, "generar", "0:2:90,1:1:0")
+        assert _accion(sesion, archivos, "generar", "0:2:90,1:1:0").status_code == 302
+        assert despachador.procesar_una_vez() == 1
 
         salida = tmp_path / "memoria_unido.pdf"
         assert salida.exists()
@@ -108,6 +111,7 @@ class TestElRecorrido:
     def test_y_los_originales_no_se_tocan(self, sesion, archivos):
         antes = [a.read_bytes() for a in archivos]
         _accion(sesion, archivos, "generar", "0:1:90,1:1:0")
+        despachador.procesar_una_vez()
         assert [a.read_bytes() for a in archivos] == antes
 
 

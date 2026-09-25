@@ -3,12 +3,24 @@
 {% block titulo %}{{ trabajo.source_name }} · AeroConvert{% endblock %}
 
 {% block contenido %}
+{% comment %}
+  **Un trabajo de documentos se nombra por lo que se le hace**: «Numerar páginas · plano.pdf».
+  «plano.pdf hacia Numerar páginas» se leía como si numerar fuera un formato. Y el perfil, por
+  su nombre y no por `civil3d`.
+{% endcomment %}
 <div class="eyebrow">Trabajo</div>
-<h1 style="font-size:1.4rem; margin-bottom:2px;">{{ trabajo.source_name }}</h1>
-<p class="tenue" style="margin-bottom:18px;">
-  hacia {{ trabajo.nombre_del_destino }}
-  {% if trabajo.target_profile_id %}· perfil {{ trabajo.target_profile_id }}{% endif %}
-</p>
+{% if trabajo.es_de_documentos %}
+  <h1 style="font-size:1.4rem; margin-bottom:2px;">{{ trabajo.nombre_del_destino }}</h1>
+  <p class="tenue" style="margin-bottom:18px;">
+    {{ trabajo.source_name }}{% with n=trabajo.entradas.count %}{% if n > 1 %} y {{ n|add:"-1" }} más{% endif %}{% endwith %}
+  </p>
+{% else %}
+  <h1 style="font-size:1.4rem; margin-bottom:2px;">{{ trabajo.source_name }}</h1>
+  <p class="tenue" style="margin-bottom:18px;">
+    hacia {{ trabajo.nombre_del_destino }}
+    {% if trabajo.nombre_del_perfil %}· {{ trabajo.nombre_del_perfil }}{% endif %}
+  </p>
+{% endif %}
 
 {% include "jobs/_progreso.html" %}
 
