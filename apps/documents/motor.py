@@ -21,9 +21,12 @@ escrito por otra gente: si pypdf escribiera un PDF que solo pypdf sabe leer, est
 
 from __future__ import annotations
 
+import io
 import json
 import re
+import shutil
 import sys
+import zipfile
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -68,6 +71,10 @@ ESPECIFICACIONES: dict[str, Especificacion] = {
     "comprimir": Especificacion(
         carril=PESADO, timeout_s=1800, emite_progreso=True, salida_opcional=True
     ),
+    "dividir": Especificacion(emite_progreso=True),
+    # Dibujar doscientas láminas a 300 ppp no cabe en cinco minutos, y sigue siendo del
+    # carril ligero: avanza hoja a hoja y lo dice, así que no bloquea sin que se vea.
+    "a_imagenes": Especificacion(timeout_s=900, emite_progreso=True),
 }
 
 
@@ -119,6 +126,12 @@ def borrar_auxiliares(job) -> None:
             ruta.unlink(missing_ok=True)
         except OSError:
             pass
+    # Las piezas de Dividir y PDF a imágenes. El hijo las borra al terminar, pero si lo mata
+    # el plazo o un «Cancelar» no llega a hacerlo, y quedarían junto al original de alguien.
+    if job.output_path:
+        from .tarea import carpeta_de_piezas
+
+        shutil.rmtree(carpeta_de_piezas(ruta_parcial(Path(job.output_path))), ignore_errors=True)
 
 
 # --- Disponibilidad, plan y verificación --------------------------------------
@@ -215,6 +228,15 @@ def verificar(parcial: Path, informe: dict) -> Verificacion:
 
     if extension == ".pdf":
         return _verificar_pdf(parcial, detalles)
+    if extension == ".zip":
+        return _verificar_zip(parcial, detalles)
+    if extension in _IMAGENES:
+        try:
+            _comprobar_imagen(parcial.read_bytes())
+        except Exception as fallo:  # noqa: BLE001 - lo que falle al leerla es lo que se mide
+            return Verificacion(False, f"La imagen no se deja leer: {fallo}", "salida-invalida")
+        detalles["verificado_con"] = "Pillow"
+        return Verificacion(True, detalles=detalles)
     if extension == ".md":
         try:
             texto = parcial.read_text(encoding="utf-8")
@@ -230,17 +252,88 @@ def verificar(parcial: Path, informe: dict) -> Verificacion:
     return Verificacion(True, detalles=detalles)
 
 
-def _verificar_pdf(parcial: Path, detalles: dict) -> Verificacion:
+_IMAGENES = frozenset({".png", ".jpg", ".jpeg"})
+
+
+def _paginas_con_pdfium(fuente) -> int:
+    """Cuántas páginas ve PDFium. `fuente` es una ruta o los bytes de un PDF dentro del zip."""
     import pypdfium2
 
+    documento = pypdfium2.PdfDocument(str(fuente) if isinstance(fuente, Path) else fuente)
     try:
-        documento = pypdfium2.PdfDocument(str(parcial))
-    except Exception as fallo:  # noqa: BLE001 - PDFium no lo abre, y eso es lo que se mide
-        return Verificacion(False, f"El PDF escrito no se deja abrir: {fallo}", "salida-invalida")
-    try:
-        paginas = len(documento)
+        return len(documento)
     finally:
         documento.close()
+
+
+def _comprobar_imagen(datos: bytes) -> None:
+    """Que la imagen se deje leer entera.
+
+    **Aquí el lector es el mismo que la escribió** —Pillow— y conviene decirlo: no hay en el
+    proyecto otro que lea PNG y JPEG. Lo que sí caza es lo que se ve en la práctica: una
+    imagen cortada por un disco lleno, o un PNG con el CRC roto. Las dimensiones no se
+    comparan con nada porque saldrían de la misma cuenta que las produjo.
+    """
+    from PIL import Image
+
+    with Image.open(io.BytesIO(datos)) as imagen:
+        imagen.verify()
+
+
+def _verificar_zip(parcial: Path, detalles: dict) -> Verificacion:
+    """Cada pieza, abierta por separado. Un zip íntegro con un PDF roto dentro sigue roto."""
+    try:
+        paquete = zipfile.ZipFile(parcial)
+    except zipfile.BadZipFile as fallo:
+        return Verificacion(False, f"El zip escrito no se deja abrir: {fallo}", "salida-invalida")
+
+    with paquete:
+        rota = paquete.testzip()
+        if rota is not None:
+            return Verificacion(False, f"{rota} está dañado dentro del zip.", "salida-invalida")
+
+        nombres = paquete.namelist()
+        esperadas = {p["nombre"]: p for p in detalles.get("piezas") or []}
+        if esperadas and sorted(nombres) != sorted(esperadas):
+            return Verificacion(
+                False,
+                f"La herramienta dice que escribió {len(esperadas)} piezas y el zip trae "
+                f"{len(nombres)}.",
+                "salida-invalida",
+            )
+        if not nombres:
+            return Verificacion(False, "El zip salió vacío.", "salida-invalida")
+
+        lectores = set()
+        for nombre in nombres:
+            datos = paquete.read(nombre)
+            try:
+                if nombre.lower().endswith(".pdf"):
+                    paginas = _paginas_con_pdfium(datos)
+                    lectores.add("PDFium")
+                    pedidas = (esperadas.get(nombre) or {}).get("paginas")
+                    if not paginas or (pedidas and int(pedidas) != paginas):
+                        return Verificacion(
+                            False,
+                            f"{nombre} debía tener {pedidas} página(s) y tiene {paginas}.",
+                            "salida-invalida",
+                        )
+                else:
+                    _comprobar_imagen(datos)
+                    lectores.add("Pillow")
+            except Exception as fallo:  # noqa: BLE001 - la pieza no se lee, y eso se mide
+                return Verificacion(False, f"{nombre} no se deja abrir: {fallo}", "salida-invalida")
+
+    detalles["piezas_verificadas"] = len(nombres)
+    detalles["verificado_con"] = " y ".join(sorted(lectores))
+    return Verificacion(True, detalles=detalles)
+
+
+def _verificar_pdf(parcial: Path, detalles: dict) -> Verificacion:
+    try:
+        paginas = _paginas_con_pdfium(parcial)
+    except Exception as fallo:  # noqa: BLE001 - PDFium no lo abre, y eso es lo que se mide
+        return Verificacion(False, f"El PDF escrito no se deja abrir: {fallo}", "salida-invalida")
 
     if paginas == 0:
         return Verificacion(False, "El PDF salió sin páginas.", "salida-invalida")

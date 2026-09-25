@@ -323,3 +323,110 @@ class TestLosCarriles:
         assert despachador.procesar_una_vez("ligero") == 1
         doc.refresh_from_db()
         assert doc.status == HECHO, doc.reason_detail
+
+
+class TestVariasPiezas:
+    """Dividir y PDF a imágenes: **varias salidas en un zip, y todas o ninguna**."""
+
+    def _dividir(self, usuario, origen, trozos):
+        salida = origen.with_name(f"{origen.stem}_partes.zip")
+        return _trabajo(usuario, origen, herramienta="dividir", salida=salida, trozos=trozos)
+
+    def test_el_zip_sale_con_cada_pieza_abierta_por_pdfium(self, usuario, plano):
+        import zipfile
+
+        antes = _huella(plano)
+        job = _correr(self._dividir(usuario, plano, [[1, 1], [2, 3]]))
+        assert job.status == HECHO, job.reason_detail
+        with zipfile.ZipFile(job.output_path) as paquete:
+            assert sorted(paquete.namelist()) == ["plano_1.pdf", "plano_2-3.pdf"]
+        assert job.verification["piezas_verificadas"] == 2
+        assert _huella(plano) == antes
+        assert not list(plano.parent.glob("*.piezas"))
+
+    def test_un_trozo_imposible_no_deja_ni_zip_ni_piezas(self, usuario, plano):
+        """El tercer trozo pide la página 9 de un documento de 3: las dos primeras piezas ya
+        estaban escritas, y **no se entregan**."""
+        antes = _huella(plano)
+        job = _correr(self._dividir(usuario, plano, [[1, 1], [2, 2], [9, 9]]))
+        assert job.status == ERROR
+        assert job.reason_code == "documento-invalido"
+        assert "3 página(s)" in job.reason_detail
+        assert not Path(job.output_path).exists()
+        assert not list(plano.parent.glob("*.parcial*"))
+        assert _huella(plano) == antes
+
+    def test_si_el_hijo_muere_el_corredor_se_lleva_las_piezas(self, usuario, plano):
+        """El hijo las borra al terminar; si lo mata un plazo, no llega a hacerlo."""
+        from apps.documents.tarea import carpeta_de_piezas
+        from apps.engines.base import ruta_parcial
+
+        job = self._dividir(usuario, plano, [[1, 1]])
+        carpeta = carpeta_de_piezas(ruta_parcial(Path(job.output_path)))
+        carpeta.mkdir()
+        (carpeta / "plano_1.pdf").write_bytes(b"%PDF-1.7\n")
+        documentos.borrar_auxiliares(job)
+        assert not carpeta.exists()
+
+    def test_y_el_barrido_las_reconoce_si_murio_el_obrero_entero(self, carpeta_de_trabajo):
+        """Las piezas se llaman como dentro del zip —`plano_3.pdf`—, sin marca de trabajo.
+        La lleva la carpeta, y el barrido tiene que mirarla."""
+        from apps.jobs import retencion
+
+        carpeta = carpeta_de_trabajo / "plano_partes.parcial.zip.piezas"
+        carpeta.mkdir(parents=True)
+        pieza = carpeta / "plano_3.pdf"
+        pieza.write_bytes(b"x" * 10)
+        hace_dos_horas = pieza.stat().st_mtime - 7200
+        os.utime(pieza, (hace_dos_horas, hace_dos_horas))
+        retencion._barrer_huerfanos()
+        assert not pieza.exists()
+
+
+class TestLaVerificacionDeLasPiezas:
+    """Un zip íntegro con un PDF roto dentro sigue estando roto."""
+
+    def _zip(self, ruta, piezas: dict[str, bytes]) -> Path:
+        import zipfile
+
+        with zipfile.ZipFile(ruta, "w") as paquete:
+            for nombre, datos in piezas.items():
+                paquete.writestr(nombre, datos)
+        return ruta
+
+    def test_un_pdf_roto_dentro_del_zip(self, plano, tmp_path):
+        parcial = self._zip(
+            tmp_path / "x.parcial.zip",
+            {"plano_1.pdf": plano.read_bytes(), "plano_2.pdf": b"%PDF-1.7\nroto"},
+        )
+        hecho = documentos.verificar(parcial, {})
+        assert not hecho.correcta
+        assert "plano_2.pdf" in hecho.motivo
+
+    def test_una_pieza_de_menos(self, plano, tmp_path):
+        parcial = self._zip(tmp_path / "x.parcial.zip", {"plano_1.pdf": plano.read_bytes()})
+        informe = {"detalles": {"piezas": [{"nombre": "plano_1.pdf"}, {"nombre": "plano_2.pdf"}]}}
+        hecho = documentos.verificar(parcial, informe)
+        assert not hecho.correcta
+        assert "2 piezas" in hecho.motivo
+
+    def test_una_pieza_con_otras_paginas(self, plano, tmp_path):
+        parcial = self._zip(tmp_path / "x.parcial.zip", {"plano_1-2.pdf": plano.read_bytes()})
+        informe = {"detalles": {"piezas": [{"nombre": "plano_1-2.pdf", "paginas": 2}]}}
+        hecho = documentos.verificar(parcial, informe)
+        assert not hecho.correcta
+        assert "tiene 3" in hecho.motivo
+
+    def test_algo_que_no_es_un_zip(self, tmp_path):
+        parcial = tmp_path / "x.parcial.zip"
+        parcial.write_bytes(b"PK no del todo")
+        assert documentos.verificar(parcial, {}).codigo_motivo == "salida-invalida"
+
+    def test_una_imagen_cortada(self, tmp_path):
+        from PIL import Image
+
+        entera = tmp_path / "entera.png"
+        Image.new("RGB", (300, 200), (10, 20, 30)).save(entera)
+        cortada = tmp_path / "x.parcial.png"
+        cortada.write_bytes(entera.read_bytes()[:120])
+        assert not documentos.verificar(cortada, {}).correcta

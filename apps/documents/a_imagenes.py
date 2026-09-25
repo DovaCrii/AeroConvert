@@ -19,7 +19,7 @@ JPEG y no se nota. Por eso se elige, y por eso el aviso está en la pantalla y n
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from pathlib import Path
 
 from .composicion import ComposicionInvalida
@@ -47,6 +47,7 @@ def paginas_a_imagenes(
     formato: str = "png",
     ppp: int = 150,
     carpeta: Path | None = None,
+    progreso: Callable[[float], None] | None = None,
 ) -> list[Path]:
     """Escribe una imagen por página y devuelve las rutas.
 
@@ -103,6 +104,8 @@ def paginas_a_imagenes(
             finally:
                 imagen.close()
             escritas.append(destino)
+            if progreso is not None:
+                progreso(len(escritas) / len(numeros))
     except Exception:
         for hecha in escritas:
             hecha.unlink(missing_ok=True)

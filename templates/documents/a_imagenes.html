@@ -44,6 +44,7 @@
                value="{{ rangos }}" placeholder="1-5, 8, 12-14" autocomplete="off">
         <p class="tenue" style="margin:4px 0 0; font-size:.85rem;">
           Déjalo vacío y salen todas. Los dos extremos entran: <code>1-5</code> son cinco.
+          Una página sale suelta; varias, juntas en un zip.
         </p>
       </div>
 
@@ -88,18 +89,4 @@
   {% endif %}
 </form>
 
-{% if escritas %}
-  <div class="tarjeta tarjeta-acento">
-    <div class="eyebrow">Hecho</div>
-    <div class="recibo">
-      <strong class="recibo-titulo">✓ {{ escritas|length }} imagen(es)</strong>
-      <ul style="margin:8px 0 0; padding-left:18px; font-size:.9rem;">
-        {% for archivo in escritas %}
-          <li class="mono">{{ archivo.name }}</li>
-        {% endfor %}
-      </ul>
-      <p class="tenue" style="margin:10px 0 0;">Junto al original, que no se tocó.</p>
-    </div>
-  </div>
-{% endif %}
 {% endblock %}

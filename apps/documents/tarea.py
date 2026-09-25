@@ -143,6 +143,86 @@ def _comprimir(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
     return detalles
 
 
+def carpeta_de_piezas(parcial: Path) -> Path:
+    """Donde se escriben las piezas antes de entregarlas.
+
+    **Junto al parcial**, para que el `os.replace` de una pieza suelta sea un renombrado y no
+    una copia entre discos. Lleva el nombre del parcial delante: así el corredor la encuentra
+    para borrarla aunque el hijo muera a mitad, que es justo cuando nadie más lo haría.
+    """
+    return parcial.with_name(parcial.name + ".piezas")
+
+
+def _entregar_piezas(escritas: list[Path], parcial: Path, piezas: list[dict]) -> dict:
+    """Una pieza sale suelta; varias, en un zip. **Todas o ninguna**, como en `partir()`.
+
+    El zip no es una comodidad: la descarga, el barrido y la retención suponen un archivo por
+    trabajo, y un `os.replace` de un solo archivo es el «todo o nada» que la herramienta ya
+    prometía. Veinte PDF sueltos repartidos por la carpeta no se pueden entregar a medias sin
+    que nadie lo note; un zip que no se renombró no existe.
+    """
+    import os
+    import zipfile
+
+    if len(escritas) == 1:
+        os.replace(escritas[0], parcial)
+        return dict(piezas[0])
+
+    # Los PDF se comprimen; las imágenes ya vienen comprimidas y deflarlas otra vez solo
+    # gasta tiempo para ganar nada.
+    ya_comprimidas = {".png", ".jpg", ".jpeg"}
+    with zipfile.ZipFile(parcial, "w") as paquete:
+        for ruta in escritas:
+            modo = (
+                zipfile.ZIP_STORED
+                if ruta.suffix.lower() in ya_comprimidas
+                else zipfile.ZIP_DEFLATED
+            )
+            paquete.write(ruta, arcname=ruta.name, compress_type=modo)
+    return {"piezas": piezas}
+
+
+def _dividir(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
+    import shutil
+
+    from apps.documents import dividir
+
+    trozos = [dividir.Trozo(int(desde), int(hasta)) for desde, hasta in opciones["trozos"]]
+    carpeta = carpeta_de_piezas(parcial)
+    carpeta.mkdir(parents=True, exist_ok=True)
+    try:
+        escritos = dividir.partir(entradas[0]["ruta"], trozos, carpeta, progreso=progreso)
+        piezas = [
+            {"nombre": ruta.name, "paginas": trozo.cuantas}
+            for ruta, trozo in zip(escritos, trozos, strict=True)
+        ]
+        return _entregar_piezas(escritos, parcial, piezas)
+    finally:
+        shutil.rmtree(carpeta, ignore_errors=True)
+
+
+def _a_imagenes(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
+    import shutil
+
+    from apps.documents import a_imagenes, dividir
+
+    trozos = [dividir.Trozo(int(n), int(n)) for n in opciones["paginas"]]
+    carpeta = carpeta_de_piezas(parcial)
+    carpeta.mkdir(parents=True, exist_ok=True)
+    try:
+        escritas = a_imagenes.paginas_a_imagenes(
+            entradas[0]["ruta"],
+            trozos,
+            formato=opciones.get("formato", "png"),
+            ppp=int(opciones.get("ppp", 150)),
+            carpeta=carpeta,
+            progreso=progreso,
+        )
+        return _entregar_piezas(escritas, parcial, [{"nombre": r.name} for r in escritas])
+    finally:
+        shutil.rmtree(carpeta, ignore_errors=True)
+
+
 def _markdown_a_pdf(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
     from apps.documents import desde_markdown
 
@@ -164,6 +244,8 @@ TAREAS = {
     "md_html": _a_markdown,
     "md_a_pdf": _markdown_a_pdf,
     "comprimir": _comprimir,
+    "dividir": _dividir,
+    "a_imagenes": _a_imagenes,
 }
 
 

@@ -600,14 +600,30 @@ def dividir_vista(request):
             if contexto["modo"] == "hojas"
             else dividir_mod.analizar_rangos(contexto["rangos"], cabecera.cuantas)
         )
-        escritos = dividir_mod.partir(ruta, trozos)
     except ComposicionInvalida as fallo:
         messages.error(request, str(fallo))
         return render(request, "documents/dividir.html", contexto)
 
-    messages.success(request, f"{len(escritos)} archivo(s) escritos junto al original.")
-    contexto["escritos"] = escritos
-    return render(request, "documents/dividir.html", contexto)
+    # Dos trozos iguales saldrían con el mismo nombre, y el segundo pisaría al primero.
+    # Antes pasaba en silencio; dentro de un zip, además, lo dejaría con una pieza de menos.
+    repetidos = sorted({t.sufijo.lstrip("_") for t in trozos if trozos.count(t) > 1})
+    if repetidos:
+        messages.error(
+            request,
+            f"«{', '.join(repetidos)}» está más de una vez. Cada trozo es un archivo, "
+            "y dos iguales saldrían con el mismo nombre.",
+        )
+        return render(request, "documents/dividir.html", contexto)
+
+    # Un trozo sale suelto, con el nombre que ya tenía; varios, juntos en un zip.
+    sufijo = f"{trozos[0].sufijo}.pdf" if len(trozos) == 1 else "_partes.zip"
+    return cola_mod.encolar(
+        request,
+        "dividir",
+        [origen],
+        {"trozos": [[t.desde, t.hasta] for t in trozos]},
+        sufijo=sufijo,
+    )
 
 
 @login_required
@@ -708,12 +724,20 @@ def a_imagenes_vista(request):
         messages.error(request, error)
         return render(request, "documents/a_imagenes.html", contexto)
 
-    ruta = origen.ruta
     contexto["ruta_texto"] = contexto["ruta"] = origen.token
     contexto["nombre_origen"] = origen.nombre
     contexto["cabecera"] = cabecera
 
     if request.POST.get("accion") != "convertir":
+        return render(request, "documents/a_imagenes.html", contexto)
+
+    # Lo que se puede comprobar aquí se comprueba aquí: descubrirlo en la cola manda a la
+    # persona a una ficha roja y de vuelta a esta pantalla, con el formulario vacío.
+    if contexto["formato"] not in a_imagenes_mod.FORMATOS:
+        messages.error(request, f"«{contexto['formato']}» no es un formato de los que se hacen.")
+        return render(request, "documents/a_imagenes.html", contexto)
+    if contexto["ppp_elegido"] not in a_imagenes_mod.RESOLUCIONES:
+        messages.error(request, f"«{contexto['ppp_elegido']}» no es una de las resoluciones.")
         return render(request, "documents/a_imagenes.html", contexto)
 
     try:
@@ -722,19 +746,22 @@ def a_imagenes_vista(request):
             if contexto["rangos"]
             else dividir_mod.una_por_pagina(cabecera.cuantas)
         )
-        escritas = a_imagenes_mod.paginas_a_imagenes(
-            ruta,
-            trozos,
-            formato=contexto["formato"],
-            ppp=contexto["ppp_elegido"],
-        )
     except ComposicionInvalida as fallo:
         messages.error(request, str(fallo))
         return render(request, "documents/a_imagenes.html", contexto)
 
-    messages.success(request, f"{len(escritas)} imagen(es) junto al original.")
-    contexto["escritas"] = escritas
-    return render(request, "documents/a_imagenes.html", contexto)
+    # Los rangos se solapan sin problema —«1-3, 2» es pedir la 2 dos veces—, así que se
+    # cuentan páginas, no trozos.
+    paginas = sorted({n for t in trozos for n in range(t.desde, t.hasta + 1)})
+    formato = contexto["formato"]
+    sufijo = f"_{paginas[0]}.{formato}" if len(paginas) == 1 else f"_imagenes_{formato}.zip"
+    return cola_mod.encolar(
+        request,
+        "a_imagenes",
+        [origen],
+        {"paginas": paginas, "formato": formato, "ppp": contexto["ppp_elegido"]},
+        sufijo=sufijo,
+    )
 
 
 @login_required

@@ -171,6 +171,21 @@ generar 10.800 peticiones.
           </dd>
         {% endif %}
 
+        {% if trabajo.verification.piezas_verificadas %}
+          {# Abiertas por separado: un zip íntegro con un PDF roto dentro sigue estando roto. #}
+          <dt>Piezas</dt>
+          <dd>
+            {{ trabajo.verification.piezas_verificadas }} en el zip
+            <span class="tenue">· abiertas una a una con {{ trabajo.verification.verificado_con }}</span>
+            <ul class="lista-piezas mono">
+              {% for pieza in trabajo.verification.piezas|slice:":12" %}<li>{{ pieza.nombre }}</li>{% endfor %}
+            </ul>
+            {% if trabajo.verification.piezas|length > 12 %}
+              <span class="tenue">…y {{ trabajo.verification.piezas|length|add:"-12" }} más</span>
+            {% endif %}
+          </dd>
+        {% endif %}
+
         <dt>Motor</dt>
         <dd>{{ trabajo.engine_version|default:trabajo.engine_id }}</dd>
 
