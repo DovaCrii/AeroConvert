@@ -279,9 +279,16 @@ class ConversionJob(BaseModel):
 
         Existe para que el recibo no tenga que encadenar filtros para multiplicar por cien:
         una cifra que el cliente va a leer no se calcula con `floatformat`.
+
+        **`None` si no bajó.** Las cuatro plantillas que la usan le ponen «−» delante, y con
+        las herramientas de documentos la salida pesa más a menudo —un zip, un PDF cifrado,
+        uno con su capa de texto—: el recibo decía «3,6 KB → 3,8 KB (−-5 %)».
         """
         reduccion = self.reduccion
-        return None if reduccion is None else int(round(reduccion * 100))
+        if reduccion is None:
+            return None
+        porcentaje = int(round(reduccion * 100))
+        return porcentaje if porcentaje > 0 else None
 
     @property
     def intervalo_de_sondeo_s(self) -> int:
