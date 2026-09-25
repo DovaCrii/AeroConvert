@@ -793,29 +793,51 @@ def proteger_vista(request):
     if accion not in ("proteger", "quitar"):
         return render(request, "documents/proteger.html", contexto)
 
-    sufijo = "_protegido" if accion == "proteger" else "_sin_clave"
-    destino = ruta.with_name(f"{ruta.stem}{sufijo}.pdf")
-    parcial = ruta_parcial(destino)
     contrasena = request.POST.get("contrasena") or ""
-
     try:
-        if accion == "proteger":
-            paginas = seguridad_mod.proteger(ruta, parcial, contrasena)
-        else:
-            paginas = seguridad_mod.quitar_contrasena(ruta, parcial, contrasena)
-    except ComposicionInvalida as fallo:
-        parcial.unlink(missing_ok=True)
-        messages.error(request, str(fallo))
-        return render(request, "documents/proteger.html", contexto)
-    finally:
-        # Que no quede viva en el marco de la excepcion mas de lo necesario.
-        contrasena = ""
+        # **Todo lo que se puede decir aquí se dice aquí**, con el formulario delante: una
+        # contraseña corta o que no abre el archivo, descubierta en la cola, manda a una
+        # ficha roja y de vuelta a esta pantalla a escribirla otra vez.
+        problema = _problema_de_proteger(accion, origen, cabecera, contrasena)
+        if problema:
+            messages.error(request, problema)
+            return render(request, "documents/proteger.html", contexto)
 
-    os.replace(parcial, destino)
-    messages.success(request, f"{paginas} página(s) en {destino.name}.")
-    contexto["generado"] = destino
-    contexto["hecho"] = accion
-    return render(request, "documents/proteger.html", contexto)
+        sufijo = "_protegido.pdf" if accion == "proteger" else "_sin_clave.pdf"
+        return cola_mod.encolar(
+            request,
+            "proteger",
+            [origen],
+            # `pide_contrasena` es lo que hace que «Reintentar» vuelva aquí a pedirla, en vez
+            # de repetir un trabajo que ya no tiene con qué abrir el archivo.
+            {"accion": accion, "pide_contrasena": True},
+            sufijo=sufijo,
+            secreto=contrasena,
+        )
+    finally:
+        # Que no quede viva en el marco más de lo necesario.
+        contrasena = ""  # noqa: F841
+
+
+def _problema_de_proteger(accion: str, origen, cabecera, contrasena: str) -> str:
+    """Lo que impide proteger o quitar, en una frase. Vacío si se puede.
+
+    Con `origen.nombre`: el que la persona reconoce, no el que quedó en el servidor.
+    """
+    if accion == "proteger":
+        if cabecera.cifrado:
+            return (
+                f"{origen.nombre} ya está protegido. Quítale la contraseña primero si quieres "
+                "cambiarla."
+            )
+        if len(contrasena) < seguridad_mod.MINIMO:
+            return f"La contraseña tiene que tener al menos {seguridad_mod.MINIMO} caracteres."
+        return ""
+    if not cabecera.cifrado:
+        return f"{origen.nombre} no pide contraseña: no hay nada que quitar."
+    if not seguridad_mod.abre(origen.ruta, contrasena):
+        return "Esa contraseña no abre el archivo."
+    return ""
 
 
 @login_required

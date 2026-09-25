@@ -171,6 +171,19 @@ generar 10.800 peticiones.
           </dd>
         {% endif %}
 
+        {% if trabajo.verification.cifrado %}
+          {# Lo único que promete «proteger» es que sin la clave no abra, y eso es lo que se probó. #}
+          <dt>Contraseña</dt>
+          <dd>
+            {% if trabajo.verification.cifrado == "AES-256" %}
+              Puesta, con AES-256
+              <span class="tenue">· PDFium comprobó que sin ella no abre</span>
+            {% else %}
+              Quitada <span class="tenue">· PDFium lo abre sin nada</span>
+            {% endif %}
+          </dd>
+        {% endif %}
+
         {% if trabajo.verification.por_archivo %}
           {# Unir: cuántas páginas puso cada archivo. Es lo que se revisa cuando falta una. #}
           <dt>De dónde salió</dt>

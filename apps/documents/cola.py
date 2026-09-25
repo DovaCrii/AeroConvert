@@ -41,16 +41,41 @@ def ruta_de_salida(primero, sufijo: str) -> Path:
     return primero.ruta.with_name(nombre)
 
 
-def encolar(request, herramienta: str, origenes: list, opciones: dict, *, sufijo: str):
+def encolar(
+    request,
+    herramienta: str,
+    origenes: list,
+    opciones: dict,
+    *,
+    sufijo: str,
+    secreto: str | None = None,
+):
     """Crea el trabajo y lleva a su ficha, que ya tiene progreso, recibo y descarga.
 
     Devuelve la redirección. `origenes` son los `entrada.Origen` que la pantalla ya resolvió
     —con su comprobación de raíces y de dueño hecha—; aquí no se vuelve a resolver nada.
+
+    `secreto` es la contraseña de «Proteger». **Todo va en una transacción**, y por ella:
+    sin ella el obrero podría ver el trabajo en el instante entre crearlo y dejar la
+    contraseña, cogerlo, y fallar con `falta-la-contrasena` un trabajo recién pedido. Si
+    guardarla falla, el trabajo no llega a existir.
     """
-    from apps.jobs.models import ConversionJob, EntradaDeTrabajo
+    from django.db import transaction
 
     if not motor_documentos.va_por_la_cola(herramienta):
         raise ValueError(f"«{herramienta}» todavía no pasa por la cola.")
+
+    with transaction.atomic():
+        job = _crear(request, herramienta, origenes, opciones, sufijo)
+        if secreto is not None:
+            from . import secretos
+
+            secretos.guardar(job, secreto)
+    return redirect("jobs:ficha", pk=job.pk)
+
+
+def _crear(request, herramienta: str, origenes: list, opciones: dict, sufijo: str):
+    from apps.jobs.models import ConversionJob, EntradaDeTrabajo
 
     primero = origenes[0]
     job = ConversionJob.objects.create(
@@ -78,7 +103,7 @@ def encolar(request, herramienta: str, origenes: list, opciones: dict, *, sufijo
         _reclamar_subida(origen)
 
     job.registrar(f"Encolado: {nombre_de(herramienta)}, con {len(origenes)} archivo(s).")
-    return redirect("jobs:ficha", pk=job.pk)
+    return job
 
 
 def _reclamar_subida(origen) -> None:

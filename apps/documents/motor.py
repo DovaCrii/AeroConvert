@@ -50,6 +50,8 @@ class Especificacion:
     salida_opcional: bool = False
     #: Qué programa de fuera hace falta, si alguno: `office`, `access` o `tesseract`.
     exige: str = ""
+    #: Si necesita una contraseña que la pantalla dejó en `secretos`.
+    con_secreto: bool = False
 
 
 LIGERO = "ligero"
@@ -77,6 +79,8 @@ ESPECIFICACIONES: dict[str, Especificacion] = {
     "a_imagenes": Especificacion(timeout_s=900, emite_progreso=True),
     "unir": Especificacion(),
     "imagenes": Especificacion(),
+    # La contraseña llega por `secretos`, nunca por el encargo. Ver `plan()`.
+    "proteger": Especificacion(con_secreto=True),
 }
 
 
@@ -134,6 +138,11 @@ def borrar_auxiliares(job) -> None:
         from .tarea import carpeta_de_piezas
 
         shutil.rmtree(carpeta_de_piezas(ruta_parcial(Path(job.output_path))), ignore_errors=True)
+    # Normalmente ya no está —`plan()` la toma y la borra—, pero si el trabajo falló antes de
+    # llegar ahí seguiría en disco hasta el barrido.
+    from . import secretos
+
+    secretos.olvidar(job)
 
 
 # --- Disponibilidad, plan y verificación --------------------------------------
@@ -179,6 +188,19 @@ def plan(job) -> PlanDeEjecucion:
         {"ruta": e.ruta, "nombre": e.nombre, "papel": e.papel} for e in job.entradas.all()
     ] or [{"ruta": job.source_path, "nombre": job.source_name, "papel": ""}]
 
+    entorno = {
+        # Sin esto el progreso llega todo junto al final: Python guarda la salida en un
+        # búfer cuando no escribe en una terminal.
+        "PYTHONUNBUFFERED": "1",
+        "PYTHONIOENCODING": "utf-8",
+    }
+    if espec.con_secreto:
+        from . import secretos
+
+        # **Se toma antes de escribir nada**: si ya no está, el trabajo falla sin haber
+        # tocado el disco. Levanta `secretos.SinSecreto`, que el corredor traduce.
+        entorno[secretos.VARIABLE] = secretos.tomar(job)
+
     encargo = ruta_del_encargo(job)
     encargo.parent.mkdir(parents=True, exist_ok=True)
     encargo.write_text(
@@ -197,12 +219,7 @@ def plan(job) -> PlanDeEjecucion:
             str(ruta_del_informe(job)),
         ),
         ruta_de_salida=destino,
-        env={
-            # Sin esto el progreso llega todo junto al final: Python guarda la salida en un
-            # búfer cuando no escribe en una terminal.
-            "PYTHONUNBUFFERED": "1",
-            "PYTHONIOENCODING": "utf-8",
-        },
+        env=entorno,
         cwd=Path(settings.BASE_DIR),
         timeout_s=espec.timeout_s,
         analizador_de_progreso=_analizar_progreso,
@@ -211,7 +228,7 @@ def plan(job) -> PlanDeEjecucion:
     )
 
 
-def verificar(parcial: Path, informe: dict) -> Verificacion:
+def verificar(parcial: Path, informe: dict, plan: PlanDeEjecucion | None = None) -> Verificacion:
     """Comprueba la salida **con un lector distinto del que la escribió**.
 
     Lo que se comprueba lo decide la extensión, no la herramienta: cualquier PDF que salga
@@ -228,8 +245,17 @@ def verificar(parcial: Path, informe: dict) -> Verificacion:
     detalles["bytes"] = tamano
     extension = parcial.suffix.lower()
 
+    if extension == ".pdf" and detalles.get("accion") == "proteger":
+        from . import secretos
+
+        contrasena = (plan.env if plan else {}).get(secretos.VARIABLE, "")
+        return _verificar_protegido(parcial, detalles, contrasena)
     if extension == ".pdf":
-        return _verificar_pdf(parcial, detalles)
+        veredicto = _verificar_pdf(parcial, detalles)
+        if veredicto.correcta and detalles.get("accion") == "quitar":
+            # PDFium acaba de abrirlo sin contraseña, que es justo lo que se pidió.
+            veredicto.detalles["cifrado"] = "ninguno"
+        return veredicto
     if extension == ".zip":
         return _verificar_zip(parcial, detalles)
     if extension in _IMAGENES:
@@ -328,6 +354,61 @@ def _verificar_zip(parcial: Path, detalles: dict) -> Verificacion:
 
     detalles["piezas_verificadas"] = len(nombres)
     detalles["verificado_con"] = " y ".join(sorted(lectores))
+    return Verificacion(True, detalles=detalles)
+
+
+def _verificar_protegido(parcial: Path, detalles: dict, contrasena: str) -> Verificacion:
+    """Tres cosas, y las tres con PDFium, no con pypdf, que es quien cifró.
+
+    1. **Que sin la contraseña no abra.** Es lo único que promete «proteger», y un error que
+       dejara el PDF en claro sería invisible: se abriría bien y parecería que funcionó.
+    2. **Que con ella sí**, y con las páginas que tenía.
+    3. **Que sea AES-256**: revisión 6 del gestor de seguridad estándar. RC4 lleva veinte años
+       roto, y un PDF cifrado así da una seguridad que no existe. Ver `seguridad.py`.
+    """
+    import pypdfium2
+    import pypdfium2.raw as pdfium_c
+
+    try:
+        _paginas_con_pdfium(parcial)
+    except pypdfium2.PdfiumError:
+        pass  # lo esperado: pide contraseña
+    else:
+        return Verificacion(False, "El PDF «protegido» se abre sin contraseña.", "salida-invalida")
+
+    if not contrasena:
+        return Verificacion(
+            False, "No hay contraseña con la que comprobar el resultado.", "falta-la-contrasena"
+        )
+    try:
+        documento = pypdfium2.PdfDocument(str(parcial), password=contrasena)
+    except pypdfium2.PdfiumError as fallo:
+        return Verificacion(
+            False,
+            f"La contraseña no abre el PDF que se acaba de cifrar: {fallo}",
+            "salida-invalida",
+        )
+    try:
+        paginas = len(documento)
+        revision = pdfium_c.FPDF_GetSecurityHandlerRevision(documento.raw)
+    finally:
+        documento.close()
+
+    if revision < 6:
+        return Verificacion(
+            False, f"El cifrado no es AES-256 (revisión {revision}).", "salida-invalida"
+        )
+    esperadas = detalles.get("paginas")
+    if not paginas or (esperadas and int(esperadas) != paginas):
+        return Verificacion(
+            False,
+            f"La herramienta dice que escribió {esperadas} páginas y el PDF tiene {paginas}.",
+            "salida-invalida",
+        )
+
+    detalles["paginas_verificadas"] = paginas
+    detalles["verificado_con"] = "PDFium"
+    detalles["cifrado"] = "AES-256"
     return Verificacion(True, detalles=detalles)
 
 

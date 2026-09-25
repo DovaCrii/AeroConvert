@@ -149,6 +149,10 @@ def ejecutar(job: ConversionJob) -> Resultado:
     )
     if job.herramienta:
         _soltar_subidas(job)
+        # En cualquier final, también si falló antes de llegar a tomarla.
+        from apps.documents import secretos
+
+        secretos.olvidar(job)
     return resultado
 
 
@@ -349,7 +353,12 @@ def _ejecutar_documento(job: ConversionJob) -> Resultado:
     job.output_path = str(_destino_libre(job, Path(job.output_path)))
     job.save(update_fields=["engine_id", "engine_version", "output_path", "updated_at"])
 
-    plan = documentos.plan(job)
+    from apps.documents import secretos
+
+    try:
+        plan = documentos.plan(job)
+    except secretos.SinSecreto as falta:
+        raise TrabajoFallido("falta-la-contrasena", str(falta)) from falta
     destino = Path(plan.ruta_de_salida)
     parcial = ruta_parcial(destino)
 
@@ -412,7 +421,7 @@ def _ejecutar_documento(job: ConversionJob) -> Resultado:
         job.save(update_fields=["status", "updated_at"])
         job.marcar_progreso(VERIFICACION, 0.0)
 
-        veredicto = documentos.verificar(parcial, informe)
+        veredicto = documentos.verificar(parcial, informe, plan)
         if not veredicto.correcta:
             _borrar(parcial)
             raise TrabajoFallido(veredicto.codigo_motivo or "salida-invalida", veredicto.motivo)

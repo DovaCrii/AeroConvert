@@ -193,7 +193,7 @@ class TestLosCaminosDeFallo:
         monkeypatch.setattr(
             documentos,
             "verificar",
-            lambda parcial, informe: Verificacion(False, "inventado", "salida-invalida"),
+            lambda parcial, informe, plan=None: Verificacion(False, "inventado", "salida-invalida"),
         )
         job = _correr(_trabajo(usuario, plano))
         assert job.status == ERROR
@@ -432,6 +432,94 @@ class TestVariasEntradas:
         assert not (tmp_path / "foto1_imagenes.pdf").exists()
         assert not list(tmp_path.glob("*.parcial*"))
         assert [_huella(buena), _huella(mala)] == antes
+
+
+class TestProteger:
+    CLAVE = "obra-2026-bhp-centinela"
+
+    def _trabajo(self, usuario, origen, accion="proteger"):
+        return _trabajo(
+            usuario,
+            origen,
+            herramienta="proteger",
+            salida=origen.with_name(f"{origen.stem}_protegido.pdf"),
+            accion=accion,
+            pide_contrasena=True,
+        )
+
+    def test_con_la_contrasena_guardada_cifra_y_la_borra(self, usuario, plano):
+        from apps.documents import secretos
+
+        job = self._trabajo(usuario, plano)
+        secretos.guardar(job, self.CLAVE)
+        job = _correr(job)
+        assert job.status == HECHO, job.reason_detail
+        assert job.verification["cifrado"] == "AES-256"
+        assert not secretos.ruta(job).exists()
+
+    def test_sin_ella_para_antes_de_escribir_nada(self, usuario, plano):
+        """Caducó, o el barrido se la llevó: se dice, y «Reintentar» lleva a escribirla."""
+        antes = _huella(plano)
+        job = _correr(self._trabajo(usuario, plano))
+        assert job.status == ERROR
+        assert job.reason_code == "falta-la-contrasena"
+        assert not Path(job.output_path).exists()
+        assert _huella(plano) == antes
+
+    def test_si_falla_antes_de_tomarla_no_se_queda_en_disco(self, usuario, plano):
+        from apps.documents import secretos
+
+        job = self._trabajo(usuario, plano)
+        secretos.guardar(job, self.CLAVE)
+        plano.unlink()  # el original desaparece: falla al calcular la huella
+        job = _correr(job)
+        assert job.status == ERROR
+        assert not secretos.ruta(job).exists()
+
+    def test_un_pdf_que_se_abre_sin_clave_no_esta_protegido(self, plano, tmp_path):
+        """Un error que dejara el PDF en claro se abriría bien y parecería que funcionó."""
+        hecho = documentos.verificar(
+            plano,
+            {"detalles": {"accion": "proteger", "paginas": 3}},
+            PlanDeEjecucion(argv=(), ruta_de_salida=plano, env={"AEROCONVERT_CONTRASENA": "x"}),
+        )
+        assert not hecho.correcta
+        assert "sin contraseña" in hecho.motivo
+
+    def test_rc4_no_pasa_por_aes(self, plano, tmp_path):
+        """RC4 lleva veinte años roto. PDFium dice la revisión; pypdf, que cifró, no opina."""
+        from pypdf import PdfReader, PdfWriter
+
+        escritor = PdfWriter()
+        for pagina in PdfReader(str(plano)).pages:
+            escritor.add_page(pagina)
+        escritor.encrypt(self.CLAVE, algorithm="RC4-128")
+        debil = tmp_path / "debil.parcial.pdf"
+        with open(debil, "wb") as salida:
+            escritor.write(salida)
+
+        hecho = documentos.verificar(
+            debil,
+            {"detalles": {"accion": "proteger", "paginas": 3}},
+            PlanDeEjecucion(
+                argv=(), ruta_de_salida=debil, env={"AEROCONVERT_CONTRASENA": self.CLAVE}
+            ),
+        )
+        assert not hecho.correcta
+        assert "AES-256" in hecho.motivo
+
+    def test_el_plan_no_la_ensena_en_su_repr(self, usuario, plano):
+        """Un plan que acabara en un registro o en una traza la dejaría escrita."""
+        from apps.documents import secretos
+
+        job = self._trabajo(usuario, plano)
+        secretos.guardar(job, self.CLAVE)
+        plan = documentos.plan(job)
+        assert plan.env[secretos.VARIABLE] == self.CLAVE
+        assert self.CLAVE not in repr(plan)
+        assert self.CLAVE not in " ".join(plan.argv)
+        assert self.CLAVE not in documentos.ruta_del_encargo(job).read_text(encoding="utf-8")
+        documentos.borrar_auxiliares(job)
 
 
 class TestLaVerificacionDeLasPiezas:

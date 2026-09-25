@@ -183,6 +183,14 @@ def _reencolar_documento(request, anterior: ConversionJob):
         messages.info(
             request, "La contraseña no se guarda nunca: vuelve a escribirla para repetirlo."
         )
+        # **Con el archivo ya puesto**: lo único que falta es la contraseña, y hacer elegir
+        # otra vez el archivo sería pedir dos cosas para devolver una.
+        primera = anterior.entradas.select_related("subida").first()
+        if primera is not None and Path(primera.ruta).exists():
+            from urllib.parse import urlencode
+
+            token = primera.subida.token if primera.subida else primera.ruta
+            return redirect(f"{pantalla}?{urlencode({'ruta': token})}")
         return redirect(pantalla)
 
     entradas = list(anterior.entradas.select_related("subida"))

@@ -244,6 +244,37 @@ def _imagenes(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
     return {"paginas": cuantas}
 
 
+#: Por dónde llega la contraseña de «Proteger». Aquí y no en `secretos.py` porque este módulo
+#: no puede importar nada que traiga Django; `secretos` la lee de aquí.
+VARIABLE_CONTRASENA = "AEROCONVERT_CONTRASENA"
+
+
+def _proteger(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
+    import os
+
+    from apps.documents import seguridad
+
+    # Se saca del entorno al leerla: si esta tarea lanzara algún día otro proceso, no la
+    # heredaría sin que nadie lo decidiera.
+    contrasena = os.environ.pop(VARIABLE_CONTRASENA, "")
+    if not contrasena:
+        raise FalloDeTarea(
+            "falta-la-contrasena", "No llegó ninguna contraseña con la que trabajar."
+        )
+
+    accion = opciones.get("accion")
+    try:
+        if accion == "proteger":
+            paginas = seguridad.proteger(entradas[0]["ruta"], parcial, contrasena)
+        elif accion == "quitar":
+            paginas = seguridad.quitar_contrasena(entradas[0]["ruta"], parcial, contrasena)
+        else:
+            raise FalloDeTarea("documento-invalido", f"«{accion}» no es poner ni quitar.")
+    finally:
+        contrasena = ""  # noqa: F841 - que no siga viva en el marco más de lo necesario
+    return {"paginas": paginas, "accion": accion}
+
+
 def _markdown_a_pdf(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
     from apps.documents import desde_markdown
 
@@ -269,6 +300,7 @@ TAREAS = {
     "a_imagenes": _a_imagenes,
     "unir": _unir,
     "imagenes": _imagenes,
+    "proteger": _proteger,
 }
 
 

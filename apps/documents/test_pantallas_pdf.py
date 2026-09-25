@@ -705,19 +705,49 @@ class TestProteger:
         ).content.decode()
         assert "No hay forma de recuperarla" in cuerpo
 
+    def _proteger(self, sesion, ruta, clave=None):
+        return _encolar_y_procesar(
+            sesion,
+            reverse("documents:proteger"),
+            {"ruta": str(ruta), "accion": "proteger", "contrasena": clave or self.CLAVE},
+        )
+
     def test_protege_y_deja_el_original(self, sesion, tmp_path):
         from pypdf import PdfReader
 
         informe = _pdf(tmp_path, "informe.pdf", 2)
         antes = informe.read_bytes()
-        sesion.post(
-            reverse("documents:proteger"),
-            {"ruta": str(informe), "accion": "proteger", "contrasena": self.CLAVE},
-        )
+        trabajo = self._proteger(sesion, informe)
 
         salida = tmp_path / "informe_protegido.pdf"
+        assert trabajo.output_path == str(salida)
         assert PdfReader(str(salida)).is_encrypted
+        assert trabajo.verification["cifrado"] == "AES-256"
         assert informe.read_bytes() == antes
+
+    def test_la_contrasena_no_queda_en_ninguna_fila(self, sesion, tmp_path):
+        """**La prueba de la fase 9.** Al pasar por la cola la contraseña cruza de un proceso
+        a otro, y lo fácil habría sido dejarla en `options`. Se vuelca la base entera de
+        trabajos —con su bitácora, su argv y sus entradas— y se busca."""
+        from django.core import serializers
+
+        from apps.jobs.models import ConversionJob, EntradaDeTrabajo, JobEvent
+
+        self._proteger(sesion, _pdf(tmp_path, "informe.pdf", 1))
+        volcado = serializers.serialize(
+            "json",
+            [
+                *ConversionJob.objects.all(),
+                *JobEvent.objects.all(),
+                *EntradaDeTrabajo.objects.all(),
+            ],
+        )
+        assert JobEvent.objects.exists(), "sin bitácora esto no probaría nada"
+        assert self.CLAVE not in volcado
+
+    def test_ni_queda_en_disco_despues(self, sesion, tmp_path):
+        self._proteger(sesion, _pdf(tmp_path, "informe.pdf", 1))
+        assert list((tmp_path / "trabajo").glob("*secreto*")) == []
 
     def test_la_contrasena_no_vuelve_en_la_respuesta(self, sesion, tmp_path):
         """Prueba con clave centinela, igual que con la clave de ECW: no puede quedar
@@ -726,28 +756,29 @@ class TestProteger:
         cuerpo = sesion.post(
             reverse("documents:proteger"),
             {"ruta": str(informe), "accion": "proteger", "contrasena": self.CLAVE},
+            follow=True,
         ).content.decode()
         assert self.CLAVE not in cuerpo
 
     def test_ni_cuando_falla(self, sesion, tmp_path):
         # Corta -- para que la rechace -- y a la vez lo bastante rara como para que
         # encontrarla en el HTML signifique que salio del campo y no de una ruta.
+        from apps.jobs.models import ConversionJob
+
         centinela = "Qzx9w"
         informe = _pdf(tmp_path, "informe.pdf", 1)
-        cuerpo = sesion.post(
+        respuesta = sesion.post(
             reverse("documents:proteger"),
             {"ruta": str(informe), "accion": "proteger", "contrasena": centinela},
-            follow=True,
-        ).content.decode()
+        )
+        cuerpo = respuesta.content.decode()
+        assert respuesta.status_code == 200, "una clave corta se dice en la pantalla"
+        assert "al menos" in cuerpo
         assert centinela not in cuerpo
-        assert not (tmp_path / "informe_protegido.pdf").exists()
+        assert not ConversionJob.objects.exists()
 
     def test_reconoce_uno_cifrado_y_ofrece_quitarla(self, sesion, tmp_path):
-        informe = _pdf(tmp_path, "informe.pdf", 1)
-        sesion.post(
-            reverse("documents:proteger"),
-            {"ruta": str(informe), "accion": "proteger", "contrasena": self.CLAVE},
-        )
+        self._proteger(sesion, _pdf(tmp_path, "informe.pdf", 1))
         cuerpo = sesion.post(
             reverse("documents:proteger"),
             {"ruta": str(tmp_path / "informe_protegido.pdf"), "accion": "mirar"},
@@ -755,12 +786,9 @@ class TestProteger:
         assert "Pide contraseña" in cuerpo
 
     def test_y_la_quita_con_la_clave_buena(self, sesion, tmp_path):
-        informe = _pdf(tmp_path, "informe.pdf", 3)
-        sesion.post(
-            reverse("documents:proteger"),
-            {"ruta": str(informe), "accion": "proteger", "contrasena": self.CLAVE},
-        )
-        sesion.post(
+        self._proteger(sesion, _pdf(tmp_path, "informe.pdf", 3))
+        trabajo = _encolar_y_procesar(
+            sesion,
             reverse("documents:proteger"),
             {
                 "ruta": str(tmp_path / "informe_protegido.pdf"),
@@ -770,14 +798,13 @@ class TestProteger:
         )
         salida = tmp_path / "informe_protegido_sin_clave.pdf"
         assert lector.leer_cabecera(salida).cuantas == 3
+        assert trabajo.verification["cifrado"] == "ninguno"
 
-    def test_con_la_clave_mala_no_escribe_nada(self, sesion, tmp_path):
-        informe = _pdf(tmp_path, "informe.pdf", 1)
-        sesion.post(
-            reverse("documents:proteger"),
-            {"ruta": str(informe), "accion": "proteger", "contrasena": self.CLAVE},
-        )
-        sesion.post(
+    def test_con_la_clave_mala_lo_dice_en_la_pantalla_y_no_encola(self, sesion, tmp_path):
+        from apps.jobs.models import ConversionJob
+
+        self._proteger(sesion, _pdf(tmp_path, "informe.pdf", 1))
+        respuesta = sesion.post(
             reverse("documents:proteger"),
             {
                 "ruta": str(tmp_path / "informe_protegido.pdf"),
@@ -785,8 +812,20 @@ class TestProteger:
                 "contrasena": "la-que-no-es",
             },
         )
+        assert respuesta.status_code == 200
+        assert "no abre el archivo" in respuesta.content.decode()
+        assert ConversionJob.objects.count() == 1, "solo el de proteger"
         assert not (tmp_path / "informe_protegido_sin_clave.pdf").exists()
         assert list(tmp_path.glob("*parcial*")) == []
+
+    def test_reintentar_vuelve_a_pedirla_con_el_archivo_puesto(self, sesion, tmp_path):
+        """**Reintentar sin volver a pedirla es imposible por diseño**: ya no está."""
+        informe = _pdf(tmp_path, "informe.pdf", 1)
+        trabajo = self._proteger(sesion, informe)
+        respuesta = sesion.post(reverse("jobs:reencolar", kwargs={"pk": trabajo.pk}))
+        assert respuesta.status_code == 302
+        assert respuesta["Location"].startswith(reverse("documents:proteger"))
+        assert "informe.pdf" in respuesta["Location"]
 
     def test_una_ruta_fuera_de_las_raices(self, sesion):
         cuerpo = sesion.post(

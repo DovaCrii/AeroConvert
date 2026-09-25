@@ -4,7 +4,7 @@
 
 {% block contenido %}
 
-<form method="post" autocomplete="off">
+<form method="post" id="forma-documento" enctype="multipart/form-data" autocomplete="off">
   {% csrf_token %}
 
   {% include "documents/_origen.html" with pregunta="¿Con cuál trabajamos?" accion="mirar" boton="Ver el documento" %}
@@ -31,7 +31,7 @@
           <button type="submit" name="accion" value="quitar" class="boton">Quitar la contraseña</button>
         </div>
         <p class="tenue" style="margin:10px 0 0; font-size:.85rem;">
-          Sale una copia sin clave al lado. El original se queda como está.
+          Sale una copia sin clave. El original se queda como está.
         </p>
 
       {% else %}
@@ -68,18 +68,4 @@
   {% endif %}
 </form>
 
-{% if generado %}
-  <div class="tarjeta tarjeta-acento">
-    <div class="eyebrow">Hecho</div>
-    <div class="recibo">
-      <strong class="recibo-titulo">
-        ✓ {% if hecho == 'proteger' %}Protegido{% else %}Sin contraseña{% endif %}
-      </strong>
-      <p class="mono" style="margin-top:8px;">
-        {{ generado.name }}
-      </p>
-      <p class="tenue" style="margin:10px 0 0;">Junto al original, que no se tocó.</p>
-    </div>
-  </div>
-{% endif %}
 {% endblock %}

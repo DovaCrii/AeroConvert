@@ -174,7 +174,9 @@ class PlanDeEjecucion:
     salida_en_posteriores: bool = False
     #: Variables del entorno del **proceso hijo**. Nunca se tocan las del servidor: es
     #: donde viaja la clave de ECW, y no puede acabar en un log del padre.
-    env: dict[str, str] = field(default_factory=dict)
+    #: Fuera del `repr`: puede llevar la contraseña de «Proteger», y un plan que acabara en un
+    #: registro o en una traza la dejaría escrita. Ver `apps/documents/secretos.py`.
+    env: dict[str, str] = field(default_factory=dict, repr=False)
     #: Siempre un temporal local. Una ruta de red como directorio de trabajo rompe varias
     #: herramientas de formas que no dan un error claro.
     cwd: Path | None = None
