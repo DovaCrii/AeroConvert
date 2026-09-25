@@ -209,6 +209,15 @@ class ConversionJob(BaseModel):
         return bool(self.herramienta)
 
     @property
+    def nota_de_la_herramienta(self) -> str:
+        """Lo que la herramienta quiere que se lea al terminar. Vacío si nada."""
+        if not self.herramienta:
+            return ""
+        from apps.documents.herramientas import POR_ID
+
+        return POR_ID.get(self.herramienta, {}).get("tras_hacerlo", "")
+
+    @property
     def ruta_que_sirve(self) -> str:
         """La ruta de la salida **si a quien mira le sirve de algo**; si no, vacío.
 

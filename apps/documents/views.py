@@ -1235,33 +1235,50 @@ def ocr_vista(request):
     if request.method != "POST" or not tesseract:
         return render(request, "documents/ocr.html", contexto)
 
-    try:
-        origen = _origen_del_formulario(request)
-        ya_tenia = ocr_mod.ya_tiene_texto(origen.ruta)
-    except (modo_mod.RutaNoPermitida, ComposicionInvalida) as fallo:
-        messages.error(request, str(fallo))
+    cabecera, origen, error = _mirar_pdf(request)
+    if error:
+        messages.error(request, error)
         return render(request, "documents/ocr.html", contexto)
 
     contexto["ruta_texto"] = contexto["ruta"] = origen.token
     contexto["nombre_origen"] = origen.nombre
-    contexto["ya_tenia_texto"] = ya_tenia
+    contexto["ya_tenia_texto"] = ocr_mod.ya_tiene_texto(origen.ruta)
+    # **Cuánto va a tardar, antes de pulsar.** Con quinientas páginas son cuarenta minutos, y
+    # saberlo después ya no sirve para decidir si partirlo.
+    contexto["paginas"] = cabecera.cuantas
+    contexto["estimacion"] = ocr_mod.estimacion(cabecera.cuantas)
+    contexto["pasa_del_tope"] = cabecera.cuantas > ocr_mod.TOPE_PAGINAS
 
     if request.POST.get("accion") != "reconocer":
         return render(request, "documents/ocr.html", contexto)
 
-    try:
-        destino = ocr_mod.reconocer(
-            origen.ruta,
-            idioma=contexto["idioma"],
-            destino=_ruta_de_salida_de(origen, "_con_texto.pdf"),
+    idioma = contexto["idioma"]
+    if idioma not in ocr_mod.IDIOMAS:
+        messages.error(request, f"«{idioma}» no es uno de los idiomas que se ofrecen.")
+        return render(request, "documents/ocr.html", contexto)
+    if not tesseract.tiene(idioma):
+        messages.error(
+            request,
+            f"Tesseract no tiene instalado el idioma «{ocr_mod.IDIOMAS[idioma]}». "
+            f"Los que hay: {', '.join(sorted(tesseract.idiomas))}.",
         )
-    except ComposicionInvalida as fallo:
-        messages.error(request, str(fallo))
+        return render(request, "documents/ocr.html", contexto)
+    if contexto["pasa_del_tope"]:
+        messages.error(
+            request,
+            f"{origen.nombre} tiene {cabecera.cuantas} páginas y el tope son "
+            f"{ocr_mod.TOPE_PAGINAS}. Pártelo antes con «Dividir PDF».",
+        )
         return render(request, "documents/ocr.html", contexto)
 
-    messages.success(request, f"Hecho: {destino.name}.")
-    contexto["generado"] = destino
-    return render(request, "documents/ocr.html", contexto)
+    return cola_mod.encolar(
+        request,
+        "ocr",
+        [origen],
+        # Las páginas van para el plazo: el corredor da un minuto a cada una.
+        {"idioma": idioma, "paginas": cabecera.cuantas},
+        sufijo="_con_texto.pdf",
+    )
 
 
 @login_required

@@ -81,6 +81,9 @@ ESPECIFICACIONES: dict[str, Especificacion] = {
     "imagenes": Especificacion(),
     # La contraseña llega por `secretos`, nunca por el encargo. Ver `plan()`.
     "proteger": Especificacion(con_secreto=True),
+    # Al pesado: quinientas páginas son unos cuarenta minutos. El plazo crece con ellas; ver
+    # `ocr.plazo_s`, que es quien sabe cuánto tarda una.
+    "ocr": Especificacion(carril=PESADO, emite_progreso=True, exige="tesseract"),
 }
 
 
@@ -201,6 +204,16 @@ def plan(job) -> PlanDeEjecucion:
         # tocado el disco. Levanta `secretos.SinSecreto`, que el corredor traduce.
         entorno[secretos.VARIABLE] = secretos.tomar(job)
 
+    plazo_s = espec.timeout_s
+    if job.herramienta == "ocr":
+        from . import ocr
+        from .tarea import VARIABLE_TESSERACT
+
+        # El padre ya sondeó para decidir si estaba disponible; el hijo no puede, porque la
+        # sonda guarda en la caché de Django. Así que se le da la ruta hecha.
+        entorno[VARIABLE_TESSERACT] = ocr.sondar().programa
+        plazo_s = ocr.plazo_s(_paginas_del_trabajo(job, entradas))
+
     encargo = ruta_del_encargo(job)
     encargo.parent.mkdir(parents=True, exist_ok=True)
     encargo.write_text(
@@ -221,11 +234,24 @@ def plan(job) -> PlanDeEjecucion:
         ruta_de_salida=destino,
         env=entorno,
         cwd=Path(settings.BASE_DIR),
-        timeout_s=espec.timeout_s,
+        timeout_s=plazo_s,
         analizador_de_progreso=_analizar_progreso,
         emite_progreso=espec.emite_progreso,
         salida_opcional=espec.salida_opcional,
     )
+
+
+def _paginas_del_trabajo(job, entradas: list[dict]) -> int:
+    """Las que contó la pantalla al mirar; si no vinieran, se cuentan aquí."""
+    paginas = int((job.options or {}).get("paginas") or 0)
+    if paginas:
+        return paginas
+    from apps.formats import pdf as lectura_pdf
+
+    try:
+        return lectura_pdf.leer_cabecera(entradas[0]["ruta"]).cuantas
+    except lectura_pdf.NoEsPdf:
+        return 1  # el hijo lo dirá mejor: no es un PDF
 
 
 def verificar(parcial: Path, informe: dict, plan: PlanDeEjecucion | None = None) -> Verificacion:

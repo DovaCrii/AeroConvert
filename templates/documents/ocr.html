@@ -62,7 +62,9 @@
           <div class="eyebrow">Lo que hay dentro</div>
           <h2>{{ nombre_origen }}</h2>
         </div>
-        <button type="submit" name="accion" value="reconocer" class="boton">Reconocer el texto</button>
+        {# Apagado y con el motivo debajo, no escondido: ver la regla 4 de AGENTS.md. #}
+        <button type="submit" name="accion" value="reconocer" class="boton"
+                {% if pasa_del_tope %}disabled aria-describedby="motivo-tope"{% endif %}>Reconocer el texto</button>
       </div>
 
       {% if ya_tenia_texto %}
@@ -79,27 +81,25 @@
         </div>
       {% else %}
         <p class="tenue">
-          No tiene texto, así que es un escaneo y esto es justo lo que le falta. Tarda unos
-          segundos por página; el tope son {{ tope_paginas }}.
+          No tiene texto, así que es un escaneo y esto es justo lo que le falta.
+        </p>
+      {% endif %}
+
+      {% if pasa_del_tope %}
+        <div class="error" role="alert" id="motivo-tope">
+          <strong>Tiene {{ paginas }} páginas y el tope son {{ tope_paginas }}.</strong>
+          Pártelo antes con «Dividir PDF» y reconoce los trozos por separado.
+        </div>
+      {% else %}
+        {# Cuánto tarda, antes de pulsar: con quinientas páginas son cuarenta minutos. #}
+        <p class="tenue">
+          <span class="cifra">{{ paginas }}</span> página(s): {{ estimacion }}. Va a la cola,
+          así que puedes cerrar esta pestaña; el resultado queda en tu historial.
         </p>
       {% endif %}
     </div>
   {% endif %}
 </form>
-
-{% if generado %}
-  <div class="tarjeta tarjeta-acento">
-    <div class="eyebrow">Hecho</div>
-    <div class="recibo">
-      <strong class="recibo-titulo">✓ Reconocido</strong>
-      <p class="mono">{{ generado.name }}</p>
-      <p class="tenue">
-        El original no se ha tocado. Repasa el texto antes de fiarte de una búsqueda: lo que no
-        se reconoció bien no aparece.
-      </p>
-    </div>
-  </div>
-{% endif %}
 
 {% endif %}
 {% endblock %}

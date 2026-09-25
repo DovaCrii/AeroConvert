@@ -275,6 +275,34 @@ def _proteger(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
     return {"paginas": paginas, "accion": accion}
 
 
+#: La ruta de Tesseract, que sondea el padre. Ver `ocr.reconocer`.
+VARIABLE_TESSERACT = "AEROCONVERT_TESSERACT"
+
+
+def _ocr(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
+    import os
+
+    from pypdf import PdfReader
+
+    from apps.documents import ocr
+
+    programa = os.environ.get(VARIABLE_TESSERACT, "")
+    if not programa:
+        raise FalloDeTarea("sin-tesseract", "No llegó la ruta de Tesseract desde el corredor.")
+
+    origen = entradas[0]["ruta"]
+    ocr.reconocer(
+        origen,
+        idioma=opciones.get("idioma", "spa"),
+        destino=parcial,
+        programa=programa,
+        progreso=progreso,
+    )
+    # Las páginas **del original**, contadas con pypdf: el corredor cuenta las de la salida
+    # con PDFium, y si no coinciden es que el reconocimiento perdió alguna por el camino.
+    return {"paginas": len(PdfReader(origen).pages)}
+
+
 def _markdown_a_pdf(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
     from apps.documents import desde_markdown
 
@@ -301,6 +329,7 @@ TAREAS = {
     "unir": _unir,
     "imagenes": _imagenes,
     "proteger": _proteger,
+    "ocr": _ocr,
 }
 
 

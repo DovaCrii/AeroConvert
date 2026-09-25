@@ -33,6 +33,7 @@ from __future__ import annotations
 import shutil
 import subprocess  # nosec B404 - se invoca un binario fijo con argumentos construidos aquí
 import tempfile
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -57,9 +58,37 @@ IDIOMAS = {
 #: reconocimiento empieza a inventar. Por encima tarda el doble sin acertar más.
 PPP = 300
 
-#: Tope de páginas. Cada una tarda entre uno y varios segundos, así que un PDF de quinientas
-#: bloquea el obrero durante un cuarto de hora. Es un tope para decirlo, no para impedirlo.
-TOPE_PAGINAS = 100
+#: Tope de páginas. Cada una tarda entre dos y cinco segundos, así que quinientas son unos
+#: cuarenta minutos en el carril pesado. **Era 100 cuando esto corría dentro de la petición**
+#: y gunicorn la mataba a los 120 s: el tope real era el plazo, no este número. En la cola
+#: el plazo crece con las páginas, y el tope queda para decirlo antes, no para impedirlo.
+TOPE_PAGINAS = 500
+
+#: Lo que se le da a cada página antes de dar el trabajo por atascado, más un margen fijo
+#: para abrir y escribir. Holgado a propósito: el que corta de verdad es el detector de
+#: silencio del corredor, que salta si deja de llegar progreso.
+SEGUNDOS_POR_PAGINA = 60
+MARGEN_S = 120
+
+#: Para la estimación que se enseña antes de empezar. Es la mitad de la horquilla medida.
+SEGUNDOS_ESTIMADOS_POR_PAGINA = 3
+
+
+class DemasiadasPaginas(ComposicionInvalida):
+    codigo = "demasiadas-paginas"
+
+
+def plazo_s(paginas: int) -> int:
+    return MARGEN_S + SEGUNDOS_POR_PAGINA * max(1, paginas)
+
+
+def estimacion(paginas: int) -> str:
+    """«Unos 4 minutos», dicho antes de pulsar: el consejo después ya no es un consejo."""
+    segundos = paginas * SEGUNDOS_ESTIMADOS_POR_PAGINA
+    if segundos < 60:
+        return "menos de un minuto"
+    minutos = -(-segundos // 60)
+    return f"unos {minutos} minutos" if minutos > 1 else "un minuto"
 
 
 @dataclass(frozen=True)
@@ -149,6 +178,8 @@ def reconocer(
     *,
     idioma: str = "spa",
     destino: Path | None = None,
+    programa: str | None = None,
+    progreso: Callable[[float], None] | None = None,
 ) -> Path:
     """Escribe una copia con la capa de texto debajo de la imagen. Devuelve su ruta.
 
@@ -161,20 +192,29 @@ def reconocer(
 
     Página a página **en un directorio temporal que se borra solo**, incluso si algo revienta
     a la mitad.
+
+    ## `programa`, desde la cola
+
+    El proceso hijo no puede sondear: `sondar()` guarda en la caché de Django, y el hijo no
+    arranca Django. Así que el padre sondea —ya lo hace para decidir si la herramienta está
+    disponible— y le pasa la ruta del ejecutable. Con ella, aquí no se vuelve a mirar.
     """
     import pypdfium2
     from pypdf import PdfReader, PdfWriter
 
-    estado = sondar()
-    if not estado:
-        raise ComposicionInvalida(estado.motivo)
+    if programa is None:
+        estado = sondar()
+        if not estado:
+            raise ComposicionInvalida(estado.motivo)
     if idioma not in IDIOMAS:
         raise ComposicionInvalida(f"«{idioma}» no es uno de los idiomas que se ofrecen.")
-    if not estado.tiene(idioma):
-        raise ComposicionInvalida(
-            f"Tesseract no tiene instalado el idioma «{IDIOMAS[idioma]}». "
-            f"Los que hay: {', '.join(sorted(estado.idiomas))}."
-        )
+    if programa is None:
+        if not estado.tiene(idioma):
+            raise ComposicionInvalida(
+                f"Tesseract no tiene instalado el idioma «{IDIOMAS[idioma]}». "
+                f"Los que hay: {', '.join(sorted(estado.idiomas))}."
+            )
+        programa = estado.programa
 
     origen = Path(origen)
     try:
@@ -185,7 +225,7 @@ def reconocer(
     total = len(documento)
     if total > TOPE_PAGINAS:
         documento.close()
-        raise ComposicionInvalida(
+        raise DemasiadasPaginas(
             f"{origen.name} tiene {total} páginas y el tope son {TOPE_PAGINAS}. "
             "Cada página tarda unos segundos: pártelo antes con «Dividir PDF»."
         )
@@ -206,7 +246,7 @@ def reconocer(
 
                 base = temporal / f"{numero}_ocr"
                 resultado = subprocess.run(  # nosec B603 - binario resuelto por `which`
-                    [estado.programa, str(png), str(base), "-l", idioma, "pdf"],
+                    [programa, str(png), str(base), "-l", idioma, "pdf"],
                     capture_output=True,
                     text=True,
                     timeout=120,
@@ -220,6 +260,8 @@ def reconocer(
                     )
                 for hoja in PdfReader(str(hecha)).pages:
                     escritor.add_page(hoja)
+                if progreso is not None:
+                    progreso((numero + 1) / total)
     finally:
         documento.close()
 

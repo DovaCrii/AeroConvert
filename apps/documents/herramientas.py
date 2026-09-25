@@ -80,6 +80,12 @@ HERRAMIENTAS = (
         # La tercera que depende de algo de fuera, y con el mismo trato que Office y Access:
         # cuando Tesseract no esta, la tarjeta **sigue saliendo**, apagada y con el motivo.
         "exige_tesseract": True,
+        # Lo que se lee en la ficha al terminar. Estaba en el recibo de la pantalla y se vino
+        # con la herramienta a la cola: sin él, «listo» invita a fiarse de una búsqueda.
+        "tras_hacerlo": (
+            "Repasa el texto antes de fiarte de una búsqueda: lo que no se reconoció bien no "
+            "aparece."
+        ),
     },
     {
         "id": "numerar",

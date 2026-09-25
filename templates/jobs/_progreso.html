@@ -98,6 +98,7 @@ generar 10.800 peticiones.
             <strong>{{ trabajo.nombre_del_destino }}</strong> sobre {{ trabajo.source_name }},
             hecho{% if trabajo.duracion_s %} en {{ trabajo.duracion_s|floatformat:0 }} s{% endif %}.
             {% if trabajo.desenlace == "con-avisos" %}Tiene avisos: están en la bitácora, abajo.{% endif %}
+            {{ trabajo.nota_de_la_herramienta }}
           {% else %}
             <strong>{{ trabajo.source_name }}</strong> es ahora
             {{ trabajo.nombre_del_destino }}{% if trabajo.duracion_s %}, en
