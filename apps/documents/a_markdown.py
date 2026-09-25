@@ -58,6 +58,43 @@ TOPE_FILAS = 5_000
 TOPE_COLUMNAS = 100
 
 
+#: Cuántos caracteres del resultado se enseñan antes de descargarlo.
+ASOMO = 1200
+
+#: Qué herramienta es cada origen. **Una pantalla para los seis**, pero en la cola cada uno
+#: es su herramienta: así el historial dice «Excel a Markdown» y «Seguir donde lo dejaste»
+#: vuelve a la entrada del catálogo que se usó, no a una genérica.
+HERRAMIENTA_POR_EXTENSION = {
+    ".xlsx": "md_excel",
+    ".xlsm": "md_excel",
+    ".csv": "md_csv",
+    ".docx": "md_word",
+    ".pdf": "md_pdf",
+    ".epub": "md_epub",
+    ".html": "md_html",
+    ".htm": "md_html",
+}
+
+
+def asomarse(destino: Path) -> str:
+    """Las primeras líneas del `.md`, para ver que salió lo que se esperaba.
+
+    Es barato y evita el viaje de descargar, abrir y descubrir que la hoja que hacía falta era
+    la otra. Se corta por líneas enteras: cortar a mitad de una fila de tabla enseña una tabla
+    rota y hace pensar que la conversión lo está.
+
+    Vive aquí y no en la pantalla desde que la conversión pasa por la cola: el resultado se
+    enseña en la ficha del trabajo, y esa no puede importar las vistas de documentos.
+    """
+    try:
+        crudo = Path(destino).read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return ""
+    if len(crudo) <= ASOMO:
+        return crudo
+    return crudo[:ASOMO].rsplit("\n", 1)[0] + "\n\n…"
+
+
 class SinTextoQueSacar(ComposicionInvalida):
     """El archivo se abrió bien y no tiene nada que convertir.
 

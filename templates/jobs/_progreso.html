@@ -44,7 +44,22 @@ generar 10.800 peticiones.
     </form>
   {% endif %}
 
-  {% if trabajo.status == 'done' %}
+  {% if trabajo.status == 'done' and trabajo.desenlace and not trabajo.output_path %}
+    {% comment %}
+      **Terminó bien, y no hay archivo.** Ni verde de «listo» ni rojo de error: es la
+      respuesta correcta a lo que se pidió. Comprimir un PDF que ya venía comprimido lo
+      habría engordado; un escaneo no tiene texto que sacar. Pintarlo como fallo manda a
+      reintentar con el mismo archivo, que es lo único que seguro no va a funcionar.
+    {% endcomment %}
+    <div class="mensaje mensaje-info" role="status">
+      <svg class="mensaje-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-info"></use></svg>
+      <span data-anunciar>
+        <strong>{{ trabajo.desenlace_motivo.mensaje }}</strong>
+        {% if trabajo.desenlace_motivo.sugerencia %}{{ trabajo.desenlace_motivo.sugerencia }}{% endif %}
+      </span>
+    </div>
+    <p class="tenue">El original no se ha tocado.</p>
+  {% elif trabajo.status == 'done' %}
     {% comment %}
       El recibo. Es lo que se le manda al cliente: sin él, «lo convertí» es una afirmación
       sin respaldo.
@@ -70,10 +85,17 @@ generar 10.800 peticiones.
       <div class="remate-texto">
         <strong class="remate-titulo">Listo, ya puedes descargarlo</strong>
         <span class="remate-detalle">
-          <strong>{{ trabajo.source_name }}</strong> es ahora
-          {{ trabajo.nombre_del_destino }}{% if trabajo.duracion_s %}, en
-          {{ trabajo.duracion_s|floatformat:0 }} s{% endif %}{% if trabajo.reduccion_pct %} y
-          ocupando un {{ trabajo.reduccion_pct }} % menos{% endif %}.
+          {% if trabajo.es_de_documentos %}
+            {# «plano.pdf es ahora Numerar páginas» se leía como si numerar fuera un formato. #}
+            <strong>{{ trabajo.nombre_del_destino }}</strong> sobre {{ trabajo.source_name }},
+            hecho{% if trabajo.duracion_s %} en {{ trabajo.duracion_s|floatformat:0 }} s{% endif %}.
+            {% if trabajo.desenlace == "con-avisos" %}Tiene avisos: están en la bitácora, abajo.{% endif %}
+          {% else %}
+            <strong>{{ trabajo.source_name }}</strong> es ahora
+            {{ trabajo.nombre_del_destino }}{% if trabajo.duracion_s %}, en
+            {{ trabajo.duracion_s|floatformat:0 }} s{% endif %}{% if trabajo.reduccion_pct %} y
+            ocupando un {{ trabajo.reduccion_pct }} % menos{% endif %}.
+          {% endif %}
           Se comprobó contra el original, y el original no se tocó.
         </span>
       </div>
@@ -82,6 +104,15 @@ generar 10.800 peticiones.
            href="{% url 'jobs:descargar' trabajo.pk %}">Descargar</a>
       {% endif %}
     </div>
+
+    {% if asomo %}
+      {% comment %}
+        Un asomo antes de descargar. Evita el viaje de bajar el archivo, abrirlo y descubrir
+        que la hoja que hacía falta era la otra. Estaba en la pantalla de Markdown y se vino
+        aquí con la conversión, al pasar por la cola.
+      {% endcomment %}
+      <pre class="asomo">{{ asomo }}</pre>
+    {% endif %}
 
     <div class="recibo">
       {# Llega sondeando, sin recargar: sin esto, el lector de pantalla no se entera de que terminó. #}
@@ -123,6 +154,15 @@ generar 10.800 peticiones.
           <dd>{{ trabajo.verification.bandas }}</dd>
         {% endif %}
 
+        {% if trabajo.verification.paginas_verificadas %}
+          {# Contadas con otra biblioteca que la que las escribió: si no, sería el código dándose la razón. #}
+          <dt>Páginas</dt>
+          <dd>
+            {{ trabajo.verification.paginas_verificadas }}
+            <span class="tenue">· contadas con {{ trabajo.verification.verificado_con }}</span>
+          </dd>
+        {% endif %}
+
         <dt>Motor</dt>
         <dd>{{ trabajo.engine_version|default:trabajo.engine_id }}</dd>
 
@@ -134,7 +174,8 @@ generar 10.800 peticiones.
 
         {% if trabajo.expires_at %}
           <dt>Disponible hasta</dt>
-          <dd>{{ trabajo.expires_at|date:"H:i" }} <span class="tenue">· después se borra</span></dd>
+          {# Con el día: «hasta las 14:30» no dice si es hoy o pasado mañana. #}
+          <dd>{{ trabajo.expires_at|date:"j/n H:i" }} <span class="tenue">· después se borra</span></dd>
         {% endif %}
       </dl>
 

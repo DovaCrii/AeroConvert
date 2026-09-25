@@ -45,8 +45,8 @@ from apps.formats import pdf as lectura_pdf
 from . import a_imagenes as a_imagenes_mod
 from . import a_markdown as a_markdown_mod
 from . import catalogos as catalogos_mod
+from . import cola as cola_mod
 from . import comprimir as comprimir_mod
-from . import desde_markdown as desde_markdown_mod
 from . import dividir as dividir_mod
 from . import marcas as marcas_mod
 from . import miniaturas
@@ -845,7 +845,6 @@ def numerar_vista(request):
         messages.error(request, error)
         return render(request, "documents/numerar.html", contexto)
 
-    ruta = origen.ruta
     contexto["ruta_texto"] = contexto["ruta"] = origen.token
     contexto["nombre_origen"] = origen.nombre
     contexto["cabecera"] = cabecera
@@ -853,27 +852,34 @@ def numerar_vista(request):
     if request.POST.get("accion") != "numerar":
         return render(request, "documents/numerar.html", contexto)
 
-    destino = ruta.with_name(f"{ruta.stem}_numerado.pdf")
-    parcial = ruta_parcial(destino)
+    # **Lo que se puede decir sin abrir el documento, aquí y al instante.** Una página de
+    # inicio imposible no tiene que esperar a la cola para fallar.
     try:
-        resultado = marcas_mod.numerar(
-            ruta,
-            parcial,
-            posicion=contexto["posicion"],
-            formato=contexto["formato"],
-            desde=contexto["desde"],
-            empezar_en=contexto["empezar_en"],
+        marcas_mod.comprobar_numeracion(
+            contexto["posicion"],
+            contexto["formato"],
+            contexto["desde"],
+            len(cabecera.paginas),
+            origen.nombre,
         )
     except ComposicionInvalida as fallo:
-        parcial.unlink(missing_ok=True)
         messages.error(request, str(fallo))
         return render(request, "documents/numerar.html", contexto)
 
-    os.replace(parcial, destino)
-    messages.success(request, f"{resultado.marcadas} página(s) numeradas en {destino.name}.")
-    contexto["generado"] = destino
-    contexto["resultado"] = resultado
-    return render(request, "documents/numerar.html", contexto)
+    # Y lo que puede tardar, a la cola: con progreso, recibo, historial y **descarga**, que
+    # para un archivo subido no existía.
+    return cola_mod.encolar(
+        request,
+        "numerar",
+        [origen],
+        {
+            "posicion": contexto["posicion"],
+            "formato": contexto["formato"],
+            "desde": contexto["desde"],
+            "empezar_en": contexto["empezar_en"],
+        },
+        sufijo="_numerado.pdf",
+    )
 
 
 @login_required
@@ -909,7 +915,6 @@ def marca_vista(request):
         messages.error(request, error)
         return render(request, "documents/marca.html", contexto)
 
-    ruta = origen.ruta
     contexto["ruta_texto"] = contexto["ruta"] = origen.token
     contexto["nombre_origen"] = origen.nombre
     contexto["cabecera"] = cabecera
@@ -917,25 +922,23 @@ def marca_vista(request):
     if request.POST.get("accion") != "marcar":
         return render(request, "documents/marca.html", contexto)
 
-    destino = ruta.with_name(f"{ruta.stem}_marcado.pdf")
-    parcial = ruta_parcial(destino)
     try:
-        resultado = marcas_mod.marca_de_agua(
-            ruta,
-            parcial,
-            contexto["texto"],
-            opacidad=contexto["opacidad"],
-            diagonal=contexto["diagonal"],
-        )
+        texto = marcas_mod.comprobar_marca(contexto["texto"], contexto["opacidad"])
     except ComposicionInvalida as fallo:
-        parcial.unlink(missing_ok=True)
         messages.error(request, str(fallo))
         return render(request, "documents/marca.html", contexto)
 
-    os.replace(parcial, destino)
-    messages.success(request, f"{resultado.marcadas} página(s) marcadas en {destino.name}.")
-    contexto["generado"] = destino
-    return render(request, "documents/marca.html", contexto)
+    return cola_mod.encolar(
+        request,
+        "marca",
+        [origen],
+        {
+            "texto": texto,
+            "opacidad": contexto["opacidad"],
+            "orientacion": "diagonal" if contexto["diagonal"] else "horizontal",
+        },
+        sufijo="_marcado.pdf",
+    )
 
 
 @login_required
@@ -1078,21 +1081,24 @@ def a_markdown(request):
 
     try:
         origen = _origen_del_formulario(request)
-        destino = a_markdown_mod.a_markdown(origen.ruta, destino=_ruta_de_salida_de(origen, ".md"))
-    except a_markdown_mod.SinTextoQueSacar as fallo:
-        # **Su propio aviso, y no un error rojo.** El archivo está bien: lo que no tiene es
-        # texto. Tratarlo como un fallo manda a alguien a probar otra vez con el mismo
-        # archivo, que es exactamente lo que no va a funcionar.
-        contexto["sin_texto"] = str(fallo)
-        return render(request, "documents/a_markdown.html", contexto)
     except (modo_mod.RutaNoPermitida, ComposicionInvalida) as fallo:
         messages.error(request, str(fallo))
         return render(request, "documents/a_markdown.html", contexto)
 
-    messages.success(request, f"Hecho: {destino.name}.")
-    contexto["generado"] = destino
-    contexto["vista_previa"] = _asomarse(destino)
-    return render(request, "documents/a_markdown.html", contexto)
+    # Lo que se sabe sin abrir el archivo, aquí: de una extensión que no se lee no hace falta
+    # esperar a la cola para enterarse. Un escaneo sin texto, en cambio, solo se sabe
+    # abriéndolo — y eso ya no es un error sino un desenlace del trabajo.
+    herramienta = a_markdown_mod.HERRAMIENTA_POR_EXTENSION.get(Path(origen.nombre).suffix.lower())
+    if herramienta is None:
+        conocidas = ", ".join(sorted(a_markdown_mod.ORIGENES))
+        messages.error(
+            request,
+            f"De «{Path(origen.nombre).suffix or origen.nombre}» no se saca Markdown. "
+            f"Se puede con: {conocidas}.",
+        )
+        return render(request, "documents/a_markdown.html", contexto)
+
+    return cola_mod.encolar(request, herramienta, [origen], {}, sufijo=".md")
 
 
 @login_required
@@ -1111,16 +1117,11 @@ def de_markdown(request):
 
     try:
         origen = _origen_del_formulario(request)
-        destino = desde_markdown_mod.markdown_a_pdf(
-            origen.ruta, destino=_ruta_de_salida_de(origen, ".pdf")
-        )
     except (modo_mod.RutaNoPermitida, ComposicionInvalida) as fallo:
         messages.error(request, str(fallo))
         return render(request, "documents/de_markdown.html", contexto)
 
-    messages.success(request, f"Hecho: {destino.name}.")
-    contexto["generado"] = destino
-    return render(request, "documents/de_markdown.html", contexto)
+    return cola_mod.encolar(request, "md_a_pdf", [origen], {}, sufijo=".pdf")
 
 
 @login_required
@@ -1301,26 +1302,6 @@ def excel_a_catalogo(request):
     contexto["generado"] = destino
     contexto["avisos"] = avisos
     return render(request, "documents/excel_a_catalogo.html", contexto)
-
-
-#: Cuántos caracteres del resultado se enseñan antes de descargarlo.
-ASOMO = 1200
-
-
-def _asomarse(destino: Path) -> str:
-    """Las primeras líneas del `.md`, para ver que salió lo que se esperaba.
-
-    Es barato y evita el viaje de descargar, abrir y descubrir que la hoja que hacía falta era
-    la otra. Se corta por líneas enteras: cortar a mitad de una fila de tabla enseña una tabla
-    rota y hace pensar que la conversión lo está.
-    """
-    try:
-        crudo = destino.read_text(encoding="utf-8")
-    except OSError:
-        return ""
-    if len(crudo) <= ASOMO:
-        return crudo
-    return crudo[:ASOMO].rsplit("\n", 1)[0] + "\n\n…"
 
 
 def _entero(crudo, por_omision: int) -> int:

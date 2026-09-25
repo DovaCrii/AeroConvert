@@ -38,10 +38,29 @@ def _imagen(carpeta, nombre, tamano=(1200, 800)):
 @pytest.fixture
 def sesion(client, tmp_path, settings):
     settings.RAICES_PERMITIDAS = str(tmp_path)
+    # Las herramientas que pasan por la cola escriben aquí el encargo y el informe del hijo.
+    # Sin esto acabarían en `trabajo/` del repositorio.
+    settings.CARPETA_DE_TRABAJO = str(tmp_path / "trabajo")
     client.force_login(
         get_user_model().objects.create_user("topografo", password="x" * 20)  # nosec B106
     )
     return client
+
+
+def _encolar_y_procesar(sesion, url, datos):
+    """**Desde la fase 9 la acción final encola**: la pantalla redirige a la ficha del
+    trabajo, y el resultado existe cuando el obrero lo procesa. Esto hace las dos cosas y
+    devuelve el trabajo, para que la prueba mire lo que salió como antes."""
+    from apps.jobs import despachador
+    from apps.jobs.models import ConversionJob
+
+    respuesta = sesion.post(url, datos)
+    assert respuesta.status_code == 302, "la acción final tiene que encolar y llevar a la ficha"
+    assert "/trabajos/" in respuesta["Location"]
+    assert despachador.procesar_una_vez() == 1
+    trabajo = ConversionJob.objects.latest("created_at")
+    assert trabajo.status == "done", trabajo.reason_detail
+    return trabajo
 
 
 @pytest.fixture
@@ -315,7 +334,8 @@ class TestNumerar:
 
     def test_numera_de_punta_a_punta(self, sesion, tmp_path):
         memoria = _pdf(tmp_path, "memoria.pdf", 4)
-        sesion.post(
+        _encolar_y_procesar(
+            sesion,
             reverse("documents:numerar"),
             {
                 "ruta": str(memoria),
@@ -332,7 +352,8 @@ class TestNumerar:
 
     def test_saltando_la_portada(self, sesion, tmp_path):
         memoria = _pdf(tmp_path, "memoria.pdf", 4)
-        sesion.post(
+        _encolar_y_procesar(
+            sesion,
             reverse("documents:numerar"),
             {
                 "ruta": str(memoria),
@@ -358,7 +379,8 @@ class TestNumerar:
     def test_un_numero_disparatado_en_el_campo_no_revienta(self, sesion, tmp_path):
         """Un campo numérico es evadible desde fuera del navegador."""
         memoria = _pdf(tmp_path, "memoria.pdf", 3)
-        respuesta = sesion.post(
+        _encolar_y_procesar(
+            sesion,
             reverse("documents:numerar"),
             {
                 "ruta": str(memoria),
@@ -368,7 +390,6 @@ class TestNumerar:
                 "formato": "{n}",
             },
         )
-        assert respuesta.status_code == 200
         assert (tmp_path / "memoria_numerado.pdf").exists()
 
     def test_empezar_mas_alla_del_final_lo_dice_y_no_escribe(self, sesion, tmp_path):
@@ -408,7 +429,8 @@ class TestMarcaDeAgua:
 
     def test_marca_todas_las_paginas(self, sesion, tmp_path):
         plano = _pdf(tmp_path, "plano.pdf", 3)
-        sesion.post(
+        _encolar_y_procesar(
+            sesion,
             reverse("documents:marca"),
             {
                 "ruta": str(plano),
@@ -424,7 +446,8 @@ class TestMarcaDeAgua:
 
     def test_horizontal_tambien(self, sesion, tmp_path):
         plano = _pdf(tmp_path, "plano.pdf", 1)
-        sesion.post(
+        _encolar_y_procesar(
+            sesion,
             reverse("documents:marca"),
             {
                 "ruta": str(plano),

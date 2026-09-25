@@ -147,7 +147,27 @@ def ejecutar(job: ConversionJob) -> Resultado:
         nivel=nivel,
         reason_code=resultado.codigo_motivo,
     )
+    if job.herramienta:
+        _soltar_subidas(job)
     return resultado
+
+
+def _soltar_subidas(job: ConversionJob) -> None:
+    """Devuelve las subidas al barrido, **con margen para reintentar**.
+
+    `cola.encolar` las reclamó (sin caducidad) para que no se las llevara el barrido mientras
+    el trabajo esperaba. Al terminar, bien o mal, vuelven a caducar a las horas de siempre
+    contadas desde ahora: si falló por algo transitorio, reintentar sigue encontrando el
+    archivo sin volver a subirlo.
+    """
+    from datetime import timedelta
+
+    from apps.core.subidas import HORAS_DE_VIDA
+
+    caduca = timezone.now() + timedelta(hours=HORAS_DE_VIDA)
+    for entrada in job.entradas.select_related("subida").exclude(subida=None):
+        entrada.subida.expires_at = caduca
+        entrada.subida.save(update_fields=["expires_at", "updated_at"])
 
 
 def _ejecutar(job: ConversionJob) -> Resultado:
