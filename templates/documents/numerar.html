@@ -70,16 +70,4 @@
   {% endif %}
 </form>
 
-{% if generado %}
-  <div class="tarjeta tarjeta-acento">
-    <div class="eyebrow">Hecho</div>
-    <div class="recibo">
-      <strong class="recibo-titulo">✓ {{ resultado.marcadas }} de {{ resultado.paginas }} página(s)</strong>
-      <p class="mono" style="margin-top:8px;">
-        {{ generado.name }}
-      </p>
-      <p class="tenue" style="margin:10px 0 0;">Junto al original, que no se tocó.</p>
-    </div>
-  </div>
-{% endif %}
 {% endblock %}

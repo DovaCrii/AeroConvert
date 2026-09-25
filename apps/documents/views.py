@@ -1,31 +1,42 @@
-"""La pantalla de unir PDF.
+"""Las pantallas de las veinte herramientas de documentos.
 
-## Por qué no pasa por el motor de conversión
+## Mirar aquí, hacer en la cola
 
-El resto de AeroConvert coge **un** archivo, elige un destino y lo encola: la conversión
-tarda, así que hay un despachador, una barra de progreso y un recibo. Componer un PDF no se
-parece en nada. Se cogen varios archivos, se toca la lista muchas veces —subir, bajar,
-quitar, girar— y el resultado se escribe en menos de un segundo. Meter eso en la cola sería
-pedirle a alguien que espere a un proceso en segundo plano para reordenar tres hojas.
+Hasta la fase 9 esto decía por qué las herramientas **no** pasaban por la cola: componer se
+escribe en menos de un segundo, y esperar a un proceso en segundo plano para reordenar tres
+hojas parecía absurdo. El razonamiento era bueno para Unir y malo para todo lo demás, y costó
+caro sin que se viera:
 
-Así que es una pantalla directa: cada acción es una petición que devuelve la lista otra vez.
+- gunicorn corta la petición a los 120 s, y el OCR de un escaneo de cuarenta páginas moría a
+  medias sin decir nada;
+- trece de las veinte no dejaban descargar lo que salía de un archivo subido;
+- y el uso no dejaba rastro: el servidor decía «0 trabajos» sin distinguir «nadie ha usado
+  esto» de «se ha usado mucho, pero no aquí».
+
+Así que ahora se separan dos cosas que antes iban juntas. **Mirar se hace aquí**, síncrono y
+barato: leer la cabecera, avisar de que es un escaneo, dejar que Unir ordene las páginas,
+decir que la contraseña es corta. **Hacer va a la cola**, por `cola.encolar()`, y la ficha
+del trabajo trae el progreso, el recibo, la descarga con dueño, reintentar y cancelar. Ver
+`tarea.py` para el proceso hijo y `motor.py` para cómo se verifica lo que sale.
+
+La regla para lo que queda aquí: **todo lo que se pueda comprobar sin abrir el documento
+entero se comprueba antes de encolar**, con el formulario delante. Descubrirlo en la cola
+manda a una ficha roja y de vuelta a esta pantalla con el formulario vacío.
 
 ## Sin estado en el servidor
 
-La receta viaja en un campo oculto del propio formulario, así que no hay sesión que caducar
-ni fila que limpiar, y dos personas pueden componer a la vez sin pisarse. La pantalla es una
-función de lo que hay escrito en ella. Ver `receta.py`.
+La receta de Unir viaja en un campo oculto del propio formulario, así que no hay sesión que
+caducar ni fila que limpiar, y dos personas pueden componer a la vez sin pisarse. Es la misma
+cadena que se encola al generar. Ver `receta.py`.
 
-## Lo que sí se conserva del resto de la aplicación
+## Lo que se conserva del resto de la aplicación
 
-Las tres promesas: **la ruta se comprueba contra las raíces permitidas** igual que en la
-inspección, **el original no se toca** —pypdf lee y escribe en un documento nuevo— y la
-salida se escribe primero en un parcial y solo se pone en su sitio si sale bien.
+**La ruta se comprueba contra las raíces permitidas** igual que en la inspección, y **el
+original no se toca**: el corredor compara su huella antes y después de cada intento.
 """
 
 from __future__ import annotations
 
-import os
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -39,7 +50,6 @@ from django.views.decorators.http import require_POST
 from apps.core import entrada as entrada_mod
 from apps.core import modo as modo_mod
 from apps.core import subidas as subidas_mod
-from apps.engines.base import ruta_parcial
 from apps.formats import pdf as lectura_pdf
 
 from . import a_imagenes as a_imagenes_mod
@@ -286,8 +296,11 @@ def inicio(request):
         categoria="documentos",
         etiqueta="PDF",
         titulo="Herramientas de PDF",
+        # Decía «todo pasa en tu equipo: los archivos no se suben», escrito cuando esto era
+        # una estación de trabajo. En el servidor sí se suben —a él, y a nadie más—, y la
+        # frase vieja contradecía el botón de subir de la misma pantalla.
         proposito=(
-            "Todo pasa en tu equipo: los archivos no se copian, no se suben, y el "
+            "Todo pasa en el servidor de la oficina: nada sale a un servicio de fuera, y el "
             "original nunca se toca."
         ),
     )
@@ -1001,29 +1014,26 @@ def office_vista(request):
         messages.error(request, str(fallo))
         return render(request, "documents/office.html", contexto)
 
-    ruta = origen.ruta
     contexto["ruta_texto"] = origen.token
     contexto["nombre_origen"] = origen.nombre
-    destino = ruta.with_suffix(".pdf")
-    parcial = ruta_parcial(destino)
 
+    # Por la extensión del nombre que se reconoce, que es el que trae la del original.
     try:
-        office_mod.convertir(ruta, parcial, ajustar_ancho=contexto["ajustar_ancho"])
+        programa = office_mod.programa_de(origen.nombre)
     except ComposicionInvalida as fallo:
-        parcial.unlink(missing_ok=True)
         messages.error(request, str(fallo))
         return render(request, "documents/office.html", contexto)
+    if not office.tiene(programa):
+        messages.error(request, f"{office_mod.NOMBRES[programa]} no está instalado en este equipo.")
+        return render(request, "documents/office.html", contexto)
 
-    os.replace(parcial, destino)
-    try:
-        cabecera = lectura_pdf.leer_cabecera(destino)
-        contexto["cabecera"] = cabecera
-        messages.success(request, f"{cabecera.resumen} en {destino.name}.")
-    except lectura_pdf.NoEsPdf:  # pragma: no cover -- Office acaba de escribirlo
-        messages.success(request, f"Hecho: {destino.name}.")
-
-    contexto["generado"] = destino
-    return render(request, "documents/office.html", contexto)
+    return cola_mod.encolar(
+        request,
+        "office",
+        [origen],
+        {"ajustar_ancho": contexto["ajustar_ancho"]},
+        sufijo=".pdf",
+    )
 
 
 @login_required
@@ -1063,19 +1073,7 @@ def a_word_vista(request):
     if request.POST.get("accion") != "convertir":
         return render(request, "documents/a_word.html", contexto)
 
-    destino = ruta.with_suffix(".docx")
-    parcial = destino.with_name(f"{destino.stem}.parcial.docx")
-    try:
-        office_mod.a_word(ruta, parcial)
-    except ComposicionInvalida as fallo:
-        parcial.unlink(missing_ok=True)
-        messages.error(request, str(fallo))
-        return render(request, "documents/a_word.html", contexto)
-
-    os.replace(parcial, destino)
-    messages.success(request, f"Hecho: {destino.name}.")
-    contexto["generado"] = destino
-    return render(request, "documents/a_word.html", contexto)
+    return cola_mod.encolar(request, "a_word", [origen], {}, sufijo=".docx")
 
 
 @login_required
@@ -1304,17 +1302,14 @@ def catalogo_a_excel(request):
 
     try:
         origen = _origen_del_formulario(request)
-        # La ficha del catálogo antes de nada: si alguien se equivocó de archivo, se ve aquí
-        # y no después de abrir un Excel de nueve hojas que no son las suyas.
-        contexto["tablas"] = catalogos_mod.esquema(origen.ruta)
-        destino = catalogos_mod.a_excel(origen.ruta, destino=_ruta_de_salida_de(origen, ".xlsx"))
+        # Se abre aquí antes de encolar: un archivo que no es un catálogo se dice con el
+        # formulario delante, no en una ficha roja. Las tablas salen en el recibo.
+        catalogos_mod.esquema(origen.ruta)
     except (modo_mod.RutaNoPermitida, ComposicionInvalida) as fallo:
         messages.error(request, str(fallo))
         return render(request, "documents/catalogo_a_excel.html", contexto)
 
-    messages.success(request, f"Hecho: {destino.name}.")
-    contexto["generado"] = destino
-    return render(request, "documents/catalogo_a_excel.html", contexto)
+    return cola_mod.encolar(request, "catalogo_excel", [origen], {}, sufijo=".xlsx")
 
 
 @login_required
@@ -1338,20 +1333,25 @@ def excel_a_catalogo(request):
     if request.method != "POST" or not access:
         return render(request, "documents/excel_a_catalogo.html", contexto)
 
+    from apps.jobs.models import EntradaDeTrabajo
+
     try:
         hoja = _origen_del_formulario(request)
         plantilla = _origen_del_formulario(request, campo="plantilla", archivo="plantilla_subida")
-        destino, avisos = catalogos_mod.desde_excel(
-            hoja.ruta, plantilla.ruta, destino=_ruta_de_salida_de(hoja, ".mdb")
-        )
+        # La plantilla se abre aquí: si no es un catálogo, se dice antes de encolar.
+        catalogos_mod.esquema(plantilla.ruta)
     except (modo_mod.RutaNoPermitida, ComposicionInvalida) as fallo:
         messages.error(request, str(fallo))
         return render(request, "documents/excel_a_catalogo.html", contexto)
 
-    messages.success(request, f"Hecho: {destino.name}.")
-    contexto["generado"] = destino
-    contexto["avisos"] = avisos
-    return render(request, "documents/excel_a_catalogo.html", contexto)
+    return cola_mod.encolar(
+        request,
+        "excel_catalogo",
+        [hoja, plantilla],
+        {},
+        sufijo=".mdb",
+        papeles=[EntradaDeTrabajo.HOJA, EntradaDeTrabajo.PLANTILLA],
+    )
 
 
 def _ppp(crudo) -> int:

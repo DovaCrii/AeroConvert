@@ -62,22 +62,4 @@
   </div>
 {% endif %}
 
-{% if generado %}
-  <div class="tarjeta tarjeta-acento">
-    <div class="eyebrow">Hecho</div>
-    <strong class="recibo-titulo">✓ {{ generado.name }}</strong>
-    <p class="tenue">
-      {{ resultado.origen_bytes|filesizeformat }} →
-      <strong>{{ resultado.salida_bytes|filesizeformat }}</strong>
-      · <strong>{{ resultado.reduccion_pct }} % menos</strong>
-      {% if resultado.imagenes_tocadas %}
-        · {{ resultado.imagenes_tocadas }} imagen(es) reducida(s)
-      {% else %}
-        · solo se recomprimió, sin tocar ninguna imagen
-      {% endif %}
-      · {{ resultado.paginas }} página(s)
-    </p>
-    <p class="tenue">El original no se ha tocado.</p>
-  </div>
-{% endif %}
 {% endblock %}

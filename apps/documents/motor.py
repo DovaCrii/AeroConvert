@@ -84,6 +84,13 @@ ESPECIFICACIONES: dict[str, Especificacion] = {
     # Al pesado: quinientas páginas son unos cuarenta minutos. El plazo crece con ellas; ver
     # `ocr.plazo_s`, que es quien sabe cuánto tarda una.
     "ocr": Especificacion(carril=PESADO, emite_progreso=True, exige="tesseract"),
+    # Office ya se ejecuta en un proceso aparte —pwsh hablando COM—, así que el hijo es ese
+    # y no `tarea.py`. Ver `plan()`. Cinco minutos: un informe de doscientas páginas con
+    # imágenes tarda de verdad, y más que eso es Word esperando una respuesta que no llegará.
+    "office": Especificacion(timeout_s=300, exige="office"),
+    "a_word": Especificacion(timeout_s=300, exige="office"),
+    "catalogo_excel": Especificacion(timeout_s=900, exige="access"),
+    "excel_catalogo": Especificacion(timeout_s=900, exige="access"),
 }
 
 
@@ -92,7 +99,7 @@ def especificacion(herramienta: str) -> Especificacion | None:
 
 
 def va_por_la_cola(herramienta: str) -> bool:
-    """Si esta herramienta ya se ejecuta en la cola. Las demás siguen en su pantalla."""
+    """Si esta herramienta se ejecuta en la cola. Desde la fase 9, las veinte."""
     return herramienta in ESPECIFICACIONES
 
 
@@ -213,6 +220,14 @@ def plan(job) -> PlanDeEjecucion:
         # sonda guarda en la caché de Django. Así que se le da la ruta hecha.
         entorno[VARIABLE_TESSERACT] = ocr.sondar().programa
         plazo_s = ocr.plazo_s(_paginas_del_trabajo(job, entradas))
+    if espec.exige == "access":
+        from . import catalogos
+        from .tarea import VARIABLE_ACCESS
+
+        entorno[VARIABLE_ACCESS] = catalogos.sondar().controlador
+
+    if espec.exige == "office":
+        return _plan_de_office(job, espec, entradas[0], destino, parcial, entorno)
 
     encargo = ruta_del_encargo(job)
     encargo.parent.mkdir(parents=True, exist_ok=True)
@@ -238,6 +253,38 @@ def plan(job) -> PlanDeEjecucion:
         analizador_de_progreso=_analizar_progreso,
         emite_progreso=espec.emite_progreso,
         salida_opcional=espec.salida_opcional,
+    )
+
+
+def _plan_de_office(job, espec, entrada: dict, destino, parcial, entorno) -> PlanDeEjecucion:
+    """**El hijo es pwsh**, con el mismo guion que usaba la pantalla.
+
+    Pasarlo por `tarea.py` sería un proceso de Python que solo lanza otro proceso, y además
+    no podría: `office.convertir` sondea con la caché de Django. El argv sale de
+    `office.plan()`, que ya existía para poder probarlo sin Office.
+
+    Lo que Office no hace es contar lo que escribió, así que no hay informe: el corredor
+    comprueba que el parcial exista y lo verifica por su extensión, como con GDAL.
+    """
+    from . import office
+
+    origen = Path(entrada["ruta"])
+    if job.herramienta == "a_word":
+        argv = office.plan(origen, parcial, office.PDF_A_WORD)
+    else:
+        argv = office.plan(
+            origen,
+            parcial,
+            office.programa_de(origen),
+            ajustar_ancho=bool((job.options or {}).get("ajustar_ancho")),
+        )
+    return PlanDeEjecucion(
+        argv=tuple(argv),
+        ruta_de_salida=destino,
+        env=entorno,
+        cwd=Path(settings.BASE_DIR),
+        timeout_s=espec.timeout_s,
+        emite_progreso=False,
     )
 
 
@@ -284,6 +331,10 @@ def verificar(parcial: Path, informe: dict, plan: PlanDeEjecucion | None = None)
         return veredicto
     if extension == ".zip":
         return _verificar_zip(parcial, detalles)
+    if extension in _PARTE_PRINCIPAL:
+        return _verificar_ooxml(parcial, detalles, _PARTE_PRINCIPAL[extension])
+    if extension == ".mdb":
+        return _verificar_mdb(parcial, detalles)
     if extension in _IMAGENES:
         try:
             _comprobar_imagen(parcial.read_bytes())
@@ -307,6 +358,50 @@ def verificar(parcial: Path, informe: dict, plan: PlanDeEjecucion | None = None)
 
 
 _IMAGENES = frozenset({".png", ".jpg", ".jpeg"})
+
+#: La parte sin la que un documento de Office no es nada. Un `.docx` es un zip, y un zip
+#: íntegro sin `word/document.xml` se abre en Word como «el archivo está dañado».
+_PARTE_PRINCIPAL = {".docx": "word/document.xml", ".xlsx": "xl/workbook.xml"}
+
+#: Lo que llevan en el byte 4 las bases de Access: Jet para `.mdb`, ACE para `.accdb`.
+_FIRMAS_DE_ACCESS = (b"Standard Jet DB", b"Standard ACE DB")
+
+
+def _verificar_ooxml(parcial: Path, detalles: dict, parte: str) -> Verificacion:
+    try:
+        with zipfile.ZipFile(parcial) as paquete:
+            rota = paquete.testzip()
+            nombres = set(paquete.namelist())
+            hojas = sum(1 for n in nombres if n.startswith("xl/worksheets/sheet"))
+    except zipfile.BadZipFile as fallo:
+        return Verificacion(
+            False, f"El documento escrito no se deja abrir: {fallo}", "salida-invalida"
+        )
+    if rota is not None:
+        return Verificacion(False, f"{rota} está dañado dentro del documento.", "salida-invalida")
+    if parte not in nombres:
+        return Verificacion(False, f"Al documento le falta {parte}.", "salida-invalida")
+
+    # Catálogo a Excel: **una hoja por tabla**, y si falta una es que se perdió una tabla.
+    tablas = detalles.get("tablas") or []
+    if tablas and hojas != len(tablas):
+        return Verificacion(
+            False,
+            f"El catálogo tiene {len(tablas)} tablas y el Excel salió con {hojas} hojas.",
+            "salida-invalida",
+        )
+    detalles["verificado_con"] = "zipfile"
+    return Verificacion(True, detalles=detalles)
+
+
+def _verificar_mdb(parcial: Path, detalles: dict) -> Verificacion:
+    """Por la firma. Abrirla exigiría el mismo controlador que la escribió."""
+    with open(parcial, "rb") as base:
+        cabecera = base.read(32)
+    if cabecera[4:19] not in _FIRMAS_DE_ACCESS:
+        return Verificacion(False, "Lo escrito no es una base de Access.", "salida-invalida")
+    detalles["verificado_con"] = "la firma del archivo"
+    return Verificacion(True, detalles=detalles)
 
 
 def _paginas_con_pdfium(fuente) -> int:

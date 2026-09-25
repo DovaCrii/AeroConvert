@@ -73,22 +73,4 @@
   </form>
 {% endif %}
 
-{% if generado %}
-  <div class="tarjeta tarjeta-acento">
-    <div class="eyebrow">Hecho</div>
-    <strong class="recibo-titulo">✓ {{ generado.name }}</strong>
-    {% if avisos %}
-      {% comment %}
-        Los avisos salen **con el resultado**, no en lugar de él: el catálogo está hecho y es
-        usable. Lo que dicen es qué quedó vacío, que puede ser deliberado o puede ser una
-        columna borrada sin querer al reordenar la hoja.
-      {% endcomment %}
-      <p class="tenue" style="margin:10px 0 4px;"><strong>Conviene que mires esto:</strong></p>
-      <ul class="lista-simple">
-        {% for aviso in avisos %}<li>{{ aviso }}</li>{% endfor %}
-      </ul>
-    {% endif %}
-  </div>
-{% endif %}
-
 {% endblock %}

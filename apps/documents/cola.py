@@ -49,6 +49,7 @@ def encolar(
     *,
     sufijo: str,
     secreto: str | None = None,
+    papeles: list[str] | None = None,
 ):
     """Crea el trabajo y lleva a su ficha, que ya tiene progreso, recibo y descarga.
 
@@ -59,6 +60,9 @@ def encolar(
     sin ella el obrero podría ver el trabajo en el instante entre crearlo y dejar la
     contraseña, cogerlo, y fallar con `falta-la-contrasena` un trabajo recién pedido. Si
     guardarla falla, el trabajo no llega a existir.
+
+    `papeles` dice qué es cada entrada cuando no son intercambiables —la hoja y la plantilla
+    de «Excel a catálogo»—, en el mismo orden que `origenes`.
     """
     from django.db import transaction
 
@@ -66,7 +70,7 @@ def encolar(
         raise ValueError(f"«{herramienta}» todavía no pasa por la cola.")
 
     with transaction.atomic():
-        job = _crear(request, herramienta, origenes, opciones, sufijo)
+        job = _crear(request, herramienta, origenes, opciones, sufijo, papeles or [])
         if secreto is not None:
             from . import secretos
 
@@ -74,7 +78,7 @@ def encolar(
     return redirect("jobs:ficha", pk=job.pk)
 
 
-def _crear(request, herramienta: str, origenes: list, opciones: dict, sufijo: str):
+def _crear(request, herramienta: str, origenes: list, opciones: dict, sufijo: str, papeles):
     from apps.jobs.models import ConversionJob, EntradaDeTrabajo
 
     primero = origenes[0]
@@ -95,7 +99,7 @@ def _crear(request, herramienta: str, origenes: list, opciones: dict, sufijo: st
         EntradaDeTrabajo.objects.create(
             job=job,
             orden=orden,
-            papel=getattr(origen, "papel", "") or "",
+            papel=papeles[orden] if orden < len(papeles) else "",
             ruta=str(origen.ruta),
             nombre=origen.nombre,
             subida=origen.subida,

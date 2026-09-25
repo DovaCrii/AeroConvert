@@ -185,6 +185,26 @@ generar 10.800 peticiones.
           </dd>
         {% endif %}
 
+        {% if trabajo.herramienta == "comprimir" %}
+          {# Lo que explica de dónde salió la reducción: bajar imágenes o solo recomprimir. #}
+          <dt>Imágenes</dt>
+          <dd>
+            {% if trabajo.verification.imagenes_tocadas %}
+              <span class="cifra">{{ trabajo.verification.imagenes_tocadas }}</span> reducida(s)
+            {% else %}
+              Ninguna: solo se recomprimió
+            {% endif %}
+          </dd>
+        {% endif %}
+
+        {% if trabajo.verification.tablas %}
+          {# Catálogo a Excel: una hoja por tabla, y cuántas filas trae cada una. #}
+          <dt>Tablas</dt>
+          <dd>
+            {% for nombre, filas in trabajo.verification.tablas %}{{ nombre }} ({{ filas }}){% if not forloop.last %} · {% endif %}{% endfor %}
+          </dd>
+        {% endif %}
+
         {% if trabajo.verification.por_archivo %}
           {# Unir: cuántas páginas puso cada archivo. Es lo que se revisa cuando falta una. #}
           <dt>De dónde salió</dt>

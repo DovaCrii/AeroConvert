@@ -303,6 +303,35 @@ def _ocr(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
     return {"paginas": len(PdfReader(origen).pages)}
 
 
+#: El nombre del controlador ODBC de Access, que sondea el padre. Ver `catalogos._controlador`.
+VARIABLE_ACCESS = "AEROCONVERT_CONTROLADOR_ACCESS"
+
+
+def _catalogo_a_excel(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
+    from apps.documents import catalogos
+
+    origen = entradas[0]["ruta"]
+    tablas = catalogos.esquema(origen)
+    catalogos.a_excel(origen, destino=parcial)
+    # Para el recibo, y para que el corredor compare: cada tabla tiene que salir como hoja.
+    return {"tablas": [[t.nombre, t.filas] for t in tablas]}
+
+
+def _excel_a_catalogo(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
+    from apps.documents import catalogos
+
+    por_papel = {e.get("papel"): e["ruta"] for e in entradas}
+    hoja, plantilla = por_papel.get("hoja"), por_papel.get("plantilla")
+    if not hoja or not plantilla:
+        raise FalloDeTarea(
+            "documento-invalido", "Hacen falta los dos archivos: la hoja y el catálogo."
+        )
+    _, avisos = catalogos.desde_excel(hoja, plantilla, destino=parcial)
+    # Los avisos no son un fallo —una tabla que el Excel no traía queda vacía, y se dice—,
+    # así que el corredor los apunta en la bitácora y el trabajo termina «con avisos».
+    return {"avisos": avisos}
+
+
 def _markdown_a_pdf(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
     from apps.documents import desde_markdown
 
@@ -310,9 +339,9 @@ def _markdown_a_pdf(entradas: list[dict], opciones: dict, parcial: Path) -> dict
     return {}
 
 
-#: Qué función hace cada herramienta. **Solo las que ya pasan por la cola**: las demás siguen
-#: en su pantalla hasta que les toque su lote, y un id que no esté aquí es un error del
-#: corredor, no de la persona.
+#: Qué función hace cada herramienta. Están todas menos Office y PDF a Word, cuyo hijo es
+#: pwsh y no este módulo (ver `motor._plan_de_office`). Un id que no esté aquí es un error
+#: del corredor, no de la persona; `test_office_y_catalogos_en_cola.py` cierra la lista.
 TAREAS = {
     "numerar": _numerar,
     "marca": _marca,
@@ -330,6 +359,8 @@ TAREAS = {
     "imagenes": _imagenes,
     "proteger": _proteger,
     "ocr": _ocr,
+    "catalogo_excel": _catalogo_a_excel,
+    "excel_catalogo": _excel_a_catalogo,
 }
 
 
@@ -356,7 +387,9 @@ def ejecutar(herramienta: str, encargo: dict, parcial: Path) -> dict:
             "codigo": getattr(fallo, "codigo", "") or "documento-invalido",
             "mensaje": str(fallo),
         }
-    return {"detalles": detalles or {}}
+    detalles = dict(detalles or {})
+    avisos = [str(a) for a in detalles.pop("avisos", None) or []]
+    return {"detalles": detalles, "avisos": avisos} if avisos else {"detalles": detalles}
 
 
 def main(argv: list[str]) -> int:

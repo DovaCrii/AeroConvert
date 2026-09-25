@@ -135,6 +135,7 @@ HERRAMIENTAS = (
         "nombre": "PDF a Word",
         "que_hace": "El camino de vuelta, para poder editarlo. Con lo que eso significa.",
         "exige_office": True,
+        "tras_hacerlo": "Repásalo antes de mandarlo: Word rehace la maqueta a su manera.",
     },
     # --- Texto y tablas ---------------------------------------------------
     #
@@ -232,6 +233,10 @@ HERRAMIENTAS = (
         "nombre": "Catálogo de tubería a Excel",
         "que_hace": "Saca las nueve tablas del catálogo para poder editarlas cómodo.",
         "exige_access": True,
+        "tras_hacerlo": (
+            "Una hoja por tabla, con la fila de encabezados fija. Cuando lo tengas editado, "
+            "vuelve con «Excel a catálogo de tubería»."
+        ),
     },
     {
         "id": "excel_catalogo",

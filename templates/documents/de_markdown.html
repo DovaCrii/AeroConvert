@@ -26,10 +26,4 @@
   {% include "documents/_origen.html" with accion="convertir" boton="Hacer el PDF" pregunta="¿Qué archivo Markdown?" acepta=".md,.markdown,.txt" %}
 </form>
 
-{% if generado %}
-  <div class="tarjeta tarjeta-acento">
-    <p style="margin:0;"><strong>Listo: {{ generado.name }}</strong></p>
-  </div>
-{% endif %}
-
 {% endblock %}
