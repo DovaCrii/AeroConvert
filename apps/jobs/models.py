@@ -18,6 +18,8 @@ version, y cuanto tardo en fallar. Una fila nueva con `retry_of` conserva las do
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
@@ -205,6 +207,25 @@ class ConversionJob(BaseModel):
     @property
     def es_de_documentos(self) -> bool:
         return bool(self.herramienta)
+
+    @property
+    def ruta_que_sirve(self) -> str:
+        """La ruta de la salida **si a quien mira le sirve de algo**; si no, vacío.
+
+        Junto al original, en la carpeta compartida, sí: es la unidad que su equipo tiene
+        montada. En la carpeta de trabajo, que es donde cae lo que salió de una subida, no: es
+        una ruta de la VM, no se puede pegar en ninguna parte, e invita a intentarlo. Ahí lo
+        único útil es el botón de descargar.
+        """
+        if not self.output_path:
+            return ""
+        from . import retencion
+
+        try:
+            Path(self.output_path).resolve().relative_to(retencion.carpeta_de_trabajo().resolve())
+        except ValueError:
+            return self.output_path
+        return ""
 
     @property
     def desenlace_motivo(self):

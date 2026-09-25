@@ -275,7 +275,8 @@ class TestDividir:
 class TestImagenesAPdf:
     def test_una_pagina_por_imagen(self, sesion, tmp_path):
         fotos = [_imagen(tmp_path, f"foto{i}.jpg") for i in (1, 2)]
-        sesion.post(
+        _encolar_y_procesar(
+            sesion,
             reverse("documents:imagenes"),
             {"archivos_texto": "\n".join(str(f) for f in fotos), "tamano": "a4"},
         )
@@ -287,7 +288,8 @@ class TestImagenesAPdf:
             _imagen(tmp_path, "ancha.jpg", (1200, 800)),
             _imagen(tmp_path, "alta.jpg", (800, 1200)),
         ]
-        sesion.post(
+        _encolar_y_procesar(
+            sesion,
             reverse("documents:imagenes"),
             {"archivos_texto": "\n".join(str(f) for f in fotos), "tamano": "a4"},
         )

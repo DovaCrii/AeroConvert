@@ -383,6 +383,57 @@ class TestVariasPiezas:
         assert not pieza.exists()
 
 
+class TestVariasEntradas:
+    """Unir e Imágenes a PDF: **la huella de cada una**, no solo de la primera."""
+
+    def _con_entradas(self, usuario, origenes, herramienta, salida, **opciones):
+        job = _trabajo(usuario, origenes[0], herramienta=herramienta, salida=salida, **opciones)
+        for orden, origen in enumerate(origenes[1:], start=1):
+            EntradaDeTrabajo.objects.create(
+                job=job, orden=orden, ruta=str(origen), nombre=origen.name
+            )
+        return job
+
+    def test_unir_sigue_la_receta_y_guarda_cada_huella(self, usuario, tmp_path):
+        memoria = _pdf(tmp_path / "memoria.pdf", 3)
+        planos = _pdf(tmp_path / "planos.pdf", 2)
+        job = _correr(
+            self._con_entradas(
+                usuario,
+                [memoria, planos],
+                "unir",
+                tmp_path / "memoria_unido.pdf",
+                receta="1:2:0,0:1:90,0:3:0",
+            )
+        )
+        assert job.status == HECHO, job.reason_detail
+        assert job.verification["paginas_verificadas"] == 3
+        assert job.verification["por_archivo"] == [["planos.pdf", 1], ["memoria.pdf", 2]]
+        assert [e.sha256 for e in job.entradas.all()] == [
+            _huella(memoria)[0],
+            _huella(planos)[0],
+        ]
+
+    def test_una_imagen_que_no_lo_es_no_toca_ninguna(self, usuario, tmp_path):
+        from PIL import Image
+
+        buena = tmp_path / "foto1.jpg"
+        Image.new("RGB", (300, 200), (200, 40, 40)).save(buena)
+        mala = tmp_path / "foto2.jpg"
+        mala.write_bytes(b"esto no es un jpeg")
+        antes = [_huella(buena), _huella(mala)]
+
+        job = _correr(
+            self._con_entradas(usuario, [buena, mala], "imagenes", tmp_path / "foto1_imagenes.pdf")
+        )
+        assert job.status == ERROR
+        assert job.reason_code == "documento-invalido"
+        assert "foto2.jpg" in job.reason_detail
+        assert not (tmp_path / "foto1_imagenes.pdf").exists()
+        assert not list(tmp_path.glob("*.parcial*"))
+        assert [_huella(buena), _huella(mala)] == antes
+
+
 class TestLaVerificacionDeLasPiezas:
     """Un zip íntegro con un PDF roto dentro sigue estando roto."""
 

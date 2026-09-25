@@ -54,7 +54,7 @@ from . import ocr as ocr_mod
 from . import office as office_mod
 from . import receta as receta_mod
 from . import seguridad as seguridad_mod
-from .composicion import GIROS, ComposicionInvalida, componer
+from .composicion import GIROS, ComposicionInvalida
 
 # **Reexportado**: el índice, las pruebas y `acciones.py` lo leen de aquí desde siempre. Los
 # datos viven en `herramientas.py` para que el modelo y el proceso hijo puedan leerlos sin
@@ -507,40 +507,20 @@ def _receta_inicial(origenes: list):
 
 
 def _generar(request, origenes: list, entradas):
-    destino = _ruta_de_salida(origenes[0])
-    parcial = ruta_parcial(destino)
+    """Encola la receta tal como quedó en la pantalla.
 
-    try:
-        resultado = componer(receta_mod.a_paginas(entradas, [o.ruta for o in origenes]), parcial)
-    except ComposicionInvalida as fallo:
-        messages.error(request, str(fallo))
-        return render(request, "documents/unir.html", _contexto(origenes, entradas))
-
-    # Igual que en el runner: se escribe en el parcial y solo se pone en su sitio cuando
-    # ya salió bien. Un fallo a mitad no deja un PDF a medias con nombre de entregable.
-    os.replace(parcial, destino)
-
-    messages.success(
+    **La receta viaja en texto, no en páginas resueltas**: es la misma cadena que la pantalla
+    lleva de un POST al siguiente, indexa posiciones de la lista de archivos, y esa lista es
+    justo el orden de `EntradaDeTrabajo`. Así el hijo la entiende con `receta.py` sin que
+    haya una segunda forma de escribirla. Una receta vacía no llega aquí: `componer_vista` la
+    rehace antes con todas las páginas.
+    """
+    return cola_mod.encolar(
         request,
-        f"{resultado.paginas_escritas} páginas en {destino.name}.",
-    )
-    return render(
-        request,
-        "documents/unir.html",
-        _contexto(
-            origenes,
-            entradas,
-            {
-                "generado": destino,
-                "resultado": resultado,
-                "descarga": subidas_mod.anotar_resultado(
-                    destino, usuario=request.user, herramienta="unir"
-                ),
-                # Si el origen era una subida, la ruta que se enseña es la de la VM y no
-                # sirve para pegarla en ningun sitio: lo unico util es el boton.
-                "solo_descarga": origenes[0].es_subida,
-            },
-        ),
+        "unir",
+        origenes,
+        {"receta": receta_mod.a_texto(entradas)},
+        sufijo="_unido.pdf",
     )
 
 
@@ -668,26 +648,26 @@ def imagenes_vista(request):
         messages.error(request, "No indicaste ninguna imagen.")
         return render(request, "documents/imagenes.html", contexto)
 
-    destino = _ruta_de_salida_de(origenes[0], "_imagenes.pdf")
-    parcial = ruta_parcial(destino)
-
-    try:
-        cuantas = dividir_mod.desde_imagenes(
-            [o.ruta for o in origenes], parcial, tamano=contexto["tamano"]
-        )
-    except ComposicionInvalida as fallo:
-        parcial.unlink(missing_ok=True)
-        messages.error(request, str(fallo))
+    if contexto["tamano"] not in ("a4", "imagen"):
+        messages.error(request, f"«{contexto['tamano']}» no es un tamaño de página conocido.")
         return render(request, "documents/imagenes.html", contexto)
 
-    os.replace(parcial, destino)
-    messages.success(request, f"{cuantas} imagen(es) en {destino.name}.")
-    contexto["generado"] = destino
-    contexto["descarga"] = subidas_mod.anotar_resultado(
-        destino, usuario=request.user, herramienta="imagenes"
+    # La extensión se mira aquí, que es gratis y deja el formulario como estaba. Abrir cada
+    # imagen —lo caro— lo hace el hijo, que es donde puede tardar.
+    ajenas = [
+        o.nombre for o in origenes if Path(o.nombre).suffix.lower() not in dividir_mod.IMAGENES
+    ]
+    if ajenas:
+        messages.error(
+            request,
+            f"{', '.join(ajenas)} no es una imagen de las que se admiten "
+            f"({contexto['extensiones']}).",
+        )
+        return render(request, "documents/imagenes.html", contexto)
+
+    return cola_mod.encolar(
+        request, "imagenes", origenes, {"tamano": contexto["tamano"]}, sufijo="_imagenes.pdf"
     )
-    contexto["solo_descarga"] = origenes[0].es_subida
-    return render(request, "documents/imagenes.html", contexto)
 
 
 @login_required
@@ -1399,8 +1379,3 @@ def _ruta_de_salida_de(primero, sufijo: str) -> Path:
 
         return retencion.carpeta_de_trabajo() / nombre
     return primero.ruta.with_name(nombre)
-
-
-def _ruta_de_salida(primero) -> Path:
-    """La de «unir»."""
-    return _ruta_de_salida_de(primero, "_unido.pdf")

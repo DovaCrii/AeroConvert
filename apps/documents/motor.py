@@ -75,6 +75,8 @@ ESPECIFICACIONES: dict[str, Especificacion] = {
     # Dibujar doscientas láminas a 300 ppp no cabe en cinco minutos, y sigue siendo del
     # carril ligero: avanza hoja a hoja y lo dice, así que no bloquea sin que se vea.
     "a_imagenes": Especificacion(timeout_s=900, emite_progreso=True),
+    "unir": Especificacion(),
+    "imagenes": Especificacion(),
 }
 
 

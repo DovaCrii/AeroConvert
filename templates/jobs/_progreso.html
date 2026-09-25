@@ -171,6 +171,14 @@ generar 10.800 peticiones.
           </dd>
         {% endif %}
 
+        {% if trabajo.verification.por_archivo %}
+          {# Unir: cuántas páginas puso cada archivo. Es lo que se revisa cuando falta una. #}
+          <dt>De dónde salió</dt>
+          <dd>
+            {% for nombre, cuantas in trabajo.verification.por_archivo %}{{ nombre }} ({{ cuantas }}){% if not forloop.last %} · {% endif %}{% endfor %}
+          </dd>
+        {% endif %}
+
         {% if trabajo.verification.piezas_verificadas %}
           {# Abiertas por separado: un zip íntegro con un PDF roto dentro sigue estando roto. #}
           <dt>Piezas</dt>
@@ -205,7 +213,9 @@ generar 10.800 peticiones.
       {% if trabajo.output_path %}
         <a class="boton" style="display:inline-block; margin-top:12px; text-decoration:none; line-height:42px;"
            href="{% url 'jobs:descargar' trabajo.pk %}">Descargar</a>
-        <p class="tenue" style="margin:8px 0 0; font-size:.85rem;">{{ trabajo.output_path }}</p>
+        {% if trabajo.ruta_que_sirve %}
+          <p class="tenue" style="margin:8px 0 0; font-size:.85rem;">{{ trabajo.ruta_que_sirve }}</p>
+        {% endif %}
       {% else %}
         <p class="tenue" style="margin-top:10px;">El archivo ya se descargó y se borró.</p>
       {% endif %}

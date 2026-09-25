@@ -223,6 +223,27 @@ def _a_imagenes(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
         shutil.rmtree(carpeta, ignore_errors=True)
 
 
+def _unir(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
+    from apps.documents import composicion, receta
+
+    elegidas = receta.desde_texto(opciones.get("receta", ""), len(entradas))
+    if not elegidas:
+        raise composicion.ComposicionInvalida("La receta llegó vacía: no hay nada que juntar.")
+    hecho = composicion.componer(
+        receta.a_paginas(elegidas, [Path(e["ruta"]) for e in entradas]), parcial
+    )
+    return {"paginas": hecho.paginas_escritas, "por_archivo": [list(p) for p in hecho.por_archivo]}
+
+
+def _imagenes(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
+    from apps.documents import dividir
+
+    cuantas = dividir.desde_imagenes(
+        [e["ruta"] for e in entradas], parcial, tamano=opciones.get("tamano", "a4")
+    )
+    return {"paginas": cuantas}
+
+
 def _markdown_a_pdf(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
     from apps.documents import desde_markdown
 
@@ -246,6 +267,8 @@ TAREAS = {
     "comprimir": _comprimir,
     "dividir": _dividir,
     "a_imagenes": _a_imagenes,
+    "unir": _unir,
+    "imagenes": _imagenes,
 }
 
 
