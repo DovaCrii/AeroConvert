@@ -91,6 +91,32 @@ class TestSubirDesdeElEquipo:
         assert "No indicaste ningún archivo" in respuesta.content.decode()
 
 
+class TestElFormularioMandaElArchivo:
+    """**El cliente de pruebas de Django manda siempre multipart**, así que las pruebas de
+    arriba pasaban en Proteger aunque un navegador de verdad no enviara el archivo: al
+    formulario le faltaba `enctype="multipart/form-data"`, y sin él el navegador manda solo
+    el nombre. Esto mira la plantilla, que es donde estaba el fallo."""
+
+    def test_toda_pantalla_con_subida_la_declara(self):
+        import re
+        from pathlib import Path
+
+        from django.conf import settings
+
+        carpeta = Path(settings.BASE_DIR) / "templates" / "documents"
+        sin_enctype = []
+        for plantilla in carpeta.glob("*.html"):
+            if plantilla.name.startswith("_"):
+                continue  # los fragmentos van dentro del formulario de otra
+            texto = plantilla.read_text(encoding="utf-8")
+            if 'include "documents/_origen.html"' not in texto and 'type="file"' not in texto:
+                continue
+            formularios = re.findall(r"<form\b[^>]*>", texto)
+            if not any('enctype="multipart/form-data"' in f for f in formularios):
+                sin_enctype.append(plantilla.name)
+        assert sin_enctype == []
+
+
 class TestLaCajaDeRutaYaNoEsta:
     """Era la única vía cuando estas pantallas se escribieron para una estación de trabajo, y
     en el servidor se volvió una trampa: pedía una ruta, alguien pegaba la de su propio

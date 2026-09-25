@@ -5,6 +5,59 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Sin publicar]
 
+### Cambiado — las veinte herramientas de documentos, por la cola (fase 9.2, 2026-09-25)
+
+Hasta ahora corrían dentro de la petición. Ahora la pantalla mira y comprueba, y la acción
+final crea un trabajo: la ficha trae progreso, recibo, descarga con dueño, reintentar,
+cancelar e historial, como cualquier conversión.
+
+- **Trece de las veinte no dejaban descargar lo que salía de un archivo subido.** Ahora todas
+  se descargan desde la ficha del trabajo, y ninguna escribe ya dentro de la carpeta de
+  subidas.
+- **El reconocimiento de texto moría a los 120 s** que gunicorn da a una petición. En la cola
+  va por el carril pesado con 60 s por página, progreso página a página, y el tope sube de
+  100 a 500 páginas. La pantalla estima cuánto tardará antes de pulsar.
+- **Dos carriles** en el mismo obrero: un «numerar» de un segundo ya no espera detrás de una
+  ortofoto de tres horas.
+- **Varias salidas, en un zip**: Dividir y PDF a imágenes. Una sola pieza sale suelta.
+- **Terminar bien sin archivo** tiene su propio desenlace, ni verde ni rojo: comprimir un PDF
+  que ya venía comprimido, o sacar texto de un escaneo que no lo tiene.
+- **La contraseña de Proteger no toca la base, el argv ni el encargo.** Viaja cifrada a un
+  archivo del trabajo que el obrero lee y borra en un paso, caduca a la hora, y reintentar
+  vuelve a pedirla. El resultado se verifica con PDFium: sin la clave no abre, y es AES-256.
+- **Lo que sale se verifica con otro lector que el que lo escribió**: PDFium para los PDF y
+  cada pieza de un zip, la estructura del zip para `.docx` y `.xlsx`, la firma para `.mdb`.
+
+### Corregido — fase 9.2
+
+- **El formulario de Proteger no llevaba `enctype` multipart**: en un navegador de verdad la
+  subida nunca llegaba. Las pruebas no lo veían porque el cliente de Django siempre manda
+  multipart; ahora hay una que mira la plantilla.
+- **«Sin tocar las imágenes» comprimía a 200 ppp**: el formulario convertía el 0 en el valor
+  por omisión.
+- **Dividir con un trozo repetido** pisaba el primero sin avisar.
+- **El recibo enseñaba la ruta del servidor** para lo que salía de una subida, y un
+  porcentaje con dos signos («−-5 %») cuando la salida pesaba más que el original.
+
+### Corregido — lo que impedía terminar una conversión (fase 9.1, 2026-09-25)
+
+Ninguno de estos daba un error: la pantalla se quedaba quieta, o hacía otra cosa.
+
+- **Arrastrar y soltar no hacía nada.** Escribía el nombre en un campo oculto y solo enviaba
+  si llevaba una barra, que un nombre soltado nunca tiene. Ahora el archivo entra en el campo
+  de subida y se sube; la zona es la tarjeta entera, y soltarlo fuera ya no abre el archivo
+  en el navegador.
+- **Ningún error de htmx se veía.** Una subida que fallaba se quedaba en «Mirando qué es…».
+  Ahora se pinta el motivo con `role="alert"`, y el código técnico va plegado.
+- **La ficha aparecía fuera de la pantalla**, sin foco ni aviso. Ahora se desplaza, se
+  enfoca y se anuncia por una región `aria-live`, que antes no había en ninguna parte.
+- **Un EPSG mal escrito devolvía la pantalla vacía** y hacía elegir el archivo otra vez.
+  Ahora vuelve la ficha con el error junto al campo y lo escrito conservado.
+- **Los mensajes de éxito salían en el ámbar de «cuidado».** Cada nivel lleva ahora su
+  color, su icono y su palabra.
+- **Textos que se contradecían**: «no se sube» junto a un botón de subir, «sin límite de
+  tamaño» con un tope de 2.048 MB.
+
 ### Añadido — cerrar riesgos, arreglar los cimientos y crecer (fase 8, 2026-09-21 a 24)
 
 - **Comprimir PDF**, que se niega cuando comprimir engordaría el archivo. Medido sobre un

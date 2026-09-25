@@ -127,6 +127,15 @@ def convertir(request):
     silencio**: es una cadena de consulta, la escribe cualquiera, y la pantalla sin destino
     preferido funciona igual — no hay nada que avisar.
     """
+    return render(request, "dashboard/convertir.html", _contexto_de_convertir(request))
+
+
+def _contexto_de_convertir(request) -> dict:
+    """Lo que pinta la pantalla de convertir, sin la ficha.
+
+    Aparte de la vista porque `encolar` necesita la pantalla entera cuando algo falla: volver a
+    pintarla con la ficha dentro es lo que evita que un error tire el archivo ya elegido.
+    """
     preferido = (request.GET.get("destino") or "").strip()
     perfil = perfiles_mod.PERFILES.get(preferido)
 
@@ -135,28 +144,24 @@ def convertir(request):
     pedido = (request.GET.get("formato") or "").strip()
     formato = catalogo.FORMATOS.get(pedido) if pedido else None
 
-    return render(
-        request,
-        "dashboard/convertir.html",
-        {
-            "seccion": "convertir",
-            "etiqueta_seccion": "Convertir",
-            "destino_preferido": perfil.id if perfil else "",
-            "nombre_preferido": perfil.nombre if perfil else "",
-            "formato_preferido": pedido if formato else "",
-            "nombre_formato": str(formato.nombre) if formato else "",
-            "titulo_pagina": "Qué tiene dentro, y dónde va a abrir",
-            # Corto, y **diciendo algo que no dice ningún otro sitio de la pantalla**.
-            #
-            # Antes explicaba el funcionamiento con casi las mismas palabras que los tres
-            # pasos de debajo: leer dos veces la misma explicación no aclara, cansa. Los
-            # pasos dicen cómo funciona; el título dice qué hace; esto dice **cuándo
-            # echar mano de ello**, que es la pregunta que trae aquí a alguien la primera
-            # vez. Y es literalmente el caso que originó la aplicación.
-            "proposito": "Para cuando un archivo abre en un equipo y en otro no.",
-            "recientes": ConversionJob.objects.filter(owner=request.user)[:5],
-        },
-    )
+    return {
+        "seccion": "convertir",
+        "etiqueta_seccion": "Convertir",
+        "destino_preferido": perfil.id if perfil else "",
+        "nombre_preferido": perfil.nombre if perfil else "",
+        "formato_preferido": pedido if formato else "",
+        "nombre_formato": str(formato.nombre) if formato else "",
+        "titulo_pagina": "Qué tiene dentro, y dónde va a abrir",
+        # Corto, y **diciendo algo que no dice ningún otro sitio de la pantalla**.
+        #
+        # Antes explicaba el funcionamiento con casi las mismas palabras que los tres
+        # pasos de debajo: leer dos veces la misma explicación no aclara, cansa. Los
+        # pasos dicen cómo funciona; el título dice qué hace; esto dice **cuándo
+        # echar mano de ello**, que es la pregunta que trae aquí a alguien la primera
+        # vez. Y es literalmente el caso que originó la aplicación.
+        "proposito": "Para cuando un archivo abre en un equipo y en otro no.",
+        "recientes": ConversionJob.objects.filter(owner=request.user)[:5],
+    }
 
 
 @login_required
@@ -181,6 +186,9 @@ def que_puedo_hacer(request):
         "grupos": grupos,
         "q": busqueda,
         "conversion": conversion,
+        # Para el aviso del lector de pantalla: la lista cambia con cada tecla y sin esto no
+        # hay forma de saber si la búsqueda encontró algo sin ir a mirarlo.
+        "total_resultados": sum(len(g["acciones"]) for g in grupos),
         # **La explicación solo mientras hace falta**, y sin guardar nada.
         #
         # Una pantalla de «cómo funciona» separada se lee una vez y después es un clic de más
@@ -271,6 +279,20 @@ def _ficha(request, token_pedido: str, formato_pedido: str = ""):
     if error:
         return render(request, "dashboard/_ficha.html", error)
 
+    return render(
+        request,
+        "dashboard/_ficha.html",
+        _contexto_de_ficha(request, inspeccion, origen, formato_pedido),
+    )
+
+
+def _contexto_de_ficha(request, inspeccion, origen, formato_pedido: str = "") -> dict:
+    """Lo que pinta la ficha de un archivo ya inspeccionado.
+
+    Aparte de `_ficha` para que `encolar` pueda volver a pintarla cuando la conversión no se
+    puede encolar. Antes redirigía a la pantalla vacía y el archivo se perdía: una subida había
+    que volver a subirla entera por haber tecleado mal un EPSG.
+    """
     escribibles = catalogo.escribibles(inspeccion.familia or catalogo.RASTER)
     experto = formato_pedido
     if experto not in {f.codigo for f in escribibles}:
@@ -278,53 +300,53 @@ def _ficha(request, token_pedido: str, formato_pedido: str = ""):
 
     _, campos = _formulario_experto(inspeccion, experto) if experto else (None, None)
 
-    return render(
-        request,
-        "dashboard/_ficha.html",
-        {
-            "i": inspeccion,
-            # **Lo que viaja al formulario, y nunca `i.ruta`.** Para una subida es su
-            # identificador; para una ruta, la ruta. Es la única línea de esta vista donde
-            # equivocarse sería una fuga.
-            "token": origen.token,
-            "nombre": origen.nombre,
-            # El dibujo de la libreta, cuando lo es. Es lo que convierte «elige el orden de
-            # columnas» en una decisión que se toma mirando.
-            "dibujo": (
-                vista_previa_mod.dibujo_de_puntos(inspeccion.puntos) if inspeccion.puntos else None
-            ),
-            "veredictos": perfiles_mod.veredictos(inspeccion),
-            "perfiles": _destinos_para(inspeccion),
-            # **La elección que se hizo en el catálogo, traída hasta aquí.**
-            #
-            # Se lee del propio pedido —y no de un parámetro— porque los dos caminos que
-            # acaban en esta ficha, subir y explorar, mandan formularios distintos: uno por
-            # POST y otro por GET. Lo que comparten es llevar el campo escondido.
-            "destino_preferido": _destino_preferido(request),
-            "escribibles": escribibles,
-            "formato_experto": experto,
-            "campos": campos,
-            # **Si no hay a dónde convertir, no se enseña el formulario.**
-            #
-            # Pasa con un PDF y con un IFC: la familia existe en el catálogo pero ningún
-            # motor declara todavía un par que salga de ahí. Pintar el selector y el botón
-            # de «convertir con estos ajustes» ofrece un camino que termina en «ningún
-            # motor sabe hacer esa conversión» — un callejón sin salida con forma de
-            # botón, que es peor que no ofrecer nada.
-            "hay_conversion": _hay_algun_destino(inspeccion, escribibles),
-            # **Solo los propios, y «propios» quiere decir de quien mira.** Los de fábrica
-            # salen de los perfiles, y los perfiles ya están arriba como botones de destino:
-            # enseñarlos otra vez era una segunda fila de botones con los mismos nombres
-            # haciendo lo mismo.
-            #
-            # El comentario decía «solo los propios» desde el principio y la consulta solo
-            # excluía los de fábrica: en una máquina de una persona las dos cosas coinciden,
-            # y en el servidor compartido ya no.
-            "preajustes": ConversionPreset.propios_de(request.user).filter(
-                target_format_code__in=[f.codigo for f in escribibles]
-            )[:12],
-        },
-    )
+    return {
+        "i": inspeccion,
+        # **Lo que viaja al formulario, y nunca `i.ruta`.** Para una subida es su
+        # identificador; para una ruta, la ruta. Es la única línea de esta vista donde
+        # equivocarse sería una fuga.
+        "token": origen.token,
+        "nombre": origen.nombre,
+        # El dibujo de la libreta, cuando lo es. Es lo que convierte «elige el orden de
+        # columnas» en una decisión que se toma mirando.
+        "dibujo": (
+            vista_previa_mod.dibujo_de_puntos(inspeccion.puntos) if inspeccion.puntos else None
+        ),
+        "veredictos": perfiles_mod.veredictos(inspeccion),
+        "perfiles": _destinos_para(inspeccion),
+        # **La elección que se hizo en el catálogo, traída hasta aquí.**
+        #
+        # Se lee del propio pedido —y no de un parámetro— porque los dos caminos que
+        # acaban en esta ficha, subir y explorar, mandan formularios distintos: uno por
+        # POST y otro por GET. Lo que comparten es llevar el campo escondido.
+        "destino_preferido": _destino_preferido(request),
+        "escribibles": escribibles,
+        "formato_experto": experto,
+        "campos": campos,
+        # **Si no hay a dónde convertir, no se enseña el formulario.**
+        #
+        # Pasa con un PDF y con un IFC: la familia existe en el catálogo pero ningún
+        # motor declara todavía un par que salga de ahí. Pintar el selector y el botón
+        # de «convertir con estos ajustes» ofrece un camino que termina en «ningún
+        # motor sabe hacer esa conversión» — un callejón sin salida con forma de
+        # botón, que es peor que no ofrecer nada.
+        "hay_conversion": _hay_algun_destino(inspeccion, escribibles),
+        # **Solo los propios, y «propios» quiere decir de quien mira.** Los de fábrica
+        # salen de los perfiles, y los perfiles ya están arriba como botones de destino:
+        # enseñarlos otra vez era una segunda fila de botones con los mismos nombres
+        # haciendo lo mismo.
+        #
+        # El comentario decía «solo los propios» desde el principio y la consulta solo
+        # excluía los de fábrica: en una máquina de una persona las dos cosas coinciden,
+        # y en el servidor compartido ya no.
+        "preajustes": ConversionPreset.propios_de(request.user).filter(
+            target_format_code__in=[f.codigo for f in escribibles]
+        )[:12],
+        # **«Ajustar a mano» abierto cuando se llegó pidiendo un formato.** Quien escribió
+        # «tif a jp2» leyó en la respuesta que lo pidiera ahí; encontrarlo cerrado es tener
+        # que adivinar dónde está lo que se le acaba de decir que use.
+        "abrir_ajustes": bool(formato_pedido) and experto == formato_pedido,
+    }
 
 
 @login_required
@@ -558,23 +580,22 @@ def encolar(request):
     """
     inspeccion, origen, error = _inspeccionar(request.POST.get("ruta") or "", usuario=request.user)
     if error:
+        # Aquí sí se redirige: el archivo ya no está o no se puede leer, así que no queda nada
+        # que conservar.
         messages.error(request, error["error"])
         return redirect("dashboard:convertir")
 
     try:
         formato, opciones, perfil_id, preajuste = _destino_pedido(request, inspeccion)
     except formulario_mod.OpcionInvalida as fallo:
-        messages.error(request, fallo.mensaje)
-        return redirect("dashboard:convertir")
+        return _volver_a_la_ficha(request, inspeccion, origen, fallo.mensaje, donde="ajustes")
     except ValueError as fallo:
-        messages.error(request, str(fallo))
-        return redirect("dashboard:convertir")
+        return _volver_a_la_ficha(request, inspeccion, origen, str(fallo), donde="destino")
 
     try:
         crs = _crs_del_trabajo(request, inspeccion)
     except ValueError as fallo:
-        messages.error(request, str(fallo))
-        return redirect("dashboard:convertir")
+        return _volver_a_la_ficha(request, inspeccion, origen, str(fallo), donde="crs")
 
     ruta_origen = Path(inspeccion.ruta)
     job = ConversionJob.objects.create(
@@ -616,6 +637,34 @@ def encolar(request):
         job.registrar(f"Encolado hacia {formato} con ajustes a mano.")
 
     return redirect("jobs:ficha", pk=job.pk)
+
+
+def _volver_a_la_ficha(request, inspeccion, origen, mensaje: str, *, donde: str):
+    """La pantalla entera otra vez, con la ficha dentro y el error **junto a su campo**.
+
+    Antes esto era un `redirect` a la pantalla vacía con el mensaje arriba: el archivo elegido
+    se perdía, y una subida de cientos de megas había que repetirla por un EPSG mal tecleado.
+    Además el mensaje salía lejos del campo que lo causó, así que había que adivinar cuál era.
+
+    `donde` dice qué tarjeta lo pinta: `crs`, `ajustes` o `destino`. Y lo tecleado se
+    conserva, porque volver a escribirlo es la mitad de la molestia.
+    """
+    # **El formato solo cuenta si se convirtió a mano.** El desplegable de «Ajustar a mano» va
+    # dentro del mismo formulario, así que su valor viaja siempre, también al pulsar un programa.
+    # Tomarlo por una elección abría «Ajustar a mano» a quien había pulsado «Civil 3D».
+    a_mano = not (request.POST.get("perfil") or request.POST.get("preajuste"))
+    formato_pedido = (request.POST.get("formato") or "") if a_mano else ""
+
+    contexto = {
+        **_contexto_de_convertir(request),
+        **_contexto_de_ficha(request, inspeccion, origen, formato_pedido),
+        "error_al_convertir": mensaje,
+        "error_en": donde,
+        "crs_escrito": (request.POST.get("crs_declarado") or "").strip(),
+    }
+    if donde == "ajustes":
+        contexto["abrir_ajustes"] = True
+    return render(request, "dashboard/convertir.html", contexto)
 
 
 def _crs_del_trabajo(request, inspeccion):

@@ -51,15 +51,4 @@
   </div>
 {% endif %}
 
-{% if generado %}
-  <div class="tarjeta tarjeta-acento">
-    <div class="eyebrow">Hecho</div>
-    <strong class="recibo-titulo">✓ {{ generado.name }}</strong>
-    <p class="tenue" style="margin:8px 0 0;">
-      Una hoja por tabla, con la fila de encabezados fija. Cuando lo tengas editado, vuelve con
-      <a href="{% url 'documents:excel_a_catalogo' %}">Excel a catálogo de tubería</a>.
-    </p>
-  </div>
-{% endif %}
-
 {% endblock %}

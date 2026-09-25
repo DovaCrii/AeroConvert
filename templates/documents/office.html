@@ -33,7 +33,8 @@
       Vale {% for nombre in office.nombres %}{{ nombre }}{% if not forloop.last %}, {% endif %}{% endfor %}:
       <code>{{ office.extensiones|join:"</code> <code>" }}</code>.
       Tarda unos segundos: por detrás se abre {{ office.nombres.0 }} de verdad, sin ventana.
-      El PDF sale junto al original, con el mismo nombre.
+      El PDF sale con el mismo nombre: junto al original si viene de la carpeta compartida, o
+      para descargar si lo subiste.
     </p>
   </div>
 
@@ -52,19 +53,6 @@
     </label>
   </div>
 </form>
-
-{% if generado %}
-  <div class="tarjeta tarjeta-acento">
-    <div class="eyebrow">Hecho</div>
-    <div class="recibo">
-      <strong class="recibo-titulo">✓ {{ cabecera.resumen|default:"Convertido" }}</strong>
-      <p class="mono" style="margin-top:8px;">
-        {{ generado.name }}
-      </p>
-      <p class="tenue" style="margin:10px 0 0;">Junto al original, que no se tocó.</p>
-    </div>
-  </div>
-{% endif %}
 
 {% endif %}
 {% endblock %}

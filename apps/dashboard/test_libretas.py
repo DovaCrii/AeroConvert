@@ -225,13 +225,45 @@ class TestDeclararElSistemaDeReferencia:
         assert "32719" in mensajes
 
     def test_un_epsg_que_no_existe_se_rechaza(self, sesion, libreta, con_ogr):
+        """Se rechaza **sin tirar el archivo elegido**.
+
+        Antes redirigía a la pantalla vacía con el mensaje arriba: el archivo se perdía, y una
+        subida había que repetirla entera por un dígito mal tecleado. Ahora vuelve la pantalla
+        con la ficha dentro, el error junto al campo y lo tecleado todavía puesto.
+        """
         respuesta = sesion.post(
             reverse("dashboard:encolar"),
             {"ruta": str(libreta), "formato": "gpkg", "crs_declarado": "999999", "perfil": ""},
-            follow=True,
         )
         assert ConversionJob.objects.count() == 0
-        assert any("999999" in str(m) for m in respuesta.context["messages"])
+        assert respuesta.status_code == 200, "no redirige: vuelve la ficha"
+        cuerpo = respuesta.content.decode()
+        assert 'id="error-crs"' in cuerpo, "el error va junto al campo del EPSG"
+        assert "999999" in cuerpo
+        assert 'value="999999"' in cuerpo, "lo tecleado se conserva"
+        assert 'name="ruta"' in cuerpo and str(libreta) in cuerpo, "el archivo sigue elegido"
+
+    def test_pulsar_un_programa_no_abre_el_ajuste_a_mano(self, sesion, libreta, con_ogr):
+        """El desplegable de formato viaja en el mismo formulario **siempre**, también al pulsar
+        un programa. Tomarlo por una elección abría «Ajustar a mano» a quien había pulsado
+        «Civil 3D». Se vio en el navegador; ninguna prueba lo cazaba."""
+        cuerpo = sesion.post(
+            reverse("dashboard:encolar"),
+            {
+                "ruta": str(libreta),
+                "formato": "shp",
+                "crs_declarado": "999999",
+                "perfil": "civil3d",
+            },
+        ).content.decode()
+        assert "<details open>" not in cuerpo
+
+    def test_convertir_a_mano_si_lo_deja_abierto(self, sesion, libreta, con_ogr):
+        cuerpo = sesion.post(
+            reverse("dashboard:encolar"),
+            {"ruta": str(libreta), "formato": "shp", "crs_declarado": "999999", "perfil": ""},
+        ).content.decode()
+        assert "<details open>" in cuerpo
 
     def test_lo_que_no_es_un_numero_se_rechaza(self, sesion, libreta, con_ogr):
         sesion.post(

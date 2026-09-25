@@ -49,7 +49,7 @@
           <input type="radio" name="modo" value="rangos" {% if modo != 'hojas' %}checked{% endif %}>
           <span>
             <strong>Por rangos</strong>
-            <span class="tenue">Un archivo por cada trozo que escribas.</span>
+            <span class="tenue">Un archivo por cada trozo que escribas. Si son varios, se entregan juntos en un zip.</span>
           </span>
         </label>
 
@@ -67,7 +67,7 @@
           <span>
             <strong>Una hoja por archivo</strong>
             <span class="tenue">
-              {{ cabecera.cuantas }} archivo(s), numerados como las páginas.
+              {{ cabecera.cuantas }} archivo(s), numerados como las páginas, en un zip.
             </span>
           </span>
         </label>
@@ -76,18 +76,4 @@
   {% endif %}
 </form>
 
-{% if escritos %}
-  <div class="tarjeta tarjeta-acento">
-    <div class="eyebrow">Hecho</div>
-    <div class="recibo">
-      <strong class="recibo-titulo">✓ {{ escritos|length }} archivo(s)</strong>
-      <ul style="margin:8px 0 0; padding-left:18px; font-size:.9rem;">
-        {% for archivo in escritos %}
-          <li class="mono">{{ archivo.name }}</li>
-        {% endfor %}
-      </ul>
-      <p class="tenue" style="margin:10px 0 0;">Junto al original, que no se tocó.</p>
-    </div>
-  </div>
-{% endif %}
 {% endblock %}

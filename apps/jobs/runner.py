@@ -147,10 +147,40 @@ def ejecutar(job: ConversionJob) -> Resultado:
         nivel=nivel,
         reason_code=resultado.codigo_motivo,
     )
+    if job.herramienta:
+        _soltar_subidas(job)
+        # En cualquier final, también si falló antes de llegar a tomarla.
+        from apps.documents import secretos
+
+        secretos.olvidar(job)
     return resultado
 
 
+def _soltar_subidas(job: ConversionJob) -> None:
+    """Devuelve las subidas al barrido, **con margen para reintentar**.
+
+    `cola.encolar` las reclamó (sin caducidad) para que no se las llevara el barrido mientras
+    el trabajo esperaba. Al terminar, bien o mal, vuelven a caducar a las horas de siempre
+    contadas desde ahora: si falló por algo transitorio, reintentar sigue encontrando el
+    archivo sin volver a subirlo.
+    """
+    from datetime import timedelta
+
+    from apps.core.subidas import HORAS_DE_VIDA
+
+    caduca = timezone.now() + timedelta(hours=HORAS_DE_VIDA)
+    for entrada in job.entradas.select_related("subida").exclude(subida=None):
+        entrada.subida.expires_at = caduca
+        entrada.subida.save(update_fields=["expires_at", "updated_at"])
+
+
 def _ejecutar(job: ConversionJob) -> Resultado:
+    # **Los documentos van por su propia rama**, y tienen que ir: la de abajo re-detecta el
+    # formato, exige sistema de referencia y pregunta a la matriz. Con un documento, un `.csv`
+    # acababa leído como libreta de puntos y rechazado por `crs-ausente`.
+    if job.herramienta:
+        return _ejecutar_documento(job)
+
     origen = Path(job.source_path)
     if not origen.exists():
         raise TrabajoFallido("origen-no-legible", f"Ya no hay ningún archivo en {origen}.")
@@ -264,6 +294,188 @@ def _ejecutar(job: ConversionJob) -> Resultado:
         )
 
     return Resultado(HECHO, "", "Convertido y verificado.")
+
+
+def _ejecutar_documento(job: ConversionJob) -> Resultado:
+    """Una herramienta de documentos: las mismas invariantes, sin lo geoespacial.
+
+    Lo que **se conserva** de la rama de arriba, y es lo que importa: el destino se reserva
+    antes de empezar, la salida se escribe en un parcial, el código de salida no basta, la
+    verificación la hace un lector distinto del que escribió, y el original no se toca —
+    comprobado **en cada entrada**, no solo en la primera.
+
+    Lo que **no** se hace: re-detectar el formato, exigir sistema de referencia, preguntar a
+    la matriz. Nada de eso significa algo para «numerar las páginas de un PDF».
+    """
+    from apps.documents import motor as documentos
+
+    entradas = list(job.entradas.all())
+    if not entradas:
+        # Un trabajo encolado por la API o por una prueba puede no traerlas: la única entrada
+        # es entonces `source_path`, sin fila que guardar.
+        from .models import EntradaDeTrabajo
+
+        entradas = [EntradaDeTrabajo(orden=0, ruta=job.source_path, nombre=job.source_name)]
+
+    for entrada in entradas:
+        if not Path(entrada.ruta).exists():
+            raise TrabajoFallido(
+                "origen-no-legible", f"Ya no hay ningún archivo en {entrada.ruta}."
+            )
+
+    # --- 1. Huella de cada entrada ------------------------------------------
+    job.marcar_progreso(HUELLA, 0.0)
+    total = len(entradas)
+    for indice, entrada in enumerate(entradas):
+        ruta = Path(entrada.ruta)
+        estado = ruta.stat()
+        entrada.mtime_ns = estado.st_mtime_ns
+        entrada.bytes = estado.st_size
+        entrada.sha256 = deteccion.huella(
+            ruta,
+            progreso=lambda f, i=indice: job.marcar_progreso(HUELLA, (i + f) / total),
+        )
+        if entrada.pk:
+            entrada.save(update_fields=["mtime_ns", "bytes", "sha256", "updated_at"])
+
+    job.source_sha256 = entradas[0].sha256
+    job.source_size_bytes = sum(e.bytes for e in entradas)
+    job.save(update_fields=["source_sha256", "source_size_bytes", "updated_at"])
+
+    # --- 2. Que esta máquina pueda --------------------------------------------
+    job.marcar_progreso(INSPECCION, 0.0)
+    disponible = documentos.disponibilidad(job.herramienta)
+    if not disponible.disponible:
+        raise TrabajoFallido(disponible.codigo_motivo or "sin-motor", disponible.mensaje)
+
+    job.engine_id = "documentos"
+    job.engine_version = disponible.version[:200]
+    job.output_path = str(_destino_libre(job, Path(job.output_path)))
+    job.save(update_fields=["engine_id", "engine_version", "output_path", "updated_at"])
+
+    from apps.documents import secretos
+
+    try:
+        plan = documentos.plan(job)
+    except secretos.SinSecreto as falta:
+        raise TrabajoFallido("falta-la-contrasena", str(falta)) from falta
+    destino = Path(plan.ruta_de_salida)
+    parcial = ruta_parcial(destino)
+
+    _reservar_destino(destino)
+    estimados = int((job.options or {}).get("bytes_estimados") or 0)
+    _exigir_espacio(destino, max(job.source_size_bytes, estimados))
+
+    # --- 3. Ejecutar ------------------------------------------------------------
+    job.marcar_progreso(CONVERSION, 0.0)
+    try:
+        try:
+            _lanzar(job, plan, parcial)
+        except TrabajoFallido as fallo:
+            # **El hijo sabe mejor que nadie por qué falló.** `_lanzar` solo ve un código de
+            # salida distinto de cero y lo llama `error-del-motor`; el informe trae el motivo
+            # de verdad —`contrasena-incorrecta`, `documento-invalido`— con su mensaje.
+            informe = documentos.leer_informe(job)
+            if fallo.codigo == "error-del-motor" and informe.get("codigo"):
+                raise TrabajoFallido(
+                    informe["codigo"], informe.get("mensaje") or fallo.mensaje
+                ) from fallo
+            raise
+
+        informe = documentos.leer_informe(job)
+        if informe.get("codigo"):
+            _borrar(parcial)
+            raise TrabajoFallido(informe["codigo"], informe.get("mensaje", ""))
+
+        # **Sin archivo solo vale si el hijo lo ha declarado.** La ausencia sola es
+        # `sin-salida`, como siempre: la excepción a la regla número uno exige un motivo.
+        if not parcial.exists():
+            desenlace = informe.get("desenlace", "")
+            if not (plan.salida_opcional and desenlace in motivos_mod.DESENLACES):
+                job.registrar(
+                    "La herramienta terminó sin escribir ningún archivo y sin decir por qué.",
+                    nivel=JobEvent.ERROR,
+                    etapa=CONVERSION,
+                )
+                raise TrabajoFallido("sin-salida", "La herramienta terminó sin escribir nada.")
+
+            job.desenlace = desenlace
+            job.verification = informe.get("detalles") or {}
+            job.output_path = ""
+            job.verified_at = timezone.now()
+            job.save(
+                update_fields=[
+                    "desenlace",
+                    "verification",
+                    "output_path",
+                    "verified_at",
+                    "updated_at",
+                ]
+            )
+            job.marcar_progreso(VERIFICACION, 1.0)
+            _comprobar_originales(job, entradas)
+            return Resultado(HECHO, "", motivos_mod.DESENLACES[desenlace].mensaje)
+
+        # --- 4. Verificar ---------------------------------------------------------
+        job.status = VERIFICANDO
+        job.save(update_fields=["status", "updated_at"])
+        job.marcar_progreso(VERIFICACION, 0.0)
+
+        veredicto = documentos.verificar(parcial, informe, plan)
+        if not veredicto.correcta:
+            _borrar(parcial)
+            raise TrabajoFallido(veredicto.codigo_motivo or "salida-invalida", veredicto.motivo)
+
+        _renombrar(parcial, destino)
+    finally:
+        documentos.borrar_auxiliares(job)
+        _limpiar_restos(parcial)
+
+    avisos = [str(a) for a in informe.get("avisos") or []]
+    for aviso in avisos:
+        job.registrar(aviso, nivel=JobEvent.AVISO, etapa=VERIFICACION)
+
+    from . import retencion
+
+    job.output_path = str(destino)
+    job.output_size_bytes = destino.stat().st_size
+    job.verified_at = timezone.now()
+    job.verification = veredicto.detalles
+    job.desenlace = "con-avisos" if avisos else ""
+    job.expires_at = retencion.caducidad_para()
+    job.save(
+        update_fields=[
+            "output_path",
+            "output_size_bytes",
+            "verified_at",
+            "verification",
+            "desenlace",
+            "expires_at",
+            "updated_at",
+        ]
+    )
+    job.marcar_progreso(VERIFICACION, 1.0)
+    _comprobar_originales(job, entradas)
+    return Resultado(HECHO, "", "Hecho y verificado.")
+
+
+def _comprobar_originales(job: ConversionJob, entradas) -> None:
+    """El original no se toca, **y se mira en cada entrada**.
+
+    Con un solo `source_path` solo se podía comprobar la primera, y en un «Unir» de veinte
+    archivos las diecinueve restantes quedaban sin vigilar.
+    """
+    for entrada in entradas:
+        try:
+            ahora = Path(entrada.ruta).stat().st_mtime_ns
+        except OSError:
+            continue
+        if entrada.mtime_ns is not None and ahora != entrada.mtime_ns:
+            job.registrar(
+                f"El archivo de origen {entrada.nombre} cambió durante el trabajo. Revisa la "
+                "herramienta.",
+                nivel=JobEvent.ERROR,
+            )
 
 
 def _exigir_memoria(job: ConversionJob, inspeccion) -> None:
@@ -671,6 +883,12 @@ def _lanzar(job: ConversionJob, plan: PlanDeEjecucion, parcial: Path) -> None:
     # Se comprueba aqui salvo que el plan diga que la salida la escribe un paso posterior:
     # hay conversiones que no las hace una sola herramienta, y en esas el principal deja un
     # intermedio y no el parcial. La comprobacion no se salta, se mueve abajo.
+    # `salida_opcional` no la salta: la aplaza. Quien la declara —solo los documentos— exige
+    # después que el hijo haya dicho por qué no hay archivo. Ver `_ejecutar_documento`.
+    if plan.salida_opcional:
+        job.marcar_progreso(CONVERSION, 1.0)
+        return
+
     if not plan.salida_en_posteriores and not parcial.exists():
         job.registrar(
             "El motor termino con código 0 pero no escribio ningún archivo.",

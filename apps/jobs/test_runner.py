@@ -492,6 +492,15 @@ class TestModelo:
         job.source_size_bytes = 466_000_000
         job.output_size_bytes = 60_000_000
         assert job.reduccion == pytest.approx(0.871, abs=0.001)
+        assert job.reduccion_pct == 87
+
+    def test_si_la_salida_pesa_mas_no_hay_porcentaje_que_ensenar(self, usuario, origen, tmp_path):
+        """Visto en el navegador al dividir en un zip: «3,6 KB → 3,8 KB (−-5 %)». Las
+        plantillas ponen el «−» delante, así que una cifra negativa sale con dos signos."""
+        job = _trabajo(usuario, origen, tmp_path)
+        job.source_size_bytes = 3_711
+        job.output_size_bytes = 3_902
+        assert job.reduccion_pct is None
 
     def test_solo_se_reintenta_lo_que_mejora_repitiendolo(self, usuario, origen, tmp_path):
         job = _trabajo(usuario, origen, tmp_path, status=ERROR)

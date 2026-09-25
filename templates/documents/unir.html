@@ -171,38 +171,4 @@
   {% endif %}
 </form>
 
-{% if generado %}
-  <div class="tarjeta tarjeta-acento">
-    <div class="eyebrow">Hecho</div>
-    <div class="recibo">
-      <strong class="recibo-titulo">✓ {{ resultado.paginas_escritas }} páginas escritas</strong>
-      <dl style="margin-top:8px;">
-        <dt>Archivo</dt>
-        <dd class="mono">
-          {% comment %}
-            Si salió de archivos subidos, la ruta es la del servidor y no sirve para pegarla
-            en ninguna parte: el navegador está en el equipo de la persona. Ahí lo único útil
-            es el botón.
-          {% endcomment %}
-          {% if solo_descarga %}{{ generado.name }}{% else %}{{ generado }}{% endif %}
-        </dd>
-
-        <dt>Tamaño</dt>
-        <dd>{{ resultado.bytes_escritos|filesizeformat }}</dd>
-
-        <dt>De dónde salió</dt>
-        <dd>
-          {% for nombre, cuantas in resultado.por_archivo %}
-            {{ nombre }} ({{ cuantas }}){% if not forloop.last %} · {% endif %}
-          {% endfor %}
-        </dd>
-      </dl>
-
-      {% if descarga %}
-        <a class="boton" style="margin-top:10px; display:inline-block;"
-           href="{% url 'documents:descargar' descarga.pk %}">Descargar</a>
-      {% endif %}
-    </div>
-  </div>
-{% endif %}
 {% endblock %}

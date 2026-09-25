@@ -1,31 +1,42 @@
-"""La pantalla de unir PDF.
+"""Las pantallas de las veinte herramientas de documentos.
 
-## Por qué no pasa por el motor de conversión
+## Mirar aquí, hacer en la cola
 
-El resto de AeroConvert coge **un** archivo, elige un destino y lo encola: la conversión
-tarda, así que hay un despachador, una barra de progreso y un recibo. Componer un PDF no se
-parece en nada. Se cogen varios archivos, se toca la lista muchas veces —subir, bajar,
-quitar, girar— y el resultado se escribe en menos de un segundo. Meter eso en la cola sería
-pedirle a alguien que espere a un proceso en segundo plano para reordenar tres hojas.
+Hasta la fase 9 esto decía por qué las herramientas **no** pasaban por la cola: componer se
+escribe en menos de un segundo, y esperar a un proceso en segundo plano para reordenar tres
+hojas parecía absurdo. El razonamiento era bueno para Unir y malo para todo lo demás, y costó
+caro sin que se viera:
 
-Así que es una pantalla directa: cada acción es una petición que devuelve la lista otra vez.
+- gunicorn corta la petición a los 120 s, y el OCR de un escaneo de cuarenta páginas moría a
+  medias sin decir nada;
+- trece de las veinte no dejaban descargar lo que salía de un archivo subido;
+- y el uso no dejaba rastro: el servidor decía «0 trabajos» sin distinguir «nadie ha usado
+  esto» de «se ha usado mucho, pero no aquí».
+
+Así que ahora se separan dos cosas que antes iban juntas. **Mirar se hace aquí**, síncrono y
+barato: leer la cabecera, avisar de que es un escaneo, dejar que Unir ordene las páginas,
+decir que la contraseña es corta. **Hacer va a la cola**, por `cola.encolar()`, y la ficha
+del trabajo trae el progreso, el recibo, la descarga con dueño, reintentar y cancelar. Ver
+`tarea.py` para el proceso hijo y `motor.py` para cómo se verifica lo que sale.
+
+La regla para lo que queda aquí: **todo lo que se pueda comprobar sin abrir el documento
+entero se comprueba antes de encolar**, con el formulario delante. Descubrirlo en la cola
+manda a una ficha roja y de vuelta a esta pantalla con el formulario vacío.
 
 ## Sin estado en el servidor
 
-La receta viaja en un campo oculto del propio formulario, así que no hay sesión que caducar
-ni fila que limpiar, y dos personas pueden componer a la vez sin pisarse. La pantalla es una
-función de lo que hay escrito en ella. Ver `receta.py`.
+La receta de Unir viaja en un campo oculto del propio formulario, así que no hay sesión que
+caducar ni fila que limpiar, y dos personas pueden componer a la vez sin pisarse. Es la misma
+cadena que se encola al generar. Ver `receta.py`.
 
-## Lo que sí se conserva del resto de la aplicación
+## Lo que se conserva del resto de la aplicación
 
-Las tres promesas: **la ruta se comprueba contra las raíces permitidas** igual que en la
-inspección, **el original no se toca** —pypdf lee y escribe en un documento nuevo— y la
-salida se escribe primero en un parcial y solo se pone en su sitio si sale bien.
+**La ruta se comprueba contra las raíces permitidas** igual que en la inspección, y **el
+original no se toca**: el corredor compara su huella antes y después de cada intento.
 """
 
 from __future__ import annotations
 
-import os
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -39,14 +50,13 @@ from django.views.decorators.http import require_POST
 from apps.core import entrada as entrada_mod
 from apps.core import modo as modo_mod
 from apps.core import subidas as subidas_mod
-from apps.engines.base import ruta_parcial
 from apps.formats import pdf as lectura_pdf
 
 from . import a_imagenes as a_imagenes_mod
 from . import a_markdown as a_markdown_mod
 from . import catalogos as catalogos_mod
+from . import cola as cola_mod
 from . import comprimir as comprimir_mod
-from . import desde_markdown as desde_markdown_mod
 from . import dividir as dividir_mod
 from . import marcas as marcas_mod
 from . import miniaturas
@@ -54,7 +64,12 @@ from . import ocr as ocr_mod
 from . import office as office_mod
 from . import receta as receta_mod
 from . import seguridad as seguridad_mod
-from .composicion import GIROS, ComposicionInvalida, componer
+from .composicion import GIROS, ComposicionInvalida
+
+# **Reexportado**: el índice, las pruebas y `acciones.py` lo leen de aquí desde siempre. Los
+# datos viven en `herramientas.py` para que el modelo y el proceso hijo puedan leerlos sin
+# importar las vistas.
+from .herramientas import HERRAMIENTAS
 
 #: Cuántos PDF se admiten de una vez. Más que esto no es una entrega: es un lote, y para
 #: un lote hace falta otra pantalla.
@@ -179,234 +194,6 @@ def _contexto(origenes: list, entradas, extra: dict | None = None) -> dict:
     return contexto
 
 
-#: Las herramientas, para el indice y para el titulo de cada pantalla. Una lista y no seis
-#: entradas en la barra: la barra es de secciones, y esto es una seccion con varias cosas
-#: dentro. Ademas asi entra la siguiente sin rediscutir donde ponerla.
-#:
-#: El `icono` es el identificador dentro de `static/img/icons.svg`. Va aqui y no en la
-#: plantilla porque la plantilla recorre la lista: con un `if` por herramienta, anadir la
-#: decima obligaria a tocar dos sitios y el segundo se olvida.
-HERRAMIENTAS = (
-    {
-        "id": "unir",
-        "url": "documents:unir",
-        "icono": "icon-pdf-unir",
-        "sale": "un PDF",
-        "familia": "componer",
-        "nombre": "Unir PDF",
-        "que_hace": (
-            "Junta varios en uno. Eliges qué páginas entran, en qué orden, y giras las "
-            "láminas que lo necesiten."
-        ),
-    },
-    {
-        "id": "dividir",
-        "icono": "icon-pdf-dividir",
-        "sale": "uno o varios PDF",
-        "familia": "componer",
-        "url": "documents:dividir",
-        "nombre": "Dividir PDF",
-        "que_hace": "Saca una parte, o parte uno grande en hojas sueltas.",
-    },
-    {
-        "id": "imagenes",
-        "icono": "icon-pdf-a-pdf",
-        "sale": "un PDF",
-        "familia": "transformar",
-        "url": "documents:imagenes",
-        "nombre": "Imágenes a PDF",
-        "que_hace": "Fotos o escaneos en un solo documento, en A4 o al tamaño del original.",
-    },
-    {
-        "id": "a_imagenes",
-        "icono": "icon-pdf-a-imagen",
-        "sale": "JPG o PNG",
-        "familia": "transformar",
-        "url": "documents:a_imagenes",
-        "nombre": "PDF a imágenes",
-        "que_hace": "Una lámina como JPG o PNG, para meterla en un informe o en una diapositiva.",
-    },
-    {
-        "id": "comprimir",
-        "icono": "icon-pdf-comprimir",
-        "sale": "el mismo PDF, más ligero",
-        "familia": "transformar",
-        "url": "documents:comprimir",
-        "nombre": "Comprimir PDF",
-        "que_hace": "Para que un juego de planos entre en un correo. Dice cuánto baja antes.",
-    },
-    {
-        "id": "ocr",
-        "icono": "icon-pdf-ocr",
-        "sale": "el mismo PDF, con el texto dentro",
-        "familia": "transformar",
-        "url": "documents:ocr",
-        "nombre": "Reconocer el texto de un escaneo",
-        "que_hace": "Un PDF escaneado pasa a poder buscarse y copiarse. Se ve igual.",
-        # La tercera que depende de algo de fuera, y con el mismo trato que Office y Access:
-        # cuando Tesseract no esta, la tarjeta **sigue saliendo**, apagada y con el motivo.
-        "exige_tesseract": True,
-    },
-    {
-        "id": "numerar",
-        "icono": "icon-pdf-numerar",
-        "sale": "el mismo PDF, numerado",
-        "familia": "marcar",
-        "url": "documents:numerar",
-        "nombre": "Numerar páginas",
-        "que_hace": ("Pone «3 / 56» en cada hoja. Sin numerar la portada, si no quieres."),
-    },
-    {
-        "id": "marca",
-        "icono": "icon-pdf-marca",
-        "sale": "el mismo PDF, con la marca",
-        "familia": "marcar",
-        "url": "documents:marca",
-        "nombre": "Marca de agua",
-        "que_hace": "Estampa «BORRADOR» o «CONFIDENCIAL» cruzando cada página.",
-    },
-    {
-        "id": "proteger",
-        "icono": "icon-pdf-proteger",
-        "sale": "el mismo PDF, con contraseña",
-        "familia": "proteger",
-        "url": "documents:proteger",
-        "nombre": "Proteger PDF",
-        "que_hace": "Le pone contraseña, con AES-256. O se la quita, si la sabes.",
-    },
-    {
-        "id": "office",
-        "icono": "icon-pdf-office",
-        "sale": "un PDF",
-        "familia": "transformar",
-        "url": "documents:office",
-        "nombre": "Word, Excel o PowerPoint a PDF",
-        "que_hace": "Con el Office de tu equipo, así que sale idéntico al original.",
-        # La unica que depende de algo de fuera. Cuando no esta, la tarjeta **sigue
-        # saliendo**, apagada y con el motivo: ocultarla haria parecer que nunca existio.
-        "exige_office": True,
-    },
-    {
-        "id": "a_word",
-        "icono": "icon-pdf-a-word",
-        "sale": "un DOCX",
-        "familia": "transformar",
-        "url": "documents:a_word",
-        "nombre": "PDF a Word",
-        "que_hace": "El camino de vuelta, para poder editarlo. Con lo que eso significa.",
-        "exige_office": True,
-    },
-    # --- Texto y tablas ---------------------------------------------------
-    #
-    # **Seis entradas y una sola pantalla.** La pantalla mira la extensión y hace lo que toca;
-    # las seis entradas existen porque quien busca escribe «excel a markdown» o «epub», no
-    # «a markdown». Es el mismo patrón que los seis destinos geoespaciales, que también van a
-    # una sola pantalla con la elección en la consulta.
-    {
-        "id": "md_excel",
-        "categoria": "texto",
-        "icono": "icon-texto-tabla",
-        "sale": "un .md con una tabla por hoja",
-        "familia": "texto",
-        "url": "documents:a_markdown",
-        "consulta": {"de": "xlsx"},
-        "nombre": "Excel a Markdown",
-        "que_hace": "Cada hoja, una tabla que se pega en un correo o en una ficha.",
-    },
-    {
-        "id": "md_csv",
-        "categoria": "texto",
-        "icono": "icon-texto-tabla",
-        "sale": "un .md con la tabla",
-        "familia": "texto",
-        "url": "documents:a_markdown",
-        "consulta": {"de": "csv"},
-        "nombre": "CSV a Markdown",
-        "que_hace": "Detecta si separa por punto y coma o por coma, que aquí cambia.",
-    },
-    {
-        "id": "md_word",
-        "categoria": "texto",
-        "icono": "icon-texto-parrafo",
-        "sale": "un .md",
-        "familia": "texto",
-        "url": "documents:a_markdown",
-        "consulta": {"de": "docx"},
-        "nombre": "Word a Markdown",
-        "que_hace": "Títulos, listas, tablas y negritas. Lo que no sobrevive se avisa.",
-    },
-    {
-        "id": "md_pdf",
-        "categoria": "texto",
-        "icono": "icon-texto-parrafo",
-        "sale": "un .md",
-        "familia": "texto",
-        "url": "documents:a_markdown",
-        "consulta": {"de": "pdf"},
-        "nombre": "PDF a Markdown",
-        "que_hace": "El texto que el PDF ya tiene. Si es un escaneo, se dice.",
-    },
-    {
-        "id": "md_epub",
-        "categoria": "texto",
-        "icono": "icon-texto-libro",
-        "sale": "un .md con los capítulos en orden",
-        "familia": "texto",
-        "url": "documents:a_markdown",
-        "consulta": {"de": "epub"},
-        "nombre": "EPUB a Markdown",
-        "que_hace": "En el orden en que se lee, no en el que vienen dentro del archivo.",
-    },
-    {
-        "id": "md_html",
-        "categoria": "texto",
-        "icono": "icon-texto-parrafo",
-        "sale": "un .md",
-        "familia": "texto",
-        "url": "documents:a_markdown",
-        "consulta": {"de": "html"},
-        "nombre": "Página web a Markdown",
-        "que_hace": "Una página guardada, sin el armazón ni los menús.",
-    },
-    {
-        "id": "md_a_pdf",
-        "categoria": "texto",
-        "icono": "icon-texto-imprimir",
-        "sale": "un PDF",
-        "familia": "texto",
-        "url": "documents:de_markdown",
-        "nombre": "Markdown a PDF",
-        "que_hace": "El camino de vuelta, para entregar lo que se redactó en Markdown.",
-    },
-    # --- Catálogos de tubería ---------------------------------------------
-    #
-    # Son bases de Access de AutoCAD Plant 3D. Van en este grupo porque es lo mismo que hacen
-    # las de arriba: sacar el contenido de un archivo para poder trabajarlo en otro sitio.
-    {
-        "id": "catalogo_excel",
-        "categoria": "texto",
-        "icono": "icon-catalogo",
-        "sale": "un Excel con una hoja por tabla",
-        "familia": "texto",
-        "url": "documents:catalogo_a_excel",
-        "nombre": "Catálogo de tubería a Excel",
-        "que_hace": "Saca las nueve tablas del catálogo para poder editarlas cómodo.",
-        "exige_access": True,
-    },
-    {
-        "id": "excel_catalogo",
-        "categoria": "texto",
-        "icono": "icon-catalogo-volver",
-        "sale": "un catálogo listo para Plant 3D",
-        "familia": "texto",
-        "url": "documents:excel_a_catalogo",
-        "nombre": "Excel a catálogo de tubería",
-        "que_hace": "El camino de vuelta. Se parte del catálogo original, que pone el esquema.",
-        "exige_access": True,
-    },
-)
-
-
 #: Los cuatro grupos, en el orden en que se piensan: primero mover páginas de sitio, luego
 #: cambiar de formato, luego estampar encima, y al final cerrar con llave.
 #:
@@ -509,8 +296,11 @@ def inicio(request):
         categoria="documentos",
         etiqueta="PDF",
         titulo="Herramientas de PDF",
+        # Decía «todo pasa en tu equipo: los archivos no se suben», escrito cuando esto era
+        # una estación de trabajo. En el servidor sí se suben —a él, y a nadie más—, y la
+        # frase vieja contradecía el botón de subir de la misma pantalla.
         proposito=(
-            "Todo pasa en tu equipo: los archivos no se copian, no se suben, y el "
+            "Todo pasa en el servidor de la oficina: nada sale a un servicio de fuera, y el "
             "original nunca se toca."
         ),
     )
@@ -730,40 +520,20 @@ def _receta_inicial(origenes: list):
 
 
 def _generar(request, origenes: list, entradas):
-    destino = _ruta_de_salida(origenes[0])
-    parcial = ruta_parcial(destino)
+    """Encola la receta tal como quedó en la pantalla.
 
-    try:
-        resultado = componer(receta_mod.a_paginas(entradas, [o.ruta for o in origenes]), parcial)
-    except ComposicionInvalida as fallo:
-        messages.error(request, str(fallo))
-        return render(request, "documents/unir.html", _contexto(origenes, entradas))
-
-    # Igual que en el runner: se escribe en el parcial y solo se pone en su sitio cuando
-    # ya salió bien. Un fallo a mitad no deja un PDF a medias con nombre de entregable.
-    os.replace(parcial, destino)
-
-    messages.success(
+    **La receta viaja en texto, no en páginas resueltas**: es la misma cadena que la pantalla
+    lleva de un POST al siguiente, indexa posiciones de la lista de archivos, y esa lista es
+    justo el orden de `EntradaDeTrabajo`. Así el hijo la entiende con `receta.py` sin que
+    haya una segunda forma de escribirla. Una receta vacía no llega aquí: `componer_vista` la
+    rehace antes con todas las páginas.
+    """
+    return cola_mod.encolar(
         request,
-        f"{resultado.paginas_escritas} páginas en {destino.name}.",
-    )
-    return render(
-        request,
-        "documents/unir.html",
-        _contexto(
-            origenes,
-            entradas,
-            {
-                "generado": destino,
-                "resultado": resultado,
-                "descarga": subidas_mod.anotar_resultado(
-                    destino, usuario=request.user, herramienta="unir"
-                ),
-                # Si el origen era una subida, la ruta que se enseña es la de la VM y no
-                # sirve para pegarla en ningun sitio: lo unico util es el boton.
-                "solo_descarga": origenes[0].es_subida,
-            },
-        ),
+        "unir",
+        origenes,
+        {"receta": receta_mod.a_texto(entradas)},
+        sufijo="_unido.pdf",
     )
 
 
@@ -823,14 +593,30 @@ def dividir_vista(request):
             if contexto["modo"] == "hojas"
             else dividir_mod.analizar_rangos(contexto["rangos"], cabecera.cuantas)
         )
-        escritos = dividir_mod.partir(ruta, trozos)
     except ComposicionInvalida as fallo:
         messages.error(request, str(fallo))
         return render(request, "documents/dividir.html", contexto)
 
-    messages.success(request, f"{len(escritos)} archivo(s) escritos junto al original.")
-    contexto["escritos"] = escritos
-    return render(request, "documents/dividir.html", contexto)
+    # Dos trozos iguales saldrían con el mismo nombre, y el segundo pisaría al primero.
+    # Antes pasaba en silencio; dentro de un zip, además, lo dejaría con una pieza de menos.
+    repetidos = sorted({t.sufijo.lstrip("_") for t in trozos if trozos.count(t) > 1})
+    if repetidos:
+        messages.error(
+            request,
+            f"«{', '.join(repetidos)}» está más de una vez. Cada trozo es un archivo, "
+            "y dos iguales saldrían con el mismo nombre.",
+        )
+        return render(request, "documents/dividir.html", contexto)
+
+    # Un trozo sale suelto, con el nombre que ya tenía; varios, juntos en un zip.
+    sufijo = f"{trozos[0].sufijo}.pdf" if len(trozos) == 1 else "_partes.zip"
+    return cola_mod.encolar(
+        request,
+        "dividir",
+        [origen],
+        {"trozos": [[t.desde, t.hasta] for t in trozos]},
+        sufijo=sufijo,
+    )
 
 
 @login_required
@@ -875,26 +661,26 @@ def imagenes_vista(request):
         messages.error(request, "No indicaste ninguna imagen.")
         return render(request, "documents/imagenes.html", contexto)
 
-    destino = _ruta_de_salida_de(origenes[0], "_imagenes.pdf")
-    parcial = ruta_parcial(destino)
-
-    try:
-        cuantas = dividir_mod.desde_imagenes(
-            [o.ruta for o in origenes], parcial, tamano=contexto["tamano"]
-        )
-    except ComposicionInvalida as fallo:
-        parcial.unlink(missing_ok=True)
-        messages.error(request, str(fallo))
+    if contexto["tamano"] not in ("a4", "imagen"):
+        messages.error(request, f"«{contexto['tamano']}» no es un tamaño de página conocido.")
         return render(request, "documents/imagenes.html", contexto)
 
-    os.replace(parcial, destino)
-    messages.success(request, f"{cuantas} imagen(es) en {destino.name}.")
-    contexto["generado"] = destino
-    contexto["descarga"] = subidas_mod.anotar_resultado(
-        destino, usuario=request.user, herramienta="imagenes"
+    # La extensión se mira aquí, que es gratis y deja el formulario como estaba. Abrir cada
+    # imagen —lo caro— lo hace el hijo, que es donde puede tardar.
+    ajenas = [
+        o.nombre for o in origenes if Path(o.nombre).suffix.lower() not in dividir_mod.IMAGENES
+    ]
+    if ajenas:
+        messages.error(
+            request,
+            f"{', '.join(ajenas)} no es una imagen de las que se admiten "
+            f"({contexto['extensiones']}).",
+        )
+        return render(request, "documents/imagenes.html", contexto)
+
+    return cola_mod.encolar(
+        request, "imagenes", origenes, {"tamano": contexto["tamano"]}, sufijo="_imagenes.pdf"
     )
-    contexto["solo_descarga"] = origenes[0].es_subida
-    return render(request, "documents/imagenes.html", contexto)
 
 
 @login_required
@@ -931,12 +717,20 @@ def a_imagenes_vista(request):
         messages.error(request, error)
         return render(request, "documents/a_imagenes.html", contexto)
 
-    ruta = origen.ruta
     contexto["ruta_texto"] = contexto["ruta"] = origen.token
     contexto["nombre_origen"] = origen.nombre
     contexto["cabecera"] = cabecera
 
     if request.POST.get("accion") != "convertir":
+        return render(request, "documents/a_imagenes.html", contexto)
+
+    # Lo que se puede comprobar aquí se comprueba aquí: descubrirlo en la cola manda a la
+    # persona a una ficha roja y de vuelta a esta pantalla, con el formulario vacío.
+    if contexto["formato"] not in a_imagenes_mod.FORMATOS:
+        messages.error(request, f"«{contexto['formato']}» no es un formato de los que se hacen.")
+        return render(request, "documents/a_imagenes.html", contexto)
+    if contexto["ppp_elegido"] not in a_imagenes_mod.RESOLUCIONES:
+        messages.error(request, f"«{contexto['ppp_elegido']}» no es una de las resoluciones.")
         return render(request, "documents/a_imagenes.html", contexto)
 
     try:
@@ -945,19 +739,22 @@ def a_imagenes_vista(request):
             if contexto["rangos"]
             else dividir_mod.una_por_pagina(cabecera.cuantas)
         )
-        escritas = a_imagenes_mod.paginas_a_imagenes(
-            ruta,
-            trozos,
-            formato=contexto["formato"],
-            ppp=contexto["ppp_elegido"],
-        )
     except ComposicionInvalida as fallo:
         messages.error(request, str(fallo))
         return render(request, "documents/a_imagenes.html", contexto)
 
-    messages.success(request, f"{len(escritas)} imagen(es) junto al original.")
-    contexto["escritas"] = escritas
-    return render(request, "documents/a_imagenes.html", contexto)
+    # Los rangos se solapan sin problema —«1-3, 2» es pedir la 2 dos veces—, así que se
+    # cuentan páginas, no trozos.
+    paginas = sorted({n for t in trozos for n in range(t.desde, t.hasta + 1)})
+    formato = contexto["formato"]
+    sufijo = f"_{paginas[0]}.{formato}" if len(paginas) == 1 else f"_imagenes_{formato}.zip"
+    return cola_mod.encolar(
+        request,
+        "a_imagenes",
+        [origen],
+        {"paginas": paginas, "formato": formato, "ppp": contexto["ppp_elegido"]},
+        sufijo=sufijo,
+    )
 
 
 @login_required
@@ -1009,29 +806,51 @@ def proteger_vista(request):
     if accion not in ("proteger", "quitar"):
         return render(request, "documents/proteger.html", contexto)
 
-    sufijo = "_protegido" if accion == "proteger" else "_sin_clave"
-    destino = ruta.with_name(f"{ruta.stem}{sufijo}.pdf")
-    parcial = ruta_parcial(destino)
     contrasena = request.POST.get("contrasena") or ""
-
     try:
-        if accion == "proteger":
-            paginas = seguridad_mod.proteger(ruta, parcial, contrasena)
-        else:
-            paginas = seguridad_mod.quitar_contrasena(ruta, parcial, contrasena)
-    except ComposicionInvalida as fallo:
-        parcial.unlink(missing_ok=True)
-        messages.error(request, str(fallo))
-        return render(request, "documents/proteger.html", contexto)
-    finally:
-        # Que no quede viva en el marco de la excepcion mas de lo necesario.
-        contrasena = ""
+        # **Todo lo que se puede decir aquí se dice aquí**, con el formulario delante: una
+        # contraseña corta o que no abre el archivo, descubierta en la cola, manda a una
+        # ficha roja y de vuelta a esta pantalla a escribirla otra vez.
+        problema = _problema_de_proteger(accion, origen, cabecera, contrasena)
+        if problema:
+            messages.error(request, problema)
+            return render(request, "documents/proteger.html", contexto)
 
-    os.replace(parcial, destino)
-    messages.success(request, f"{paginas} página(s) en {destino.name}.")
-    contexto["generado"] = destino
-    contexto["hecho"] = accion
-    return render(request, "documents/proteger.html", contexto)
+        sufijo = "_protegido.pdf" if accion == "proteger" else "_sin_clave.pdf"
+        return cola_mod.encolar(
+            request,
+            "proteger",
+            [origen],
+            # `pide_contrasena` es lo que hace que «Reintentar» vuelva aquí a pedirla, en vez
+            # de repetir un trabajo que ya no tiene con qué abrir el archivo.
+            {"accion": accion, "pide_contrasena": True},
+            sufijo=sufijo,
+            secreto=contrasena,
+        )
+    finally:
+        # Que no quede viva en el marco más de lo necesario.
+        contrasena = ""  # noqa: F841
+
+
+def _problema_de_proteger(accion: str, origen, cabecera, contrasena: str) -> str:
+    """Lo que impide proteger o quitar, en una frase. Vacío si se puede.
+
+    Con `origen.nombre`: el que la persona reconoce, no el que quedó en el servidor.
+    """
+    if accion == "proteger":
+        if cabecera.cifrado:
+            return (
+                f"{origen.nombre} ya está protegido. Quítale la contraseña primero si quieres "
+                "cambiarla."
+            )
+        if len(contrasena) < seguridad_mod.MINIMO:
+            return f"La contraseña tiene que tener al menos {seguridad_mod.MINIMO} caracteres."
+        return ""
+    if not cabecera.cifrado:
+        return f"{origen.nombre} no pide contraseña: no hay nada que quitar."
+    if not seguridad_mod.abre(origen.ruta, contrasena):
+        return "Esa contraseña no abre el archivo."
+    return ""
 
 
 @login_required
@@ -1068,7 +887,6 @@ def numerar_vista(request):
         messages.error(request, error)
         return render(request, "documents/numerar.html", contexto)
 
-    ruta = origen.ruta
     contexto["ruta_texto"] = contexto["ruta"] = origen.token
     contexto["nombre_origen"] = origen.nombre
     contexto["cabecera"] = cabecera
@@ -1076,27 +894,34 @@ def numerar_vista(request):
     if request.POST.get("accion") != "numerar":
         return render(request, "documents/numerar.html", contexto)
 
-    destino = ruta.with_name(f"{ruta.stem}_numerado.pdf")
-    parcial = ruta_parcial(destino)
+    # **Lo que se puede decir sin abrir el documento, aquí y al instante.** Una página de
+    # inicio imposible no tiene que esperar a la cola para fallar.
     try:
-        resultado = marcas_mod.numerar(
-            ruta,
-            parcial,
-            posicion=contexto["posicion"],
-            formato=contexto["formato"],
-            desde=contexto["desde"],
-            empezar_en=contexto["empezar_en"],
+        marcas_mod.comprobar_numeracion(
+            contexto["posicion"],
+            contexto["formato"],
+            contexto["desde"],
+            len(cabecera.paginas),
+            origen.nombre,
         )
     except ComposicionInvalida as fallo:
-        parcial.unlink(missing_ok=True)
         messages.error(request, str(fallo))
         return render(request, "documents/numerar.html", contexto)
 
-    os.replace(parcial, destino)
-    messages.success(request, f"{resultado.marcadas} página(s) numeradas en {destino.name}.")
-    contexto["generado"] = destino
-    contexto["resultado"] = resultado
-    return render(request, "documents/numerar.html", contexto)
+    # Y lo que puede tardar, a la cola: con progreso, recibo, historial y **descarga**, que
+    # para un archivo subido no existía.
+    return cola_mod.encolar(
+        request,
+        "numerar",
+        [origen],
+        {
+            "posicion": contexto["posicion"],
+            "formato": contexto["formato"],
+            "desde": contexto["desde"],
+            "empezar_en": contexto["empezar_en"],
+        },
+        sufijo="_numerado.pdf",
+    )
 
 
 @login_required
@@ -1132,7 +957,6 @@ def marca_vista(request):
         messages.error(request, error)
         return render(request, "documents/marca.html", contexto)
 
-    ruta = origen.ruta
     contexto["ruta_texto"] = contexto["ruta"] = origen.token
     contexto["nombre_origen"] = origen.nombre
     contexto["cabecera"] = cabecera
@@ -1140,25 +964,23 @@ def marca_vista(request):
     if request.POST.get("accion") != "marcar":
         return render(request, "documents/marca.html", contexto)
 
-    destino = ruta.with_name(f"{ruta.stem}_marcado.pdf")
-    parcial = ruta_parcial(destino)
     try:
-        resultado = marcas_mod.marca_de_agua(
-            ruta,
-            parcial,
-            contexto["texto"],
-            opacidad=contexto["opacidad"],
-            diagonal=contexto["diagonal"],
-        )
+        texto = marcas_mod.comprobar_marca(contexto["texto"], contexto["opacidad"])
     except ComposicionInvalida as fallo:
-        parcial.unlink(missing_ok=True)
         messages.error(request, str(fallo))
         return render(request, "documents/marca.html", contexto)
 
-    os.replace(parcial, destino)
-    messages.success(request, f"{resultado.marcadas} página(s) marcadas en {destino.name}.")
-    contexto["generado"] = destino
-    return render(request, "documents/marca.html", contexto)
+    return cola_mod.encolar(
+        request,
+        "marca",
+        [origen],
+        {
+            "texto": texto,
+            "opacidad": contexto["opacidad"],
+            "orientacion": "diagonal" if contexto["diagonal"] else "horizontal",
+        },
+        sufijo="_marcado.pdf",
+    )
 
 
 @login_required
@@ -1192,29 +1014,26 @@ def office_vista(request):
         messages.error(request, str(fallo))
         return render(request, "documents/office.html", contexto)
 
-    ruta = origen.ruta
     contexto["ruta_texto"] = origen.token
     contexto["nombre_origen"] = origen.nombre
-    destino = ruta.with_suffix(".pdf")
-    parcial = ruta_parcial(destino)
 
+    # Por la extensión del nombre que se reconoce, que es el que trae la del original.
     try:
-        office_mod.convertir(ruta, parcial, ajustar_ancho=contexto["ajustar_ancho"])
+        programa = office_mod.programa_de(origen.nombre)
     except ComposicionInvalida as fallo:
-        parcial.unlink(missing_ok=True)
         messages.error(request, str(fallo))
         return render(request, "documents/office.html", contexto)
+    if not office.tiene(programa):
+        messages.error(request, f"{office_mod.NOMBRES[programa]} no está instalado en este equipo.")
+        return render(request, "documents/office.html", contexto)
 
-    os.replace(parcial, destino)
-    try:
-        cabecera = lectura_pdf.leer_cabecera(destino)
-        contexto["cabecera"] = cabecera
-        messages.success(request, f"{cabecera.resumen} en {destino.name}.")
-    except lectura_pdf.NoEsPdf:  # pragma: no cover -- Office acaba de escribirlo
-        messages.success(request, f"Hecho: {destino.name}.")
-
-    contexto["generado"] = destino
-    return render(request, "documents/office.html", contexto)
+    return cola_mod.encolar(
+        request,
+        "office",
+        [origen],
+        {"ajustar_ancho": contexto["ajustar_ancho"]},
+        sufijo=".pdf",
+    )
 
 
 @login_required
@@ -1254,19 +1073,7 @@ def a_word_vista(request):
     if request.POST.get("accion") != "convertir":
         return render(request, "documents/a_word.html", contexto)
 
-    destino = ruta.with_suffix(".docx")
-    parcial = destino.with_name(f"{destino.stem}.parcial.docx")
-    try:
-        office_mod.a_word(ruta, parcial)
-    except ComposicionInvalida as fallo:
-        parcial.unlink(missing_ok=True)
-        messages.error(request, str(fallo))
-        return render(request, "documents/a_word.html", contexto)
-
-    os.replace(parcial, destino)
-    messages.success(request, f"Hecho: {destino.name}.")
-    contexto["generado"] = destino
-    return render(request, "documents/a_word.html", contexto)
+    return cola_mod.encolar(request, "a_word", [origen], {}, sufijo=".docx")
 
 
 @login_required
@@ -1301,21 +1108,24 @@ def a_markdown(request):
 
     try:
         origen = _origen_del_formulario(request)
-        destino = a_markdown_mod.a_markdown(origen.ruta, destino=_ruta_de_salida_de(origen, ".md"))
-    except a_markdown_mod.SinTextoQueSacar as fallo:
-        # **Su propio aviso, y no un error rojo.** El archivo está bien: lo que no tiene es
-        # texto. Tratarlo como un fallo manda a alguien a probar otra vez con el mismo
-        # archivo, que es exactamente lo que no va a funcionar.
-        contexto["sin_texto"] = str(fallo)
-        return render(request, "documents/a_markdown.html", contexto)
     except (modo_mod.RutaNoPermitida, ComposicionInvalida) as fallo:
         messages.error(request, str(fallo))
         return render(request, "documents/a_markdown.html", contexto)
 
-    messages.success(request, f"Hecho: {destino.name}.")
-    contexto["generado"] = destino
-    contexto["vista_previa"] = _asomarse(destino)
-    return render(request, "documents/a_markdown.html", contexto)
+    # Lo que se sabe sin abrir el archivo, aquí: de una extensión que no se lee no hace falta
+    # esperar a la cola para enterarse. Un escaneo sin texto, en cambio, solo se sabe
+    # abriéndolo — y eso ya no es un error sino un desenlace del trabajo.
+    herramienta = a_markdown_mod.HERRAMIENTA_POR_EXTENSION.get(Path(origen.nombre).suffix.lower())
+    if herramienta is None:
+        conocidas = ", ".join(sorted(a_markdown_mod.ORIGENES))
+        messages.error(
+            request,
+            f"De «{Path(origen.nombre).suffix or origen.nombre}» no se saca Markdown. "
+            f"Se puede con: {conocidas}.",
+        )
+        return render(request, "documents/a_markdown.html", contexto)
+
+    return cola_mod.encolar(request, herramienta, [origen], {}, sufijo=".md")
 
 
 @login_required
@@ -1334,16 +1144,11 @@ def de_markdown(request):
 
     try:
         origen = _origen_del_formulario(request)
-        destino = desde_markdown_mod.markdown_a_pdf(
-            origen.ruta, destino=_ruta_de_salida_de(origen, ".pdf")
-        )
     except (modo_mod.RutaNoPermitida, ComposicionInvalida) as fallo:
         messages.error(request, str(fallo))
         return render(request, "documents/de_markdown.html", contexto)
 
-    messages.success(request, f"Hecho: {destino.name}.")
-    contexto["generado"] = destino
-    return render(request, "documents/de_markdown.html", contexto)
+    return cola_mod.encolar(request, "md_a_pdf", [origen], {}, sufijo=".pdf")
 
 
 @login_required
@@ -1366,7 +1171,11 @@ def comprimir(request):
         "titulo_pagina": "Comprimir un PDF",
         "proposito": "Para que un juego de planos entre en un correo sin dejar de leerse.",
         "resoluciones": comprimir_mod.RESOLUCIONES,
-        "ppp": _entero(request.POST.get("ppp"), 200),
+        # **No con `_entero`**, que convierte todo lo menor que 1 en el valor por omisión: el 0
+        # es «sin tocar las imágenes», la única opción que promete no estropear nada, y
+        # llegaba como 200 ppp. Estuvo así desde que entró Comprimir, porque ninguna prueba
+        # pasaba por la pantalla.
+        "ppp": _ppp(request.POST.get("ppp")),
         "ruta_texto": (request.GET.get("ruta") or "").strip(),
     }
 
@@ -1375,24 +1184,24 @@ def comprimir(request):
 
     try:
         origen = _origen_del_formulario(request)
-        destino, resultado = comprimir_mod.comprimir(
-            origen.ruta,
-            ppp=contexto["ppp"],
-            destino=_ruta_de_salida_de(origen, "_ligero.pdf"),
-        )
     except (modo_mod.RutaNoPermitida, ComposicionInvalida) as fallo:
         messages.error(request, str(fallo))
         return render(request, "documents/comprimir.html", contexto)
 
-    contexto["resultado"] = resultado
-    if destino is None:
-        # Ni verde ni rojo: el archivo está bien y ya estaba comprimido.
-        contexto["no_valio"] = True
+    # La resolución se comprueba aquí: un campo de ppp que no está en la lista es evadible
+    # desde fuera del navegador, y no hace falta esperar a la cola para decirlo.
+    if contexto["ppp"] not in comprimir_mod.RESOLUCIONES:
+        messages.error(
+            request, f"«{contexto['ppp']}» no es una de las resoluciones que se ofrecen."
+        )
         return render(request, "documents/comprimir.html", contexto)
 
-    messages.success(request, f"Hecho: {destino.name}.")
-    contexto["generado"] = destino
-    return render(request, "documents/comprimir.html", contexto)
+    # A la cola, y en el carril pesado: un juego de doscientas láminas escaneadas tarda, y
+    # dentro de la petición moría a los 120 s. Si comprimir no vale la pena, lo dice la ficha
+    # del trabajo con los dos pesos —ni verde ni rojo— y no se escribe nada.
+    return cola_mod.encolar(
+        request, "comprimir", [origen], {"ppp": contexto["ppp"]}, sufijo="_ligero.pdf"
+    )
 
 
 @login_required
@@ -1424,33 +1233,50 @@ def ocr_vista(request):
     if request.method != "POST" or not tesseract:
         return render(request, "documents/ocr.html", contexto)
 
-    try:
-        origen = _origen_del_formulario(request)
-        ya_tenia = ocr_mod.ya_tiene_texto(origen.ruta)
-    except (modo_mod.RutaNoPermitida, ComposicionInvalida) as fallo:
-        messages.error(request, str(fallo))
+    cabecera, origen, error = _mirar_pdf(request)
+    if error:
+        messages.error(request, error)
         return render(request, "documents/ocr.html", contexto)
 
     contexto["ruta_texto"] = contexto["ruta"] = origen.token
     contexto["nombre_origen"] = origen.nombre
-    contexto["ya_tenia_texto"] = ya_tenia
+    contexto["ya_tenia_texto"] = ocr_mod.ya_tiene_texto(origen.ruta)
+    # **Cuánto va a tardar, antes de pulsar.** Con quinientas páginas son cuarenta minutos, y
+    # saberlo después ya no sirve para decidir si partirlo.
+    contexto["paginas"] = cabecera.cuantas
+    contexto["estimacion"] = ocr_mod.estimacion(cabecera.cuantas)
+    contexto["pasa_del_tope"] = cabecera.cuantas > ocr_mod.TOPE_PAGINAS
 
     if request.POST.get("accion") != "reconocer":
         return render(request, "documents/ocr.html", contexto)
 
-    try:
-        destino = ocr_mod.reconocer(
-            origen.ruta,
-            idioma=contexto["idioma"],
-            destino=_ruta_de_salida_de(origen, "_con_texto.pdf"),
+    idioma = contexto["idioma"]
+    if idioma not in ocr_mod.IDIOMAS:
+        messages.error(request, f"«{idioma}» no es uno de los idiomas que se ofrecen.")
+        return render(request, "documents/ocr.html", contexto)
+    if not tesseract.tiene(idioma):
+        messages.error(
+            request,
+            f"Tesseract no tiene instalado el idioma «{ocr_mod.IDIOMAS[idioma]}». "
+            f"Los que hay: {', '.join(sorted(tesseract.idiomas))}.",
         )
-    except ComposicionInvalida as fallo:
-        messages.error(request, str(fallo))
+        return render(request, "documents/ocr.html", contexto)
+    if contexto["pasa_del_tope"]:
+        messages.error(
+            request,
+            f"{origen.nombre} tiene {cabecera.cuantas} páginas y el tope son "
+            f"{ocr_mod.TOPE_PAGINAS}. Pártelo antes con «Dividir PDF».",
+        )
         return render(request, "documents/ocr.html", contexto)
 
-    messages.success(request, f"Hecho: {destino.name}.")
-    contexto["generado"] = destino
-    return render(request, "documents/ocr.html", contexto)
+    return cola_mod.encolar(
+        request,
+        "ocr",
+        [origen],
+        # Las páginas van para el plazo: el corredor da un minuto a cada una.
+        {"idioma": idioma, "paginas": cabecera.cuantas},
+        sufijo="_con_texto.pdf",
+    )
 
 
 @login_required
@@ -1476,17 +1302,14 @@ def catalogo_a_excel(request):
 
     try:
         origen = _origen_del_formulario(request)
-        # La ficha del catálogo antes de nada: si alguien se equivocó de archivo, se ve aquí
-        # y no después de abrir un Excel de nueve hojas que no son las suyas.
-        contexto["tablas"] = catalogos_mod.esquema(origen.ruta)
-        destino = catalogos_mod.a_excel(origen.ruta, destino=_ruta_de_salida_de(origen, ".xlsx"))
+        # Se abre aquí antes de encolar: un archivo que no es un catálogo se dice con el
+        # formulario delante, no en una ficha roja. Las tablas salen en el recibo.
+        catalogos_mod.esquema(origen.ruta)
     except (modo_mod.RutaNoPermitida, ComposicionInvalida) as fallo:
         messages.error(request, str(fallo))
         return render(request, "documents/catalogo_a_excel.html", contexto)
 
-    messages.success(request, f"Hecho: {destino.name}.")
-    contexto["generado"] = destino
-    return render(request, "documents/catalogo_a_excel.html", contexto)
+    return cola_mod.encolar(request, "catalogo_excel", [origen], {}, sufijo=".xlsx")
 
 
 @login_required
@@ -1510,40 +1333,33 @@ def excel_a_catalogo(request):
     if request.method != "POST" or not access:
         return render(request, "documents/excel_a_catalogo.html", contexto)
 
+    from apps.jobs.models import EntradaDeTrabajo
+
     try:
         hoja = _origen_del_formulario(request)
         plantilla = _origen_del_formulario(request, campo="plantilla", archivo="plantilla_subida")
-        destino, avisos = catalogos_mod.desde_excel(
-            hoja.ruta, plantilla.ruta, destino=_ruta_de_salida_de(hoja, ".mdb")
-        )
+        # La plantilla se abre aquí: si no es un catálogo, se dice antes de encolar.
+        catalogos_mod.esquema(plantilla.ruta)
     except (modo_mod.RutaNoPermitida, ComposicionInvalida) as fallo:
         messages.error(request, str(fallo))
         return render(request, "documents/excel_a_catalogo.html", contexto)
 
-    messages.success(request, f"Hecho: {destino.name}.")
-    contexto["generado"] = destino
-    contexto["avisos"] = avisos
-    return render(request, "documents/excel_a_catalogo.html", contexto)
+    return cola_mod.encolar(
+        request,
+        "excel_catalogo",
+        [hoja, plantilla],
+        {},
+        sufijo=".mdb",
+        papeles=[EntradaDeTrabajo.HOJA, EntradaDeTrabajo.PLANTILLA],
+    )
 
 
-#: Cuántos caracteres del resultado se enseñan antes de descargarlo.
-ASOMO = 1200
-
-
-def _asomarse(destino: Path) -> str:
-    """Las primeras líneas del `.md`, para ver que salió lo que se esperaba.
-
-    Es barato y evita el viaje de descargar, abrir y descubrir que la hoja que hacía falta era
-    la otra. Se corta por líneas enteras: cortar a mitad de una fila de tabla enseña una tabla
-    rota y hace pensar que la conversión lo está.
-    """
+def _ppp(crudo) -> int:
+    """La resolución de Comprimir: 200 si no viene, **y el 0 se respeta**."""
     try:
-        crudo = destino.read_text(encoding="utf-8")
-    except OSError:
-        return ""
-    if len(crudo) <= ASOMO:
-        return crudo
-    return crudo[:ASOMO].rsplit("\n", 1)[0] + "\n\n…"
+        return int(crudo)
+    except (TypeError, ValueError):
+        return 200
 
 
 def _entero(crudo, por_omision: int) -> int:
@@ -1602,8 +1418,3 @@ def _ruta_de_salida_de(primero, sufijo: str) -> Path:
 
         return retencion.carpeta_de_trabajo() / nombre
     return primero.ruta.with_name(nombre)
-
-
-def _ruta_de_salida(primero) -> Path:
-    """La de «unir»."""
-    return _ruta_de_salida_de(primero, "_unido.pdf")

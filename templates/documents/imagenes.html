@@ -92,19 +92,4 @@
   </div>
 </form>
 
-{% if generado %}
-  <div class="tarjeta tarjeta-acento">
-    <div class="eyebrow">Hecho</div>
-    <div class="recibo">
-      <strong class="recibo-titulo">✓ {{ generado.name }}</strong>
-      {% if not solo_descarga %}
-        <p class="tenue mono" style="margin-top:8px;">{{ generado }}</p>
-      {% endif %}
-      {% if descarga %}
-        <a class="boton" style="margin-top:10px; display:inline-block;"
-           href="{% url 'documents:descargar' descarga.pk %}">Descargar</a>
-      {% endif %}
-    </div>
-  </div>
-{% endif %}
 {% endblock %}

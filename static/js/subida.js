@@ -185,12 +185,26 @@
     );
   });
 
+  function formaDe(evento) {
+    var elt = evento.detail && evento.detail.requestConfig && evento.detail.requestConfig.elt;
+    return elt && elt.closest ? elt.closest("form") : null;
+  }
+
   /** Cuando la ficha ya está en pantalla, el panel sobra: lo que hay que mirar es la ficha. */
   document.addEventListener("htmx:afterSwap", function (evento) {
-    var forma = evento.detail && evento.detail.requestConfig && evento.detail.requestConfig.elt;
-    if (forma && forma.closest) {
-      var contenedor = forma.closest("form");
+    var contenedor = formaDe(evento);
+    if (contenedor) esconder(panelDe(contenedor));
+  });
+
+  /**
+   * **Y cuando no llega, también sobra.** Esto es lo que faltaba: solo se escondía tras un
+   * éxito, así que un 500 o un corte de red dejaban la barra llena y quieta en «Subido.
+   * Mirando qué es…» para siempre. El motivo lo pinta `respuestas.js` donde iba la ficha.
+   */
+  ["htmx:responseError", "htmx:sendError", "htmx:timeout"].forEach(function (nombre) {
+    document.addEventListener(nombre, function (evento) {
+      var contenedor = formaDe(evento);
       if (contenedor) esconder(panelDe(contenedor));
-    }
+    });
   });
 })();

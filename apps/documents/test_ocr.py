@@ -172,10 +172,13 @@ class TestElCriterio:
         reconocimiento **empieza a inventar**, que es peor que no reconocer nada."""
         assert ocr.PPP >= 300
 
-    def test_hay_un_tope_de_paginas(self):
-        """Cada página tarda segundos: un PDF de quinientas bloquea el obrero un cuarto de
-        hora. El tope existe para poder decirlo antes, no para impedirlo."""
-        assert 0 < ocr.TOPE_PAGINAS <= 200
+    def test_hay_un_tope_de_paginas_y_el_plazo_lo_cubre(self):
+        """El tope existe para poder decirlo antes, no para impedirlo. **Era 100 y no era el
+        límite de verdad**: dentro de la petición, gunicorn cortaba a los 120 s. En la cola
+        el plazo crece con las páginas, y lo que se vigila es que cubra el tope entero con
+        el peor tiempo por página medido (cinco segundos)."""
+        assert 0 < ocr.TOPE_PAGINAS <= 500
+        assert ocr.plazo_s(ocr.TOPE_PAGINAS) >= ocr.TOPE_PAGINAS * 5
 
     def test_cada_idioma_tiene_nombre_en_castellano(self):
         """«spa» no es una opción legible. Lo que se elige en pantalla es «Español»."""

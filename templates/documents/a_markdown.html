@@ -46,19 +46,6 @@
   </div>
 {% endif %}
 
-{% if generado %}
-  <div class="tarjeta tarjeta-acento">
-    <p style="margin:0 0 10px;"><strong>Listo: {{ generado.name }}</strong></p>
-    {% if vista_previa %}
-      {% comment %}
-        Un asomo antes de descargar. Evita el viaje de bajar el archivo, abrirlo y descubrir
-        que la hoja que hacía falta era la otra.
-      {% endcomment %}
-      <pre class="asomo">{{ vista_previa }}</pre>
-    {% endif %}
-  </div>
-{% endif %}
-
 {% comment %}
   El detalle de cada formato se queda abajo y plegado: es referencia, no es lo que hay que
   leer para decidir. Lo que hace falta para decidir ya está arriba.

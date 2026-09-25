@@ -174,7 +174,9 @@ class PlanDeEjecucion:
     salida_en_posteriores: bool = False
     #: Variables del entorno del **proceso hijo**. Nunca se tocan las del servidor: es
     #: donde viaja la clave de ECW, y no puede acabar en un log del padre.
-    env: dict[str, str] = field(default_factory=dict)
+    #: Fuera del `repr`: puede llevar la contraseña de «Proteger», y un plan que acabara en un
+    #: registro o en una traza la dejaría escrita. Ver `apps/documents/secretos.py`.
+    env: dict[str, str] = field(default_factory=dict, repr=False)
     #: Siempre un temporal local. Una ruta de red como directorio de trabajo rompe varias
     #: herramientas de formas que no dan un error claro.
     cwd: Path | None = None
@@ -191,6 +193,17 @@ class PlanDeEjecucion:
     #: silencio. Declararlo aqui es lo que permite al runner apoyarse solo en el presupuesto
     #: total de tiempo para estos motores.
     emite_progreso: bool = True
+    #: `True` cuando **terminar sin archivo puede ser la respuesta correcta**.
+    #:
+    #: Es la excepción a la regla número uno, y por eso va declarada y no por omisión.
+    #: Comprimir un PDF que ya venía comprimido lo engordaría, y entregar eso sería la peor
+    #: respuesta; un escaneo no tiene texto que sacar a Markdown. En los dos casos lo correcto
+    #: es no escribir nada **y decir por qué**.
+    #:
+    #: El runner no se fía de la ausencia: con esto puesto, además exige que el hijo lo haya
+    #: **declarado** en su informe con un desenlace. Un hijo que simplemente no escribe sigue
+    #: siendo `sin-salida`.
+    salida_opcional: bool = False
 
 
 @dataclass(frozen=True)

@@ -44,7 +44,30 @@ generar 10.800 peticiones.
     </form>
   {% endif %}
 
-  {% if trabajo.status == 'done' %}
+  {% if trabajo.status == 'done' and trabajo.desenlace and not trabajo.output_path %}
+    {% comment %}
+      **Terminó bien, y no hay archivo.** Ni verde de «listo» ni rojo de error: es la
+      respuesta correcta a lo que se pidió. Comprimir un PDF que ya venía comprimido lo
+      habría engordado; un escaneo no tiene texto que sacar. Pintarlo como fallo manda a
+      reintentar con el mismo archivo, que es lo único que seguro no va a funcionar.
+    {% endcomment %}
+    <div class="mensaje mensaje-info" role="status">
+      <svg class="mensaje-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-info"></use></svg>
+      <span data-anunciar>
+        <strong>{{ trabajo.desenlace_motivo.mensaje }}</strong>
+        {% if trabajo.desenlace_motivo.sugerencia %}{{ trabajo.desenlace_motivo.sugerencia }}{% endif %}
+      </span>
+    </div>
+    {% if trabajo.desenlace == "no-valio-la-pena" and trabajo.verification.origen_bytes %}
+      {# Con las dos cifras delante: «ya estaba comprimido» sin números no convence a nadie. #}
+      <p class="tenue">
+        Pesa <span class="cifra">{{ trabajo.verification.origen_bytes|filesizeformat }}</span> y
+        comprimirlo lo habría dejado en
+        <span class="cifra">{{ trabajo.verification.salida_bytes|filesizeformat }}</span>.
+      </p>
+    {% endif %}
+    <p class="tenue">El original no se ha tocado.</p>
+  {% elif trabajo.status == 'done' %}
     {% comment %}
       El recibo. Es lo que se le manda al cliente: sin él, «lo convertí» es una afirmación
       sin respaldo.
@@ -70,10 +93,18 @@ generar 10.800 peticiones.
       <div class="remate-texto">
         <strong class="remate-titulo">Listo, ya puedes descargarlo</strong>
         <span class="remate-detalle">
-          <strong>{{ trabajo.source_name }}</strong> es ahora
-          {{ trabajo.nombre_del_destino }}{% if trabajo.duracion_s %}, en
-          {{ trabajo.duracion_s|floatformat:0 }} s{% endif %}{% if trabajo.reduccion_pct %} y
-          ocupando un {{ trabajo.reduccion_pct }} % menos{% endif %}.
+          {% if trabajo.es_de_documentos %}
+            {# «plano.pdf es ahora Numerar páginas» se leía como si numerar fuera un formato. #}
+            <strong>{{ trabajo.nombre_del_destino }}</strong> sobre {{ trabajo.source_name }},
+            hecho{% if trabajo.duracion_s %} en {{ trabajo.duracion_s|floatformat:0 }} s{% endif %}.
+            {% if trabajo.desenlace == "con-avisos" %}Tiene avisos: están en la bitácora, abajo.{% endif %}
+            {{ trabajo.nota_de_la_herramienta }}
+          {% else %}
+            <strong>{{ trabajo.source_name }}</strong> es ahora
+            {{ trabajo.nombre_del_destino }}{% if trabajo.duracion_s %}, en
+            {{ trabajo.duracion_s|floatformat:0 }} s{% endif %}{% if trabajo.reduccion_pct %} y
+            ocupando un {{ trabajo.reduccion_pct }} % menos{% endif %}.
+          {% endif %}
           Se comprobó contra el original, y el original no se tocó.
         </span>
       </div>
@@ -83,7 +114,18 @@ generar 10.800 peticiones.
       {% endif %}
     </div>
 
+    {% if asomo %}
+      {% comment %}
+        Un asomo antes de descargar. Evita el viaje de bajar el archivo, abrirlo y descubrir
+        que la hoja que hacía falta era la otra. Estaba en la pantalla de Markdown y se vino
+        aquí con la conversión, al pasar por la cola.
+      {% endcomment %}
+      <pre class="asomo">{{ asomo }}</pre>
+    {% endif %}
+
     <div class="recibo">
+      {# Llega sondeando, sin recargar: sin esto, el lector de pantalla no se entera de que terminó. #}
+      <span class="visually-hidden" data-anunciar>Terminado: {{ trabajo.source_name }}, verificado.</span>
       <strong class="recibo-titulo">✓ Verificado contra el original</strong>
       <dl style="margin-top:8px;">
         <dt>Tamaño</dt>
@@ -121,6 +163,71 @@ generar 10.800 peticiones.
           <dd>{{ trabajo.verification.bandas }}</dd>
         {% endif %}
 
+        {% if trabajo.verification.paginas_verificadas %}
+          {# Contadas con otra biblioteca que la que las escribió: si no, sería el código dándose la razón. #}
+          <dt>Páginas</dt>
+          <dd>
+            {{ trabajo.verification.paginas_verificadas }}
+            <span class="tenue">· contadas con {{ trabajo.verification.verificado_con }}</span>
+          </dd>
+        {% endif %}
+
+        {% if trabajo.verification.cifrado %}
+          {# Lo único que promete «proteger» es que sin la clave no abra, y eso es lo que se probó. #}
+          <dt>Contraseña</dt>
+          <dd>
+            {% if trabajo.verification.cifrado == "AES-256" %}
+              Puesta, con AES-256
+              <span class="tenue">· PDFium comprobó que sin ella no abre</span>
+            {% else %}
+              Quitada <span class="tenue">· PDFium lo abre sin nada</span>
+            {% endif %}
+          </dd>
+        {% endif %}
+
+        {% if trabajo.herramienta == "comprimir" %}
+          {# Lo que explica de dónde salió la reducción: bajar imágenes o solo recomprimir. #}
+          <dt>Imágenes</dt>
+          <dd>
+            {% if trabajo.verification.imagenes_tocadas %}
+              <span class="cifra">{{ trabajo.verification.imagenes_tocadas }}</span> reducida(s)
+            {% else %}
+              Ninguna: solo se recomprimió
+            {% endif %}
+          </dd>
+        {% endif %}
+
+        {% if trabajo.verification.tablas %}
+          {# Catálogo a Excel: una hoja por tabla, y cuántas filas trae cada una. #}
+          <dt>Tablas</dt>
+          <dd>
+            {% for nombre, filas in trabajo.verification.tablas %}{{ nombre }} ({{ filas }}){% if not forloop.last %} · {% endif %}{% endfor %}
+          </dd>
+        {% endif %}
+
+        {% if trabajo.verification.por_archivo %}
+          {# Unir: cuántas páginas puso cada archivo. Es lo que se revisa cuando falta una. #}
+          <dt>De dónde salió</dt>
+          <dd>
+            {% for nombre, cuantas in trabajo.verification.por_archivo %}{{ nombre }} ({{ cuantas }}){% if not forloop.last %} · {% endif %}{% endfor %}
+          </dd>
+        {% endif %}
+
+        {% if trabajo.verification.piezas_verificadas %}
+          {# Abiertas por separado: un zip íntegro con un PDF roto dentro sigue estando roto. #}
+          <dt>Piezas</dt>
+          <dd>
+            {{ trabajo.verification.piezas_verificadas }} en el zip
+            <span class="tenue">· abiertas una a una con {{ trabajo.verification.verificado_con }}</span>
+            <ul class="lista-piezas mono">
+              {% for pieza in trabajo.verification.piezas|slice:":12" %}<li>{{ pieza.nombre }}</li>{% endfor %}
+            </ul>
+            {% if trabajo.verification.piezas|length > 12 %}
+              <span class="tenue">…y {{ trabajo.verification.piezas|length|add:"-12" }} más</span>
+            {% endif %}
+          </dd>
+        {% endif %}
+
         <dt>Motor</dt>
         <dd>{{ trabajo.engine_version|default:trabajo.engine_id }}</dd>
 
@@ -132,24 +239,31 @@ generar 10.800 peticiones.
 
         {% if trabajo.expires_at %}
           <dt>Disponible hasta</dt>
-          <dd>{{ trabajo.expires_at|date:"H:i" }} <span class="tenue">· después se borra</span></dd>
+          {# Con el día: «hasta las 14:30» no dice si es hoy o pasado mañana. #}
+          <dd>{{ trabajo.expires_at|date:"j/n H:i" }} <span class="tenue">· después se borra</span></dd>
         {% endif %}
       </dl>
 
       {% if trabajo.output_path %}
         <a class="boton" style="display:inline-block; margin-top:12px; text-decoration:none; line-height:42px;"
            href="{% url 'jobs:descargar' trabajo.pk %}">Descargar</a>
-        <p class="tenue" style="margin:8px 0 0; font-size:.85rem;">{{ trabajo.output_path }}</p>
+        {% if trabajo.ruta_que_sirve %}
+          <p class="tenue" style="margin:8px 0 0; font-size:.85rem;">{{ trabajo.ruta_que_sirve }}</p>
+        {% endif %}
       {% else %}
         <p class="tenue" style="margin-top:10px;">El archivo ya se descargó y se borró.</p>
       {% endif %}
     </div>
   {% elif trabajo.status == 'error' %}
-    <div class="error">
-      <strong>{{ trabajo.reason_detail }}</strong>
-      <div style="font-size:.85rem; opacity:.85; margin-top:2px;">
-        Motivo: <code>{{ trabajo.reason_code }}</code>
-      </div>
+    {# El mensaje delante y el código plegado, igual que en la ficha. `role="alert"` porque llega sondeando, sin recargar. #}
+    <div class="error" role="alert">
+      <strong data-anunciar>{{ trabajo.reason_detail }}</strong>
+      {% if trabajo.reason_code %}
+        <details class="detalle-tecnico">
+          <summary>Detalle para soporte</summary>
+          <code>{{ trabajo.reason_code }}</code>
+        </details>
+      {% endif %}
     </div>
 
     {% comment %}

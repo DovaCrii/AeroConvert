@@ -97,6 +97,27 @@ def _como_se_repite(trabajo) -> tuple[str, str, str, str]:
     """
     from django.urls import reverse
 
+    # **Una herramienta de documentos se repite en su pantalla**, no en «Convertir». Desde que
+    # pasan por la cola cuentan aquí, y sin esto «Numerar páginas» habría acabado enlazando a
+    # un formato que no existe.
+    if trabajo.herramienta:
+        from apps.documents.herramientas import POR_ID
+
+        herramienta = POR_ID.get(trabajo.herramienta)
+        if herramienta is None:
+            return "", "", "", ""
+        enlace = reverse(herramienta["url"])
+        if herramienta.get("consulta"):
+            from urllib.parse import urlencode
+
+            enlace = f"{enlace}?{urlencode(herramienta['consulta'])}"
+        return (
+            f"herramienta:{trabajo.herramienta}",
+            herramienta["nombre"],
+            enlace,
+            herramienta.get("icono", "icon-destino"),
+        )
+
     destino = reverse("dashboard:convertir")
 
     perfil = perfiles_mod.PERFILES.get(trabajo.target_profile_id or "")

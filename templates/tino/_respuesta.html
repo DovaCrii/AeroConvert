@@ -11,7 +11,8 @@
       sobre blanco: una clase reutilizada fuera de donde nació.
     {% endcomment %}
     <div class="eyebrow">Respuesta</div>
-    <h2 class="respuesta-titulo">{{ respuesta.titulo }}</h2>
+    {# Solo se anuncia, no se enfoca: quien pregunta sigue escribiendo en la caja. Ver respuestas.js. #}
+    <h2 class="respuesta-titulo" data-anunciar>{{ respuesta.titulo }}</h2>
     {% if respuesta.detalle %}<p>{{ respuesta.detalle }}</p>{% endif %}
 
     {% if respuesta.enlace %}
@@ -37,7 +38,7 @@
   {% endcomment %}
   <div class="tarjeta">
     <div class="eyebrow">No lo sé</div>
-    <h2 class="respuesta-titulo">Esto no lo sé contestar.</h2>
+    <h2 class="respuesta-titulo" data-anunciar>Esto no lo sé contestar.</h2>
     <p>
       Prefiero decirlo a inventarme algo: una respuesta equivocada sobre un formato o un
       sistema de referencia acaba en un archivo entregado mal.

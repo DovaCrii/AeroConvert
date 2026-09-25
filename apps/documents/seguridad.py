@@ -40,6 +40,28 @@ ALGORITMO = "AES-256"
 MINIMO = 6
 
 
+class ContrasenaIncorrecta(ComposicionInvalida):
+    """Con su código, para que la ficha no la confunda con un documento roto."""
+
+    codigo = "contrasena-incorrecta"
+
+
+def abre(origen: str | Path, contrasena: str) -> bool:
+    """Si esa contraseña abre el archivo. Es barato: no descifra ninguna página.
+
+    Lo usa la pantalla para decirlo **antes** de encolar. Descubrirlo en la cola manda a la
+    persona a una ficha roja y de vuelta aquí a escribirla otra vez, que es el mismo trabajo
+    con un viaje de más.
+    """
+    from pypdf import PdfReader
+
+    try:
+        lector = PdfReader(str(origen))
+        return not lector.is_encrypted or bool(lector.decrypt(contrasena or ""))
+    except Exception:  # noqa: BLE001 - si no se puede ni leer, tampoco la abre
+        return False
+
+
 def proteger(origen: str | Path, destino: str | Path, contrasena: str) -> int:
     """Escribe una copia cifrada. Devuelve cuántas páginas tiene.
 
@@ -95,7 +117,7 @@ def quitar_contrasena(origen: str | Path, destino: str | Path, contrasena: str) 
         raise ComposicionInvalida(f"No se pudo abrir {origen.name}: {fallo}") from fallo
 
     if not abierto:
-        raise ComposicionInvalida("Esa contraseña no abre el archivo.")
+        raise ContrasenaIncorrecta("Esa contraseña no abre el archivo.")
 
     escritor = PdfWriter()
     for pagina in lector.pages:
