@@ -58,6 +58,14 @@ generar 10.800 peticiones.
         {% if trabajo.desenlace_motivo.sugerencia %}{{ trabajo.desenlace_motivo.sugerencia }}{% endif %}
       </span>
     </div>
+    {% if trabajo.desenlace == "no-valio-la-pena" and trabajo.verification.origen_bytes %}
+      {# Con las dos cifras delante: «ya estaba comprimido» sin números no convence a nadie. #}
+      <p class="tenue">
+        Pesa <span class="cifra">{{ trabajo.verification.origen_bytes|filesizeformat }}</span> y
+        comprimirlo lo habría dejado en
+        <span class="cifra">{{ trabajo.verification.salida_bytes|filesizeformat }}</span>.
+      </p>
+    {% endif %}
     <p class="tenue">El original no se ha tocado.</p>
   {% elif trabajo.status == 'done' %}
     {% comment %}

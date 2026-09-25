@@ -84,6 +84,7 @@ def comprimir(
     *,
     ppp: int = 200,
     destino: Path | None = None,
+    progreso=None,
 ) -> tuple[Path | None, Resultado]:
     """Devuelve `(ruta, resultado)`. La ruta es `None` si no valió la pena y no se escribió.
 
@@ -112,8 +113,13 @@ def comprimir(
     for hoja in lector.pages:
         escritor.add_page(hoja)
 
+    # **El avance, por página**, que es donde está el tiempo. Desde la cola lo lee el
+    # corredor; sin él, un juego de doscientas láminas escaneadas dejaría la barra quieta
+    # minutos y el detector de atasco lo daría por muerto.
+    avisar = progreso or (lambda _fraccion: None)
+
     if ppp:
-        tocadas = _encoger_imagenes(escritor, ppp)
+        tocadas = _encoger_imagenes(escritor, ppp, avisar)
 
     for hoja in escritor.pages:
         try:
@@ -147,7 +153,7 @@ def comprimir(
     return destino, resultado
 
 
-def _encoger_imagenes(escritor, ppp: int) -> int:
+def _encoger_imagenes(escritor, ppp: int, avisar=lambda _fraccion: None) -> int:
     """Baja la resolución de las imágenes incrustadas. Devuelve cuántas tocó.
 
     **Se salta las pequeñas.** Un logotipo de 200 px no tiene nada que bajar, y recomprimirlo
@@ -160,7 +166,9 @@ def _encoger_imagenes(escritor, ppp: int) -> int:
     from PIL import Image
 
     tocadas = 0
-    for hoja in escritor.pages:
+    total = max(1, len(escritor.pages))
+    for numero, hoja in enumerate(escritor.pages):
+        avisar(numero / total)
         try:
             imagenes = list(hoja.images)
         except Exception:  # nosec B112 - una hoja cuyo inventario no se lee se deja entera

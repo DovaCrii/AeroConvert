@@ -194,6 +194,68 @@ class TestMarkdownEnLaCola:
         assert 'class="asomo"' in cuerpo and "P1" in cuerpo
 
 
+class TestComprimirEnLaCola:
+    def test_sin_tocar_las_imagenes_llega_como_cero(self, sesion, entorno):
+        """**El fallo que había desde que entró Comprimir.** La resolución se leía con un
+        ayudante que convierte todo lo menor que 1 en el valor por omisión, así que «sin
+        tocar las imágenes» —la única opción que promete no estropear nada— comprimía a
+        200 ppp. Ninguna prueba pasaba por la pantalla."""
+        plano = entorno / "planos.pdf"
+        plano.write_bytes(_bytes_de_pdf(2))
+        respuesta = sesion.post(reverse("documents:comprimir"), {"ruta": str(plano), "ppp": "0"})
+        assert respuesta.status_code == 302
+        assert ConversionJob.objects.latest("created_at").options["ppp"] == 0
+
+    def test_una_resolucion_inventada_falla_en_la_pantalla(self, sesion, entorno):
+        plano = entorno / "planos.pdf"
+        plano.write_bytes(_bytes_de_pdf(1))
+        respuesta = sesion.post(reverse("documents:comprimir"), {"ruta": str(plano), "ppp": "72"})
+        assert respuesta.status_code == 200
+        assert not ConversionJob.objects.exists()
+
+    def test_el_hijo_convierte_no_valio_la_pena_en_desenlace(self, monkeypatch, entorno):
+        """Determinista a propósito: cuánto baja pypdf al recomprimir depende del archivo, y
+        una prueba con un `if` que decide si comprobar algo es una prueba que puede no probar
+        nada."""
+        from apps.documents import comprimir, tarea
+
+        falso = comprimir.Resultado(
+            origen_bytes=4_000, salida_bytes=4_200, imagenes_tocadas=0, paginas=1
+        )
+        monkeypatch.setattr(comprimir, "comprimir", lambda *a, **k: (None, falso))
+
+        informe = tarea.ejecutar(
+            "comprimir",
+            {"entradas": [{"ruta": str(entorno / "x.pdf")}], "opciones": {"ppp": 200}},
+            entorno / "x.parcial.pdf",
+        )
+        assert informe["desenlace"] == "no-valio-la-pena"
+        assert informe["detalles"]["origen_bytes"] == 4_000
+        assert informe["detalles"]["salida_bytes"] == 4_200
+
+    def test_la_ficha_lo_dice_con_los_dos_pesos_y_sin_descarga(self, sesion):
+        """**Ni verde ni rojo**: el archivo está bien y ya estaba comprimido."""
+        trabajo = ConversionJob.objects.create(
+            owner=get_user_model().objects.get(username="topografo"),
+            herramienta="comprimir",
+            source_name="planos.pdf",
+            source_path="/x/planos.pdf",
+            target_format_code="doc:comprimir",
+            status="done",
+            desenlace="no-valio-la-pena",
+            verification={"origen_bytes": 4_000_000, "salida_bytes": 4_200_000},
+        )
+        cuerpo = sesion.get(reverse("jobs:ficha", kwargs={"pk": trabajo.pk})).content.decode()
+        assert "Ya estaba comprimido" in cuerpo
+        assert "4,0" in cuerpo or "3,8" in cuerpo, "el peso de antes"
+        assert reverse("jobs:descargar", kwargs={"pk": trabajo.pk}) not in cuerpo
+
+    def test_va_por_el_carril_pesado(self):
+        from apps.documents import motor
+
+        assert motor.carril_de("comprimir") == "pesado"
+
+
 class TestElDueno:
     """El trabajo de otro da **404 y no 403**: además de correcto, no confirma que exista."""
 

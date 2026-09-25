@@ -1144,7 +1144,11 @@ def comprimir(request):
         "titulo_pagina": "Comprimir un PDF",
         "proposito": "Para que un juego de planos entre en un correo sin dejar de leerse.",
         "resoluciones": comprimir_mod.RESOLUCIONES,
-        "ppp": _entero(request.POST.get("ppp"), 200),
+        # **No con `_entero`**, que convierte todo lo menor que 1 en el valor por omisión: el 0
+        # es «sin tocar las imágenes», la única opción que promete no estropear nada, y
+        # llegaba como 200 ppp. Estuvo así desde que entró Comprimir, porque ninguna prueba
+        # pasaba por la pantalla.
+        "ppp": _ppp(request.POST.get("ppp")),
         "ruta_texto": (request.GET.get("ruta") or "").strip(),
     }
 
@@ -1153,24 +1157,24 @@ def comprimir(request):
 
     try:
         origen = _origen_del_formulario(request)
-        destino, resultado = comprimir_mod.comprimir(
-            origen.ruta,
-            ppp=contexto["ppp"],
-            destino=_ruta_de_salida_de(origen, "_ligero.pdf"),
-        )
     except (modo_mod.RutaNoPermitida, ComposicionInvalida) as fallo:
         messages.error(request, str(fallo))
         return render(request, "documents/comprimir.html", contexto)
 
-    contexto["resultado"] = resultado
-    if destino is None:
-        # Ni verde ni rojo: el archivo está bien y ya estaba comprimido.
-        contexto["no_valio"] = True
+    # La resolución se comprueba aquí: un campo de ppp que no está en la lista es evadible
+    # desde fuera del navegador, y no hace falta esperar a la cola para decirlo.
+    if contexto["ppp"] not in comprimir_mod.RESOLUCIONES:
+        messages.error(
+            request, f"«{contexto['ppp']}» no es una de las resoluciones que se ofrecen."
+        )
         return render(request, "documents/comprimir.html", contexto)
 
-    messages.success(request, f"Hecho: {destino.name}.")
-    contexto["generado"] = destino
-    return render(request, "documents/comprimir.html", contexto)
+    # A la cola, y en el carril pesado: un juego de doscientas láminas escaneadas tarda, y
+    # dentro de la petición moría a los 120 s. Si comprimir no vale la pena, lo dice la ficha
+    # del trabajo con los dos pesos —ni verde ni rojo— y no se escribe nada.
+    return cola_mod.encolar(
+        request, "comprimir", [origen], {"ppp": contexto["ppp"]}, sufijo="_ligero.pdf"
+    )
 
 
 @login_required
@@ -1302,6 +1306,14 @@ def excel_a_catalogo(request):
     contexto["generado"] = destino
     contexto["avisos"] = avisos
     return render(request, "documents/excel_a_catalogo.html", contexto)
+
+
+def _ppp(crudo) -> int:
+    """La resolución de Comprimir: 200 si no viene, **y el 0 se respeta**."""
+    try:
+        return int(crudo)
+    except (TypeError, ValueError):
+        return 200
 
 
 def _entero(crudo, por_omision: int) -> int:

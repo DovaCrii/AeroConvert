@@ -120,6 +120,29 @@ def _a_markdown(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
     return {"bytes": Path(escrito).stat().st_size}
 
 
+def _comprimir(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
+    from apps.documents import comprimir
+
+    escrito, resultado = comprimir.comprimir(
+        entradas[0]["ruta"],
+        ppp=int(opciones.get("ppp", 200)),
+        destino=parcial,
+        progreso=progreso,
+    )
+    detalles = {
+        "origen_bytes": resultado.origen_bytes,
+        "salida_bytes": resultado.salida_bytes,
+        "reduccion_pct": resultado.reduccion_pct,
+        "imagenes_tocadas": resultado.imagenes_tocadas,
+        "paginas": resultado.paginas,
+    }
+    if escrito is None:
+        # **La única herramienta donde la respuesta correcta puede ser «no hagas nada».**
+        # Recomprimir un PDF ya optimizado lo engordaría, y entregar eso sería peor que nada.
+        raise SinArchivo("no-valio-la-pena", detalles)
+    return detalles
+
+
 def _markdown_a_pdf(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
     from apps.documents import desde_markdown
 
@@ -140,6 +163,7 @@ TAREAS = {
     "md_epub": _a_markdown,
     "md_html": _a_markdown,
     "md_a_pdf": _markdown_a_pdf,
+    "comprimir": _comprimir,
 }
 
 
