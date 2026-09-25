@@ -4,7 +4,8 @@
  *
  * El magenta #F15BB5 da 3,03:1 sobre blanco. Sirve para el logo, el acento y las franjas;
  * NUNCA para texto ni para el relleno de un botón. El color de acción es #A3176F, que da
- * 7,2:1 — y en tema oscuro #F5A8D3, que da 8,9:1 sobre la superficie.
+ * 7,2:1 — y en tema oscuro #F5A8D3, que da 8,3:1 sobre la superficie (aquí ponía 8,9 y
+ * nada lo comprobaba; ahora lo comprueba `test_paleta.py`).
  *
  * Es la misma disciplina de AeroBim y AeroControl, y `apps/core/test_paleta.py` lee este
  * archivo, calcula los contrastes con la fórmula de WCAG 2.1 y falla si alguno baja del piso.
@@ -42,11 +43,24 @@
   --av-border-control: #7f8b9e;
   --av-text: #172238;
   --av-text-secondary: #4f5b72;
-  --av-text-muted: #626f85;
+  /* Era #626f85: pasaba sobre blanco y caía a 4,32 sobre `--av-primary-soft`, que es el
+   * fondo del menú al pasar por encima, y a 4,26 en la píldora de «cancelado». */
+  --av-text-muted: #5a667a;
 
-  --av-ok: #0f7a5f;
+  /* **Los enlaces y el foco, con nombre propio.** No había token de enlace: se pintaban con
+   * el azul de Bootstrap, que en oscuro se quedaba en 3,39:1. Y el anillo de foco era el
+   * color de acción también sobre la barra navy, donde daba 1,97:1 — el foco de teclado era
+   * invisible justo en la navegación. `var()` aquí se resuelve con el tema que mande. */
+  --av-link: var(--av-primary);
+  --av-link-hover: var(--av-primary-hover);
+  --av-foco: var(--av-primary);
+  --av-foco-barra: var(--av-magenta);
+
+  /* Oscurecidos lo justo para pasar con margen en su píldora y en su fondo suave: el verde
+   * daba 4,35 en la píldora de «hecho» (#0f7a5f) y el rojo 4,19 (#c53b4d). */
+  --av-ok: #0e7359;
   --av-warn: #8a5a00;
-  --av-danger: #c53b4d;
+  --av-danger: #b53647;
   --av-ok-soft: #e4f6ea;
   --av-warn-soft: #fdf1dc;
   --av-danger-soft: #fce4e6;
@@ -408,8 +422,22 @@ td.cifra,
 }
 
 :focus-visible {
-  outline: 2px solid var(--av-primary);
+  outline: 2px solid var(--av-foco);
   outline-offset: 2px;
+}
+
+/* Sobre la barra navy el color de acción claro da 1,97:1 y el anillo no se ve. El magenta da
+ * 4,5 sobre #1b2a4a y 4,0 sobre el #22335a de arriba del degradado. */
+.barra :focus-visible {
+  outline-color: var(--av-foco-barra);
+}
+
+a {
+  color: var(--av-link);
+}
+
+a:hover {
+  color: var(--av-link-hover);
 }
 
 /* --- La barra ----------------------------------------------------------- */
@@ -890,7 +918,9 @@ a.menu-titulo:hover {
   min-width: 0;
   min-height: 34px;
   padding: 4px 10px 4px 30px;
-  border: 1px solid rgb(255 255 255 / 22%);
+  /* Al 22 % el borde daba 2,02:1 con la barra y la caja no se veía como caja. Al 45 %
+   * pasa de 3, que es lo que pide un control (WCAG 1.4.11). */
+  border: 1px solid rgb(255 255 255 / 45%);
   border-radius: var(--av-radius-pill);
   background: rgb(255 255 255 / 8%);
   color: #fff;
@@ -1419,6 +1449,10 @@ a.menu-titulo:hover {
 }
 
 .ejemplo {
+  /* Medía 22 px de alto; WCAG 2.5.8 pide 24 para algo que se pulsa. */
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
   padding: 4px 11px;
   border: 1px solid var(--av-border);
   border-radius: var(--av-radius-pill);
@@ -1613,7 +1647,8 @@ legend {
 
 /* Botón pequeño. Estaba inventado dos veces en línea con dos rellenos distintos. */
 .boton-pequeno {
-  min-height: auto;
+  /* 28 y no `auto`: con `auto` medía 21 px, por debajo de los 24 de WCAG 2.5.8. */
+  min-height: 28px;
   padding: var(--av-s-1) var(--av-s-3);
   font-size: var(--av-fs-sm);
 }
@@ -1821,9 +1856,12 @@ legend {
 }
 
 .miga {
+  /* 24 px de alto como mínimo (WCAG 2.5.8): con 2 px de relleno medía unos 20, y son las
+   * migas lo que se pulsa para volver atrás en el explorador. */
+  min-height: 24px;
   background: none;
   border: 0;
-  padding: 2px 4px;
+  padding: 2px 6px;
   border-radius: 6px;
   color: var(--av-primary);
   cursor: pointer;
@@ -2393,12 +2431,17 @@ code {
   color: var(--av-text);
 }
 
+/* **Un anillo, no solo el borde.** Enfocar un campo cambiaba el borde de gris a magenta: el
+ * mismo grosor, y entre los dos colores 2,09:1. Quien navega con teclado no sabía dónde
+ * estaba. Ahora es el anillo de 2 px de todo lo demás. */
 .form-control:focus,
 .form-select:focus {
   background: var(--av-surface-alt);
   color: var(--av-text);
-  border-color: var(--av-primary);
+  border-color: var(--av-foco);
   box-shadow: none;
+  outline: 2px solid var(--av-foco);
+  outline-offset: 1px;
 }
 
 .form-control::placeholder {

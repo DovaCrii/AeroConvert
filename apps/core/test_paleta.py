@@ -118,7 +118,14 @@ FAMILIAS = ("componer", "transformar", "marcar", "proteger", "destino", "texto")
 
 
 class TestElColorDeAccion:
-    """El que se lee. La cabecera del CSS promete 7,2:1 en claro y 8,9:1 en oscuro."""
+    """El que se lee. La cabecera del CSS promete 7,2:1 en claro y 8,3:1 en oscuro.
+
+    Prometía 8,9 en oscuro, y medía 8,30: la cifra se escribió una vez y nada la comprobaba.
+    """
+
+    def test_las_cifras_de_la_cabecera_son_las_que_miden(self, claro, oscuro):
+        assert round(contraste(claro["--av-primary"], claro["--av-surface"]), 1) == 7.2
+        assert round(contraste(oscuro["--av-primary"], oscuro["--av-surface"]), 1) == 8.3
 
     def test_en_claro(self, claro):
         assert contraste(claro["--av-primary"], claro["--av-surface"]) >= TEXTO
@@ -245,3 +252,189 @@ class TestLosColoresDeFamilia:
         estados = {claro["--av-ok"], claro["--av-warn"], claro["--av-danger"]}
         for familia in FAMILIAS:
             assert claro[f"--av-fam-{familia}"] not in estados
+
+
+# --- La tabla: todos los pares que se leen, en los tres temas --------------------
+#
+# **Por qué una tabla y no una clase por par.** La auditoría de la fase 9 midió siete pares
+# por debajo de WCAG que ninguna prueba miraba: el foco sobre la barra (1,97), el borde del
+# buscador (2,02), el rojo sobre su fondo (4,23), dos píldoras de estado y el atenuado sobre
+# el fondo del menú. Cada uno era un par que a nadie se le ocurrió escribir. Una tabla hace
+# que añadir un par sea añadir una línea, y que los tres temas salgan gratis.
+#
+# Los temas se miran **como los ve el navegador**: el oscuro hereda de `:root` lo que no
+# redefine, y un `var()` se resuelve con el tema que manda. Leer cada bloque por separado,
+# como hacen las pruebas de arriba, no ve un token declarado una sola vez en `:root` que
+# apunta a otro que el oscuro sí cambia —`--av-link: var(--av-primary)`—.
+
+#: La barra. No son tokens: el degradado va de este al navy.
+NAVY = "#1b2a4a"
+NAVY_ARRIBA = "#22335a"
+BLANCO = "#ffffff"
+
+
+def _rgb(color) -> tuple[int, int, int]:
+    if isinstance(color, tuple):
+        return color
+    crudo = color.lstrip("#")
+    if len(crudo) == 3:
+        crudo = "".join(c * 2 for c in crudo)
+    return tuple(int(crudo[i : i + 2], 16) for i in (0, 2, 4))
+
+
+def _hex(rgb: tuple[int, int, int]) -> str:
+    return "#{:02x}{:02x}{:02x}".format(*rgb)
+
+
+def mezcla(color: str, fondo: str, alfa: float) -> str:
+    """Lo que se ve de un color con transparencia sobre un fondo opaco.
+
+    Es lo que hace `color-mix(in srgb, X 14%, transparent)` una vez pintado sobre la tarjeta,
+    y lo que hace `rgb(255 255 255 / 45%)` sobre la barra. Medir el color sin mezclar daría un
+    contraste que no existe en pantalla.
+    """
+    arriba, abajo = _rgb(color), _rgb(fondo)
+    return _hex(tuple(round(alfa * a + (1 - alfa) * b) for a, b in zip(arriba, abajo, strict=True)))
+
+
+def _crudas(bloque: str) -> dict[str, str]:
+    return {k: v.strip() for k, v in re.findall(r"(--av-[a-z-]+)\s*:\s*([^;]+);", bloque)}
+
+
+def _resolver(crudas: dict[str, str]) -> dict[str, str]:
+    resueltas: dict[str, str] = {}
+    for nombre, valor in crudas.items():
+        for _ in range(5):  # cadenas de var() cortas; cinco saltos sobran
+            apunta = re.fullmatch(r"var\((--av-[a-z-]+)\)", valor)
+            if not apunta:
+                break
+            valor = crudas.get(apunta.group(1), "")
+        if valor.startswith("#"):
+            resueltas[nombre] = valor
+    return resueltas
+
+
+@pytest.fixture(scope="module")
+def temas(css: str) -> dict[str, dict[str, str]]:
+    base = _crudas(_bloque(css, ":root {"))
+    return {
+        "claro": _resolver(base),
+        "oscuro": _resolver({**base, **_crudas(_bloque(css, ':root[data-theme="dark"]'))}),
+        "sistema": _resolver({**base, **_crudas(_bloque(css, ':root:not([data-theme="light"])'))}),
+    }
+
+
+def _par(tema: dict[str, str], valor: str) -> str:
+    return tema[valor] if valor.startswith("--") else valor
+
+
+def _pildora(estado: str):
+    """La píldora pinta su texto sobre el 14 % de su propio color encima de la tarjeta."""
+    return lambda t: (t[estado], mezcla(t[estado], t["--av-surface"], 0.14))
+
+
+def _sobre_barra(color: str, alfa: float):
+    """Algo translúcido sobre la barra, medido contra la barra."""
+    return lambda t: (mezcla(color, NAVY, alfa), NAVY)
+
+
+#: (nombre, cómo sacar el par de un tema, piso). El par es (primer plano, fondo).
+PARES = [
+    # El texto, sobre los tres fondos donde vive.
+    *[
+        (f"{texto} sobre {fondo}", (texto, fondo), TEXTO)
+        for texto in ("--av-text", "--av-text-secondary", "--av-text-muted")
+        for fondo in ("--av-surface", "--av-surface-alt", "--av-bg")
+    ],
+    # El atenuado sobre el fondo del menú al pasar por encima: 4,32 antes de la fase 9.
+    ("atenuado sobre primary-soft", ("--av-text-muted", "--av-primary-soft"), TEXTO),
+    ("secundario sobre primary-soft", ("--av-text-secondary", "--av-primary-soft"), TEXTO),
+    # Los enlaces: no había token y se pintaban con el azul de Bootstrap.
+    *[
+        (f"enlace sobre {fondo}", ("--av-link", fondo), TEXTO)
+        for fondo in ("--av-surface", "--av-surface-alt", "--av-bg")
+    ],
+    ("enlace al pasar por encima", ("--av-link-hover", "--av-surface"), TEXTO),
+    # Cada estado, sobre su fondo suave (`.aviso`, `.error`, `.mensaje-*`) y en su píldora.
+    *[
+        (f"{estado} sobre su fondo", (f"--av-{estado}", f"--av-{estado}-soft"), TEXTO)
+        for estado in ("ok", "warn", "danger", "info")
+    ],
+    ("píldora hecho", _pildora("--av-ok"), TEXTO),
+    ("píldora error", _pildora("--av-danger"), TEXTO),
+    ("píldora en curso", _pildora("--av-primary"), TEXTO),
+    ("píldora cancelado", _pildora("--av-text-muted"), TEXTO),
+    # El texto dentro del botón principal, en reposo y al pasar por encima.
+    ("texto sobre acción", ("--av-sobre-accion", "--av-primary"), TEXTO),
+    ("texto sobre acción, hover", ("--av-sobre-accion", "--av-primary-hover"), TEXTO),
+    # Lo que no es texto: el borde que dice «aquí se escribe», y el anillo de foco.
+    *[
+        (f"borde de control sobre {fondo}", ("--av-border-control", fondo), GRAFICO)
+        for fondo in ("--av-surface", "--av-surface-alt", "--av-bg")
+    ],
+    *[
+        (f"foco sobre {fondo}", ("--av-foco", fondo), GRAFICO)
+        for fondo in ("--av-surface", "--av-surface-alt", "--av-bg")
+    ],
+    # La barra es navy en los tres temas, y ahí el foco de todo lo demás daba 1,97.
+    ("foco sobre la barra", ("--av-foco-barra", NAVY), GRAFICO),
+    ("foco sobre lo alto de la barra", ("--av-foco-barra", NAVY_ARRIBA), GRAFICO),
+    ("borde del buscador de la barra", _sobre_barra(BLANCO, 0.45), GRAFICO),
+    # La barra de progreso: el relleno es lo que informa, contra la pista y la tarjeta.
+    ("relleno del progreso sobre su pista", ("--av-primary", "--av-border"), GRAFICO),
+]
+
+
+@pytest.mark.parametrize("tema", ["claro", "oscuro", "sistema"])
+@pytest.mark.parametrize(("nombre", "par", "piso"), PARES, ids=[p[0] for p in PARES])
+def test_cada_par_llega_a_su_piso(temas, tema, nombre, par, piso):
+    colores = temas[tema]
+    delante, detras = (
+        par(colores) if callable(par) else (_par(colores, par[0]), _par(colores, par[1]))
+    )
+    medido = contraste(delante, detras)
+    assert medido >= piso, f"{nombre} en {tema}: {medido:.2f}:1 ({delante} sobre {detras})"
+
+
+class TestLoQueUsaLosTokens:
+    """Un token que pasa y una regla que no lo usa es lo mismo que no tener el token."""
+
+    def test_el_foco_de_la_barra_usa_su_color(self, css):
+        assert "outline-color: var(--av-foco-barra)" in _bloque(css, ".barra :focus-visible")
+
+    def test_el_buscador_de_la_barra_tiene_el_borde_que_se_mide(self, css):
+        """La fila de la tabla mide el 45 %; si la regla vuelve al 22 %, esto lo dice."""
+        assert "rgb(255 255 255 / 45%)" in _bloque(css, "\n.buscador-barra input {")
+
+    def test_los_enlaces_usan_el_token(self, css):
+        assert "var(--av-link)" in _bloque(css, "\na {")
+
+    def test_enfocar_un_campo_pone_un_anillo_y_no_solo_cambia_el_borde(self, css):
+        """Entre el borde gris y el magenta había 2,09:1, con el mismo grosor."""
+        bloque = _bloque(css, ".form-control:focus,")
+        assert "outline: 2px solid var(--av-foco)" in bloque
+
+
+class TestLoQueSePulsaMideAlMenos24:
+    """WCAG 2.5.8: 24 × 24 px para algo que se pulsa. Las migas del explorador medían ~20."""
+
+    @pytest.mark.parametrize("selector", ["\n.miga {", "\n.ejemplo {", "\n.boton-pequeno {"])
+    def test_tiene_alto_minimo(self, css, selector):
+        encontrado = re.search(r"min-height:\s*(\d+)px", _bloque(css, selector))
+        assert encontrado, f"{selector.strip()} sin min-height en px"
+        assert int(encontrado.group(1)) >= 24
+
+
+class TestLaPaginaDeError:
+    """`500.html` no puede cargar `app.css` —ver `HANDOFF.md`—, así que copia los colores.
+
+    Y la copia se desvió: el fondo oscuro era `#131a26` cuando el token es `#0e141d`. Aquí se
+    exige que cada color que escribe sea el de algún token de los dos temas.
+    """
+
+    def test_cada_color_es_de_la_paleta(self, temas):
+        pagina = (Path(settings.BASE_DIR) / "templates" / "500.html").read_text(encoding="utf-8")
+        tokens = {_hex(_rgb(v)) for t in temas.values() for v in t.values()}
+        tokens |= {NAVY, BLANCO}
+        usados = {_hex(_rgb(c)) for c in re.findall(r"#[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{3}\b", pagina)}
+        assert usados - tokens == set()
