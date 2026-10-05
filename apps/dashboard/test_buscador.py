@@ -67,7 +67,7 @@ class TestSubirDesdeElEquipo:
         assert respuesta.status_code == 200
         assert "desde-mi-pc.png" in respuesta.content.decode()
 
-    def test_y_el_formulario_lleva_un_identificador_no_una_ruta(self, client, ana):
+    def test_y_el_formulario_lleva_un_identificador_no_una_ruta(self, client, ana, con_gdal):
         """**La línea donde equivocarse sería una fuga.** Devolver la ruta del servidor
         dejaría que el POST siguiente la tratara como una ruta del disco, que es justo la vía
         que `entrada.py` existe para mantener separada."""
@@ -139,7 +139,7 @@ class TestExplorarLaCarpetaCompartida:
 
 
 class TestConvertirLoSubido:
-    def test_se_puede_encolar_con_el_identificador(self, client, ana):
+    def test_se_puede_encolar_con_el_identificador(self, client, ana, con_gdal):
         """El recorrido entero: subir, y que el trabajo salga con el nombre que la persona
         reconoce y no con el que quedó en el servidor."""
         client.force_login(ana)

@@ -130,10 +130,16 @@ class TestElComando:
         assert "-a_srs" in segundo
         assert segundo[segundo.index("-a_srs") + 1] == "EPSG:32719"
 
-    def test_lleva_el_entorno_de_gdal(self, plano, tmp_path):
-        """Sin `GDAL_DATA` el controlador DXF no arranca, y aquí **todo** pasa por DXF."""
+    def test_lleva_el_entorno_de_gdal(self, plano, tmp_path, monkeypatch):
+        """Sin `GDAL_DATA` el controlador DXF no arranca, y aquí **todo** pasa por DXF.
+
+        El entorno lo calcula `entorno_de_gdal()` buscando archivos testigo de una instalación
+        de GDAL, y en CI no hay ninguna. Se finge: lo que se vigila es que el plan **lo lleve**.
+        """
+        entorno = {"GDAL_DATA": "/datos/gdal", "PROJ_DATA": "/datos/proj"}
+        monkeypatch.setattr(motores, "entorno_de_gdal", lambda: entorno)
         plan = motores.MotorCadPorOda().plan(_trabajo(plano, tmp_path, "gpkg"))
-        assert "GDAL_DATA" in plan.env
+        assert plan.env == entorno
 
     def test_el_plazo_es_mas_largo_que_el_del_resto(self, plano, tmp_path):
         """Son dos conversiones seguidas, y la primera es un programa de escritorio
@@ -165,6 +171,14 @@ class TestLaDisponibilidad:
 
 
 class TestElPasoDeOda:
+    @pytest.fixture(autouse=True)
+    def con_pantalla(self, monkeypatch):
+        """En Linux ODA exige un servidor gráfico y `a_dxf` se niega antes de lanzar nada si no
+        hay `DISPLAY` ni `xvfb-run`. En Windows esa comprobación no existe, así que estas
+        pruebas pasaban en la estación y fallaban en CI. Lo que miden es lo que pasa **después**
+        de arrancar, así que se da una pantalla por buena."""
+        monkeypatch.setenv("DISPLAY", ":99")
+
     def test_sin_conversor_el_mensaje_dice_que_hacer_mientras_tanto(self, monkeypatch, plano):
         monkeypatch.setattr(desde_cad, "donde_esta", lambda: "")
         with pytest.raises(desde_cad.SinConversorDeCad) as fallo:
