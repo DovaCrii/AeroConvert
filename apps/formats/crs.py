@@ -28,6 +28,15 @@ DECLARADO = "declarado"
 #: de `DECLARADO` porque no lo eligio nadie. La ficha lo dice tal cual, y esa distincion es
 #: la que separa «lo sabemos» de «alguien lo supuso».
 POR_NORMA = "por-norma"
+#: **Una persona declaró que no hay sistema de referencia**: las coordenadas son locales,
+#: con el origen en el propio levantamiento (0, 0, 0) — un escáner sin GNSS, una nube de
+#: obra en su sistema de la estación.
+#:
+#: No es lo mismo que `DESCONOCIDO`, y esa es toda su razón de ser. «No se sabe» para la
+#: conversión, porque puede que exista y nadie lo haya dicho. «Es local» es una respuesta:
+#: quien midió sabe que no hay EPSG que poner. **Nunca es un valor por omisión**: solo existe
+#: si alguien marca la casilla, y queda en la bitácora con su nombre.
+LOCAL = "local"
 DESCONOCIDO = "desconocido"
 
 ETIQUETAS_ORIGEN = {
@@ -35,6 +44,7 @@ ETIQUETAS_ORIGEN = {
     SIDECAR_PRJ: "venia en el .prj de al lado",
     DECLARADO: "lo declaro una persona",
     POR_NORMA: "lo fija el formato",
+    LOCAL: "coordenadas locales, lo declaro una persona",
     DESCONOCIDO: "no se sabe",
 }
 
@@ -70,6 +80,11 @@ class Crs:
         return self.origen == DECLARADO
 
     @property
+    def es_local(self) -> bool:
+        """`True` si una persona declaro que no hay sistema: coordenadas locales."""
+        return self.origen == LOCAL
+
+    @property
     def es_geografico(self) -> bool:
         """`True` si sus coordenadas son **grados** y no metros.
 
@@ -96,6 +111,10 @@ class Crs:
 #: El CRS que no se sabe. Se usa en vez de `None` para que el codigo que lo consume no
 #: tenga que preguntar dos cosas distintas.
 SIN_CRS = Crs(autoridad="", codigo="", origen=DESCONOCIDO)
+
+#: Lo que se guarda cuando alguien declara coordenadas locales. Sin autoridad ni codigo:
+#: `conocido` sigue siendo `False`, porque no hay sistema que conocer.
+LOCAL_DECLARADO = Crs(autoridad="", codigo="", origen=LOCAL, nombre="Coordenadas locales")
 
 
 @lru_cache(maxsize=512)

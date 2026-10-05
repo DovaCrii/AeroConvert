@@ -14,7 +14,9 @@ en una página de condiciones que nadie abre.
 
 from __future__ import annotations
 
+from django.conf import settings
 from django.contrib.auth.decorators import login_required
+from django.http import Http404
 from django.shortcuts import render
 
 from . import fuera as fuera_mod
@@ -33,6 +35,11 @@ EJEMPLOS = (
 
 @login_required
 def preguntar(request):
+    # Apagado, la pantalla **no existe**: 404, como cualquier ruta que nadie definió, y no un
+    # «no disponible» que confirmaría que hubo algo. Ver `TINO_VISIBLE` en los ajustes.
+    if not settings.TINO_VISIBLE:
+        raise Http404("No existe.")
+
     pregunta = (request.GET.get("p") or "").strip()
     respuesta = saber_mod.contestar(pregunta) if pregunta else None
 
