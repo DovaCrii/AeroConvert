@@ -23,11 +23,67 @@ pytestmark = pytest.mark.django_db
 
 
 @pytest.fixture
-def sesion(client):
+def entrada(client):
+    """Alguien que ha entrado, con Tino **como viene de fábrica: apagado**."""
     client.force_login(
         get_user_model().objects.create_user("topografo", password="x" * 20)  # nosec B106
     )
     return client
+
+
+@pytest.fixture
+def sesion(entrada, settings):
+    """Lo mismo, con Tino encendido: es lo que ejercitan casi todas estas pruebas."""
+    settings.TINO_VISIBLE = True
+    return entrada
+
+
+class TestApagadoYSinRastro:
+    """Decidido el 2026-10-05: de momento el equipo no lo necesita, y no debe quedar ni un
+    enlace que lleve a algo que ya no está. **No se borró código**; se enciende con
+    `AEROCONVERT_TINO_VISIBLE=true`."""
+
+    def test_de_fabrica_esta_apagado(self):
+        from django.conf import settings as reales
+
+        assert reales.TINO_VISIBLE is False
+
+    def test_su_pantalla_no_existe(self, entrada):
+        """404 y no «no disponible»: un aviso confirmaría que hubo algo."""
+        assert entrada.get(reverse("tino:preguntar")).status_code == 404
+
+    def test_tampoco_con_una_pregunta(self, entrada):
+        assert entrada.get(reverse("tino:preguntar"), {"p": "¿qué es un COG?"}).status_code == 404
+
+    def test_ni_siquiera_a_un_fragmento_de_htmx(self, entrada):
+        respuesta = entrada.get(reverse("tino:preguntar"), HTTP_HX_REQUEST="true")
+        assert respuesta.status_code == 404
+
+    def test_el_menu_no_lo_nombra(self, entrada):
+        cuerpo = entrada.get(reverse("dashboard:que_puedo_hacer")).content.decode()
+        assert "Tino" not in cuerpo
+        assert reverse("tino:preguntar") not in cuerpo
+
+    def test_el_buscador_sin_resultados_no_lo_ofrece(self, entrada):
+        cuerpo = entrada.get(
+            reverse("dashboard:que_puedo_hacer"), {"q": "xilofono"}
+        ).content.decode()
+        assert "Nada coincide" in cuerpo
+        assert "Tino" not in cuerpo
+        assert reverse("tino:preguntar") not in cuerpo
+
+    def test_ninguna_pantalla_de_las_de_siempre_lo_nombra(self, entrada):
+        for nombre in ("dashboard:convertir", "jobs:lista", "engines:matriz", "presets:lista"):
+            cuerpo = entrada.get(reverse(nombre)).content.decode()
+            assert "Tino" not in cuerpo, nombre
+            assert reverse("tino:preguntar") not in cuerpo, nombre
+
+    def test_encendido_vuelve_a_aparecer(self, entrada, settings):
+        """Que se pueda volver atrás es la razón de no haber borrado nada."""
+        settings.TINO_VISIBLE = True
+        assert entrada.get(reverse("tino:preguntar")).status_code == 200
+        cuerpo = entrada.get(reverse("dashboard:que_puedo_hacer")).content.decode()
+        assert reverse("tino:preguntar") in cuerpo
 
 
 class TestLaPuertaNaceCerrada:

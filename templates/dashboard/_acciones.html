@@ -106,10 +106,12 @@
       que persigue a la gente por la aplicación. El momento de necesitar un ayudante es este:
       el buscador no encontró nada, y la pregunta se lleva escrita tal cual.
     {% endcomment %}
-    <p class="tenue">
-      O <a href="{% url 'tino:preguntar' %}?p={{ q|urlencode }}">pregúntale a Tino</a>, que
-      contesta con lo que esta máquina sabe.
-    </p>
+    {% if tino_visible %}
+      <p class="tenue">
+        O <a href="{% url 'tino:preguntar' %}?p={{ q|urlencode }}">pregúntale a Tino</a>, que
+        contesta con lo que esta máquina sabe.
+      </p>
+    {% endif %}
   </div>
 {% endif %}
 

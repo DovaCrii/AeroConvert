@@ -627,6 +627,13 @@ def encolar(request):
             f"{request.user.get_username()} declaró el sistema de referencia "
             f"{crs.autoridad}:{crs.codigo}. El archivo no lo traía dentro."
         )
+    elif crs.es_local:
+        # La misma traza, y por la misma razón: «no tiene sistema» es una afirmación de
+        # alguien, y dentro de seis meses tiene que poder decirse de quién.
+        job.registrar(
+            f"{request.user.get_username()} declaró que son coordenadas locales, sin "
+            "sistema de referencia. La salida tampoco lo tendrá."
+        )
 
     if preajuste is not None:
         preajuste.usar()
@@ -661,6 +668,7 @@ def _volver_a_la_ficha(request, inspeccion, origen, mensaje: str, *, donde: str)
         "error_al_convertir": mensaje,
         "error_en": donde,
         "crs_escrito": (request.POST.get("crs_declarado") or "").strip(),
+        "crs_local_marcado": request.POST.get("crs_local") == "si",
     }
     if donde == "ajustes":
         contexto["abrir_ajustes"] = True
@@ -683,6 +691,22 @@ def _crs_del_trabajo(request, inspeccion):
         return inspeccion.crs
 
     declarado = (request.POST.get("crs_declarado") or "").strip()
+
+    # **«Son coordenadas locales» es una respuesta, no un hueco.** Una nube de escáner sin
+    # GNSS está en el sistema de la estación, con el origen en 0: no hay EPSG que poner, y
+    # pedirlo obligaba a inventar uno —que es justo lo que la regla prohíbe— o a no poder
+    # convertir. Se acepta solo marcado a mano, solo en nubes, y nunca junto a un EPSG: las
+    # dos cosas a la vez son una contradicción, y elegir una por la persona sería adivinar.
+    if request.POST.get("crs_local") == "si":
+        if declarado:
+            raise ValueError(
+                "Has marcado coordenadas locales y además has escrito un EPSG. "
+                "Es una cosa o la otra: deja solo la que sea cierta."
+            )
+        if inspeccion.familia != catalogo.NUBE:
+            raise ValueError("Las coordenadas locales solo se admiten en nubes de puntos.")
+        return crs_mod.LOCAL_DECLARADO
+
     if not declarado:
         return inspeccion.crs
 
