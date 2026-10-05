@@ -5,6 +5,13 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Sin publicar]
 
+### Cambiado — `apps/documents/views.py` pasa a ser un paquete
+
+- Las 1.436 líneas de `views.py` se reparten en `views/`: un módulo por pantalla
+  (`pantalla_unir`, `pantalla_dividir`...) más `_comun`, y `__init__.py` reexporta los mismos
+  nombres. **No cambia el comportamiento**: el mapa de URL es idéntico antes y después, y el
+  cuerpo de ninguna función se tocó (el corte fue mecánico).
+
 ### Añadido — «Seguir donde lo dejaste» se puede plegar
 
 - La franja de la portada es ahora un `<details>` nativo: se pliega y se abre con el ratón, el
