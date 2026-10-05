@@ -4,21 +4,33 @@
 > [`docs/historial/`](docs/historial/) y en `git log`. Si algo de aquí no cuadra con el código,
 > **gana el código**: actualice esta página antes de seguir.
 
-**Estado al:** 2026-10-05 · **`main` en:** `1caa449` · **Último PR fusionado:** #12
+**Estado al:** 2026-10-05 · **`main` en:** `b36a395` · **Último PR fusionado:** #28
 
 ## Quién hace qué
 
-**Claude hace todo lo de git**: ramas, commits, push, PR y fusiones a `main`. **Usted despliega
-en p340.** Sin commit ni push directo a `main`; cada PR va contra `main`, no apilado.
+**Claude hace todo lo de git**: ramas, commits, push, PR y fusiones a `main` con el CI verde
+(`/abrir-pr`, igual que en AeroBim). **Usted despliega en p340.** Sin commit ni push directo a
+`main`; cada PR va contra `main`, no apilado.
+
+**Una cosa que solo usted puede hacer:** el agente no puede concederse a sí mismo el permiso de
+`gh pr merge`. Cree `.claude/settings.local.json` (ya está en `.gitignore`) con
+`{"permissions": {"allow": ["PowerShell(gh pr merge *)", "Bash(gh pr merge:*)"]}}`, como en
+AeroBim. Hasta entonces las fusiones funcionaron pidiendo el permiso en cada sesión.
+
+**El CI de GitHub falla a veces con `The job was not acquired by Runner`**: es la infraestructura,
+no el código. Se relanza con `gh run rerun <id>` y se espera; no se fusiona con el CI en rojo.
 
 ## Dónde está el proyecto
 
 - Desplegado en `p340` (publicado por Tailscale Funnel): dos servicios y el temporizador de
   respaldo (03:15). F9.0 – F9.2 se desplegaron el 2026-09-25.
-- **En `main` y sin desplegar:** F9.3 (contraste y foco), coordenadas locales para nubes, Tino
-  apagado, dependencias parcheadas, CI sin GDAL y la **Fase 10 (GNSS, Trimble a RINEX)** completa
-  salvo F10.5.
-- Pruebas: 2.289 recogidas, 3 con oráculo deseleccionadas (2026-10-05, `pytest --collect-only`).
+- **Desplegado el 2026-10-05 a las 15:01:** hasta el #20 (GNSS con RTKLIB, calidad de RINEX y
+  RINEX a otra versión, todo menos lo que sigue).
+- **En `main` y sin desplegar:** la versión `0.10.0`, «Seguir donde lo dejaste» plegable, el
+  arreglo del motor RTKLIB (**sin él `rtklib-convbin` falla con un trabajo real**: desplegar),
+  los cierres de la auditoría (F11.9 y casi todo F11.10) y `documents/views/` en paquete.
+- Pruebas: 2.360 aprox. verdes sin GDAL ni PDAL (2026-10-05, última corrida completa 2.349 antes
+  de F11.10).
 - Versión: `0.10.0` en `pyproject.toml`, README y CHANGELOG (F11.4, 2026-10-05).
 
 Para desplegar (dentro de p340; no hay migraciones nuevas):
@@ -35,8 +47,10 @@ cd /opt/aeroconvert && sudo -u aeroconvert git pull && sudo scripts/desplegar.sh
 | `F9.4` · `F9.5` · `F9.6` | Lo visual; paleta en OKLCH; `Incidente` y `resumen_de_uso` | Código |
 | `F7.2c` | Tarjetas en la pantalla de convertir | Código |
 | `F3.5` ◐ · `F3.4` | LandXML real; DWG/DGN con ODA instalado | Un archivo o un puesto con ODA |
-| `F10.7` · `F10.8` | Informe de calidad de un RINEX en código propio (al estilo TEQC); RINEX a otra versión | Código |
-| `F10.6` ✅ | `convbin` (RTKLIB) hecho; falta p340: `sudo apt install rtklib` y un flujo real | Usted + un archivo |
+| `F10.6` – `F10.8` ✅ | `convbin`, calidad de RINEX y RINEX a otra versión: hechos. Falta medir un flujo real UBX, SBF o RT17 en p340 | Usted + un archivo |
+| `F11.10` 🟨 | Faltan A-05 (cuota de subidas por usuario) y A-01 (cuerpo anónimo de 2 GB, toca nginx) | Código y usted |
+| `F11.11` | En p340: la prueba de `X-Forwarded-For` ante Funnel, el valor de `AEROCONVERT_RAICES_PERMITIDAS`, y un VRT `.asc` ante la GDAL desplegada (B-04) | Usted |
+| `F11.6` | Prueba de diseño de tres brazos antes de F9.4: pide descargar `ui-ux-pro-max`, Ponytail e `impeccable` | Su sí a las descargas |
 | `F2.6` · `F4.1` · `F4.2` | 3D Tiles; IFC y malla; AeroBim | Código |
 | `F1.6` | ECW: no, hasta que alguien lo pida dos veces | Decisión |
 | Fase 11 | Proceso de agentes y base de código (kit, gates, versión, auditoría, refactor) | Código y usted |
