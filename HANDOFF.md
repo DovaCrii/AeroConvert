@@ -19,7 +19,7 @@ en p340.** Sin commit ni push directo a `main`; cada PR va contra `main`, no api
   apagado, dependencias parcheadas, CI sin GDAL y la **Fase 10 (GNSS, Trimble a RINEX)** completa
   salvo F10.5.
 - Pruebas: 2.289 recogidas, 3 con oráculo deseleccionadas (2026-10-05, `pytest --collect-only`).
-- Versión: README `v0.3.0-alpha`, `pyproject.toml` y CHANGELOG `0.1.0`. Está en la fila F11.4.
+- Versión: `0.10.0` en `pyproject.toml`, README y CHANGELOG (F11.4, 2026-10-05).
 
 Para desplegar (dentro de p340; no hay migraciones nuevas):
 
