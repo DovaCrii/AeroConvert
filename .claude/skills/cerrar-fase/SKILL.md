@@ -20,5 +20,6 @@ argument-hint: "<código de fila, p. ej. F9.4>"
    - `HANDOFF.md` actualizado: reescribe estado y pendientes, no apiles historia (≤100 líneas).
 5. Si la fila deja un cabo con fecha (p. ej. «retirar `Resultado` un día después de desplegar»),
    anótalo en `HANDOFF.md` con su fecha.
-6. Commit en español, imperativo y con ámbito (`feat(raster): …`, `docs: …`). No fusiones nada.
+6. Commit en español, imperativo y con ámbito (`feat(raster): …`, `docs: …`). La rama, el PR y la
+   fusión siguen `/abrir-pr`.
 7. Termina con: qué se cerró, con qué medida y qué queda abierto.

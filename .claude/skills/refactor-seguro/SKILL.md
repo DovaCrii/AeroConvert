@@ -25,4 +25,4 @@ un defecto, **anótalo aparte**; no lo arregles en el mismo cambio.
 7. **Pruebas de «original intacto»** (`sha256`/`mtime` por camino de fallo) siguen verdes y no se
    debilitan.
 8. **PR pequeño, contra `main`,** con números antes/después y la lista de defectos que viste y **no**
-   tocaste. No fusiones.
+   tocaste. La fusión sigue `/abrir-pr` (CI verde y sin conflictos).
