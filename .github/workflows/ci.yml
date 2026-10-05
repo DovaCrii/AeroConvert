@@ -45,7 +45,7 @@ jobs:
         run: uv sync --all-groups --locked
 
       - name: manage.py check
-        run: uv run python manage.py check
+        run: uv run python manage.py check --fail-level WARNING
 
       # **El gate de produccion, que faltaba.** `verify.ps1` lo corre desde siempre y el CI
       # no, asi que un ajuste de despliegue roto pasaba el CI y se descubria en la VM.
@@ -62,7 +62,7 @@ jobs:
           AEROCONVERT_RAICES_PERMITIDAS: /tmp/entregas
         run: |
           mkdir -p /tmp/entregas
-          uv run python manage.py check --deploy
+          uv run python manage.py check --deploy --fail-level WARNING
 
       # `collectstatic` con el almacen con manifiesto descubre un `sourceMappingURL` sin su
       # `.map`, un `integrity` desparejado o un estatico que falta. Aqui cuesta cinco
@@ -94,3 +94,7 @@ jobs:
 
       - name: pip-audit
         run: uv run pip-audit
+
+      # Los scripts `.sh` los corre el servidor. Viene instalado en `ubuntu-latest`.
+      - name: shellcheck
+        run: shellcheck scripts/*.sh
