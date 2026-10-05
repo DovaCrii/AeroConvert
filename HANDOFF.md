@@ -1,19 +1,53 @@
 # HANDOFF — dónde retomar
 
-**Última sesión: 2026-09-25.** Léelo antes que `MASTER_PLAN.md`.
+**Última sesión: 2026-10-05.** Léelo antes que `MASTER_PLAN.md`.
 
-## Punto exacto de retome — fase 9
+## Quién hace qué
 
-| Etapa | Rama | Estado |
-| --- | --- | --- |
-| F9.0 – F9.2 | — | **En `main` y desplegadas en p340** el 2026-09-25 |
-| F9.3 | `codex/fase-9-3-contraste` | Hecha, portón verde; PR contra `main`, esperando |
-| F9.4 | — | **La siguiente**: lo visual (una acción principal, profundidad, radios, móvil) |
+**Claude hace todo lo de git**: ramas, commits, push, PR y **fusionar a `main`**. **Tú
+despliegas en p340.** Es la regla fijada el 2026-10-05. Se sigue sin commit ni push directo a
+`main`, y cada PR va contra `main` (no apilado: al fusionar el #1, el #2 y el #3 entraron en
+sus ramas intermedias y hizo falta el #4 para llevarlos).
 
-**Ninguno se fusiona sin tu permiso.** Y los PR van ahora **contra `main`**, no apilados: al
-fusionar el #1, el #2 y el #3 entraron en sus ramas intermedias y no en `main`, porque GitHub
-solo cambia la base de un PR apilado si se borra la rama de abajo. Hizo falta el #4 para
-llevarlos.
+## Punto exacto de retome — 2026-10-05
+
+| Qué | Estado |
+| --- | --- |
+| F9.0 – F9.3 | **En `main`.** F9.0 – F9.2 desplegadas el 2026-09-25 |
+| Fase 10 — GNSS (Trimble a RINEX) | **En `main`**, sin desplegar. Falta probarla bajo Wine en p340 |
+| Coordenadas locales (nubes), Tino apagado, CI arreglado, dependencias | **En `main`**, sin desplegar |
+| F9.4 | **La siguiente de la fase 9**: lo visual (una acción principal, profundidad, radios, móvil) |
+
+**Para desplegar** (en p340, ya dentro de la máquina):
+
+```bash
+cd /opt/aeroconvert && sudo -u aeroconvert git pull && sudo scripts/desplegar.sh
+```
+
+No hay migraciones nuevas. Cambia el entorno: `AEROCONVERT_TINO_VISIBLE` (apagado por
+omisión, no hace falta tocarlo) y, **solo si se quiere GNSS**, `AEROCONVERT_TRIMBLE_RINEX` y
+`AEROCONVERT_WINEPREFIX`. Sin ellas la herramienta sale **apagada con su motivo**, no escondida.
+
+**Fase 10 — lo que falta y es tuyo (F10.5):**
+
+1. Copiar a p340 el instalador `C:\ProgramData\Trimble\Package Cache\ConvertToRinex\ConvertToRinex_v3.14.0.msi`
+   (1,6 MB). Es de Trimble y tiene licencia propia: **decidir si se puede llevar al servidor
+   es tuyo**.
+2. `sudo apt install wine xvfb` y instalarlo bajo un prefijo propio. Pasos en `INSTALL.md`.
+   Es una aplicación .NET: puede pedir `wine-mono` o `dotnet`.
+3. Convertir un T02 y un T04 y **fechar las cifras** en `docs/PRUEBAS_CON_ORACULO.md`. Los
+   plazos bajo Wine (90 s por MB) son una estimación, no una medida.
+
+**Dos líneas de `AGENTS.md` que propongo y no he tocado, porque es tu regla:**
+
+- Regla 3 (CRS): que «coordenadas locales declaradas por una persona» es una respuesta y no un
+  hueco, solo para nubes y sin reproyectar.
+- Tabla de oráculos: una fila «GNSS — sin oráculo externo para el crudo (el T0x es cerrado); se
+  cuenta lo que sale y se documenta el procedimiento manual».
+
+**Una cosa que hay que saber del CI.** Estuvo rojo del 24 de septiembre al 5 de octubre y la
+puerta local daba verde: pasaban en la estación porque tiene QGIS. Para ver lo que ve CI:
+`$env:AEROCONVERT_GDAL_BIN = ""; $env:AEROCONVERT_PDAL_BIN = ""; uv run pytest`.
 
 **Verificado en p340 tras desplegar**: `/salud/` en `ok` con la migración `jobs/0002`
 aplicada, y el OCR con el Tesseract de verdad por el camino del proceso hijo —

@@ -124,15 +124,34 @@
         </dd>
       {% endif %}
 
-      <dt>Sistema de referencia</dt>
-      <dd>
-        {% if i.crs.conocido %}
-          {{ i.crs }}{% if i.crs.nombre %} — {{ i.crs.nombre }}{% endif %}
-          <span class="tenue">({{ i.crs.procedencia }})</span>
-        {% else %}
-          <span style="color:var(--av-warn);">no lo declara</span>
+      {% if i.trimble and i.trimble.identificado %}
+        <dt>Receptor</dt>
+        <dd>
+          {{ i.trimble.modelo }}
+          {% if i.trimble.serie %}<span class="tenue">· serie {{ i.trimble.serie }}</span>{% endif %}
+        </dd>
+        {% if i.trimble.carpeta_en_receptor %}
+          <dt>Guardado en</dt>
+          <dd class="mono">{{ i.trimble.carpeta_en_receptor }}</dd>
         {% endif %}
-      </dd>
+      {% endif %}
+
+      {% comment %}
+        **Una observación GNSS no tiene sistema de referencia que echar en falta**: son
+        pseudodistancias y fases a satélites, no coordenadas. Pintar «no lo declara» en ámbar
+        la haría parecer incompleta.
+      {% endcomment %}
+      {% if i.familia != "gnss" %}
+        <dt>Sistema de referencia</dt>
+        <dd>
+          {% if i.crs.conocido %}
+            {{ i.crs }}{% if i.crs.nombre %} — {{ i.crs.nombre }}{% endif %}
+            <span class="tenue">({{ i.crs.procedencia }})</span>
+          {% else %}
+            <span style="color:var(--av-warn);">no lo declara</span>
+          {% endif %}
+        </dd>
+      {% endif %}
 
       {% if i.acompanantes %}
         <dt>Acompañantes</dt>
@@ -202,7 +221,7 @@
   </div>
 {% endif %}
 
-{% if not i.crs.conocido %}
+{% if not i.crs.conocido and i.familia != "gnss" %}
   {% comment %}
     Declarar el sistema de referencia. Sin valor por omisión y sin sugerir «el más
     probable»: un desplegable que ya viene con EPSG:32719 puesto es una forma de adivinar
@@ -322,6 +341,33 @@
   terminaba en «ningún motor sabe hacer esa conversión»: un callejón sin salida con forma
   de botón, que es peor que no ofrecer nada.
 {% endcomment %}
+{% if not hay_conversion and perfiles %}
+  {% comment %}
+    **El motivo a la vista**, no en un `title` que solo se lee con el ratón (nada se esconde en
+    hover) ni remitiendo a otra pantalla. Pasa cuando falta la herramienta de fuera —el
+    convertidor de Trimble, ECW—: el destino existe y hoy no se puede, y quien mira tiene que
+    saber por qué y qué hacer. Sin esto, la ficha enseñaba «Convertir a RINEX» como remedio y
+    ningún botón, sin decir por qué.
+  {% endcomment %}
+  <div class="tarjeta">
+    <div class="eyebrow">Ahora mismo no se puede</div>
+    <p style="margin:6px 0 10px;">Esto se puede convertir, pero no en esta máquina:</p>
+    <ul class="lista-simple">
+      {% for p in perfiles %}
+        <li>
+          <strong>{{ p.perfil.nombre }}</strong> → {{ p.nombre_destino }}.
+          {{ p.motivo }}
+          {% if p.alternativas %}Sí se puede llevar a {{ p.alternativas|join:", " }}.{% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+    <p class="tenue" style="margin:10px 0 0;">
+      El detalle y cómo ponerlo está en la
+      <a href="{% url 'engines:matriz' %}">matriz de compatibilidad</a>.
+    </p>
+  </div>
+{% endif %}
+
 {% if hay_conversion %}
 <div class="tarjeta">
   <div class="eyebrow">Convertir</div>

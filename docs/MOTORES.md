@@ -38,6 +38,7 @@ Y por eso ECW tiene **tres** motivos distintos, porque son tres arreglos distint
 | `sondar_ecw()` | binario externo, o controlador **+** capacidad de escritura **+** clave y empresa | `sin-binario-ecw` · `sin-driver-ecw` · `sin-clave-ecw` |
 | `sondar_pdal()` | `pdal --version` | `motor-no-disponible` |
 | `sondar_oda()` | que la ruta configurada apunte a un archivo, o que esté en el `PATH` | `sin-conversor` |
+| `sondar_trimble_rinex()` | que la ruta (configurada o la de Trimble Business Center) sea un archivo; en Linux, además `wine` | `sin-conversor-trimble`, `sin-wine` |
 
 ### Dos reglas heredadas de AeroBim
 
@@ -111,3 +112,29 @@ una sorpresa.
 7. Una prueba compara el `argv` **entero y en orden** con `assertEqual` sobre la tupla.
 
 El paso 7 no es opcional. Es la lección de los seis argumentos posicionales de ODA.
+
+## El motor de Trimble a RINEX (`apps/gnss/`)
+
+| | |
+| --- | --- |
+| Id | `trimble-rinex` |
+| Par | `trimble_t0x` → `rinex` |
+| Programa | `convertToRinex.exe` de Trimble, de Windows. En Linux, bajo Wine |
+| Sonda | `sondar_trimble_rinex()`: `AEROCONVERT_TRIMBLE_RINEX`, o la ruta de Trimble Business Center |
+| Plazo | 300 s + 30 s por MB (Windows) o 90 s por MB (Wine). **Medido: unos 10 s por MB en Windows** |
+| Salida | un `.zip` con las observaciones y la navegación |
+
+**El convertidor sale con código 0 y escribe «Success» siempre** — con un archivo vacío, con
+200 bytes de basura (deja un RINEX de 1.476 bytes, solo cabecera) y con un T02 cortado a la
+mitad (entrega un RINEX más corto sin avisar). Por eso el motor no se fía de él:
+
+1. **Antes**, `trimble.comprobar_integridad()` recorre los bloques bzip2 del crudo y se
+   detiene con `crudo-incompleto` si el último no llega a su final.
+2. **Después**, `empaquetar.py` exige que haya archivos con contenido, y `verificar_rinex()`
+   abre cada uno del zip con `rinex.py` y exige épocas, la versión pedida y que no estén
+   cortados. Huecos y falta de navegación **avisan** sin tumbar.
+3. El receptor que declara el crudo se **cruza** con el que declara el RINEX: dos lectores
+   distintos opinando sobre lo mismo.
+
+Se prueba con un convertidor falso que reproduce esos modales (`apps/gnss/tests/`), en la
+puerta de calidad, y con el programa real bajo la marca `oraculo`.

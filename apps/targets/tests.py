@@ -64,9 +64,13 @@ class TestElArchivoConvertido:
         veredicto = _de(perfiles.veredictos(convertido), "civil3d")
         assert veredicto.severidad == perfiles.ABRE
 
-    def test_hay_un_veredicto_por_cada_perfil(self, convertido):
+    def test_hay_un_veredicto_por_cada_perfil_que_aplica(self, convertido):
+        """**Los que no tienen nada que decir de esta familia, callan.** El de posproceso GNSS
+        no opina de una ortofoto, igual que Civil 3D no opina de un PDF."""
         veredictos = perfiles.veredictos(convertido)
-        assert {v.perfil_id for v in veredictos} == set(perfiles.PERFILES)
+        esperados = {i for i, p in perfiles.PERFILES.items() if p.aplica_a(convertido.familia)}
+        assert {v.perfil_id for v in veredictos} == esperados
+        assert "posproceso" not in esperados
 
 
 class TestSinGeorreferencia:

@@ -23,6 +23,19 @@ AeroConvert es MIT y debe seguir siéndolo.
 | ERDAS ECW/JP2 SDK (Hexagon) | **Comercial** | Escribir ECW | **No, y no se puede** |
 | ODA File Converter | Gratuito, EULA propia | DWG y DGN → DXF | No: se instala aparte |
 | LizardTech / Extensis MrSID SDK | **Comercial** | MrSID | No. Por eso MrSID es solo lectura |
+| `convertToRinex.exe` (Trimble) | **Comercial**, EULA propia | T01/T02/T04 → RINEX | **No, y no se puede**: lo trae Trimble Business Center y corre bajo Wine en Linux |
+| [RTKLIB](https://www.rtklib.com/) `convbin` | BSD-2 | RT17, RT27, Septentrio, u-blox, NovAtel, RTCM3 → RINEX | No. **No lee T02 ni T04** (fase futura, otras marcas) |
+
+### GNSS: lo que se miró y **no** se usa, y por qué
+
+Se buscó qué hay antes de escribir nada (2026-10-05). Quedan fuera, a propósito:
+
+| Proyecto | Licencia | Por qué no |
+| --- | --- | --- |
+| TEQC (UNAVCO) | Gratuito, **muerto desde 2019-02-25** | Solo RINEX 2, y `runpkr00` no convierte un T04. No se instala ni se copia |
+| `gfzrnx` (GFZ) | Gratuito **solo sin uso comercial** | La oficina es comercial |
+| `autorino`, `rinexmod` (IPGP) | **GPL-3** | Solo referencia conceptual (`AGENTS.md`): no se importan ni se copian |
+| `georinex` | por verificar | No hace falta: `apps/formats/rinex.py` es propio y de la misma longitud |
 
 ## Bibliotecas de Python
 

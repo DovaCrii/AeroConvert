@@ -356,6 +356,32 @@ el peor el anillo de foco sobre la barra en claro, a 1,97:1.
 
 ---
 
+## Fase 10 — Datos GNSS: del receptor Trimble a RINEX, verificado
+
+Pedido el 2026-10-05. Se investigó antes qué existe: **RTKLIB `convbin` no lee T02 ni T04**
+(solo los flujos RT17 y RT27), TEQC está muerto y no convierte un T04, y los sustitutos son
+GPL o de pago. Lo único que convierte un archivo de campo de Trimble es su utilidad oficial.
+
+| # | Entrega | Estado |
+| --- | --- | --- |
+| F10.0 | Coordenadas locales para nubes de puntos sin sistema (lo que el escáner sin GNSS necesita) | ✅ 2026-10-05 |
+| F10.1 | La espiga: el convertidor de Trimble convierte un T02 y un T04 reales (en Windows) | ✅ 2026-10-05 |
+| F10.2 | Familia GNSS en el catálogo, reconocer un T0x y leer RINEX 2/3/4 | ✅ 2026-10-05 |
+| F10.3 | El motor `trimble-rinex`, verificado contra lo que el convertidor hace mal | ✅ 2026-10-05 |
+| F10.4 | Que se vea y se encuentre: perfil, ficha, recibo y buscador | ✅ 2026-10-05 |
+| F10.5 | **Bajo Wine en p340**: instalar, medir tiempos y fechar la corrida | ⬜ falta el MSI en el servidor |
+| F10.6 | Motor abierto con RTKLIB `convbin` para RT17/RT27 y otras marcas | ⬜ no pedida |
+
+**Lo que la espiga encontró**, y que ordena el diseño: el convertidor de Trimble sale con
+código 0 y dice «Success» con un archivo vacío, con basura y con un T02 cortado a la mitad,
+y en este último caso entrega un RINEX más corto sin avisar. Las dos defensas están en
+`docs/PRUEBAS_CON_ORACULO.md`.
+
+**Sin oráculo para la integridad frente al crudo**: el T0x es un formato cerrado. Se dice allí,
+con el procedimiento manual, igual que ECW.
+
+---
+
 ## Deuda conocida
 
 > **Cómo se lee esta tabla, y por qué hizo falta arreglarla.**

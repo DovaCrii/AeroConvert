@@ -48,6 +48,43 @@ VERSION_MINIMA, VERSION_MAXIMA = 2.0, 5.0
 
 TIPOS = {"O": "observación", "N": "navegación", "M": "meteorológico"}
 
+#: La letra con la que RINEX nombra a cada constelación, y su nombre. Para el recibo: «E G R»
+#: no le dice nada a quien no se lo sepa, y «Galileo, GPS, GLONASS» sí.
+CONSTELACIONES = {
+    "G": "GPS",
+    "R": "GLONASS",
+    "E": "Galileo",
+    "C": "BeiDou",
+    "J": "QZSS",
+    "I": "NavIC",
+    "S": "SBAS",
+}
+
+
+def nombre_de_constelaciones(letras) -> str:
+    """`("E", "G", "R")` a «Galileo, GPS, GLONASS»: en el orden en que se suelen decir."""
+    orden = list(CONSTELACIONES)
+    ordenadas = sorted(letras, key=lambda c: orden.index(c) if c in orden else len(orden))
+    return ", ".join(CONSTELACIONES.get(c, c) for c in ordenadas)
+
+
+def duracion_legible(segundos: float | None) -> str:
+    """`3599.0` a «59 min 59 s»; `8726` a «2 h 25 min 26 s»."""
+    if segundos is None:
+        return ""
+    total = int(round(segundos))
+    horas, resto = divmod(total, 3600)
+    minutos, segs = divmod(resto, 60)
+    partes = []
+    if horas:
+        partes.append(f"{horas} h")
+    if minutos or horas:
+        partes.append(f"{minutos} min")
+    if segs or not partes:
+        partes.append(f"{segs} s")
+    return " ".join(partes)
+
+
 #: Un hueco es un salto de más de esta vez el intervalo habitual.
 FACTOR_DE_HUECO = 1.5
 

@@ -223,8 +223,26 @@ AEROBIM = PerfilDeDestino(
     opciones={"compresion": "DEFLATE"},
 )
 
+POSPROCESO = PerfilDeDestino(
+    id="posproceso",
+    # Solo habla de datos GNSS. Un ráster no tiene «posproceso», y un perfil que opinara de
+    # todo pintaría un «no abre» delante de cada ortofoto.
+    familias=frozenset({catalogo.GNSS}),
+    nombre="Posproceso GNSS",
+    descripcion=(
+        "RINEX, que es lo que piden los servicios de PPP, RTKLIB y el software de ajuste. "
+        "El archivo del receptor, no."
+    ),
+    # Lo que lee el software de posproceso: RINEX. **No** el crudo de Trimble, que es un
+    # formato cerrado: por eso el veredicto de un T02 es «no abre» y el remedio es convertir.
+    formatos_preferidos=("rinex",),
+    formato_destino="rinex",
+    # Las claves son las del motor (`MotorTrimbleARinex.opciones`), no las del convertidor.
+    opciones={"version": "3.04", "navegacion_unica": True},
+)
+
 PERFILES: dict[str, PerfilDeDestino] = {
-    p.id: p for p in (CIVIL3D, QGIS, ARCGIS, GOOGLE_EARTH, WEB, AEROBIM)
+    p.id: p for p in (CIVIL3D, QGIS, ARCGIS, GOOGLE_EARTH, WEB, AEROBIM, POSPROCESO)
 }
 
 
