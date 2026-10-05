@@ -65,7 +65,9 @@ SEGUNDOS_BASE = 300
 
 
 def _bajo_wine() -> bool:
-    return os.name != "nt"
+    from apps.engines import sondas
+
+    return sondas.necesita_wine()
 
 
 def a_ruta_de_wine(ruta: Path) -> str:

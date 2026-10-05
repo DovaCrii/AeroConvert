@@ -20,7 +20,7 @@ from pathlib import Path
 import pytest
 from django.contrib.auth import get_user_model
 
-from apps.engines import registry
+from apps.engines import registry, sondas
 from apps.formats.tests.constructor import trimble_minimo
 from apps.gnss import motores
 from apps.jobs import runner
@@ -35,7 +35,8 @@ GUION = Path(__file__).with_name("convertidor_falso.py")
 def entorno(tmp_path, settings, monkeypatch):
     settings.CARPETA_DE_TRABAJO = str(tmp_path / "trabajo")
     settings.WINEPREFIX = ""
-    monkeypatch.setattr(motores, "_bajo_wine", lambda: False)
+    # Una sola decisión, la misma para la sonda y para el plan: ver `sondas.necesita_wine`.
+    monkeypatch.setattr(sondas, "necesita_wine", lambda: False)
 
     if os.name == "nt":
         lanzador = tmp_path / "convertToRinex.bat"
@@ -226,8 +227,6 @@ class TestUnCrudoCortado:
 
 class TestSinElConvertidor:
     def test_no_hay_convertidor(self, usuario, crudo, tmp_path, settings, monkeypatch):
-        from apps.engines import sondas
-
         settings.TRIMBLE_RINEX = ""
         monkeypatch.setattr(sondas, "ruta_de_trimble_rinex", lambda: "")
         antes = _huella(crudo)
@@ -238,7 +237,6 @@ class TestSinElConvertidor:
 
     def test_la_matriz_lo_pinta_apagado_con_su_motivo(self, monkeypatch):
         """Regla 4: una capacidad ausente se muestra apagada, con motivo y sin esconderse."""
-        from apps.engines import sondas
         from apps.engines.base import ParDeFormatos
 
         monkeypatch.setattr(sondas, "ruta_de_trimble_rinex", lambda: "")

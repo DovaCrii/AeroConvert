@@ -483,6 +483,16 @@ RUTAS_DE_TRIMBLE_RINEX = (
 )
 
 
+def necesita_wine() -> bool:
+    """Si el convertidor de Trimble, que es de Windows, hay que correrlo bajo Wine.
+
+    **Una sola respuesta para la sonda y para el plan**: cuando cada una miraba `os.name` por
+    su cuenta, las pruebas fingían el modo Windows en el plan y la sonda seguía diciendo «aquí
+    no hay Wine» en Linux. Pasaba en la estación y fallaba en CI.
+    """
+    return os.name != "nt"
+
+
 def ruta_de_trimble_rinex() -> str:
     """La del convertidor, o cadena vacía. **Lo configurado primero**, lo habitual después."""
     configurada = (getattr(settings, "TRIMBLE_RINEX", "") or "").strip().strip('"')
@@ -521,13 +531,13 @@ def sondar_trimble_rinex() -> Disponibilidad:
             "sin-conversor-trimble",
             f"AEROCONVERT_TRIMBLE_RINEX apunta a {ruta}, y ahí no hay ningún archivo.",
         )
-    if os.name != "nt" and not shutil.which("wine"):
+    if necesita_wine() and not shutil.which("wine"):
         return Disponibilidad.no(
             "sin-wine",
             "El convertidor de Trimble es un programa de Windows y aquí no hay Wine para correrlo.",
             sugerencia="sudo apt install wine, y un prefijo propio en AEROCONVERT_WINEPREFIX.",
         )
-    donde = "bajo Wine" if os.name != "nt" else "nativo"
+    donde = "bajo Wine" if necesita_wine() else "nativo"
     return Disponibilidad.si(f"Trimble convertToRinex ({donde}): {ruta}")
 
 

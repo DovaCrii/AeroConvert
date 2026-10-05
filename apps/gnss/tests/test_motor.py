@@ -116,7 +116,7 @@ class TestLaSonda:
 class TestElPlanEnWindows:
     @pytest.fixture(autouse=True)
     def sin_wine(self, monkeypatch):
-        monkeypatch.setattr(motores, "_bajo_wine", lambda: False)
+        monkeypatch.setattr(sondas, "necesita_wine", lambda: False)
         monkeypatch.setattr(sondas, "ruta_de_trimble_rinex", lambda: "C:/T/convertToRinex.exe")
 
     def test_el_argv_completo_y_en_orden(self, tmp_path):
@@ -198,7 +198,7 @@ class TestElPlanEnWindows:
 class TestElPlanBajoWine:
     @pytest.fixture(autouse=True)
     def con_wine(self, monkeypatch):
-        monkeypatch.setattr(motores, "_bajo_wine", lambda: True)
+        monkeypatch.setattr(sondas, "necesita_wine", lambda: True)
         monkeypatch.setattr(sondas, "ruta_de_trimble_rinex", lambda: "/opt/trimble/convert.exe")
         monkeypatch.setattr(motores.shutil, "which", lambda n: f"/usr/bin/{n}")
         monkeypatch.delenv("DISPLAY", raising=False)
@@ -228,7 +228,7 @@ class TestElPlanBajoWine:
         trabajo = _trabajo(tmp_path)
         trabajo.source_size_bytes = 50 * 1_048_576
         bajo_wine = motores.MotorTrimbleARinex().plan(trabajo).timeout_s
-        monkeypatch.setattr(motores, "_bajo_wine", lambda: False)
+        monkeypatch.setattr(sondas, "necesita_wine", lambda: False)
         assert bajo_wine > motores.MotorTrimbleARinex().plan(trabajo).timeout_s
 
 
