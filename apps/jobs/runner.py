@@ -543,6 +543,29 @@ def _exigir_crs(job: ConversionJob, inspeccion) -> None:
 
     reproyecta = bool(job.target_crs_code)
 
+    # **Coordenadas locales, declaradas por una persona.** Una nube de escáner sin GNSS no
+    # tiene EPSG que poner: está en el sistema de la estación, con el origen en 0. Para ella
+    # la regla de «sin CRS no se convierte» no protege nada —no hay dato que se pierda, porque
+    # no había dato— y obligaba a inventarse un EPSG, que es lo único peor que no tenerlo.
+    #
+    # Lo que sí se sigue negando es **reproyectar**: pasar de «local» a UTM no es una
+    # conversión, es una georreferenciación, y sin puntos de control no hay de dónde partir.
+    if job.source_crs_origin == crs_mod.LOCAL:
+        if reproyecta:
+            raise TrabajoFallido(
+                "crs-ausente",
+                "Son coordenadas locales: no se pueden reproyectar, porque no hay de dónde "
+                "partir. Para llevarlas a un sistema hace falta georreferenciarlas con puntos "
+                "de control, y eso no lo hace una conversión.",
+            )
+        job.registrar(
+            "Coordenadas locales declaradas a mano: se convierte sin sistema de referencia, "
+            "y la salida tampoco lo tendrá.",
+            nivel=JobEvent.AVISO,
+            etapa=INSPECCION,
+        )
+        return
+
     destino = catalogo.FORMATOS.get(job.target_format_code)
     origen = catalogo.FORMATOS.get(job.source_format_code)
     lo_exige = bool(destino and destino.lleva_crs_incrustado and destino.familia == catalogo.RASTER)
