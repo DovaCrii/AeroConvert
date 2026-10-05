@@ -5,6 +5,13 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Sin publicar]
 
+### Cambiado — Tino, apagado y sin rastro
+
+- **Tino ya no se ve en ninguna parte.** Su pantalla da 404 (no «no disponible», que confirmaría
+  que hubo algo) y se quitaron los dos enlaces que llevaban a ella: el del pie del menú y el de
+  una búsqueda sin resultados. No se borró código: `AEROCONVERT_TINO_VISIBLE=true` lo vuelve a
+  encender. Decisión del 2026-10-05: de momento el equipo no lo necesita.
+
 ### Corregido — contraste y foco, medidos (fase 9.3, 2026-09-25)
 
 Siete pares estaban por debajo de WCAG 2.1 AA y ninguna prueba los miraba.

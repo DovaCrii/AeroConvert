@@ -78,7 +78,10 @@ class TestBuscarSinJavaScript:
             ("tino:preguntar", "p", "¿qué es un COG?", "Cloud Optimized GeoTIFF"),
         ],
     )
-    def test_un_get_normal_contesta_lo_mismo(self, sesion, nombre_url, campo, escrito, esperado):
+    def test_un_get_normal_contesta_lo_mismo(
+        self, sesion, settings, nombre_url, campo, escrito, esperado
+    ):
+        settings.TINO_VISIBLE = True  # apagado da 404; aquí se prueba el formulario
         respuesta = sesion.get(reverse(nombre_url), {campo: escrito})
         assert esperado in respuesta.content.decode()
 
@@ -86,10 +89,11 @@ class TestBuscarSinJavaScript:
         ("nombre_url", "campo"),
         [("dashboard:que_puedo_hacer", "q"), ("tino:preguntar", "p")],
     )
-    def test_el_campo_se_llama_como_la_vista_lo_lee(self, sesion, nombre_url, campo):
+    def test_el_campo_se_llama_como_la_vista_lo_lee(self, sesion, settings, nombre_url, campo):
         """La comprobación que parece redundante y no lo es: si alguien renombra el campo en
         la plantilla, htmx lo manda igual —lleva el nombre puesto— y **solo se rompe sin
         JavaScript**, que es donde nadie mira."""
+        settings.TINO_VISIBLE = True
         cuerpo = sesion.get(reverse(nombre_url)).content.decode()
         assert f'name="{campo}"' in cuerpo
 

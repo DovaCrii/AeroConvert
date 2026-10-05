@@ -107,6 +107,10 @@ ODA_CONVERTER = config("AEROCONVERT_ODA_CONVERTER", default="")
 # publicada en internet abierto. Ver `apps/tino/fuera.py`.
 TINO_PROVEEDOR = config("AEROCONVERT_TINO_PROVEEDOR", default="")
 TINO_CLAVE = config("AEROCONVERT_TINO_CLAVE", default="")
+# **Tino esta apagado y sin rastro**: ni su pantalla (da 404), ni los enlaces que llevaban a
+# ella. No se ha borrado nada -- el codigo sigue en `apps/tino/` -- para poder encenderlo si
+# vuelve a hacer falta. Decision del 2026-10-05: de momento el equipo no lo necesita.
+TINO_VISIBLE = config("AEROCONVERT_TINO_VISIBLE", default=False, cast=bool)
 
 # --- Ejecucion -------------------------------------------------------------
 
@@ -197,6 +201,8 @@ TEMPLATES = [
                 # El desplegable de la barra. Va en todas las pantallas porque la barra va
                 # en todas: lo que se puede hacer tiene que estar a un clic desde donde sea.
                 "apps.core.context_processors.menu",
+                # Para que las plantillas sepan si hay que enseñar los enlaces a Tino.
+                "apps.core.context_processors.tino",
             ]
         },
     }

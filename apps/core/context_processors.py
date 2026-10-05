@@ -17,6 +17,15 @@ def modo(request):
     return {"chapa": modo_mod.chapa(), "tope_mb": settings.TOPE_MB}
 
 
+def tino(request):
+    """Si Tino se enseña. Apagado, las plantillas no pintan ni un enlace hacia él.
+
+    Va en un procesador y no en cada vista porque los enlaces están en el pie del menú, que
+    sale en todas las pantallas, y en el «nada coincide» del buscador.
+    """
+    return {"tino_visible": bool(getattr(settings, "TINO_VISIBLE", False))}
+
+
 def menu(request):
     """Lo que se puede hacer, para el desplegable de la barra.
 

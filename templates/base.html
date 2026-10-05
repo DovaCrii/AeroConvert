@@ -135,7 +135,7 @@
             {% endcomment %}
             <p class="menu-pie">
               <a href="{% url 'dashboard:que_puedo_hacer' %}">Verlas todas y buscar</a>
-              · <a href="{% url 'tino:preguntar' %}">Preguntarle a Tino</a>
+              {% if tino_visible %}· <a href="{% url 'tino:preguntar' %}">Preguntarle a Tino</a>{% endif %}
               · <a href="{% url 'presets:lista' %}">Preajustes guardados</a>
               · <a href="{% url 'engines:matriz' %}">Qué no se puede, y por qué</a>
             </p>
