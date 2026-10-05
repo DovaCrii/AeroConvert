@@ -491,6 +491,24 @@ Es la regla número uno en estado puro. De ahí salen las dos defensas del motor
 épocas, sin huecos, el original con el mismo `sha256` y `mtime`, y nada en la carpeta de
 trabajo al terminar.**
 
+### 5. La versión 4.0.1.10, que entregó la persona el mismo día
+
+`convertToRinex_v4_0_1_10_sign.msi` (2.319.872 B, firma Authenticode válida de Trimble Inc.).
+**No se instaló**: se extrajo a una carpeta temporal con `msiexec /a` y se corrió desde allí,
+con las mismas opciones del motor (`-v 3.04 -mx -d -s`) y salida fuera del original.
+
+| Crudo | Versión 4.0.1.9 (instalada con TBC) | Versión 4.0.1.10 |
+| --- | --- | --- |
+| T02 NetR9 | 14,2 s · 3.600 épocas, 17:00:00 a 17:59:59 | 4,5 s · 3.600 épocas, 17:00:00 a 17:59:59 |
+| T04 R12i | 31,9 s · 8.727 épocas, 11:21:55 a 13:47:21 | 9 s · 8.727 épocas, 11:21:55 a 13:47:21 |
+
+Con la 4.0.1.10: RINEX 3.04, `apps/formats/rinex.py` lee la cabecera y las épocas, sin huecos ni
+truncado, y el receptor coincide con el del crudo. **El mismo CLI y el mismo resultado**, en menos
+de la mitad del tiempo (las dos corridas no son del mismo minuto ni se repitieron: lo de la
+velocidad es una medida, no una promesa). Una diferencia: con `-mx` la navegación sale como
+**un solo `.23mix`** (88 KB y 200 KB) además del `.23o`; el empaquetado del motor la recoge
+porque zipa todo archivo con contenido. Los plazos del motor (30 s por MB) quedan holgados.
+
 ### Lo que esta corrida **no** prueba
 
 - **Bajo Wine.** Todo lo anterior es Windows nativo. El plazo bajo Wine (90 s por MB) es una

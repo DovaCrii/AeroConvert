@@ -31,7 +31,7 @@ cd /opt/aeroconvert && sudo -u aeroconvert git pull && sudo scripts/desplegar.sh
 
 | Fila | Qué falta | Quién la cierra |
 | --- | --- | --- |
-| `F10.5` | Wine en p340: copiar el MSI, `apt install wine xvfb`, `AEROCONVERT_TRIMBLE_RINEX` y `AEROCONVERT_WINEPREFIX`, y fechar la corrida | Usted (licencia de Trimble) |
+| `F10.5` | Wine en p340: copiar el MSI (hay uno firmado 4.0.1.10 en `Downloads`, ya probado en Windows), `apt install wine xvfb`, `AEROCONVERT_TRIMBLE_RINEX` y `AEROCONVERT_WINEPREFIX`, y fechar la corrida | Usted (licencia de Trimble) |
 | `F9.4` · `F9.5` · `F9.6` | Lo visual; paleta en OKLCH; `Incidente` y `resumen_de_uso` | Código |
 | `F7.2c` | Tarjetas en la pantalla de convertir | Código |
 | `F3.5` ◐ · `F3.4` | LandXML real; DWG/DGN con ODA instalado | Un archivo o un puesto con ODA |
