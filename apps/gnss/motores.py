@@ -333,9 +333,9 @@ class MotorRtklibConvbin(Motor):
         version = str(opciones.get("version") or VERSION_POR_OMISION)
         if version not in dict(VERSIONES_DE_CONVBIN):
             raise ValueError(f"«{version}» no es una versión de RINEX que se ofrezca.")
-        formato = FORMATO_DE_CONVBIN.get(str(trabajo.source_format))
+        formato = FORMATO_DE_CONVBIN.get(str(trabajo.source_format_code))
         if formato is None:
-            raise ValueError(f"RTKLIB no sabe leer «{trabajo.source_format}».")
+            raise ValueError(f"RTKLIB no sabe leer «{trabajo.source_format_code}».")
         marcador = _marcador(opciones.get("marcador"))
         fecha = str(opciones.get("fecha_aproximada") or "").strip()
         if fecha and not _FECHA_APROXIMADA.match(fecha):

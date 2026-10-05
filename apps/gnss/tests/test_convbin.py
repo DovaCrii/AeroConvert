@@ -34,7 +34,7 @@ def _trabajo(tmp_path, formato="ubx", nombre="medida.ubx", **opciones):
     origen.write_bytes(b"\xb5\x62" + bytes(100))
     return SimpleNamespace(
         pk="0f5a",
-        source_format=formato,
+        source_format_code=formato,
         source_path=str(origen),
         source_size_bytes=origen.stat().st_size,
         output_path=str(tmp_path / "medida_rinex.zip"),
@@ -135,6 +135,27 @@ class TestElPlan:
             _carpeta(tmp_path),
             str(tmp_path / "a.23o"),
         )
+
+    def test_con_un_trabajo_de_verdad_y_no_un_objeto_de_mentira(self, tmp_path):
+        """**El fallo que se coló:** el motor leía `source_format`, que el modelo no tiene
+        (se llama `source_format_code`), y las pruebas pasaban porque fingían el atributo.
+        Con un `ConversionJob` real, el plan tiene que construirse."""
+        from apps.jobs.models import ConversionJob
+
+        origen = tmp_path / "medida.ubx"
+        origen.write_bytes(b"\xb5\x62" + bytes(100))
+        trabajo = ConversionJob(
+            source_path=str(origen),
+            source_name="medida.ubx",
+            source_format_code="ubx",
+            source_size_bytes=origen.stat().st_size,
+            target_format_code="rinex",
+            output_path=str(tmp_path / "medida_rinex.zip"),
+            options={"version": "3.04"},
+        )
+        trabajo.pk = "0f5a"
+        plan = motores.MotorRtklibConvbin().plan(trabajo)
+        assert plan.argv[1:3] == ("-r", "ubx")
 
     def test_novatel_se_llama_nov_para_convbin(self, tmp_path):
         trabajo = _trabajo(tmp_path, formato="novatel", nombre="a.gps")
