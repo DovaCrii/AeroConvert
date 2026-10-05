@@ -384,6 +384,12 @@ def inspeccionar(ruta: str | Path) -> Inspeccion:
             avisos.append(f"Tiene extensión de libreta de puntos pero no lo es: {fallo}")
         else:
             avisos.extend(_avisos_de_puntos(cabecera_puntos))
+            if not cabecera_puntos.leido_completo:
+                avisos.append(
+                    "Es una libreta muy grande: el conteo y los límites son de las primeras "
+                    f"{puntos_mod.LINEAS_MAXIMAS_AL_INSPECCIONAR:,} líneas".replace(",", ".")
+                    + ". Convertirla la recorre entera."
+                )
 
     cabecera_pdf = None
     if codigo == "pdf":
