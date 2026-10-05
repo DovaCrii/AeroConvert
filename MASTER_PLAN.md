@@ -372,7 +372,7 @@ GPL o de pago. Lo único que convierte un archivo de campo de Trimble es su util
 | F10.5 | **Bajo Wine en p340**: instalar, medir tiempos y fechar la corrida | ⬜ falta instalarlo en el servidor · el 2026-10-05 llegó el MSI firmado 4.0.1.10, probado en Windows con el mismo resultado |
 | F10.6 | Motor abierto con RTKLIB `convbin`: RT17, u-blox, Septentrio, NovAtel, RTCM 3, BINEX y Javad a RINEX | ✅ 2026-10-05 · pedido por la persona · falta correrlo en p340 con `apt install rtklib` y un flujo real |
 | F10.7 | Informe de calidad de un RINEX, **en código propio** (completitud, huecos, satélites por época, constelaciones), al estilo de lo que hacía TEQC. TEQC no entra: está muerto desde 2019, escribe solo RINEX 2 y no es de código abierto | ✅ 2026-10-05 · `formats/rinex_calidad.py`, en el recibo de toda conversión GNSS · contado contra un recuento independiente sobre el T02 · **no mide** multitrayecto ni saltos de ciclo · el informe suelto de un RINEX ajeno entra con F10.8 |
-| F10.8 | RINEX → RINEX de otra versión con `convbin -r rinex` (medido a mano a 2.11) | ⬜ falta que el catálogo lea RINEX por sus extensiones (`.YYo`, `.rnx`) |
+| F10.8 | RINEX → RINEX de otra versión con `convbin -r rinex` (medido a mano a 2.11) | ✅ 2026-10-05 · formato `rinex_obs` (`.rnx`, `.obs`, `.YYo`), confirmado al abrirlo · el recibo da también su informe de calidad · falta correrlo en p340 |
 
 **Lo que la espiga encontró**, y que ordena el diseño: el convertidor de Trimble sale con
 código 0 y dice «Success» con un archivo vacío, con basura y con un T02 cortado a la mitad,

@@ -337,6 +337,14 @@ APODOS = {
     "puntos": ("libreta", "libreta de puntos", "csv de puntos"),
     "trimble_t0x": ("t01", "t02", "t04", "trimble", "crudo de receptor", "crudo gnss"),
     "rinex": ("gnss", "gps", "posproceso", "ppp", "observaciones gnss"),
+    "rinex_obs": ("rinex", "obs", "cambiar version de rinex", "observaciones gnss"),
+    "ubx": ("ublox", "u-blox", "ardusimple", "crudo gnss"),
+    "sbf": ("septentrio", "crudo gnss"),
+    "novatel": ("novatel", "oem7", "crudo gnss"),
+    "rt17": ("trimble rt17", "flujo trimble", "crudo gnss"),
+    "rtcm3": ("rtcm", "correcciones", "base", "crudo gnss"),
+    "binex": ("unavco", "crudo gnss"),
+    "javad": ("javad", "greis", "crudo gnss"),
 }
 
 

@@ -29,6 +29,7 @@ from . import landxml as landxml_mod
 from . import las as las_mod
 from . import pdf as pdf_mod
 from . import puntos as puntos_mod
+from . import rinex as rinex_mod
 from . import trimble as trimble_mod
 
 #: Cuanto se lee para reconocer la firma.
@@ -403,6 +404,23 @@ def inspeccionar(ruta: str | Path) -> Inspeccion:
             avisos.append(f"Empieza como un crudo de Trimble pero no lo es: {fallo}")
         else:
             avisos.append(f"Dato crudo de {cabecera_trimble.descripcion}.")
+
+    if codigo == "rinex_obs":
+        try:
+            cabecera_rinex = rinex_mod.leer_cabecera(ruta)
+            if not cabecera_rinex.es_observacion:
+                raise rinex_mod.NoEsRinex("es de navegación, no de observación")
+        except (rinex_mod.NoEsRinex, OSError, ValueError) as fallo:
+            # `.obs` y `.rnx` los usan otros programas: la extensión no promete un RINEX.
+            codigo = ""
+            confianza = CONFIANZA_DESCONOCIDA
+            avisos.append(f"Tiene extensión de RINEX de observación pero no lo es: {fallo}")
+        else:
+            avisos.append(
+                f"RINEX {cabecera_rinex.version:.2f} de observación"
+                + (f", receptor {cabecera_rinex.receptor}" if cabecera_rinex.receptor else "")
+                + "."
+            )
 
     cabecera_landxml = None
     if codigo == "landxml":

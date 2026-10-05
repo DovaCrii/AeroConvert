@@ -47,12 +47,16 @@ def _carpeta(tmp_path) -> str:
 
 
 class TestElPar:
-    def test_declara_los_siete_flujos_hacia_rinex(self):
+    def test_declara_los_siete_flujos_y_el_rinex_hacia_rinex(self):
         pares = motores.MotorRtklibConvbin().pares()
         assert pares == {
             ParDeFormatos(origen, "rinex")
-            for origen in ("rtcm3", "ubx", "novatel", "sbf", "rt17", "binex", "javad")
+            for origen in ("rtcm3", "ubx", "novatel", "sbf", "rt17", "binex", "javad", "rinex_obs")
         }
+
+    def test_un_rinex_se_reescribe_en_otra_version_y_nunca_en_si_mismo(self):
+        """El destino es `rinex` (un zip) y el origen `rinex_obs`: ninguna celda repite formato."""
+        assert all(p.origen != p.destino for p in motores.MotorRtklibConvbin().pares())
 
     def test_no_declara_el_archivo_de_campo_de_trimble(self):
         """RTKLIB no lee T02 ni T04, y decirlo mal sería prometer lo que no hace."""
@@ -117,6 +121,19 @@ class TestElPlan:
             "-hm",
             "BASE-1",
             str(tmp_path / "medida.ubx"),
+        )
+
+    def test_un_rinex_de_entrada_va_con_menos_r_rinex_y_la_version_pedida(self, tmp_path):
+        trabajo = _trabajo(tmp_path, formato="rinex_obs", nombre="a.23o", version="2.11")
+        assert motores.MotorRtklibConvbin().plan(trabajo).argv == (
+            "/usr/bin/convbin",
+            "-r",
+            "rinex",
+            "-v",
+            "2.11",
+            "-d",
+            _carpeta(tmp_path),
+            str(tmp_path / "a.23o"),
         )
 
     def test_novatel_se_llama_nov_para_convbin(self, tmp_path):
