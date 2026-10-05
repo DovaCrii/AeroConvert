@@ -30,11 +30,13 @@ No descomprime Hatanaka (CRINEX): se dice y se pide el RINEX normal.
 
 from __future__ import annotations
 
+import io
 from collections import Counter
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from pathlib import Path
+from typing import BinaryIO
 
 #: Cuánto se lee buscando el final de la cabecera. Una cabecera real mide unas decenas de
 #: líneas; la de una red con muchos comentarios, unos cientos. Pasar de esto es un archivo roto.
@@ -132,10 +134,21 @@ class ResumenDeEpocas:
         return round(self.duracion_s / self.intervalo_s) + 1
 
 
-def _lineas(ruta: Path) -> Iterator[str]:
+#: De dónde se lee: una ruta, o una función que abre el archivo en binario cada vez que se
+#: la llama. La segunda existe para leer **dentro de un zip sin extraerlo**: un día de datos a
+#: 1 Hz son cientos de megabytes, y extraerlos solo para mirarlos duplicaría el disco.
+Fuente = Path | Callable[[], BinaryIO]
+
+
+def _lineas(fuente: Fuente) -> Iterator[str]:
     # `latin-1` no falla nunca: un RINEX es ASCII y un byte raro no debe tumbar la lectura.
-    with open(ruta, encoding="latin-1", newline="") as archivo:
-        for linea in archivo:
+    if isinstance(fuente, Path):
+        with open(fuente, encoding="latin-1", newline="") as archivo:
+            for linea in archivo:
+                yield linea.rstrip("\r\n")
+        return
+    with fuente() as binario:
+        for linea in io.TextIOWrapper(binario, encoding="latin-1", newline=""):
             yield linea.rstrip("\r\n")
 
 
@@ -150,7 +163,7 @@ def _momento(partes: list[str]) -> datetime | None:
     return base + timedelta(seconds=segundos)
 
 
-def leer_cabecera(ruta: Path) -> CabeceraRinex:
+def leer_cabecera(ruta: Fuente) -> CabeceraRinex:
     """La cabecera, hasta `END OF HEADER`. No toca las observaciones."""
     version = tipo = sistema = ""
     programa = marcador = receptor = antena = ""
@@ -301,7 +314,7 @@ class _Cuenta:
         self.ultima = momento
 
 
-def resumir_epocas(ruta: Path, cabecera: CabeceraRinex) -> ResumenDeEpocas:
+def resumir_epocas(ruta: Fuente, cabecera: CabeceraRinex) -> ResumenDeEpocas:
     """Recorre las épocas de un RINEX de observación sin cargarlo entero."""
     if not cabecera.es_observacion:
         raise NoEsRinex("Solo se cuentan épocas en un RINEX de observación.")

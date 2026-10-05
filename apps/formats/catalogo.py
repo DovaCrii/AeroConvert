@@ -88,6 +88,18 @@ class Formato:
     #: Extensiones que viajan al lado y sin las cuales se pierde informacion.
     acompanantes: frozenset[str] = field(default_factory=frozenset)
     nota: str = ""
+    #: La extension del archivo que **se entrega** cuando no es ninguna de las que el formato
+    #: reconoce al leer. RINEX es el caso: sale como `.zip` (observaciones y navegacion en un
+    #: solo archivo), pero `.zip` no puede figurar en `extensiones`, o cualquier zip que alguien
+    #: soltara se reconoceria como RINEX.
+    extension_de_salida: str = ""
+
+    @property
+    def extension_para_escribir(self) -> str:
+        """Con qué extensión se nombra lo que se escribe en este formato."""
+        if self.extension_de_salida:
+            return self.extension_de_salida
+        return sorted(self.extensiones)[0] if self.extensiones else ".out"
 
 
 def _f(**kwargs) -> Formato:
@@ -499,6 +511,19 @@ FORMATOS: dict[str, Formato] = {
             "Dato crudo de un receptor Trimble (NetR9, R10, R12i, Alloy). Formato cerrado: "
             "solo la utilidad oficial de Trimble lo convierte a RINEX. RTKLIB no lee T02 ni "
             "T04, solo los flujos RT17 y RT27."
+        ),
+    ),
+    "rinex": _f(
+        codigo="rinex",
+        familia=GNSS,
+        nombre="RINEX",
+        extensiones=frozenset({".rnx"}),
+        lleva_crs_incrustado=False,
+        admite_lectura=False,
+        extension_de_salida=".zip",
+        nota=(
+            "El formato de intercambio de observaciones GNSS. Se entrega en un zip con las "
+            "observaciones y la navegacion, que es lo que piden los servicios de posproceso."
         ),
     ),
     "tiles3d": _f(

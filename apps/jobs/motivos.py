@@ -110,6 +110,35 @@ MOTIVOS: dict[str, Motivo] = dict(
         _m("tardo-demasiado", "La conversión agoto su presupuesto de tiempo."),
         _m("cancelado-por-el-usuario", "Se cancelo."),
         _m("interrumpido", "El proceso que lo ejecutaba desaparecio."),
+        # --- GNSS ------------------------------------------------------------
+        #
+        # El convertidor de Trimble sale con código 0 y dice «Success» con un archivo cortado,
+        # con basura y hasta vacío. Lo que decide si sirvió es lo que hay en los archivos.
+        _m(
+            "sin-conversor-trimble",
+            "No hay convertidor de Trimble en esta máquina.",
+            "Es «Convert To RINEX», de licencia propia. Lo trae Trimble Business Center.",
+        ),
+        _m(
+            "sin-wine",
+            "El convertidor de Trimble es de Windows y aquí no hay Wine para correrlo.",
+            "sudo apt install wine, y un prefijo propio en AEROCONVERT_WINEPREFIX.",
+        ),
+        _m(
+            "crudo-incompleto",
+            "El archivo del receptor está cortado: termina a mitad de un bloque.",
+            "Cópialo otra vez desde el receptor. Convertirlo así daría un RINEX más corto "
+            "sin avisar de nada.",
+        ),
+        _m(
+            "rinex-invalido",
+            "El convertidor escribió algo que no es un RINEX que se pueda leer.",
+        ),
+        _m(
+            "rinex-sin-epocas",
+            "El RINEX salió sin una sola época de observación.",
+            "Suele ser un archivo que no es de un receptor, o uno vacío por dentro.",
+        ),
         # --- Documentos ------------------------------------------------------
         #
         # Las herramientas de PDF pasan por la cola desde la fase 9 y traen sus propios

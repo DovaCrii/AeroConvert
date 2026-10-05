@@ -476,6 +476,71 @@ def sondar_oda() -> Disponibilidad:
     return Disponibilidad.si(ruta)
 
 
+#: Dónde instala Trimble Business Center su convertidor en Windows.
+RUTAS_DE_TRIMBLE_RINEX = (
+    r"C:\Program Files (x86)\Trimble\convertToRINEX\convertToRinex.exe",
+    r"C:\Program Files\Trimble\convertToRINEX\convertToRinex.exe",
+)
+
+
+def necesita_wine() -> bool:
+    """Si el convertidor de Trimble, que es de Windows, hay que correrlo bajo Wine.
+
+    **Una sola respuesta para la sonda y para el plan**: cuando cada una miraba `os.name` por
+    su cuenta, las pruebas fingían el modo Windows en el plan y la sonda seguía diciendo «aquí
+    no hay Wine» en Linux. Pasaba en la estación y fallaba en CI.
+    """
+    return os.name != "nt"
+
+
+def ruta_de_trimble_rinex() -> str:
+    """La del convertidor, o cadena vacía. **Lo configurado primero**, lo habitual después."""
+    configurada = (getattr(settings, "TRIMBLE_RINEX", "") or "").strip().strip('"')
+    if configurada:
+        return configurada
+    if os.name == "nt":
+        for candidata in RUTAS_DE_TRIMBLE_RINEX:
+            if Path(candidata).is_file():
+                return candidata
+    return ""
+
+
+def sondar_trimble_rinex() -> Disponibilidad:
+    """`convertToRinex.exe` de Trimble, para T01/T02/T04 a RINEX.
+
+    Como la sonda de ODA, **no lo ejecuta**: mira que la ruta sea un archivo. En Linux exige
+    además Wine, y lo dice con su propio motivo, porque el arreglo es otro: una cosa es que
+    no esté el programa de Trimble y otra que no haya con qué correrlo.
+
+    No hay alternativa abierta que ofrecer para un T02/T04. RTKLIB `convbin` lee los flujos
+    RT17 y RT27 de Trimble, pero no estos archivos de campo: se dice en la sugerencia.
+    """
+    ruta = ruta_de_trimble_rinex()
+    if not ruta:
+        return Disponibilidad.no(
+            "sin-conversor-trimble",
+            "No hay convertidor de Trimble configurado.",
+            sugerencia=(
+                "Es el programa «Convert To RINEX» de Trimble, de licencia propia: no se "
+                "distribuye con AeroConvert. Trimble Business Center lo trae; instálalo y "
+                "apunta AEROCONVERT_TRIMBLE_RINEX a convertToRinex.exe."
+            ),
+        )
+    if not Path(ruta).is_file():
+        return Disponibilidad.no(
+            "sin-conversor-trimble",
+            f"AEROCONVERT_TRIMBLE_RINEX apunta a {ruta}, y ahí no hay ningún archivo.",
+        )
+    if necesita_wine() and not shutil.which("wine"):
+        return Disponibilidad.no(
+            "sin-wine",
+            "El convertidor de Trimble es un programa de Windows y aquí no hay Wine para correrlo.",
+            sugerencia="sudo apt install wine, y un prefijo propio en AEROCONVERT_WINEPREFIX.",
+        )
+    donde = "bajo Wine" if necesita_wine() else "nativo"
+    return Disponibilidad.si(f"Trimble convertToRinex ({donde}): {ruta}")
+
+
 def olvidar() -> None:
     """Vacia la cache de sondas. La usan las pruebas y el boton de volver a sondear."""
     cache.delete("motores:gdal")

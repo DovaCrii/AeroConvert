@@ -80,6 +80,98 @@ class CabeceraTrimble:
         return f"{self.modelo}, serie {self.serie}" if self.serie else self.modelo
 
 
+#: El comienzo de un bloque: `BZh`, el tamaño de bloque y la marca de bloque de bzip2
+#: (`1AY&SY`, o sea 0x314159265359). Que aparezca por azar dentro de datos comprimidos es del
+#: orden de una entre 2^48 posiciones, y aun así un falso positivo se descarta al intentar
+#: descomprimirlo: ver `comprobar_integridad`.
+_COMIENZO_DE_BLOQUE = re.compile(rb"BZh[1-9]1AY&SY")
+
+#: De cuánto en cuánto se alimenta al descompresor, y cuánto se le deja soltar de una vez. Los
+#: dos acotan la memoria: nunca hay más de esto vivo, venga lo que venga en el archivo.
+_TROZO_DE_ENTRADA = 1 << 20
+_TROZO_DE_SALIDA = 1 << 20
+
+#: Cuánto puede crecer lo descomprimido respecto al archivo antes de darlo por hostil. Lo
+#: medido en los dos archivos reales es de un solo dígito.
+_EXPANSION_MAXIMA = 64
+
+
+@dataclass(frozen=True)
+class IntegridadTrimble:
+    """Si el archivo está entero, mirando sus bloques y **sin decodificar nada**."""
+
+    bloques: int
+    #: Bloques que empiezan y se acaban antes de tiempo: lo que deja una copia interrumpida.
+    cortados: int
+
+    @property
+    def completo(self) -> bool:
+        return self.bloques > 0 and self.cortados == 0
+
+
+def comprobar_integridad(ruta: Path) -> IntegridadTrimble:
+    """Recorre los bloques bzip2 y dice si el último llega a su final.
+
+    ## Por qué existe
+
+    El convertidor de Trimble **sale con código 0 y dice «Success» con un archivo cortado**, y
+    entrega un RINEX más corto sin avisar de nada. Medido el 2026-10-05 con un T02 partido por
+    la mitad: 4,5 MB de observaciones en lugar de 9,3. Es pérdida silenciosa de datos, y el
+    RINEX resultante es perfectamente válido, así que mirando la salida no hay forma de verlo:
+    el dato solo existe en el crudo.
+
+    Medido sobre tres archivos: el T02 entero tiene 54 bloques, todos completos; el T04 entero
+    45, todos completos; el T02 cortado, 27 candidatos y el último incompleto.
+
+    ## Lo que no ve
+
+    Un corte que caiga **justo entre dos bloques** deja un archivo con todos sus bloques
+    completos, y esto lo da por bueno. No hay manera de saberlo sin la especificación, que
+    Trimble no publica. Se dice en `docs/PRUEBAS_CON_ORACULO.md`.
+
+    ## Y el coste está acotado
+
+    Se recorre con `mmap` (no se carga el archivo) y se descomprime por trozos descartando la
+    salida. Si lo descomprimido pasa de `_EXPANSION_MAXIMA` veces el tamaño del archivo, se
+    para: es un bzip2 hostil, no un crudo.
+    """
+    import mmap
+
+    tamano = Path(ruta).stat().st_size
+    if tamano == 0:
+        return IntegridadTrimble(bloques=0, cortados=0)
+    tope_de_salida = max(tamano * _EXPANSION_MAXIMA, 16 * 1024 * 1024)
+
+    bloques = cortados = 0
+    descomprimido = 0
+    with (
+        open(ruta, "rb") as archivo,
+        mmap.mmap(archivo.fileno(), 0, access=mmap.ACCESS_READ) as mapa,
+    ):
+        for encontrado in _COMIENZO_DE_BLOQUE.finditer(mapa):
+            inicio = encontrado.start()
+            descompresor = bz2.BZ2Decompressor()
+            posicion = inicio
+            try:
+                while not descompresor.eof:
+                    entrada = b""
+                    if descompresor.needs_input:
+                        entrada = mapa[posicion : posicion + _TROZO_DE_ENTRADA]
+                        if not entrada:
+                            break  # se acabó el archivo con el flujo a medias
+                        posicion += len(entrada)
+                    trozo = descompresor.decompress(entrada, max_length=_TROZO_DE_SALIDA)
+                    descomprimido += len(trozo)
+                    if descomprimido > tope_de_salida:
+                        raise NoEsTrimble("Lo que descomprime es desproporcionado.")
+            except (OSError, ValueError, EOFError):
+                continue  # algo que parecía el comienzo de un bloque y no lo era
+            bloques += 1
+            if not descompresor.eof:
+                cortados += 1
+    return IntegridadTrimble(bloques=bloques, cortados=cortados)
+
+
 def leer_cabecera(ruta: Path) -> CabeceraTrimble:
     """Identifica el receptor. No decodifica una sola observación."""
     with open(ruta, "rb") as archivo:

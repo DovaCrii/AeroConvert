@@ -96,6 +96,14 @@ ECW_ENCODE_COMPANY = config("AEROCONVERT_ECW_ENCODE_COMPANY", default="")
 ECW_BIN = config("AEROCONVERT_ECW_BIN", default="")
 ODA_CONVERTER = config("AEROCONVERT_ODA_CONVERTER", default="")
 
+# `convertToRinex.exe` de Trimble, para pasar T01/T02/T04 a RINEX. **Es de Windows, con licencia
+# propia y no redistribuible**: no viene con AeroConvert, se instala aparte (en Windows lo trae
+# Trimble Business Center) y en Linux corre bajo Wine. Vacio, se busca en las rutas de Trimble.
+TRIMBLE_RINEX = config("AEROCONVERT_TRIMBLE_RINEX", default="")
+# Donde vive el prefijo de Wine. Hace falta fuera de `$HOME`: el servicio corre con
+# `ProtectHome=yes`, asi que el `~/.wine` por omision no se puede ni crear.
+WINEPREFIX = config("AEROCONVERT_WINEPREFIX", default="")
+
 # --- Tino, y la unica puerta por la que algo puede salir de este equipo ----
 #
 # **Vacias a proposito y no es un pendiente.** Tino contesta desde esta maquina lo que esta
@@ -162,6 +170,7 @@ INSTALLED_APPS = [
     "apps.pointcloud",
     "apps.vector",
     "apps.mesh",
+    "apps.gnss",
     "apps.documents",
     "apps.dashboard",
     # Tino contesta con lo que las de arriba ya saben, asi que va detras de todas.
