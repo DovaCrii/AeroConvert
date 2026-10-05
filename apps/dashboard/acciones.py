@@ -102,6 +102,12 @@ CATEGORIAS = (
         "dashboard:convertir",
     ),
     (
+        "gnss",
+        "Datos de receptores GNSS",
+        "Lo que graba el receptor en campo y hay que llevar a posproceso.",
+        "dashboard:convertir",
+    ),
+    (
         "documentos",
         "Documentos y PDF",
         "Lo que acaba dentro de un informe o de una entrega.",
@@ -133,6 +139,18 @@ SIGLAS = {
     "kmz": "KMZ",
     "landxml": "LandXML",
     "dxf": "DXF",
+    "rinex": "RINEX",
+}
+
+#: Cómo se llama la tarjeta de un perfil cuando «Llevarlo a …» no tiene sentido. Nadie lleva
+#: un crudo GNSS «a Posproceso»: lo que quiere es pasarlo a RINEX.
+NOMBRES_DE_ACCION = {"posproceso": "Datos de un receptor GNSS a RINEX"}
+
+#: Lo que se escribe para llegar a un perfil, además de su id. Los geoespaciales comparten las
+#: palabras de siempre; el de posproceso habla de otra cosa y buscarlo por «ortofoto» sería
+#: encontrarlo donde no es.
+PALABRAS_DE_PERFIL = {
+    "posproceso": ("rinex", "gnss", "gps", "trimble", "t02", "t04", "receptor", "ppp", "crudo"),
 }
 
 #: Un símbolo por perfil, y **distinguible**, no solo distinto.
@@ -178,20 +196,23 @@ def _de_los_perfiles() -> list[Accion]:
     que pulsar «Llevarlo a QGIS» tiraba justo lo único que la tarjeta había preguntado y
     dejaba a quien la pulsó en la pantalla genérica, eligiendo otra vez.
     """
+    from apps.formats import catalogo as catalogo_mod
     from apps.targets import perfiles as perfiles_mod
 
     return [
         Accion(
             id=f"perfil-{perfil.id}",
-            nombre=f"Llevarlo a {perfil.nombre}",
+            nombre=NOMBRES_DE_ACCION.get(perfil.id, f"Llevarlo a {perfil.nombre}"),
             que_hace=perfil.descripcion,
             sale=_salidas_de(perfil),
-            categoria="planos",
+            categoria="gnss" if catalogo_mod.GNSS in perfil.familias else "planos",
             url="dashboard:convertir",
             consulta={"destino": perfil.id},
             icono=ICONOS_DE_PERFIL.get(perfil.id, "icon-destino"),
             familia="destino",
-            palabras=("ortofoto", "nube de puntos", "raster", "vectorial", perfil.id),
+            palabras=PALABRAS_DE_PERFIL.get(
+                perfil.id, ("ortofoto", "nube de puntos", "raster", "vectorial", perfil.id)
+            ),
         )
         for perfil in perfiles_mod.PERFILES.values()
     ]
@@ -314,6 +335,8 @@ APODOS = {
     "laz": ("nube comprimida",),
     "copc": ("nube en la nube", "cloud optimized point cloud"),
     "puntos": ("libreta", "libreta de puntos", "csv de puntos"),
+    "trimble_t0x": ("t01", "t02", "t04", "trimble", "crudo de receptor", "crudo gnss"),
+    "rinex": ("gnss", "gps", "posproceso", "ppp", "observaciones gnss"),
 }
 
 

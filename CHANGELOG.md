@@ -5,6 +5,32 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Sin publicar]
 
+### Añadido — datos GNSS: del receptor Trimble a RINEX (fase 10)
+
+- **Un T01, T02 o T04 de Trimble se convierte a RINEX** con el convertidor oficial, y se
+  entrega en un zip con las observaciones y la navegación. La ficha reconoce el archivo por su
+  contenido y dice de qué receptor viene (`TRIMBLE NETR9, serie …`) sin convertir nada.
+- **No se fía del convertidor, y con razón.** Medido sobre un T02 de un NetR9 y un T04 de un
+  R12i: sale con código 0 y escribe «Success» con un archivo vacío, con basura y con un T02
+  **cortado por la mitad**, que entrega un RINEX válido más corto sin avisar. Un crudo cortado
+  se detiene antes de convertir; y lo que sale se abre y se cuentan sus épocas (3.600 y 8.727,
+  sin huecos, coherentes con la cabecera).
+- **El recibo dice lo que se comprobó**: épocas, intervalo, de cuándo a cuándo, receptor,
+  antena, constelaciones por nombre, archivos y avisos.
+- **Una observación GNSS no pregunta por sistema de referencia**: son pseudodistancias, no
+  coordenadas.
+- **Si falta el convertidor, la ficha dice por qué**, a la vista, en vez de un remedio sin
+  botón. Vale para cualquier destino que no se pueda ofrecer.
+- **Es un programa de Windows con licencia de Trimble y no se distribuye**: se sondea. En Linux
+  corre bajo Wine, que **todavía no se ha probado en el servidor**.
+
+### Corregido — el CI llevaba rojo desde el 24 de septiembre
+
+- **13 pruebas pasaban en la estación y fallaban en CI**, que no tiene GDAL ni servidor
+  gráfico. La puerta local daba verde y nadie lo veía. Una fixture compartida finge GDAL, y se
+  puede reproducir con `AEROCONVERT_GDAL_BIN= AEROCONVERT_PDAL_BIN= pytest`.
+- Django 6.1.1, pypdf 6.19 y urllib3 2.8, por diez avisos nuevos de `pip-audit`.
+
 ### Cambiado — Tino, apagado y sin rastro
 
 - **Tino ya no se ve en ninguna parte.** Su pantalla da 404 (no «no disponible», que confirmaría

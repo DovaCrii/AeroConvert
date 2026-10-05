@@ -205,6 +205,72 @@ generar 10.800 peticiones.
           </dd>
         {% endif %}
 
+        {% if trabajo.verification.epocas %}
+          {# RINEX de un crudo GNSS: lo que se le manda a quien va a posprocesarlo. #}
+          <dt>Observaciones</dt>
+          <dd>
+            <span class="cifra">{{ trabajo.verification.epocas }}</span> épocas
+            {% if trabajo.verification.intervalo_s %}
+              cada <span class="cifra">{{ trabajo.verification.intervalo_s|floatformat:"-3" }}</span> s
+            {% endif %}
+            {% if trabajo.verification.huecos %}
+              <span style="color:var(--av-warn);">
+                · {{ trabajo.verification.huecos }} hueco(s)
+                {% if trabajo.verification.esperadas %}(esperadas {{ trabajo.verification.esperadas }}){% endif %}
+              </span>
+            {% else %}
+              <span class="tenue">· sin huecos</span>
+            {% endif %}
+          </dd>
+
+          <dt>Sesión</dt>
+          <dd>
+            <span class="cifra">{{ trabajo.verification.primera }}</span> a
+            <span class="cifra">{{ trabajo.verification.ultima }}</span>
+            {% if trabajo.verification.duracion %}
+              <span class="tenue">· {{ trabajo.verification.duracion }}</span>
+            {% endif %}
+          </dd>
+
+          {% if trabajo.verification.receptor %}
+            <dt>Receptor</dt>
+            <dd>
+              {{ trabajo.verification.receptor }}
+              {% if trabajo.verification.antena %}<span class="tenue">· antena {{ trabajo.verification.antena }}</span>{% endif %}
+              {% if trabajo.verification.marcador %}<span class="tenue">· punto {{ trabajo.verification.marcador }}</span>{% endif %}
+            </dd>
+          {% endif %}
+
+          {% if trabajo.verification.constelaciones %}
+            <dt>Constelaciones</dt>
+            <dd>
+              {% if trabajo.verification.constelaciones_nombres %}{{ trabajo.verification.constelaciones_nombres }}{% endif %}
+              <span class="tenue">({{ trabajo.verification.constelaciones }}){% if trabajo.verification.satelites_maximos %} · hasta {{ trabajo.verification.satelites_maximos }} satélites a la vez{% endif %}</span>
+            </dd>
+          {% endif %}
+
+          <dt>Versión de RINEX</dt>
+          <dd>{{ trabajo.verification.version }}</dd>
+
+          <dt>Archivos del zip</dt>
+          <dd>
+            <ul class="lista-piezas mono">
+              {% for a in trabajo.verification.archivos %}
+                <li>{{ a.nombre }} <span class="tenue">· {{ a.bytes|filesizeformat }}</span></li>
+              {% endfor %}
+            </ul>
+          </dd>
+
+          {% if trabajo.verification.avisos %}
+            <dt>Conviene leer</dt>
+            <dd>
+              <ul class="lista-simple">
+                {% for aviso in trabajo.verification.avisos %}<li>{{ aviso }}</li>{% endfor %}
+              </ul>
+            </dd>
+          {% endif %}
+        {% endif %}
+
         {% if trabajo.verification.por_archivo %}
           {# Unir: cuántas páginas puso cada archivo. Es lo que se revisa cuando falta una. #}
           <dt>De dónde salió</dt>

@@ -423,6 +423,88 @@ carpeta compartida, con sus 3 y 2 páginas, **sin tocar**.
 
 ---
 
+## Corrida del 2026-10-05 — crudos de Trimble a RINEX
+
+**Entorno.** Windows 11, **nativo** (no bajo Wine; eso está sin probar). `convertToRinex.exe`
+4.0.1.9 («Convert To RINEX — TBC utility»), instalado con Trimble Business Center en
+`C:\Program Files (x86)\Trimble\convertToRINEX\`; su instalador es
+`ConvertToRinex_v3.14.0.msi` (1,6 MB). Los datos quedan **fuera del repositorio**.
+
+**Archivos de campo.**
+
+| | T02 | T04 |
+| --- | --- | --- |
+| Receptor | Trimble NetR9, serie 5303K49763 | Trimble R12i, serie 6212F01411 |
+| Tamaño | 1.207.675 B | 3.123.464 B |
+| Empieza por | `00 00 00 0d`, y `BZh1` en el byte 21 | `00 00 00 0d`, y `BZh3` en el byte 21 |
+| Bloques bzip2 | 54, todos completos | 45, todos completos |
+
+### 1. La conversión, y lo que el convertidor dice de sí mismo
+
+`convertToRinex.exe <entrada> -p <carpeta>` — por omisión escribe RINEX 3.04:
+
+| | T02 | T04 |
+| --- | --- | --- |
+| Tiempo | 14,2 s | 31,9 s |
+| Salidas | `.23o` 9.284.918 B, `.23n` (GPS), `.23g` (GLONASS), `.23l` (Galileo) | `.23o` 16.207.362 B, y las tres de navegación |
+| Con `-mx` | `.23o` y `.23mix` (88.881 B), 3,8 s | — |
+
+Los nombres son **cortos, de RINEX 2** (`GMLA202301311700A.23o`), aunque el contenido es 3.04.
+
+### 2. Lo que dicen las salidas, leídas con `apps/formats/rinex.py`
+
+| | T02 | T04 |
+| --- | --- | --- |
+| Versión | 3.04 | 3.04 |
+| Épocas | **3.600** a 1 Hz | **8.727** a 1 Hz |
+| De / a | 2023-01-31 17:00:00 / 17:59:59 | 2023-02-28 11:21:55 / 13:47:21 |
+| Huecos | 0 (3.600 esperadas) | 0 (8.727 esperadas) |
+| Coincide con `TIME OF FIRST/LAST OBS` | sí | sí |
+| Receptor que declara | `TRIMBLE NETR9` | `TRIMBLE R12i` |
+| Constelaciones | E G R | E G R |
+
+El receptor del RINEX **coincide** con el que `trimble.py` saca del bloque bzip2 del crudo:
+son dos lectores distintos opinando sobre lo mismo.
+
+### 3. Lo que el convertidor hace mal, sin avisar
+
+Probado con copias en una carpeta temporal. En **todos** estos casos sale con **código 0** y
+escribe «Success»:
+
+| Entrada | Lo que escribe |
+| --- | --- |
+| Archivo vacío (0 bytes) | `.26o` de 1.476 B: solo cabecera, **ninguna época** |
+| 200 bytes de basura | lo mismo |
+| El T02 **cortado por la mitad** | un `.23o` de 4,5 MB, la mitad: **RINEX válido, más corto, sin una palabra** |
+| Archivo que no existe | no escribe nada y dice `Error: … unable to open file` (el único que avisa) |
+
+Es la regla número uno en estado puro. De ahí salen las dos defensas del motor:
+
+- **Antes**: `trimble.comprobar_integridad()` recorre los bloques bzip2. Con el T02 cortado:
+  27 candidatos, 26 completos y **1 cortado**. Con los dos enteros: ninguno cortado.
+- **Después**: sin épocas, `rinex-sin-epocas`; cortado a mitad de una época, `rinex-invalido`.
+
+### 4. Corrida del corredor entero, con el programa real
+
+`uv run pytest -m oraculo apps/gnss/tests/test_con_trimble_real.py`, con las rutas en
+`AEROCONVERT_PRUEBA_T02` y `AEROCONVERT_PRUEBA_T04`. Los dos pasan: **HECHO, 3.600 y 8.727
+épocas, sin huecos, el original con el mismo `sha256` y `mtime`, y nada en la carpeta de
+trabajo al terminar.**
+
+### Lo que esta corrida **no** prueba
+
+- **Bajo Wine.** Todo lo anterior es Windows nativo. El plazo bajo Wine (90 s por MB) es una
+  estimación a partir de la receta pública (~3× más lento), no una medida.
+- **Que el RINEX esté completo frente al crudo.** El T0x es un formato cerrado: no hay
+  oráculo. Se cuenta lo que hay y se compara consigo mismo (cabecera contra épocas), no con lo
+  que grabó el receptor. **Un corte justo entre dos bloques** deja un archivo con todos sus
+  bloques completos y no se ve. Procedimiento manual: abrir el mismo T02 en Trimble Business
+  Center y comparar épocas y hora de inicio y fin con las del recibo.
+- **Más de dos archivos.** La detección y la integridad se midieron con un T02 y un T04; otros
+  receptores (R10, Alloy, NetR9 con otro firmware) pueden traer otra estructura.
+
+---
+
 ## Lo que sigue sin oráculo, y se dice
 
 **ECW no se puede verificar aquí.** El GDAL de QGIS 4.0.2 **no trae el controlador ECW**, ni

@@ -207,3 +207,28 @@ pwsh scripts/sondear.ps1
 
 El primero es la puerta de calidad y **tiene que ser verde aunque no haya GDAL**. El
 segundo dice qué motores ve la máquina y por qué faltan los que faltan.
+
+Para reproducir lo que ve el CI en una estación que sí tiene GDAL:
+
+```powershell
+$env:AEROCONVERT_GDAL_BIN = ""; $env:AEROCONVERT_PDAL_BIN = ""; uv run pytest
+```
+
+## Datos GNSS de Trimble (opcional)
+
+El convertidor es `convertToRinex.exe`, de Trimble, con licencia propia: **no se distribuye
+con AeroConvert**. En un equipo con Trimble Business Center ya está en
+`C:\Program Files (x86)\Trimble\convertToRINEX\` y se encuentra solo.
+
+En Linux hace falta Wine y un prefijo fuera de `$HOME` (el servicio corre con
+`ProtectHome=yes`):
+
+```bash
+sudo apt install wine xvfb
+sudo install -d -o aeroconvert -m 0750 /var/lib/aeroconvert/wine
+```
+
+y en `.env`: `AEROCONVERT_TRIMBLE_RINEX=<ruta al .exe>` y
+`AEROCONVERT_WINEPREFIX=/var/lib/aeroconvert/wine`. Sin esto la herramienta sale apagada con su
+motivo y no se esconde. **Pendiente de probar bajo Wine**: no hay todavía una corrida fechada
+en el servidor.

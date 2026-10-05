@@ -92,6 +92,30 @@ el hallazgo que AeroBim documentó y que aquí se comprueba solo.
 SHP, GeoPackage, GeoJSON, TopoJSON, FlatGeobuf, GeoParquet, KML/KMZ, GML, GPX, MapInfo,
 DXF, **archivos de puntos PNEZD/PENZD**, LandXML.
 
+## Datos GNSS: del receptor a RINEX
+
+| Formato | Lee | Escribe | Nota |
+| --- | :-: | :-: | --- |
+| Trimble T00, T01, T02, T04 | ✓ | — | Formato cerrado. NetR9, R10, R12i, Alloy |
+| RINEX 2.11, 3.04, 3.05 | — (solo se verifica) | ✓ | Se entrega en un **zip** con observaciones y navegación |
+
+**Cómo se reconoce un crudo de Trimble.** Empieza por `00 00 00 0d`, y en el byte 21 trae un
+bloque bzip2 (`BZh`). Cuatro bytes solos no bastan, así que se exigen las dos cosas. Del primer
+bloque se saca el modelo y la serie del receptor (`TRIMBLE NETR9, 5303K49763`), que la ficha
+enseña sin convertir nada. **Medido sobre dos archivos reales, no es una especificación**:
+Trimble no publica el formato.
+
+**Una observación GNSS no tiene sistema de referencia.** Son pseudodistancias y fases a
+satélites, no coordenadas. La ficha no lo pregunta y no pinta «no lo declara» en ámbar. La
+posición aproximada de la cabecera de un RINEX es ECEF y sirve de ayuda al posproceso.
+
+**Por qué no RTKLIB.** `convbin` lee los flujos RT17 y RT27 de Trimble, pero no estos
+archivos de campo. Lo único que convierte un T02 o un T04 es la utilidad oficial de Trimble,
+que es de Windows y no se puede redistribuir.
+
+**Qué pedir a quien entrega:** el archivo del receptor **entero**. Un T02 cortado a la mitad
+se detiene antes de convertir; ver `docs/PRUEBAS_CON_ORACULO.md`.
+
 ## BIM y malla (fase F4)
 
 IFC (lectura), OBJ, glTF/GLB, STL, Collada, 3D Tiles.
