@@ -30,6 +30,11 @@ MALLA = "malla"
 #: un PDF abre en todas partes. Lo que se le hace a un PDF es componerlo, y eso tiene su
 #: propia pantalla.
 DOCUMENTO = "documento"
+#: Datos crudos de receptores GNSS y su salida estandar, RINEX. **Tampoco lleva sistema de
+#: referencia** y por una razon distinta a un PDF: una observacion GNSS son pseudodistancias y
+#: fases a satelites, no coordenadas. La posicion aproximada que trae la cabecera de un RINEX es
+#: ECEF, una ayuda para el posproceso y no el CRS de nada. Ver `runner._exigir_crs`.
+GNSS = "gnss"
 
 FAMILIAS = {
     RASTER: "Raster geoespacial",
@@ -37,6 +42,7 @@ FAMILIAS = {
     VECTOR: "Vectorial, CAD y topografia",
     MALLA: "BIM y malla 3D",
     DOCUMENTO: "Documentos",
+    GNSS: "Datos GNSS",
 }
 
 
@@ -476,6 +482,23 @@ FORMATOS: dict[str, Formato] = {
         nota=(
             "Se lee para pasarlo a PDF. Escribirlo desde un PDF se puede, pero con un "
             "documento maquetado el resultado es un mosaico de cuadros de texto."
+        ),
+    ),
+    # --- GNSS --------------------------------------------------------------
+    "trimble_t0x": _f(
+        codigo="trimble_t0x",
+        familia=GNSS,
+        nombre="Trimble T0x",
+        extensiones=frozenset({".t00", ".t01", ".t02", ".t04"}),
+        # Cuatro bytes son poca firma: la detecta y despues `trimble.leer_cabecera()` la
+        # confirma buscando el bloque bzip2 del offset 21. Si no esta, no es de Trimble.
+        firmas=(b"\x00\x00\x00\x0d",),
+        lleva_crs_incrustado=False,
+        admite_escritura=False,
+        nota=(
+            "Dato crudo de un receptor Trimble (NetR9, R10, R12i, Alloy). Formato cerrado: "
+            "solo la utilidad oficial de Trimble lo convierte a RINEX. RTKLIB no lee T02 ni "
+            "T04, solo los flujos RT17 y RT27."
         ),
     ),
     "tiles3d": _f(

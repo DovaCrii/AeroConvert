@@ -343,3 +343,111 @@ PRJ_METASHAPE = (
     'PARAMETER["false_northing",10000000],UNIT["metre",1,AUTHORITY["EPSG","9001"]],'
     'AUTHORITY["EPSG","32719"]]'
 )
+
+
+# --- GNSS -----------------------------------------------------------------------------------
+
+
+def trimble_minimo(
+    *,
+    modelo: str = "TRIMBLE NETR9",
+    serie: str = "5303K49763",
+    nivel_bzip2: int = 1,
+    carpeta: str = "/Internal/VUELOS/2023/01/31",
+) -> bytes:
+    """Un crudo de Trimble reducido a lo que el lector mira: la cabecera y el primer bloque.
+
+    La estructura es la que se midio en dos archivos reales (un T02 de un NetR9 y un T04 de
+    un R12i): `00 00 00 0d`, 17 bytes mas hasta el offset 21, y ahi un bloque bzip2 que
+    descomprime a registros con `ReceiverId`, `SystemUptime` y `filePath`. Los bytes de
+    relleno no significan nada: el lector no los interpreta, y fingir que si seria inventar
+    un formato que Trimble no publica.
+    """
+    import bz2
+
+    texto = (
+        b")\x10\xc7ReceiverId:76,"
+        + modelo.encode("latin-1")
+        + b","
+        + serie.encode("latin-1")
+        + b"\x17\x10\xc7SystemUptime:3136987\x00\x00\x00="
+        + b"\x00\x00filePath:"
+        + carpeta.encode("latin-1")
+        + b"/GMLA202301311700A.T0"
+        + b"B\x00\x00\x00TRMB\x00\x00"
+    )
+    return b"\x00\x00\x00\x0d" + bytes(range(17)) + bz2.compress(texto, nivel_bzip2)
+
+
+def rinex_minimo(
+    *,
+    version: str = "3.04",
+    epocas: int = 5,
+    intervalo_s: float = 30.0,
+    satelites: tuple[str, ...] = ("G01", "G02", "R05"),
+    huecos_en: tuple[int, ...] = (),
+    truncar_la_ultima: bool = False,
+    con_fin_de_cabecera: bool = True,
+    marcador: str = "GMLA",
+    fin_de_linea: str = "\n",
+) -> str:
+    """Un RINEX de observacion de pocas lineas, de la version 2.11, 3.0x o 4.0x.
+
+    `huecos_en` son los numeros de epoca (desde 0) que **faltan** a mitad del archivo: la
+    epoca no se escribe, y el escaner tiene que verlo como un salto. `truncar_la_ultima`
+    corta el archivo a mitad de la ultima epoca, que es lo que deja un convertidor muerto
+    o un disco lleno.
+    """
+    from datetime import datetime, timedelta
+
+    v2 = version.startswith("2")
+    tipos = "C1C L1C D1C S1C"
+    inicio = datetime(2023, 1, 31, 17, 0, 0)
+
+    def linea(texto: str, nombre: str) -> str:
+        return f"{texto:<60}{nombre}"
+
+    cabecera = [
+        linea(f"{version:>9}           OBSERVATION DATA    M", "RINEX VERSION / TYPE"),
+        linea(
+            "AeroConvert pruebas  sintetico            20230131 170000 UTC", "PGM / RUN BY / DATE"
+        ),
+        linea(marcador, "MARKER NAME"),
+        linea("5303K49763           TRIMBLE NETR9       5.48", "REC # / TYPE / VERS"),
+        linea("                    TRM57971.00     NONE", "ANT # / TYPE"),
+        linea("  1948450.2000 -5475860.9000 -2656160.3000", "APPROX POSITION XYZ"),
+        linea(f"{intervalo_s:10.3f}", "INTERVAL"),
+    ]
+    if v2:
+        cabecera.append(linea("     4    C1    L1    D1    S1", "# / TYPES OF OBSERV"))
+    else:
+        cabecera.append(linea(f"G    4 {tipos}", "SYS / # / OBS TYPES"))
+        cabecera.append(linea(f"R    4 {tipos}", "SYS / # / OBS TYPES"))
+    cabecera.append(
+        linea("  2023     1    31    17     0    0.0000000     GPS", "TIME OF FIRST OBS")
+    )
+    if con_fin_de_cabecera:
+        cabecera.append(linea("", "END OF HEADER"))
+
+    cuerpo: list[str] = []
+    for n in range(epocas):
+        if n in huecos_en:
+            continue
+        t = inicio + timedelta(seconds=n * intervalo_s)
+        observaciones = "".join(f"{20000000.0 + k:14.3f}  " for k in range(4))
+        if v2:
+            cuerpo.append(
+                f" {t.year % 100:02d} {t.month:2d} {t.day:2d} {t.hour:2d} {t.minute:2d}"
+                f"{t.second:11.7f}  0{len(satelites):3d}{''.join(satelites[:12])}"
+            )
+            cuerpo.extend(observaciones for _ in satelites)
+        else:
+            cuerpo.append(
+                f"> {t.year:4d} {t.month:02d} {t.day:02d} {t.hour:02d} {t.minute:02d}"
+                f"{t.second:11.7f}  0{len(satelites):3d}"
+            )
+            cuerpo.extend(sat + observaciones for sat in satelites)
+
+    if truncar_la_ultima and cuerpo:
+        cuerpo = cuerpo[:-1]
+    return fin_de_linea.join(cabecera + cuerpo) + fin_de_linea
