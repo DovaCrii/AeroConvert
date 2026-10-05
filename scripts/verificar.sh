@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 #
-# La puerta de calidad, en Linux. Es `verify.ps1` paso por paso, **con un arreglo**:
-# `verify.ps1` corre `check --deploy` sin fijar el modulo de ajustes, asi que cae en
-# `config.settings.dev` -- con DEBUG=True -- y no comprueba nada de lo que importa. Aqui se
-# fija de verdad.
+# La puerta de calidad, en Linux. Es `verify.ps1` y `.github/workflows/ci.yml` paso por paso:
+# los tres tienen que comprobar lo mismo. `check --deploy` y `collectstatic` van con el modulo
+# de produccion fijado a mano; sin eso, `manage.py` cae en `config.settings.dev` (DEBUG=True)
+# y no comprobarian nada de lo que importa.
 #
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -25,6 +25,13 @@ paso "manage.py check --deploy (produccion de verdad)" env \
     AEROCONVERT_MODO=taller \
     AEROCONVERT_RAICES_PERMITIDAS=/tmp \
     uv run python manage.py check --deploy --fail-level WARNING
+
+paso "collectstatic (el manifiesto de verdad)" env \
+    DJANGO_SETTINGS_MODULE=config.settings.prod \
+    ALLOWED_HOSTS=verificacion.example.org \
+    AEROCONVERT_MODO=taller \
+    AEROCONVERT_RAICES_PERMITIDAS=/tmp \
+    uv run python manage.py collectstatic --noinput --clear
 
 paso "makemigrations --check"    uv run python manage.py makemigrations --check --dry-run
 paso "pytest"                    uv run pytest --cov=apps --cov-report=term-missing

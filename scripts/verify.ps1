@@ -25,7 +25,7 @@ function Invoke-Step {
     }
 }
 
-Invoke-Step "manage.py check" @("run", "python", "manage.py", "check")
+Invoke-Step "manage.py check" @("run", "python", "manage.py", "check", "--fail-level", "WARNING")
 # **Con el modulo de produccion fijado a mano.** Sin `DJANGO_SETTINGS_MODULE`, `manage.py`
 # cae en `config.settings.dev` -- con DEBUG=True -- y `--deploy` no comprueba nada de lo que
 # importa: llevaba pasando siempre por el modulo equivocado.
@@ -42,7 +42,10 @@ $env:ALLOWED_HOSTS = "verificacion.example.org"
 $env:CSRF_TRUSTED_ORIGINS = "https://verificacion.example.org"
 $env:AEROCONVERT_RAICES_PERMITIDAS = $raizDePrueba
 try {
-    Invoke-Step "manage.py check --deploy (produccion de verdad)" @("run", "python", "manage.py", "check", "--deploy")
+    Invoke-Step "manage.py check --deploy (produccion de verdad)" @("run", "python", "manage.py", "check", "--deploy", "--fail-level", "WARNING")
+    # `collectstatic` con el almacen con manifiesto descubre un `sourceMappingURL` sin su `.map`
+    # o un estatico que falta: en la VM, todas las paginas darian 500. Va con el mismo modulo.
+    Invoke-Step "collectstatic (el manifiesto de verdad)" @("run", "python", "manage.py", "collectstatic", "--noinput", "--clear")
 } finally {
     $env:DJANGO_SETTINGS_MODULE = $guardado
     $env:AEROCONVERT_RAICES_PERMITIDAS = $guardadasRaices
@@ -57,5 +60,15 @@ Invoke-Step "ruff check" @("run", "ruff", "check", ".")
 Invoke-Step "ruff format --check" @("run", "ruff", "format", "--check", ".")
 Invoke-Step "bandit" @("run", "bandit", "-q", "-c", "pyproject.toml", "-r", "apps", "config")
 Invoke-Step "pip-audit" @("run", "pip-audit")
+
+# Los scripts `.sh` los corre el servidor: se miran aunque se desarrolle en Windows. Si no esta
+# `shellcheck` se dice y se salta, igual que en `verificar.sh`; el CI siempre lo corre.
+if (Get-Command shellcheck -ErrorAction SilentlyContinue) {
+    Write-Host "==> shellcheck" -ForegroundColor Cyan
+    & shellcheck (Get-ChildItem scripts -Filter *.sh | ForEach-Object FullName)
+    if ($LASTEXITCODE -ne 0) { throw "verify.ps1: fallo el paso (shellcheck), codigo $LASTEXITCODE" }
+} else {
+    Write-Host "==> shellcheck (no esta instalado, se salta)" -ForegroundColor Yellow
+}
 
 Write-Host "verify.ps1: todo en verde" -ForegroundColor Green
