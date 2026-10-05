@@ -5,6 +5,17 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Sin publicar]
 
+### Añadido — calidad de un RINEX, al estilo de lo que se pedía de TEQC (fase 10.7)
+
+- El recibo de toda conversión GNSS trae ahora la **calidad**: satélites por época (mínimo,
+  media, máximo), cuántos distintos hubo, qué porcentaje de las observaciones posibles está
+  presente por constelación (RINEX 3) y los satélites que aparecen en menos del 90 % de las
+  épocas, nombrados. Código propio en `apps/formats/rinex_calidad.py`, en una pasada y con
+  memoria acotada. TEQC no se usa: murió en 2019 y no es de código abierto.
+- **Lo que no mide**, y el recibo lo dice: multitrayecto, saltos de ciclo, elevación y acimut.
+- Medido sobre el RINEX del T02 (3.600 épocas): la suma de épocas de los satélites GPS (25.635)
+  coincide con un recuento independiente de las líneas `G` del cuerpo.
+
 ### Añadido — RTKLIB como segundo motor GNSS (fase 10.6)
 
 - **Siete formatos de receptor más, a RINEX, con RTKLIB `convbin`** (BSD-2, nativo, sin

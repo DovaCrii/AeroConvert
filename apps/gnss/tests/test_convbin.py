@@ -173,6 +173,36 @@ class TestElVeredicto:
         assert "RTKLIB convbin" in veredicto.detalles["verificado_con"]
         assert veredicto.detalles["epocas"] == 10
 
+    def test_el_veredicto_trae_la_calidad_y_cabe_en_json(self, tmp_path):
+        import json
+
+        salida = self._zip(tmp_path, {"medida.obs": rinex_minimo(version="3.04", epocas=10)})
+        veredicto = motores.MotorRtklibConvbin().verificar(_trabajo(tmp_path), salida)
+        calidad = veredicto.detalles["calidad"]
+        assert calidad["satelites_maximo"] == 3
+        assert calidad["porcentaje_completo"] == 100.0
+        assert calidad["satelites_con_poca_presencia"] == []
+        json.dumps(veredicto.detalles)  # el recibo se guarda como JSON
+
+    def test_un_satelite_que_aparece_poco_se_nombra(self, tmp_path):
+        """R05 sale en la mitad de las épocas: el recibo lo dice por su nombre."""
+        resultado: list[str] = []
+        epoca = -1
+        for linea in rinex_minimo(version="3.04", epocas=10).split("\n"):
+            if linea.startswith(">"):
+                epoca += 1
+                if epoca % 2:  # la cabecera de la época dice cuántos satélites hay: 3 a 2
+                    linea = linea[:-1] + "2"
+            elif linea.startswith("R05") and epoca % 2:
+                continue
+            resultado.append(linea)
+        salida = self._zip(tmp_path, {"medida.obs": "\n".join(resultado)})
+        veredicto = motores.MotorRtklibConvbin().verificar(_trabajo(tmp_path), salida)
+        assert veredicto.correcta, veredicto.motivo
+        bajos = veredicto.detalles["calidad"]["satelites_con_poca_presencia"]
+        assert [s["id"] for s in bajos] == ["R05"]
+        assert bajos[0]["porcentaje"] == 50.0
+
     def test_una_conversion_sin_epocas_no_pasa_aunque_convbin_saliera_con_cero(self, tmp_path):
         """La regla 1: un flujo que no era lo que decía deja una cabecera sola."""
         salida = self._zip(tmp_path, {"medida.obs": rinex_minimo(version="3.04", epocas=0)})
