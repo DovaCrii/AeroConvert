@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "deny": [
+      "Read(./.venv/**)",
+      "Read(./staticfiles/**)",
+      "Read(./media/**)",
+      "Read(./entradas/**)",
+      "Read(./datos/**)",
+      "Read(./salidas/**)",
+      "Read(./trabajo/**)",
+      "Read(./db.sqlite3)",
+      "Read(./db.sqlite3-*)",
+      "Read(./.env)",
+      "Read(./.env.local)",
+      "Read(./uv.lock)",
+      "Read(./static/vendor/**)",
+      "Read(./**/*.tif)",
+      "Read(./**/*.tiff)",
+      "Read(./**/*.las)",
+      "Read(./**/*.laz)",
+      "Read(./**/*.e57)",
+      "Read(./**/*.ecw)",
+      "Read(./**/*.jp2)",
+      "Read(./**/*.sid)",
+      "Read(./**/*.img)",
+      "Read(./**/*.mdb)",
+      "Read(./**/*.accdb)",
+      "Read(./**/*.dwg)",
+      "Read(./**/*.dgn)",
+      "Read(./**/*.mo)",
+      "Bash(git push --force:*)",
+      "Bash(git push -f:*)",
+      "Bash(git push origin main:*)",
+      "Bash(git push origin HEAD:main:*)",
+      "Bash(gh pr merge:*)"
+    ],
+    "ask": [
+      "Bash(git push:*)",
+      "Bash(git reset --hard:*)",
+      "Bash(git clean:*)",
+      "Bash(rm -rf:*)"
+    ],
+    "allow": [
+      "Bash(uv run python scripts/claude/*)",
+      "Bash(python scripts/claude/*)",
+      "Bash(uv run pytest:*)",
+      "Bash(uv run ruff:*)",
+      "Bash(uv run python manage.py check:*)",
+      "Bash(uv run python manage.py makemigrations --check:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git fetch:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
+    ]
+  }
+}
