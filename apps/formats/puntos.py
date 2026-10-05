@@ -122,7 +122,7 @@ class Punto:
 
 @dataclass(frozen=True)
 class CabeceraPuntos:
-    """Lo que se sabe del archivo tras leerlo. Aquí sí se lee entero: es texto."""
+    """Lo que se sabe del archivo tras recorrerlo, en flujo y con un tope de líneas."""
 
     orden: str
     certeza: str
@@ -140,6 +140,9 @@ class CabeceraPuntos:
     muestra: tuple[Punto, ...]
     #: El otro orden posible, cuando las dos columnas caben en el rango de estes.
     orden_alternativo: str = ""
+    #: `False` si el archivo pasa de `LINEAS_MAXIMAS_AL_INSPECCIONAR`: conteo, mínimo y máximo
+    #: son entonces de lo leído hasta ahí.
+    leido_completo: bool = True
 
     @property
     def nombre_del_orden(self) -> str:
@@ -434,23 +437,21 @@ def leer(ruta: str | Path, *, orden: str = "") -> CabeceraPuntos:
     if orden and orden not in ORDENES:
         raise NoEsArchivoDePuntos(f"«{orden}» no es un orden conocido.")
 
-    try:
-        texto = ruta.read_text(encoding="utf-8-sig", errors="replace")
-    except OSError as fallo:  # pragma: no cover - lo filtra la inspección antes
-        raise NoEsArchivoDePuntos(str(fallo)) from fallo
-
-    lineas = [linea for linea in texto.splitlines() if linea.strip()]
-    if not lineas:
+    # **Sin leer el archivo entero a memoria.** Esto corre dentro de la petición web, con un
+    # techo de 2 GB para todo el servicio: una libreta de millones de puntos materializada como
+    # texto, lista de líneas y lista de filas pasaba de varios GB (hallazgo D-01 de la
+    # auditoría). La estructura se deduce de las primeras líneas y el resto se recorre en flujo.
+    cabeza = _primeras_lineas(ruta, FILAS_PARA_DEDUCIR + 1)
+    if not cabeza:
         raise NoEsArchivoDePuntos("El archivo no tiene ninguna línea con contenido.")
 
-    delimitador = _elegir_delimitador(lineas)
-    filas = [_partir(linea, delimitador) for linea in lineas]
+    delimitador = _elegir_delimitador(cabeza)
+    filas_cabeza = [_partir(linea, delimitador) for linea in cabeza]
 
-    tiene_encabezado = len(filas) > 1 and _es_encabezado(filas[0])
-    if tiene_encabezado:
-        filas = filas[1:]
+    tiene_encabezado = len(filas_cabeza) > 1 and _es_encabezado(filas_cabeza[0])
+    cuerpo = filas_cabeza[1:] if tiene_encabezado else filas_cabeza
 
-    para_deducir = [fila for fila in filas[:FILAS_PARA_DEDUCIR] if _fila_utilizable(fila)]
+    para_deducir = [fila for fila in cuerpo[:FILAS_PARA_DEDUCIR] if _fila_utilizable(fila)]
     if not para_deducir:
         raise NoEsArchivoDePuntos(
             "Ninguna de las primeras líneas trae tres columnas numéricas. Esto no parece "
@@ -465,8 +466,8 @@ def leer(ruta: str | Path, *, orden: str = "") -> CabeceraPuntos:
     else:
         codigo, certeza, alternativo = _decidir_orden(para_deducir, estructura)
 
-    puntos, ignoradas, muestra = _extraer(filas, codigo, estructura)
-    if not puntos:
+    resumen = _resumir_en_flujo(ruta, delimitador, tiene_encabezado, codigo, estructura)
+    if not resumen.leidos:
         raise NoEsArchivoDePuntos(
             f"Con el orden {codigo.upper()} no se pudo interpretar ninguna línea."
         )
@@ -477,20 +478,91 @@ def leer(ruta: str | Path, *, orden: str = "") -> CabeceraPuntos:
         delimitador=delimitador,
         columnas=len(ORDENES[codigo]),
         tiene_encabezado=tiene_encabezado,
-        puntos_leidos=len(puntos),
-        lineas_ignoradas=ignoradas,
-        minimo=(
-            min(p.norte_m for p in puntos),
-            min(p.este_m for p in puntos),
-            min(p.cota_m for p in puntos),
-        ),
-        maximo=(
-            max(p.norte_m for p in puntos),
-            max(p.este_m for p in puntos),
-            max(p.cota_m for p in puntos),
-        ),
-        muestra=muestra,
+        puntos_leidos=resumen.leidos,
+        lineas_ignoradas=resumen.ignoradas,
+        minimo=resumen.minimo,
+        maximo=resumen.maximo,
+        muestra=resumen.muestra,
         orden_alternativo=alternativo,
+        leido_completo=resumen.completo,
+    )
+
+
+#: Hasta cuántas líneas con contenido se recorren al inspeccionar. Pasado esto, el resumen
+#: (conteo, mínimo y máximo) es de lo leído hasta ahí y se dice: la inspección corre en la
+#: petición web y no puede costar minutos. Convertir el archivo entero no depende de esto.
+LINEAS_MAXIMAS_AL_INSPECCIONAR = 3_000_000
+
+
+@dataclass(frozen=True)
+class _Resumen:
+    leidos: int
+    ignoradas: int
+    minimo: tuple[float, float, float]
+    maximo: tuple[float, float, float]
+    muestra: tuple[Punto, ...]
+    completo: bool
+
+
+def _resumir_en_flujo(
+    ruta: Path, delimitador: str, tiene_encabezado: bool, orden: str, estructura: _Estructura
+) -> _Resumen:
+    """Lo que `leer()` necesita del archivo entero, en memoria constante.
+
+    La muestra se reparte por todo el archivo y no sale de la cabeza (los primeros puntos de
+    un levantamiento son una esquina de la obra). Sin saber de antemano cuántos hay, se
+    decima: se guarda uno de cada `paso` y, al pasar del doble de lo que cabe, se descarta uno
+    de cada dos y se duplica el paso.
+    """
+    columna = _columnas_de(orden, estructura)
+    leidos = ignoradas = con_contenido = 0
+    minimo = [math.inf] * 3
+    maximo = [-math.inf] * 3
+    muestra: list[Punto] = []
+    paso = 1
+    completo = True
+
+    try:
+        with open(ruta, encoding="utf-8-sig", errors="replace") as archivo:
+            for linea in archivo:
+                if not linea.strip():
+                    continue
+                con_contenido += 1
+                if tiene_encabezado and con_contenido == 1:
+                    continue
+                if con_contenido > LINEAS_MAXIMAS_AL_INSPECCIONAR:
+                    completo = False
+                    break
+
+                punto = _punto_de(_partir(linea.rstrip("\r\n"), delimitador), columna, estructura)
+                if punto is None:
+                    ignoradas += 1
+                    continue
+
+                for i, valor in enumerate((punto.norte_m, punto.este_m, punto.cota_m)):
+                    minimo[i] = min(minimo[i], valor)
+                    maximo[i] = max(maximo[i], valor)
+                if leidos % paso == 0:
+                    muestra.append(punto)
+                    if len(muestra) > 2 * MUESTRA_MAXIMA:
+                        muestra = muestra[::2]
+                        paso *= 2
+                leidos += 1
+    except OSError as fallo:  # pragma: no cover - lo filtra la inspección antes
+        raise NoEsArchivoDePuntos(str(fallo)) from fallo
+
+    # Hasta el doble de lo que cabe: se aclara repartiendo, no cortando por el final, que
+    # dejaría la muestra sin la mitad del archivo.
+    if len(muestra) > MUESTRA_MAXIMA:
+        muestra = muestra[:: math.ceil(len(muestra) / MUESTRA_MAXIMA)]
+
+    return _Resumen(
+        leidos=leidos,
+        ignoradas=ignoradas,
+        minimo=(minimo[0], minimo[1], minimo[2]),
+        maximo=(maximo[0], maximo[1], maximo[2]),
+        muestra=tuple(muestra[:MUESTRA_MAXIMA]),
+        completo=completo,
     )
 
 
@@ -565,16 +637,14 @@ def campos_ogr(ruta: str | Path, *, orden: str = "") -> CamposOgr:
     if orden and orden not in ORDENES:
         raise NoEsArchivoDePuntos(f"«{orden}» no es un orden conocido.")
 
-    try:
-        texto = ruta.read_text(encoding="utf-8-sig", errors="replace")
-    except OSError as fallo:
-        raise NoEsArchivoDePuntos(str(fallo)) from fallo
-
-    lineas = [linea for linea in texto.splitlines() if linea.strip()]
+    # Solo las primeras líneas: el docstring de arriba lo promete («sin leerlo entero») y con
+    # cincuenta se sabe todo lo que el `argv` tiene que decir. Leerlo entero a memoria era el
+    # hallazgo B-02 de la auditoría.
+    lineas = _primeras_lineas(ruta, FILAS_PARA_DEDUCIR + 1)
     if not lineas:
         raise NoEsArchivoDePuntos("El archivo no tiene ninguna línea con contenido.")
 
-    delimitador = _elegir_delimitador(lineas[: FILAS_PARA_DEDUCIR + 1])
+    delimitador = _elegir_delimitador(lineas)
     filas = [_partir(linea, delimitador) for linea in lineas]
 
     tiene_encabezado = len(filas) > 1 and _es_encabezado(filas[0])
@@ -660,26 +730,3 @@ def _punto_de(fila: list[str], columna: dict[str, int], estructura: _Estructura)
         cota_m=cota,
         descripcion=descripcion,
     )
-
-
-def _extraer(
-    filas: list[list[str]], orden: str, estructura: _Estructura
-) -> tuple[list[Punto], int, tuple[Punto, ...]]:
-    """Convierte las filas en puntos. Devuelve `(puntos, ignoradas, muestra)`."""
-    columna = _columnas_de(orden, estructura)
-
-    puntos: list[Punto] = []
-    ignoradas = 0
-
-    for fila in filas:
-        punto = _punto_de(fila, columna, estructura)
-        if punto is None:
-            ignoradas += 1
-            continue
-        puntos.append(punto)
-
-    # La muestra se toma repartida por todo el archivo y no de la cabeza: los primeros 3.000
-    # puntos de un levantamiento son una esquina de la obra, y dibujarlos daría una vista
-    # previa que parece correcta y no representa nada.
-    paso = math.ceil(len(puntos) / MUESTRA_MAXIMA) if len(puntos) > MUESTRA_MAXIMA else 1
-    return puntos, ignoradas, tuple(puntos[::paso][:MUESTRA_MAXIMA])

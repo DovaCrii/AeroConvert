@@ -250,6 +250,7 @@ def _ejecutar(job: ConversionJob) -> Resultado:
 
     _reservar_destino(destino)
     _exigir_espacio(destino, job.source_size_bytes)
+    _exigir_espacio_de_la_salida(job, inspeccion, destino)
 
     job.marcar_progreso(CONVERSION, 0.0)
     _lanzar(job, plan, parcial)
@@ -843,6 +844,36 @@ def _exigir_espacio(destino: Path, bytes_origen: int) -> None:
             "sin-espacio",
             f"Quedan {libre / 1e9:.1f} GB libres y la salida puede necesitar "
             f"{bytes_origen / 1e9:.1f} GB.",
+        )
+
+
+def _exigir_espacio_de_la_salida(job: ConversionJob, inspeccion, destino: Path) -> None:
+    """Que quepa la salida **tal como la estima la cabecera**, no como pesa el archivo.
+
+    `_exigir_espacio` compara contra el tamaño del archivo de partida, que es el comprimido:
+    un GeoTIFF de 10 KB que declara 200.000 × 200.000 píxeles de ceros se convertía a un
+    destino sin compresión y llenaba el disco compartido (hallazgo B-01 de la auditoría).
+    La estimación ya existía y solo se enseñaba; aquí se hace cumplir. Solo con cabecera de
+    TIFF: sin ella la estimación no tiene de dónde sacar el tamaño real.
+    """
+    if getattr(inspeccion, "tiff", None) is None:
+        return
+
+    from . import estimacion
+
+    estimada = estimacion.estimar(
+        inspeccion=inspeccion,
+        formato_destino=job.target_format_code,
+        opciones=dict(job.options or {}),
+        destino=destino,
+    )
+    # `libre_bytes == 0` es «no se pudo medir»: no se rechaza por una lectura fallida.
+    if estimada.libre_bytes and estimada.libre_bytes < estimada.bytes_salida:
+        raise TrabajoFallido(
+            "sin-espacio",
+            f"Esta conversión escribiría unos {estimada.bytes_salida / 1e9:.1f} GB y quedan "
+            f"{estimada.libre_bytes / 1e9:.1f} GB libres. Lo que pesa el archivo comprimido "
+            "no es lo que pesará la salida.",
         )
 
 

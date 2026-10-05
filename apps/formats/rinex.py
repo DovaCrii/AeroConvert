@@ -41,6 +41,9 @@ from typing import BinaryIO
 #: Cuánto se lee buscando el final de la cabecera. Una cabecera real mide unas decenas de
 #: líneas; la de una red con muchos comentarios, unos cientos. Pasar de esto es un archivo roto.
 LINEAS_MAXIMAS_DE_CABECERA = 4_000
+#: Una línea de RINEX mide cientos de caracteres; con un tipo de observación por campo de 16,
+#: ni la de una constelación con docenas llega a la mitad de esto.
+LARGO_MAXIMO_DE_LINEA = 16_384
 
 #: Las versiones que se conocen: la 2.xx, la 3.xx y la 4.xx. Una distinta no se rechaza —el
 #: formato evoluciona—, pero se avisa.
@@ -181,12 +184,28 @@ def _lineas(fuente: Fuente) -> Iterator[str]:
     # `latin-1` no falla nunca: un RINEX es ASCII y un byte raro no debe tumbar la lectura.
     if isinstance(fuente, Path):
         with open(fuente, encoding="latin-1", newline="") as archivo:
-            for linea in archivo:
-                yield linea.rstrip("\r\n")
+            yield from _lineas_acotadas(archivo)
         return
     with fuente() as binario:
-        for linea in io.TextIOWrapper(binario, encoding="latin-1", newline=""):
-            yield linea.rstrip("\r\n")
+        yield from _lineas_acotadas(io.TextIOWrapper(binario, encoding="latin-1", newline=""))
+
+
+def _lineas_acotadas(archivo) -> Iterator[str]:
+    """Línea a línea, sin dejar que una sola línea sea el archivo entero.
+
+    `for linea in archivo` lee hasta el salto: un archivo de gigabytes sin ninguno era una
+    única línea que se copiaba dos veces en memoria (hallazgo D-02 de la auditoría). Una línea
+    de RINEX mide cientos de caracteres como mucho.
+    """
+    while True:
+        linea = archivo.readline(LARGO_MAXIMO_DE_LINEA + 1)
+        if not linea:
+            return
+        if len(linea) > LARGO_MAXIMO_DE_LINEA and not linea.endswith(("\n", "\r")):
+            raise NoEsRinex(
+                f"Una línea pasa de {LARGO_MAXIMO_DE_LINEA} caracteres: esto no es un RINEX."
+            )
+        yield linea.rstrip("\r\n")
 
 
 def _momento(partes: list[str]) -> datetime | None:
