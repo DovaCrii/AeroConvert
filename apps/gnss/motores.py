@@ -8,7 +8,8 @@ sigue existiendo el motor de Trimble. Se buscó qué existe antes de escribir na
 
 **RTKLIB `convbin` no lee los archivos de campo de Trimble** (T01, T02,
 T04): lee los flujos RT17 y RT27, más Septentrio, u-blox, NovAtel, Javad, RTCM y BINEX.
-`runpkr00` más TEQC tampoco convierte un T04, y TEQC está muerto desde 2019 y solo escribe RINEX 2. Lo único que convierte un T02 o un T04 es la utilidad oficial de Trimble,
+`runpkr00` más TEQC tampoco convierte un T04, y TEQC está muerto desde 2019 y solo
+escribe RINEX 2. Lo único que convierte un T02 o un T04 es la utilidad oficial de Trimble,
 `convertToRinex.exe`: un programa de Windows, de licencia propia, **que no se puede
 redistribuir**. Por eso se sondea y no se declara, igual que ODA, y en Linux corre bajo Wine.
 
