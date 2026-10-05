@@ -1,3 +1,7 @@
+# Claude Code: lo temporal y lo personal quedan fuera
+.claude/tmp/
+.claude/settings.local.json
+
 # Entorno
 .venv/
 __pycache__/
