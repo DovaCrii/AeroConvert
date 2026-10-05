@@ -37,6 +37,7 @@ original no se toca**: el corredor compara su huella antes y después de cada in
 
 from __future__ import annotations
 
+from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -74,6 +75,9 @@ from .herramientas import HERRAMIENTAS
 #: Cuántos PDF se admiten de una vez. Más que esto no es una entrega: es un lote, y para
 #: un lote hace falta otra pantalla.
 MAXIMO_ARCHIVOS = 20
+
+#: Lo que `Markdown a PDF` acepta como entrada. Lo demás se rechaza antes de encolar.
+EXTENSIONES_DE_MARKDOWN = frozenset({".md", ".markdown", ".txt"})
 
 
 @dataclass(frozen=True)
@@ -599,7 +603,8 @@ def dividir_vista(request):
 
     # Dos trozos iguales saldrían con el mismo nombre, y el segundo pisaría al primero.
     # Antes pasaba en silencio; dentro de un zip, además, lo dejaría con una pieza de menos.
-    repetidos = sorted({t.sufijo.lstrip("_") for t in trozos if trozos.count(t) > 1})
+    veces = Counter(trozos)  # lineal: `trozos.count(t)` dentro del bucle era cuadrático
+    repetidos = sorted({t.sufijo.lstrip("_") for t in trozos if veces[t] > 1})
     if repetidos:
         messages.error(
             request,
@@ -1146,6 +1151,17 @@ def de_markdown(request):
         origen = _origen_del_formulario(request)
     except (modo_mod.RutaNoPermitida, ComposicionInvalida) as fallo:
         messages.error(request, str(fallo))
+        return render(request, "documents/de_markdown.html", contexto)
+
+    # Sin esto, un `.pdf` como entrada daba un destino igual al propio archivo y el trabajo
+    # lo sobrescribía «verificado»: la salida es `<nombre>.pdf` al lado de la entrada.
+    if Path(origen.ruta).suffix.lower() not in EXTENSIONES_DE_MARKDOWN:
+        messages.error(
+            request,
+            "Este archivo no es Markdown ni texto. Se admite "
+            + ", ".join(sorted(EXTENSIONES_DE_MARKDOWN))
+            + ".",
+        )
         return render(request, "documents/de_markdown.html", contexto)
 
     return cola_mod.encolar(request, "md_a_pdf", [origen], {}, sufijo=".pdf")

@@ -340,6 +340,9 @@ class TestConvertir:
             nombre="Entrega cliente BHP",
             target_format_code="geotiff",
             options={"compresion": "DEFLATE", "solo_rgb": True},
+            # De fábrica: un preajuste sin dueño que no lo sea no lo ve nadie (A-02 de la
+            # auditoría), y esta prueba lo creaba así sin que importara.
+            de_fabrica=True,
         )
 
         entrado.post("/encolar/", {"ruta": str(ortofoto), "preajuste": preajuste.slug})

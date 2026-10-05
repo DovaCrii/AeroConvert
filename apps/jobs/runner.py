@@ -736,8 +736,16 @@ def _destino_libre(job, destino: Path) -> Path:
     """
     from .models import ConversionJob
 
+    # **Nunca el propio original.** Una herramienta cuya salida lleva la misma extensión que
+    # su entrada (un `.pdf` pasado a «Markdown a PDF») apuntaba el destino al archivo de
+    # partida, y el `os.replace` final lo sustituía con el trabajo dando «verificado».
+    originales = {_clave_de_ruta(job.source_path)}
+    originales.update(_clave_de_ruta(ruta) for ruta in job.entradas.values_list("ruta", flat=True))
+
     for version in range(1, MAXIMO_VERSIONES + 1):
         candidata = destino if version == 1 else _con_version(destino, version)
+        if _clave_de_ruta(candidata) in originales:
+            continue
         de_otro = (
             ConversionJob.objects.filter(output_path=str(candidata))
             .exclude(pk=job.pk)
@@ -752,6 +760,18 @@ def _destino_libre(job, destino: Path) -> Path:
         f"Hay {MAXIMO_VERSIONES} versiones de {destino.name} en esa carpeta. Revisa antes de "
         "seguir generando.",
     )
+
+
+def _clave_de_ruta(ruta) -> str:
+    """Una ruta comparable: sin mayúsculas en Windows y sin `..` ni enlaces."""
+    texto = str(ruta or "")
+    if not texto:
+        return ""
+    try:
+        texto = str(Path(texto).resolve())
+    except OSError:
+        pass
+    return os.path.normcase(texto)
 
 
 def _reservar_destino(destino: Path) -> None:

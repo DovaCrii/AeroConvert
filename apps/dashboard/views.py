@@ -724,7 +724,9 @@ def _destino_pedido(request, inspeccion):
     """
     slug = (request.POST.get("preajuste") or "").strip()
     if slug:
-        preajuste = ConversionPreset.objects.filter(slug=slug).first()
+        # `visibles_para` y no el modelo a secas: sin él, el slug de un preajuste de otra
+        # persona aplicaba sus opciones, sumaba uso en su fila y servía de oráculo de existencia.
+        preajuste = ConversionPreset.visibles_para(request.user).filter(slug=slug).first()
         if preajuste is None:
             raise ValueError("Ese preajuste ya no existe.")
         return (

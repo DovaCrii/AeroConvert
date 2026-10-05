@@ -318,7 +318,9 @@ def inspeccionar(ruta: str | Path) -> Inspeccion:
     if codigo in ("geotiff", "bigtiff", "cog"):
         try:
             cabecera_tiff = tiff.leer_cabecera(ruta)
-        except (tiff.NoEsTiff, OSError, ValueError) as fallo:
+        # `ArithmeticError`: una etiqueta DOUBLE con inf o nan hace `int()` levantar
+        # `OverflowError`, que no es un `ValueError`.
+        except (tiff.NoEsTiff, OSError, ValueError, ArithmeticError) as fallo:
             avisos.append(f"Empieza como un TIFF pero la cabecera no se pudo leer: {fallo}")
         else:
             codigo = "bigtiff" if cabecera_tiff.es_bigtiff else "geotiff"
@@ -434,7 +436,16 @@ def inspeccionar(ruta: str | Path) -> Inspeccion:
             avisos.append(f"Tiene extensión .xml pero no es un LandXML: {fallo}")
         else:
             if cabecera_landxml.epsg:
-                crs = crs_mod.epsg(int(cabecera_landxml.epsg), origen=crs_mod.INCRUSTADO)
+                # Lo escribe quien hizo el archivo: «EPSG:32719» y «abc» existen de verdad, y
+                # un `int()` suelto convertía un dato mal escrito en un error 500.
+                texto_epsg = str(cabecera_landxml.epsg).strip().upper().removeprefix("EPSG:")
+                if texto_epsg.isdigit():
+                    crs = crs_mod.epsg(int(texto_epsg), origen=crs_mod.INCRUSTADO)
+                else:
+                    avisos.append(
+                        f"El LandXML dice epsgCode «{cabecera_landxml.epsg}», que no es un "
+                        "número de EPSG: no se usa. Declare el sistema al convertir."
+                    )
             avisos.extend(_avisos_de_landxml(cabecera_landxml))
 
     if not crs.conocido:
