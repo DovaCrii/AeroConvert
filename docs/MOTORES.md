@@ -113,6 +113,22 @@ una sorpresa.
 
 El paso 7 no es opcional. Es la lección de los seis argumentos posicionales de ODA.
 
+## El motor abierto: RTKLIB `convbin` (`apps/gnss/`)
+
+| | |
+| --- | --- |
+| Id | `rtklib-convbin` |
+| Pares | `rtcm3`, `ubx`, `novatel`, `sbf`, `rt17`, `binex`, `javad` → `rinex` |
+| Programa | `convbin` de RTKLIB (BSD-2). Nativo, sin Wine |
+| Sonda | `sondar_rtklib()`: `AEROCONVERT_RTKLIB_CONVBIN`, o `convbin` en el `PATH` |
+| Plazo | 300 s + 20 s por MB |
+
+Comparte con el de Trimble el empaquetado en zip y el verificador (`verificar_rinex`): abre
+cada archivo, exige épocas, la versión pedida y que no estén cortados. **No lee T01/T02/T04.**
+Los formatos se reconocen solo por la extensión (`.rtcm3`, `.ubx`, `.gps`, `.sbf`, `.rt17`,
+`.bnx`, `.jps`): no tienen firma de archivo, y lo que decide es lo que sale. El RTCM 3 no trae
+la semana GPS: se ofrece una fecha aproximada; sin ella, `convbin` usa la del archivo en disco.
+
 ## El motor de Trimble a RINEX (`apps/gnss/`)
 
 | | |

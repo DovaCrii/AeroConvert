@@ -541,6 +541,36 @@ def sondar_trimble_rinex() -> Disponibilidad:
     return Disponibilidad.si(f"Trimble convertToRinex ({donde}): {ruta}")
 
 
+def ruta_de_rtklib() -> str:
+    """`convbin` de RTKLIB: lo configurado primero y después el `PATH`."""
+    configurada = (getattr(settings, "RTKLIB_CONVBIN", "") or "").strip().strip('"')
+    return configurada or (shutil.which("convbin") or "")
+
+
+def sondar_rtklib() -> Disponibilidad:
+    """RTKLIB `convbin`, para los flujos RT17, UBX, SBF, NovAtel, RTCM3, BINEX y Javad.
+
+    Como las demás, **no lo ejecuta**. Corre nativo en Windows y en Linux, sin Wine.
+    """
+    ruta = ruta_de_rtklib()
+    if not ruta:
+        return Disponibilidad.no(
+            "sin-rtklib",
+            "No hay RTKLIB (convbin) en esta máquina.",
+            sugerencia=(
+                "Es de código abierto (BSD-2). En Ubuntu: «sudo apt install rtklib»; en "
+                "Windows, el paquete de RTKLIB. Si no está en el PATH, apunta "
+                "AEROCONVERT_RTKLIB_CONVBIN a convbin."
+            ),
+        )
+    if not Path(ruta).is_file():
+        return Disponibilidad.no(
+            "sin-rtklib",
+            f"AEROCONVERT_RTKLIB_CONVBIN apunta a {ruta}, y ahí no hay ningún archivo.",
+        )
+    return Disponibilidad.si(f"RTKLIB convbin: {ruta}")
+
+
 def olvidar() -> None:
     """Vacia la cache de sondas. La usan las pruebas y el boton de volver a sondear."""
     cache.delete("motores:gdal")

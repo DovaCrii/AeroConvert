@@ -232,3 +232,15 @@ y en `.env`: `AEROCONVERT_TRIMBLE_RINEX=<ruta al .exe>` y
 `AEROCONVERT_WINEPREFIX=/var/lib/aeroconvert/wine`. Sin esto la herramienta sale apagada con su
 motivo y no se esconde. **Pendiente de probar bajo Wine**: no hay todavía una corrida fechada
 en el servidor.
+
+## Otros receptores GNSS, con RTKLIB (opcional)
+
+Para los flujos RT17 de Trimble, u-blox (`.ubx`), Septentrio (`.sbf`), NovAtel (`.gps`), RTCM 3,
+BINEX y Javad, el motor es `convbin` de RTKLIB: código abierto (BSD-2), nativo y sin Wine.
+
+```bash
+sudo apt install rtklib
+```
+
+Si `convbin` no está en el `PATH`, `AEROCONVERT_RTKLIB_CONVBIN=<ruta>`. Sin él, esas
+conversiones salen apagadas con el motivo `sin-rtklib`. **No lee los T01/T02/T04 de Trimble.**

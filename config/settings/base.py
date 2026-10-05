@@ -100,6 +100,10 @@ ODA_CONVERTER = config("AEROCONVERT_ODA_CONVERTER", default="")
 # propia y no redistribuible**: no viene con AeroConvert, se instala aparte (en Windows lo trae
 # Trimble Business Center) y en Linux corre bajo Wine. Vacio, se busca en las rutas de Trimble.
 TRIMBLE_RINEX = config("AEROCONVERT_TRIMBLE_RINEX", default="")
+# RTKLIB `convbin`, de codigo abierto (BSD-2): convierte los flujos RT17, u-blox, Septentrio,
+# NovAtel, RTCM3, BINEX y Javad a RINEX. Vacio, se busca en el PATH (en Ubuntu: `apt install
+# rtklib`). Como Trimble, **se sondea y no se declara**.
+RTKLIB_CONVBIN = config("AEROCONVERT_RTKLIB_CONVBIN", default="")
 # Donde vive el prefijo de Wine. Hace falta fuera de `$HOME`: el servicio corre con
 # `ProtectHome=yes`, asi que el `~/.wine` por omision no se puede ni crear.
 WINEPREFIX = config("AEROCONVERT_WINEPREFIX", default="")
