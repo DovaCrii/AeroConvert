@@ -524,6 +524,15 @@ vacío, así que el cruce con el receptor del crudo es solo de Trimble.
 esta máquina. Las pruebas del motor son de `argv` y de veredicto; la conversión de un flujo
 queda pendiente en p340 con `apt install rtklib`.
 
+### 7. La calidad del RINEX, contra un recuento independiente
+
+`rinex_calidad.calcular()` sobre el RINEX 3.04 del T02 (3.600 épocas): 17 a 21 satélites por
+época (media 18,6), 23 distintos, 86,0 % de las observaciones posibles presentes (GPS 363.152 de
+410.160, GLONASS 317.152 de 431.940, Galileo 316.964 de 316.992). **Oráculo**: un recuento
+hecho en PowerShell, sin `rinex.py`, de las líneas que empiezan por `G` después de
+`END OF HEADER`: **25.635**, igual que la suma de épocas de los satélites GPS del informe. Es
+un oráculo de recuento, no de calidad: no dice si 86 % es bueno, solo que se cuenta lo que hay.
+
 ### Lo que esta corrida **no** prueba
 
 - **Bajo Wine.** Todo lo anterior es Windows nativo. El plazo bajo Wine (90 s por MB) es una

@@ -249,6 +249,31 @@ generar 10.800 peticiones.
             </dd>
           {% endif %}
 
+          {% with c=trabajo.verification.calidad %}
+            {% if c %}
+              <dt>Calidad</dt>
+              <dd>
+                Satélites por época: mínimo <span class="cifra">{{ c.satelites_minimo }}</span>,
+                media <span class="cifra">{{ c.satelites_medio }}</span>,
+                máximo <span class="cifra">{{ c.satelites_maximo }}</span>
+                <span class="tenue">· {{ c.satelites_distintos }} distintos en la sesión</span>
+                {% if c.porcentaje_completo is not None %}
+                  <br>Observaciones presentes: <span class="cifra">{{ c.porcentaje_completo }}</span> % de las posibles
+                  <span class="tenue">
+                    ({% for k in c.constelaciones %}{{ k.nombre }} {{ k.porcentaje }} %{% if not forloop.last %} · {% endif %}{% endfor %})
+                  </span>
+                {% endif %}
+                {% if c.satelites_con_poca_presencia %}
+                  <br><span style="color:var(--av-warn);">
+                    Con poca presencia (menos del 90 % de las épocas):
+                    {% for s in c.satelites_con_poca_presencia %}{{ s.id }} ({{ s.porcentaje }} %){% if not forloop.last %}, {% endif %}{% endfor %}{% if c.mas_satelites_con_poca_presencia %} y {{ c.mas_satelites_con_poca_presencia }} más{% endif %}
+                  </span>
+                {% endif %}
+                <br><span class="tenue">No mide multitrayecto ni saltos de ciclo.</span>
+              </dd>
+            {% endif %}
+          {% endwith %}
+
           <dt>Versión de RINEX</dt>
           <dd>{{ trabajo.verification.version }}</dd>
 

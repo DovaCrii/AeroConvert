@@ -51,7 +51,7 @@ from apps.engines.base import (
     Verificacion,
     ruta_parcial,
 )
-from apps.formats import rinex, trimble
+from apps.formats import rinex, rinex_calidad, trimble
 
 #: Qué versión de RINEX se puede pedir. 3.04 es la que usa el convertidor si no se le dice
 #: nada; 2.11 es la que lee hasta el software más viejo.
@@ -409,6 +409,7 @@ def verificar_rinex(salida: Path, *, version: str, crudo: str = "") -> Verificac
     avisos: list[str] = []
     archivos: list[dict] = []
     observaciones = []
+    calidad = None
     navegacion = 0
 
     with paquete:
@@ -443,6 +444,10 @@ def verificar_rinex(salida: Path, *, version: str, crudo: str = "") -> Verificac
                         "rinex-invalido",
                         f"{nombre} termina a mitad de una época: el archivo quedó cortado.",
                     )
+                if not observaciones:
+                    # Solo la primera: es la que cuenta el recibo, y otra pasada por cada
+                    # archivo del zip duplicaría el tiempo sin que nadie lo mire.
+                    calidad = rinex_calidad.calcular(abrir, cabecera)
                 observaciones.append((nombre, cabecera, resumen))
             else:
                 navegacion += 1
@@ -515,8 +520,45 @@ def verificar_rinex(salida: Path, *, version: str, crudo: str = "") -> Verificac
         "bloques_del_crudo": bloques,
         "verificado_con": "rinex.py (lector propio, sobre la salida del convertidor)",
         "avisos": avisos,
+        "calidad": resumen_de_calidad(calidad),
     }
     return Verificacion(correcta=True, detalles=detalles)
+
+
+#: Satélites que aparecen en menos de esto de las épocas se nombran en el recibo: suelen ser el
+#: que salió o entró del cielo, y a veces uno que el receptor perdió.
+UMBRAL_DE_PRESENCIA_PCT = 90.0
+SATELITES_NOMBRADOS = 12
+
+
+def resumen_de_calidad(informe: rinex_calidad.InformeDeCalidad) -> dict:
+    """Lo del informe que cabe en el recibo, y serializable a JSON."""
+    bajos = [s for s in informe.satelites if s.porcentaje < UMBRAL_DE_PRESENCIA_PCT]
+    return {
+        "satelites_minimo": informe.satelites_minimo,
+        "satelites_medio": round(informe.satelites_medio, 1),
+        "satelites_maximo": informe.satelites_maximo,
+        "satelites_distintos": len(informe.satelites),
+        "porcentaje_completo": (
+            round(informe.porcentaje_completo, 1)
+            if informe.porcentaje_completo is not None
+            else None
+        ),
+        "constelaciones": [
+            {
+                "nombre": rinex.CONSTELACIONES.get(letra, letra),
+                "presentes": presentes,
+                "posibles": posibles,
+                "porcentaje": round(100.0 * presentes / posibles, 1) if posibles else 0.0,
+            }
+            for letra, presentes, posibles in informe.completitud
+        ],
+        "satelites_con_poca_presencia": [
+            {"id": s.id, "porcentaje": round(s.porcentaje, 1)} for s in bajos[:SATELITES_NOMBRADOS]
+        ],
+        "mas_satelites_con_poca_presencia": max(0, len(bajos) - SATELITES_NOMBRADOS),
+        "notas": list(informe.notas),
+    }
 
 
 def registrar_todos() -> None:

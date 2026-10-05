@@ -227,3 +227,37 @@ class TestElRecibo:
             "los avisos se leen en el recibo, no solo en la bitácora"
         )
         assert "E G R" in cuerpo
+
+    def test_la_calidad_se_lee_en_el_recibo_y_dice_lo_que_no_mide(self, sesion):
+        job = ConversionJob.objects.create(
+            owner=get_user_model().objects.get(username="topografo"),
+            source_path="/x/a.ubx",
+            source_name="a.ubx",
+            source_format_code="ubx",
+            target_format_code="rinex",
+            status="done",
+            output_path="/x/a_rinex.zip",
+            verification={
+                "version": "3.04",
+                "epocas": 10,
+                "primera": "2023-01-31 17:00:00",
+                "ultima": "2023-01-31 17:00:09",
+                "archivos": [],
+                "calidad": {
+                    "satelites_minimo": 17,
+                    "satelites_medio": 18.6,
+                    "satelites_maximo": 21,
+                    "satelites_distintos": 23,
+                    "porcentaje_completo": 86.0,
+                    "constelaciones": [{"nombre": "GPS", "porcentaje": 88.5}],
+                    "satelites_con_poca_presencia": [{"id": "R05", "porcentaje": 50.0}],
+                    "mas_satelites_con_poca_presencia": 2,
+                },
+            },
+        )
+        cuerpo = sesion.get(reverse("jobs:ficha", kwargs={"pk": job.pk})).content.decode()
+        # Los decimales salen con la coma de la configuración regional en español.
+        assert "18,6" in cuerpo and "86,0" in cuerpo
+        assert "GPS 88,5 %" in cuerpo
+        assert "R05 (50,0 %)" in cuerpo and "y 2 más" in cuerpo
+        assert "No mide multitrayecto" in cuerpo
