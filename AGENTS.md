@@ -5,7 +5,9 @@ Este archivo manda. Si algo aquí contradice a otro documento, gana esto.
 **Precedencia documental:** `AGENTS.md` > `MASTER_PLAN.md` > `docs/ARCHITECTURE.md` >
 `docs/MVP.md` > `docs/MOTORES.md` > `docs/FORMATOS.md` > `README.md`.
 
-**Antes de tocar nada, lee [HANDOFF.md](HANDOFF.md).** Dice el punto exacto de retome.
+**Antes de tocar nada, lee [HANDOFF.md](HANDOFF.md)** (corto, ≤100 líneas; su historia está en
+`docs/historial/`). Dice el punto exacto de retome. **`MASTER_PLAN.md` no se lee entero:** para una
+fila, `python scripts/claude/plan_fila.py F9.4 [--seccion]`; para lo abierto, `--abiertas`.
 
 ---
 
@@ -110,6 +112,10 @@ llevan `@pytest.mark.oraculo` y quedan deseleccionadas en `pytest.ini`.
 `fail_under = 83` es un piso, no un objetivo. Nunca se baja para que pase una corrida roja.
 Y **ningún módulo lleva `# pragma: no cover` entero**: así es como el número deja de
 significar algo.
+
+Para iterar con salida corta: `uv run python scripts/claude/verificar.py [rapido|pruebas RUTA|todo]`.
+Resume la puerta; no la sustituye. Los tres gates (`verify.ps1`, `verificar.sh` y `ci.yml`) deben
+comprobar lo mismo.
 
 ---
 
