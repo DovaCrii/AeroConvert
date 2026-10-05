@@ -17,7 +17,6 @@ el programa de verdad** y se salta sola aquí, diciéndolo: tiene que correr en 
 
 from __future__ import annotations
 
-import shutil
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -33,8 +32,9 @@ from apps.jobs.models import ConversionJob, EntradaDeTrabajo
 pytestmark = pytest.mark.django_db
 
 hay_tesseract = pytest.mark.skipif(
-    shutil.which("tesseract") is None,
-    reason="Tesseract no está en esta máquina: esta prueba tiene que correr en p340",
+    not ocr.sondar(recordar=False).tiene("spa"),
+    reason="Tesseract o su idioma «spa» no están en esta máquina: esta prueba tiene que correr "
+    "en p340",
 )
 
 

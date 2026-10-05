@@ -14,8 +14,6 @@ y hasta entonces no se puede decir que la conversión funcione.
 
 from __future__ import annotations
 
-import shutil
-
 import pytest
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
@@ -24,8 +22,9 @@ from . import ocr
 from .composicion import ComposicionInvalida
 
 hay_tesseract = pytest.mark.skipif(
-    shutil.which("tesseract") is None,
-    reason="Tesseract no está en esta máquina: la herramienta sale apagada, que es lo correcto",
+    not ocr.sondar(recordar=False).tiene("spa"),
+    reason="Tesseract o su idioma «spa» no están en esta máquina: la herramienta sale apagada, "
+    "que es lo correcto",
 )
 
 
