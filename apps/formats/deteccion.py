@@ -29,6 +29,7 @@ from . import landxml as landxml_mod
 from . import las as las_mod
 from . import pdf as pdf_mod
 from . import puntos as puntos_mod
+from . import trimble as trimble_mod
 
 #: Cuanto se lee para reconocer la firma.
 BYTES_DE_FIRMA = 65_536
@@ -82,6 +83,8 @@ class Inspeccion:
     landxml: landxml_mod.CabeceraLandXml | None = None
     #: Presente solo cuando el archivo es un PDF.
     pdf: pdf_mod.CabeceraPdf | None = None
+    #: Presente solo cuando el archivo es un crudo de Trimble (T00, T01, T02, T04).
+    trimble: trimble_mod.CabeceraTrimble | None = None
     avisos: tuple[str, ...] = ()
     detalles: dict = field(default_factory=dict)
 
@@ -388,6 +391,19 @@ def inspeccionar(ruta: str | Path) -> Inspeccion:
         else:
             avisos.extend(_avisos_de_pdf(cabecera_pdf))
 
+    cabecera_trimble = None
+    if codigo == "trimble_t0x":
+        try:
+            cabecera_trimble = trimble_mod.leer_cabecera(ruta)
+        except (trimble_mod.NoEsTrimble, OSError, ValueError) as fallo:
+            # Cuatro bytes de firma los puede tener cualquier cosa. Si el bloque que debe
+            # venir detras no esta, no es un crudo de Trimble y no se finge que lo sea.
+            codigo = ""
+            confianza = CONFIANZA_DESCONOCIDA
+            avisos.append(f"Empieza como un crudo de Trimble pero no lo es: {fallo}")
+        else:
+            avisos.append(f"Dato crudo de {cabecera_trimble.descripcion}.")
+
     cabecera_landxml = None
     if codigo == "landxml":
         try:
@@ -427,6 +443,7 @@ def inspeccionar(ruta: str | Path) -> Inspeccion:
         puntos=cabecera_puntos,
         landxml=cabecera_landxml,
         pdf=cabecera_pdf,
+        trimble=cabecera_trimble,
         avisos=tuple(avisos),
         detalles=detalles,
     )
