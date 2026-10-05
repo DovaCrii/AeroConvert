@@ -24,6 +24,8 @@ class _Inspeccion:
     """Lo único que mira `_exigir_crs`: que el archivo no declara sistema."""
 
     crs = crs_mod.SIN_CRS
+    #: La inspección real la trae siempre; `_exigir_crs` la mira para dejar pasar a GNSS.
+    familia = ""
 
 
 def _nube(usuario, **campos):
