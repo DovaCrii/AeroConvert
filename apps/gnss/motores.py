@@ -4,8 +4,9 @@
 
 `MotorRtklibConvbin` (más abajo) lee los flujos RT17, UBX, SBF, NovAtel, RTCM 3, BINEX y
 Javad con `convbin`, de código abierto. **No** lee los archivos de campo de Trimble, y por eso
-sigue existiendo el motor de Trimble. Se buscó qué existe antes de escribir nada. **RTKLIB `convbin` no lee los archivos de campo de
-Trimble** (T01, T02, T04): lee los flujos RT17 y RT27, más Septentrio, u-blox, NovAtel, Javad,
+sigue existiendo el motor de Trimble. Se buscó qué existe antes de escribir nada.
+
+**RTKLIB `convbin` no lee los archivos de campo de Trimble** (T01, T02, T04): lee los flujos RT17 y RT27, más Septentrio, u-blox, NovAtel, Javad,
 RTCM y BINEX. `runpkr00` más TEQC tampoco convierte un T04, y TEQC está muerto desde 2019 y solo
 escribe RINEX 2. Lo único que convierte un T02 o un T04 es la utilidad oficial de Trimble,
 `convertToRinex.exe`: un programa de Windows, de licencia propia, **que no se puede
