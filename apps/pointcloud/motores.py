@@ -12,10 +12,14 @@ no se adivina, y el hallazgo de la precisión en `float32`.
 
 ## Las dos reglas propias de esta familia
 
-**Aquí un CRS ausente es detención dura, sin excepción.** En ráster se admite convertir sin
-georreferencia — un TIFF suelto a un COG suelto es legítimo. En nubes no: una nube sin CRS
+**Aquí un CRS ausente es detención dura**, con una única salida. En ráster se admite convertir
+sin georreferencia — un TIFF suelto a un COG suelto es legítimo. En nubes no: una nube sin CRS
 no se puede cruzar con nada, y el dato se pierde para siempre si nadie lo apunta al
 entregarla. Es la regla escrita en `AeroBim/docs/NUBES_DE_PUNTOS.md`.
+
+La salida: que **una persona declare coordenadas locales** —una nube de escáner sin GNSS, con
+el origen en 0—. Eso no adivina nada, es una respuesta, y queda en la bitácora con su nombre.
+Lo que sigue prohibido es reproyectarlas: ver `runner._exigir_crs`.
 
 **PDAL no habla mientras trabaja.** No emite avance por ninguna vía usable desde un
 subproceso, así que el plan lo declara con `emite_progreso=False`. Sin eso, el detector de

@@ -238,6 +238,28 @@
     <p class="tenue" style="margin:8px 0 0; font-size:.85rem;">
       Queda anotado con tu nombre en la bitácora del trabajo.
     </p>
+
+    {% if i.familia == "nube" %}
+      {% comment %}
+        **Coordenadas locales: una respuesta, no un hueco.** Una nube de escáner sin GNSS está en
+        el sistema de la estación, con el origen en 0; no hay EPSG que poner y pedirlo obliga a
+        inventar uno. Desmarcada por omisión —marcarla es decir algo— y excluyente con el campo
+        de arriba: las dos a la vez son una contradicción.
+      {% endcomment %}
+      <div style="margin-top:14px; padding-top:12px; border-top:1px solid var(--av-border);">
+        <label style="display:flex; gap:8px; align-items:flex-start; font-weight:600;">
+          <input type="checkbox" name="crs_local" value="si" form="forma-destino"
+                 {% if crs_local_marcado %}checked{% endif %}
+                 aria-describedby="ayuda-crs-local" style="margin-top:4px;">
+          <span>Son coordenadas locales: este levantamiento no tiene sistema de referencia</span>
+        </label>
+        <p id="ayuda-crs-local" class="tenue" style="margin:4px 0 0 26px; font-size:.85rem;">
+          Para una nube que sale de un escáner sin GNSS. Se convierte tal cual y la salida
+          tampoco lleva sistema; <strong>no se podrá reproyectar</strong>. Deja el campo de
+          arriba vacío.
+        </p>
+      </div>
+    {% endif %}
   </div>
 {% endif %}
 
