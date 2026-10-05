@@ -382,6 +382,43 @@ con el procedimiento manual, igual que ECW.
 
 ---
 
+## Fase 11 — Proceso de agentes y base de código
+
+Registrada el 2026-10-05 a partir del kit de proceso (`Claude-info/aeroconvert-claude-kit/`,
+fuera del repositorio hasta que la Fase 1 lo aplique). No cambia el comportamiento del producto:
+afina cómo trabajan los agentes, deja el gate verde en cualquier máquina y ordena lo que más pesa
+antes de la fase visual. **Todo PR va contra `main`, no apilado.** La Fase 2 del kit empieza con
+la Fase 1 fusionada.
+
+Medido de nuevo el 2026-10-05 sobre `main` tras el #12: 2.289 pruebas recogidas (3 con oráculo
+deseleccionadas), 42.280 líneas en `apps/` de las que 19.527 son de pruebas.
+
+| # | Entrega | Oráculo (cómo se sabe que está) | La cierra | Estado |
+| --- | --- | --- | --- | --- |
+| F11.1 | **Kit** (Fase 1 del kit): `CLAUDE.md`, `.claude/{settings.json,rules,skills}`, `scripts/claude/{verificar,plan_fila}.py`, dos líneas de `.gitignore`, dos ediciones de `AGENTS.md`. `HANDOFF.md` se parte **al final** y solo sin ramas abiertas que lo toquen | `plan_fila.py --abiertas` y `plan_fila.py F9.4` coinciden con este plan; `verificar.py rapido` y `todo` en verde; un fallo provocado enseña causa y log; `ruff check` y `ruff format --check` limpios; `/context` antes y después en el PR | Claude abre el PR; **la persona decide** si se fusiona | ⬜ |
+| F11.2 | **G0** · dos pruebas que dependen del equipo: `hay_tesseract` debe exigir también el idioma `spa` (`apps/documents/test_ocr.py:26` y `test_ocr_en_cola.py:35`) y `test_el_total_se_recorta_al_tope` (`apps/jobs/test_memoria.py:114`) debe fijar también la RAM | La suite completa pasa con Tesseract sin `spa` y con ≈4 GB de RAM; con `spa` y RAM de sobra sigue corriendo las mismas pruebas (ninguna omitida de más) | Claude | ⬜ |
+| F11.3 | **G1** · alinear los tres gates (`verify.ps1`, `scripts/verificar.sh`, `.github/workflows/ci.yml`) y corregir el comentario desfasado de `verificar.sh` | Una tabla paso × gate sin celdas distintas: `check --fail-level WARNING`, `collectstatic`, `shellcheck` y el módulo de producción en los tres (o la diferencia anotada con su motivo) | Claude | ⬜ |
+| F11.4 | **G2** · una sola versión (README `v0.3.0-alpha`, `pyproject.toml` `0.1.0`, CHANGELOG `0.1.0`) | `rg` de la cadena de versión: un único valor en los tres sitios | **La persona decide** cuál es la verdadera; Claude lo aplica | ⬜ |
+| F11.5 | **Auditoría de seguridad**, una vez y antes de F9.4: `security-audit` de Cloudflare con el alcance de la superficie pública (`jobs/runner.py`, `engines/`, `documents/{ocr,office,tarea,views}.py`, `dashboard/`, `prod.py`, `scripts/{office_convertir.ps1,desplegar.sh}`). Informe **fuera** del repo; la skill se retira y se anota el commit usado | Informe con severidad, archivo, evidencia y la prueba de 403 o de aislamiento que faltaba, por hallazgo confirmado; los `alta` entran a este plan como filas nuevas | Claude audita; **la persona tría** | ⬜ |
+| F11.6 | **Prueba de diseño** para F9.4 y F9.5, tres brazos sobre la misma pantalla (la del resultado de conversión): A sin skill · B `ui-ux-pro-max` · C Ponytail `lite` + `impeccable audit` | Gana el brazo con pruebas verdes, menor diff, 375 px sin desbordes y mejor `npx impeccable detect`; contraste leído del CSS (`/verificar pruebas apps/core apps/dashboard`) y `apps/core/test_estilo.py`. Se descarta el que baje un umbral, cambie tokens sin pasar el test o añada CDN | Claude corre los brazos; **la persona elige** | ⬜ |
+| F11.7 | **R1** · dividir `apps/documents/views.py` (1.420 líneas) en paquete `views/` por herramienta, con re-exportación | Mapa de URL idéntico antes y después, suite igual de verde, `fail_under` intacto; un commit por grupo; `/refactor-seguro` | Claude | ⬜ |
+| F11.8 | **Etapa 3** · `jobs/runner.py` (1.181 líneas) y las funciones de más de 140 líneas (`inspeccionar`, `_ejecutar_documento`) | Pruebas de caracterización **antes** de tocar, `/oraculo` y paseo en `p340` | **Bloqueada**: solo si la auditoría (F11.5) o el uso la piden | ⬜ bloqueada |
+
+**Orden propuesto:** F11.1 → F11.2 → F11.3 → F11.4 → F11.5 → F11.6 → F11.7 (F11.8 aparte).
+F11.2 y F11.3 son de bajo riesgo y de efecto inmediato; F11.5 y F11.6 deben ir **antes** de F9.4.
+El kit trae además G3 (`pytest-xdist`) y R2 (guardia `C901`): solo se abren como filas si la
+medición de F11.5 las justifica.
+
+**Lo que el kit no puede hacer en este repositorio sin decisión previa:** su `settings.json`
+niega `gh pr merge`, y la regla fijada el 2026-10-05 es que Claude fusiona los PR y la persona
+despliega. Hay que elegir uno de los dos antes de aplicar F11.1.
+
+**Dicho sin comprobar:** el kit supone que `catalogos.py`, `tarea.py` y `despachador.py` tienen
+poca cobertura porque corren en procesos hijos que la medición del padre no ve. `pyproject.toml`
+no configura `concurrency` ni medición de subprocesos, así que es plausible, pero no está medido.
+
+---
+
 ## Deuda conocida
 
 > **Cómo se lee esta tabla, y por qué hizo falta arreglarla.**
@@ -406,6 +443,10 @@ con el procedimiento manual, igual que ECW.
 | Soltar un archivo solo da su nombre | El navegador no entrega la ruta completa, por seguridad. Quedan las dos vías: subir o explorar la compartida | no se paga |
 | El correo no es único en la base | `auth.User` no lo declara así, y cambiarlo obliga a migrar el modelo con la base ya en producción. El alta lo impide y el backend se niega a elegir entre dos | cuando toque tocar el modelo por otra cosa |
 | Office solo en Windows | Hablan con Word por COM. En el servidor salen apagadas con su motivo | no se paga · la alternativa entrega un documento que *se parece* |
+| Seis pruebas dependen del equipo | Cinco de `TestDondeTesseractEsta` fallan con Tesseract sin `spa` y `test_el_total_se_recorta_al_tope` falla con ≈4 GB de RAM: el gate deja de ser verde «en una máquina cualquiera» (2026-10-05, leído en el código; la falla no se ha reproducido aquí) | **Abierta** → F11.2 |
+| Los tres gates no comprueban lo mismo | `--fail-level WARNING` y `shellcheck` solo en `verificar.sh`; `collectstatic` solo en el CI | **Abierta** → F11.3 |
+| Tres versiones distintas | README `v0.3.0-alpha`, `pyproject.toml` `0.1.0`, última entrada del CHANGELOG `0.1.0` | **Abierta** → F11.4 (decide la persona) |
+| Cobertura baja en `catalogos.py`, `tarea.py`, `despachador.py` | Quizá corren en procesos hijos que `pytest --cov` no ve; **inferencia sin medir** | **Abierta** → se mide en F11.5 |
 
 ---
 
