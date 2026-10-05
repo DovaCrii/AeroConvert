@@ -513,6 +513,79 @@ FORMATOS: dict[str, Formato] = {
             "T04, solo los flujos RT17 y RT27."
         ),
     ),
+    # Los flujos y registros que lee RTKLIB `convbin`. Se reconocen **solo por la extension**:
+    # no tienen una firma de cabecera que sirva (son tramas sin encabezado de archivo), y la
+    # que se usaria daria falsos positivos. Lo que decide si sirvieron es lo que sale: el
+    # motor abre el RINEX y cuenta epocas.
+    "rtcm3": _f(
+        codigo="rtcm3",
+        familia=GNSS,
+        nombre="RTCM 3",
+        extensiones=frozenset({".rtcm3"}),
+        lleva_crs_incrustado=False,
+        admite_escritura=False,
+        nota=(
+            "Correcciones o observaciones de una base en RTCM 3 (mensajes 1002 a 1012 y MSM). "
+            "Sin la semana en el flujo, la fecha sale de la del archivo en disco."
+        ),
+    ),
+    "ubx": _f(
+        codigo="ubx",
+        familia=GNSS,
+        nombre="u-blox UBX",
+        extensiones=frozenset({".ubx"}),
+        lleva_crs_incrustado=False,
+        admite_escritura=False,
+        nota="Registro de un receptor u-blox (serie 4T a F9), por ejemplo uno de ArduSimple.",
+    ),
+    "novatel": _f(
+        codigo="novatel",
+        familia=GNSS,
+        nombre="NovAtel OEM",
+        extensiones=frozenset({".gps"}),
+        lleva_crs_incrustado=False,
+        admite_escritura=False,
+        nota="Registro binario de un receptor NovAtel OEM4, OEM6, OEM7 u OEMStar.",
+    ),
+    "sbf": _f(
+        codigo="sbf",
+        familia=GNSS,
+        nombre="Septentrio SBF",
+        extensiones=frozenset({".sbf"}),
+        lleva_crs_incrustado=False,
+        admite_escritura=False,
+        nota="Registro binario de un receptor Septentrio (Septentrio Binary Format).",
+    ),
+    "rt17": _f(
+        codigo="rt17",
+        familia=GNSS,
+        nombre="Trimble RT17",
+        extensiones=frozenset({".rt17"}),
+        lleva_crs_incrustado=False,
+        admite_escritura=False,
+        nota=(
+            "Flujo RT17 de un receptor Trimble. **No es** el archivo de campo T01/T02/T04, "
+            "que es otro formato y solo lo convierte la utilidad de Trimble."
+        ),
+    ),
+    "binex": _f(
+        codigo="binex",
+        familia=GNSS,
+        nombre="BINEX",
+        extensiones=frozenset({".bnx", ".binex"}),
+        lleva_crs_incrustado=False,
+        admite_escritura=False,
+        nota="Intercambio binario de UNAVCO. Se lee la variante big-endian con CRC normal.",
+    ),
+    "javad": _f(
+        codigo="javad",
+        familia=GNSS,
+        nombre="Javad GREIS",
+        extensiones=frozenset({".jps"}),
+        lleva_crs_incrustado=False,
+        admite_escritura=False,
+        nota="Registro de un receptor Javad en su formato GREIS.",
+    ),
     "rinex": _f(
         codigo="rinex",
         familia=GNSS,

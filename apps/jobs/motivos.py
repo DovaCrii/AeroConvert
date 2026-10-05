@@ -120,6 +120,12 @@ MOTIVOS: dict[str, Motivo] = dict(
             "Es «Convert To RINEX», de licencia propia. Lo trae Trimble Business Center.",
         ),
         _m(
+            "sin-rtklib",
+            "No hay RTKLIB (convbin) en esta máquina.",
+            "Es de código abierto. En Ubuntu: sudo apt install rtklib, "
+            "o AEROCONVERT_RTKLIB_CONVBIN.",
+        ),
+        _m(
             "sin-wine",
             "El convertidor de Trimble es de Windows y aquí no hay Wine para correrlo.",
             "sudo apt install wine, y un prefijo propio en AEROCONVERT_WINEPREFIX.",

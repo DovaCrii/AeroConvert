@@ -5,6 +5,17 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Sin publicar]
 
+### Añadido — RTKLIB como segundo motor GNSS (fase 10.6)
+
+- **Siete formatos de receptor más, a RINEX, con RTKLIB `convbin`** (BSD-2, nativo, sin
+  Wine): RT17 de Trimble, u-blox UBX, Septentrio SBF, NovAtel, RTCM 3, BINEX y Javad GREIS. Se
+  reconocen por la extensión —no tienen firma de archivo que sirva— y lo que decide si sirvió
+  es lo que sale: el mismo verificador que el motor de Trimble abre el RINEX y cuenta épocas.
+- Sonda `sondar_rtklib()` con su motivo `sin-rtklib`; variable `AEROCONVERT_RTKLIB_CONVBIN`.
+  Apagado, el botón se queda con su motivo.
+- Medido con el `convbin` que trae Trimble Business Center, sobre un RINEX real (la ruta de
+  flujos reales no se pudo medir: no hay uno en la máquina): ver `docs/PRUEBAS_CON_ORACULO.md`.
+
 ### Añadido — datos GNSS: del receptor Trimble a RINEX (fase 10)
 
 - **Un T01, T02 o T04 de Trimble se convierte a RINEX** con el convertidor oficial, y se

@@ -509,6 +509,21 @@ velocidad es una medida, no una promesa). Una diferencia: con `-mx` la navegaci�
 **un solo `.23mix`** (88 KB y 200 KB) además del `.23o`; el empaquetado del motor la recoge
 porque zipa todo archivo con contenido. Los plazos del motor (30 s por MB) quedan holgados.
 
+### 6. RTKLIB `convbin`, medido con el que trae Trimble Business Center
+
+`C:\Program Files\Trimble\Trimble Business Center\convbin.exe` es el `convbin` de RTKLIB
+(la ayuda lista RT17, SBF, UBX, RTCM 3, BINEX y RINEX). Se corrió **solo** como oráculo de
+la ruta, sin copiarlo ni redistribuirlo, con el RINEX del T02 de la sección 5 como entrada:
+`convbin -r rinex -v 2.11 -d <carpeta> GMLA202301311700A.23o`. Salió con código 0 en 1 s,
+`GMLA202301311700A.obs` de 15,9 MB, y `apps/formats/rinex.py` lo lee: **versión 2.11, 3.600
+épocas, 17:00:00 a 17:59:59, sin huecos ni truncado**. Dos hallazgos: con `-d` los nombres
+salen del archivo de entrada (`<nombre>.obs`, `<nombre>.nav`), y el receptor del RINEX sale
+vacío, así que el cruce con el receptor del crudo es solo de Trimble.
+
+**No medido**: un flujo real UBX, SBF, RT17, NovAtel, RTCM 3, BINEX o Javad. No hay ninguno en
+esta máquina. Las pruebas del motor son de `argv` y de veredicto; la conversión de un flujo
+queda pendiente en p340 con `apt install rtklib`.
+
 ### Lo que esta corrida **no** prueba
 
 - **Bajo Wine.** Todo lo anterior es Windows nativo. El plazo bajo Wine (90 s por MB) es una

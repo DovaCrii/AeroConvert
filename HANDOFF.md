@@ -35,7 +35,9 @@ cd /opt/aeroconvert && sudo -u aeroconvert git pull && sudo scripts/desplegar.sh
 | `F9.4` · `F9.5` · `F9.6` | Lo visual; paleta en OKLCH; `Incidente` y `resumen_de_uso` | Código |
 | `F7.2c` | Tarjetas en la pantalla de convertir | Código |
 | `F3.5` ◐ · `F3.4` | LandXML real; DWG/DGN con ODA instalado | Un archivo o un puesto con ODA |
-| `F2.6` · `F4.1` · `F4.2` · `F10.6` | 3D Tiles; IFC y malla; AeroBim; `convbin` | Código |
+| `F10.7` · `F10.8` | Informe de calidad de un RINEX en código propio (al estilo TEQC); RINEX a otra versión | Código |
+| `F10.6` ✅ | `convbin` (RTKLIB) hecho; falta p340: `sudo apt install rtklib` y un flujo real | Usted + un archivo |
+| `F2.6` · `F4.1` · `F4.2` | 3D Tiles; IFC y malla; AeroBim | Código |
 | `F1.6` | ECW: no, hasta que alguien lo pida dos veces | Decisión |
 | Fase 11 | Proceso de agentes y base de código (kit, gates, versión, auditoría, refactor) | Código y usted |
 

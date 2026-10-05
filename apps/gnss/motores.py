@@ -1,10 +1,14 @@
 """Motores GNSS: del archivo crudo de un receptor a RINEX.
 
-## Por qué hay un solo motor, y es de Trimble
+## Dos motores: el de Trimble para sus archivos de campo, y RTKLIB para el resto
 
-Se buscó qué existe antes de escribir nada. **RTKLIB `convbin` no lee los archivos de campo de
-Trimble** (T01, T02, T04): lee los flujos RT17 y RT27, más Septentrio, u-blox, NovAtel, Javad,
-RTCM y BINEX. `runpkr00` más TEQC tampoco convierte un T04, y TEQC está muerto desde 2019 y solo
+`MotorRtklibConvbin` (más abajo) lee los flujos RT17, UBX, SBF, NovAtel, RTCM 3, BINEX y
+Javad con `convbin`, de código abierto. **No** lee los archivos de campo de Trimble, y por eso
+sigue existiendo el motor de Trimble. Se buscó qué existe antes de escribir nada.
+
+**RTKLIB `convbin` no lee los archivos de campo de Trimble** (T01, T02,
+T04): lee los flujos RT17 y RT27, más Septentrio, u-blox, NovAtel, Javad, RTCM y BINEX.
+`runpkr00` más TEQC tampoco convierte un T04, y TEQC está muerto desde 2019 y solo
 escribe RINEX 2. Lo único que convierte un T02 o un T04 es la utilidad oficial de Trimble,
 `convertToRinex.exe`: un programa de Windows, de licencia propia, **que no se puede
 redistribuir**. Por eso se sondea y no se declara, igual que ODA, y en Linux corre bajo Wine.
@@ -30,6 +34,7 @@ from __future__ import annotations
 
 import math
 import os
+import re
 import shutil
 import sys
 import zipfile
@@ -232,6 +237,154 @@ class MotorTrimbleARinex(Motor):
         return verificar_rinex(salida, version=_version_pedida(trabajo), crudo=trabajo.source_path)
 
 
+#: Qué le dice `-r` a `convbin` por cada formato del catálogo. Es una lista cerrada: lo que
+#: llega del usuario nunca se interpola en el argv, se elige de aquí.
+FORMATO_DE_CONVBIN = {
+    "rtcm3": "rtcm3",
+    "ubx": "ubx",
+    "novatel": "nov",
+    "sbf": "sbf",
+    "rt17": "rt17",
+    "binex": "binex",
+    "javad": "javad",
+}
+
+VERSIONES_DE_CONVBIN = (
+    ("3.04", "RINEX 3.04"),
+    ("3.05", "RINEX 3.05"),
+    ("3.03", "RINEX 3.03"),
+    ("2.11", "RINEX 2.11 (la que lee todo)"),
+)
+
+#: `convbin` es rápido (16 MB de RINEX en un segundo), pero se deja holgura por si el disco es
+#: lento. No es una medida de la conversión de un flujo, que no se ha hecho: no hay uno aquí.
+SEGUNDOS_POR_MB_DE_CONVBIN = 20
+
+_FECHA_APROXIMADA = re.compile(r"^\d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2}$")
+
+
+class MotorRtklibConvbin(Motor):
+    """Los flujos y registros de receptores a RINEX, con RTKLIB `convbin` (BSD-2).
+
+    **Es el motor abierto**: corre nativo en Linux y en Windows, sin Wine ni licencia. No lee
+    los T01/T02/T04 de Trimble, que son otro formato (ver el docstring del módulo).
+    """
+
+    id = "rtklib-convbin"
+    nombre = "RTKLIB convbin"
+    familia = "gnss"
+    prioridad = 20
+
+    def pares(self) -> frozenset[ParDeFormatos]:
+        return frozenset(ParDeFormatos(origen, "rinex") for origen in FORMATO_DE_CONVBIN)
+
+    def disponibilidad(self) -> Disponibilidad:
+        from apps.engines import sondas
+
+        return sondas.sondar_rtklib()
+
+    def opciones(self, par: ParDeFormatos) -> tuple[OpcionDeMotor, ...]:
+        opciones = [
+            OpcionDeMotor(
+                nombre="version",
+                etiqueta="Versión de RINEX",
+                tipo="eleccion",
+                por_defecto=VERSION_POR_OMISION,
+                elecciones=VERSIONES_DE_CONVBIN,
+            ),
+            OpcionDeMotor(
+                nombre="doppler", etiqueta="Incluir Doppler", tipo="booleano", por_defecto=False
+            ),
+            OpcionDeMotor(
+                nombre="snr",
+                etiqueta="Incluir intensidad de señal (SNR)",
+                tipo="booleano",
+                por_defecto=False,
+            ),
+            OpcionDeMotor(
+                nombre="marcador",
+                etiqueta="Nombre del punto",
+                tipo="texto",
+                por_defecto="",
+                ayuda="Si lo dejas vacío, el RINEX sale sin nombre de punto.",
+            ),
+        ]
+        if par.origen == "rtcm3":
+            opciones.append(
+                OpcionDeMotor(
+                    nombre="fecha_aproximada",
+                    etiqueta="Fecha aproximada de la grabación (AAAA/MM/DD hh:mm:ss)",
+                    tipo="texto",
+                    por_defecto="",
+                    ayuda=(
+                        "El RTCM 3 no trae la semana GPS. Vacío, se usa la fecha del archivo "
+                        "en disco, que al copiarlo puede ser la de la copia y no la de la medida."
+                    ),
+                )
+            )
+        return tuple(opciones)
+
+    def plan(self, trabajo) -> PlanDeEjecucion:
+        from apps.engines import sondas
+
+        opciones = dict(trabajo.options or {})
+        version = str(opciones.get("version") or VERSION_POR_OMISION)
+        if version not in dict(VERSIONES_DE_CONVBIN):
+            raise ValueError(f"«{version}» no es una versión de RINEX que se ofrezca.")
+        formato = FORMATO_DE_CONVBIN.get(str(trabajo.source_format))
+        if formato is None:
+            raise ValueError(f"RTKLIB no sabe leer «{trabajo.source_format}».")
+        marcador = _marcador(opciones.get("marcador"))
+        fecha = str(opciones.get("fecha_aproximada") or "").strip()
+        if fecha and not _FECHA_APROXIMADA.match(fecha):
+            raise ValueError("La fecha aproximada va como AAAA/MM/DD hh:mm:ss.")
+
+        origen = Path(trabajo.source_path)
+        destino = Path(trabajo.output_path)
+        parcial = ruta_parcial(destino)
+        carpeta = _carpeta_de_transito(trabajo)
+        shutil.rmtree(carpeta, ignore_errors=True)
+        carpeta.mkdir(parents=True, exist_ok=True)
+
+        argv = [sondas.ruta_de_rtklib(), "-r", formato, "-v", version, "-d", str(carpeta)]
+        if opciones.get("doppler"):
+            argv.append("-od")
+        if opciones.get("snr"):
+            argv.append("-os")
+        if marcador:
+            argv += ["-hm", marcador]
+        if fecha and formato == "rtcm3":
+            argv += ["-tr", fecha]
+        argv.append(str(origen))
+
+        megas = max(1, math.ceil(trabajo.source_size_bytes / 1_048_576))
+        return PlanDeEjecucion(
+            argv=tuple(argv),
+            ruta_de_salida=destino,
+            posteriores=(
+                (sys.executable, "-m", "apps.gnss.empaquetar", str(carpeta), str(parcial)),
+            ),
+            salida_en_posteriores=True,
+            cwd=Path(settings.BASE_DIR),
+            timeout_s=SEGUNDOS_BASE + SEGUNDOS_POR_MB_DE_CONVBIN * megas,
+            # `convbin` pinta una línea de avance por época en la salida de error, pero no un
+            # porcentaje: el detector de atasco no tiene de dónde medir.
+            emite_progreso=False,
+        )
+
+    def verificar(self, trabajo, salida: Path) -> Verificacion:
+        base = super().verificar(trabajo, salida)
+        if not base.correcta:
+            return base
+        # Sin `crudo`: el cruce con el receptor del crudo es del T0x de Trimble.
+        resultado = verificar_rinex(salida, version=_version_pedida(trabajo))
+        if resultado.correcta:
+            resultado.detalles["verificado_con"] = (
+                "rinex.py (lector propio, sobre la salida de RTKLIB convbin)"
+            )
+        return resultado
+
+
 def _version_pedida(trabajo) -> str:
     return str((trabajo.options or {}).get("version") or VERSION_POR_OMISION)
 
@@ -370,3 +523,4 @@ def registrar_todos() -> None:
     from apps.engines import registry
 
     registry.registrar(MotorTrimbleARinex())
+    registry.registrar(MotorRtklibConvbin())
