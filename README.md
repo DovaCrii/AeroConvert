@@ -9,7 +9,7 @@
 [![Licencia: MIT](https://img.shields.io/badge/licencia-MIT-F15BB5.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.12-1B2A4A.svg)](https://www.python.org/)
 [![Django](https://img.shields.io/badge/django-6.1-1B2A4A.svg)](https://www.djangoproject.com/)
-[![Estado](https://img.shields.io/badge/estado-v0.3.0--alpha-F15BB5.svg)](#estado-actual)
+[![Estado](https://img.shields.io/badge/estado-v0.10.0-F15BB5.svg)](#estado-actual)
 
 Aplicaciones hermanas: **[AeroBim](https://github.com/DovaCrii/AeroBim)** (visor y coordinación BIM) · **[AeroControl](https://github.com/DovaCrii/AeroControl)** (operaciones RPA) · **[AeroPlanner](https://github.com/DovaCrii/AeroPlanner)** (planificación de misiones) · **[AeroLink](https://github.com/DovaCrii/AeroLink)** (telemetría y evidencia) — funcionan por separado, se comunican cuando conviene
 
@@ -101,9 +101,10 @@ más: **ninguna comparte base de datos con otra**. Se comunican por archivo o po
 
 ## Estado actual
 
-**`v0.3.0-alpha`** — ráster y nubes de puntos de punta a punta, con interfaz.
-**394 pruebas**, 92 % de cobertura, verdes **sin GDAL ni PDAL instalados**, y el CI de
-GitHub Actions en verde.
+**`v0.10.0`** — ráster, nubes de puntos, vectorial y CAD, herramientas de documentos y datos
+GNSS, desplegado en un servidor de la oficina. **Más de 2.300 pruebas**, con la cobertura por
+encima del piso de 83 %, verdes **sin GDAL ni PDAL instalados**, y el CI de GitHub Actions en
+verde. El detalle de cada versión está en [`CHANGELOG.md`](CHANGELOG.md).
 
 Sobre los entregables reales de un vuelo de BHP:
 

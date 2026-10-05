@@ -5,6 +5,11 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Sin publicar]
 
+## [0.10.0] — 2026-10-05
+
+Primera versión desde la 0.1.0: reúne las fases 1 a 10. La numeración antigua del README
+(`v0.3.0-alpha`) quedó atrás de lo que ya está desplegado y se retira.
+
 ### Añadido — un RINEX que ya existe se pasa a otra versión (fase 10.8)
 
 - Nuevo origen `rinex_obs`: un RINEX de observación (`.rnx`, `.obs`, `.23o`, `.24o`…) se
