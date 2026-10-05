@@ -1483,8 +1483,47 @@ a.menu-titulo:hover {
   margin: 0 0 var(--av-s-6);
 }
 
-.repetibles-titulo {
+/* El título es el botón de plegar: `summary` se maneja con Enter y espacio, y se oye como
+ * «contraído» o «expandido». El chevron cambia de **forma** (gira), no solo de color. */
+.repetibles-resumen {
+  display: flex;
+  align-items: center;
+  gap: var(--av-s-2);
   margin: 0 0 var(--av-s-3);
+  cursor: pointer;
+  list-style: none;
+}
+
+.repetibles-resumen::-webkit-details-marker {
+  display: none;
+}
+
+.repetibles-resumen::before {
+  content: "";
+  flex: none;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-right: 2px solid var(--av-text-muted);
+  border-bottom: 2px solid var(--av-text-muted);
+  transform: rotate(-45deg);
+  transition: transform var(--av-rapido);
+}
+
+.repetibles[open] > .repetibles-resumen::before {
+  transform: rotate(45deg);
+}
+
+/* Plegado, la franja ya no necesita el aire de debajo. */
+.repetibles:not([open]) {
+  margin-bottom: var(--av-s-4);
+}
+
+.repetibles:not([open]) > .repetibles-resumen {
+  margin-bottom: 0;
+}
+
+.repetibles-titulo {
+  margin: 0;
   font-size: var(--av-fs-sm);
   font-weight: var(--av-peso-medio);
   letter-spacing: var(--av-track-rotulo);

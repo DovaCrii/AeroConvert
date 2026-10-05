@@ -30,8 +30,15 @@
     Por destino y no por archivo: cinco ortofotos llevadas a QGIS son **una** fila, no cinco
     que empujan el catálogo fuera de la pantalla. Ver `apps/dashboard/recientes.py`.
   {% endcomment %}
-  <section class="repetibles" aria-label="Lo que sueles hacer">
-    <h2 class="repetibles-titulo">Seguir donde lo dejaste</h2>
+  {% comment %}
+    **Plegable, y se acuerda.** Un `<details>` nativo: abre y cierra con teclado y táctil, sin
+    JavaScript y sin esconder nada en hover. `static/js/plegable.js` solo recuerda en este
+    navegador si se dejó cerrado.
+  {% endcomment %}
+  <details class="repetibles" open data-recuerda="repetibles" aria-label="Lo que sueles hacer">
+    <summary class="repetibles-resumen">
+      <h2 class="repetibles-titulo">Seguir donde lo dejaste</h2>
+    </summary>
     <div class="repetibles-lista">
       {% for r in repetibles %}
         <a class="repetible" href="{{ r.enlace }}">
@@ -48,7 +55,7 @@
         </a>
       {% endfor %}
     </div>
-  </section>
+  </details>
 {% endif %}
 
 {% if conversion %}

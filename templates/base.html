@@ -300,6 +300,8 @@
     ratón igual, que es la regla que impide que descubrirlos sea necesario.
   {% endcomment %}
   <script src="{% static 'js/atajos.js' %}"></script>
+  {# Recuerda qué bloques plegables se dejaron cerrados (`data-recuerda`). Sin él, abren siempre. #}
+  <script src="{% static 'js/plegable.js' %}"></script>
   {% comment %}
     Lo que pasa cuando una respuesta llega, o no llega: el error que se ve, la ficha a la
     vista, y el aviso para el lector de pantalla. Sin él, un fallo del servidor dejaba la

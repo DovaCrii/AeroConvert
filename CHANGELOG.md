@@ -5,6 +5,12 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Sin publicar]
 
+### Añadido — «Seguir donde lo dejaste» se puede plegar
+
+- La franja de la portada es ahora un `<details>` nativo: se pliega y se abre con el ratón, el
+  teclado (Enter y espacio) o el dedo, sin JavaScript. Abre por omisión. `static/js/plegable.js`
+  recuerda en el navegador si se dejó cerrado. El chevron gira: la forma cambia, no solo el color.
+
 ## [0.10.0] — 2026-10-05
 
 Primera versión desde la 0.1.0: reúne las fases 1 a 10. La numeración antigua del README

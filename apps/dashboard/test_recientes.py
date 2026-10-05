@@ -127,6 +127,16 @@ class TestEnLaPortada:
         cuerpo = client.get(reverse("dashboard:que_puedo_hacer")).content.decode()
         assert "Seguir donde lo dejaste" in cuerpo
 
+    def test_se_puede_plegar_con_un_details_nativo_y_abre_por_omision(self, client, topografo):
+        """Plegable sin JavaScript: `<details>` abre y cierra con teclado y táctil. Abierto por
+        omisión, y recuerda en el navegador si se dejó cerrado (`plegable.js`)."""
+        client.force_login(topografo)
+        _trabajo(topografo, perfil="qgis")
+        cuerpo = client.get(reverse("dashboard:que_puedo_hacer")).content.decode()
+        assert '<details class="repetibles" open data-recuerda="repetibles"' in cuerpo
+        assert '<summary class="repetibles-resumen">' in cuerpo
+        assert "js/plegable.js" in cuerpo
+
     def test_y_desaparece_al_buscar(self, client, topografo):
         """Quien escribió algo en la caja **ya dijo qué quiere**, y ponerle delante lo que
         hizo ayer es ruido. Sin JavaScript: la vista deja la lista vacía y el fragmento que
