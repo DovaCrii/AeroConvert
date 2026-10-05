@@ -114,6 +114,10 @@ class TestElTechoDelGrupoDeControl:
     def test_el_total_se_recorta_al_tope(self, monkeypatch):
         """Lo que importa: `memoria_total_mb` devuelve el techo real, no la RAM."""
         monkeypatch.setattr(est, "limite_del_grupo_mb", lambda: 8192)
+        # La RAM también se fija: en un equipo de 4 GB el menor de los dos sería ella.
+        monkeypatch.setattr(
+            est.os, "sysconf", lambda nombre: 4096 if nombre == "SC_PAGE_SIZE" else 4_194_304
+        )
         assert est.memoria_total_mb() == 8192
 
     @pytest.mark.skipif(os.name == "nt", reason="Windows no tiene grupos de control")
