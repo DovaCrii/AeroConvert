@@ -247,6 +247,8 @@ FORMATO_DE_CONVBIN = {
     "rt17": "rt17",
     "binex": "binex",
     "javad": "javad",
+    # No es un flujo: es un RINEX que se reescribe en otra versión.
+    "rinex_obs": "rinex",
 }
 
 VERSIONES_DE_CONVBIN = (

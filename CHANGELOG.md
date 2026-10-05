@@ -5,6 +5,15 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Sin publicar]
 
+### Añadido — un RINEX que ya existe se pasa a otra versión (fase 10.8)
+
+- Nuevo origen `rinex_obs`: un RINEX de observación (`.rnx`, `.obs`, `.23o`, `.24o`…) se
+  reescribe en 2.11, 3.03, 3.04 o 3.05 con `convbin -r rinex`, y el recibo trae su calidad. La
+  extensión no basta: se abre la cabecera y, si no es un RINEX de observación, el archivo queda
+  como desconocido con el motivo. La navegación (`.23n`) no se convierte sola.
+- Medido a mano con el `convbin` de Trimble Business Center: RINEX 3.04 del T02 a 2.11, 3.600
+  épocas (ver `docs/PRUEBAS_CON_ORACULO.md`, sección 6).
+
 ### Añadido — calidad de un RINEX, al estilo de lo que se pedía de TEQC (fase 10.7)
 
 - El recibo de toda conversión GNSS trae ahora la **calidad**: satélites por época (mínimo,

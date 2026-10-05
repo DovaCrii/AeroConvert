@@ -17,6 +17,7 @@ Dos decisiones que conviene entender antes de tocar esto:
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 
 from django.utils.translation import gettext_lazy as _
@@ -100,6 +101,9 @@ class Formato:
         if self.extension_de_salida:
             return self.extension_de_salida
         return sorted(self.extensiones)[0] if self.extensiones else ".out"
+
+
+_RINEX_CORTO = re.compile(r"\.\d\do")
 
 
 def _f(**kwargs) -> Formato:
@@ -586,6 +590,20 @@ FORMATOS: dict[str, Formato] = {
         admite_escritura=False,
         nota="Registro de un receptor Javad en su formato GREIS.",
     ),
+    "rinex_obs": _f(
+        codigo="rinex_obs",
+        familia=GNSS,
+        nombre="RINEX (observación)",
+        # `.23o`, `.24o`... se reconocen por su patron, no por esta lista: ver `por_extension`.
+        extensiones=frozenset({".rnx", ".obs"}),
+        lleva_crs_incrustado=False,
+        admite_escritura=False,
+        nota=(
+            "Un RINEX de observación que ya existe, para pasarlo a otra versión. La "
+            "cabecera se lee y se confirma al abrirlo; la navegación (`.23n`) no se convierte "
+            "sola."
+        ),
+    ),
     "rinex": _f(
         codigo="rinex",
         familia=GNSS,
@@ -631,4 +649,9 @@ def por_extension(extension: str) -> tuple[Formato, ...]:
     ext = extension.lower()
     if not ext.startswith("."):
         ext = f".{ext}"
-    return tuple(f for f in FORMATOS.values() if ext in f.extensiones)
+    encontrados = [f for f in FORMATOS.values() if ext in f.extensiones]
+    # RINEX 2 y los nombres cortos de 3: `.23o`, `.24o`... cambian cada año, no caben en una
+    # lista. Solo la `o` de observación; `.23n` es navegación y no es lo que se convierte.
+    if _RINEX_CORTO.fullmatch(ext):
+        encontrados.append(FORMATOS["rinex_obs"])
+    return tuple(encontrados)
