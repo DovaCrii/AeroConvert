@@ -48,7 +48,7 @@ EN_LETRA = {
 DONDE_SE_PUBLICA = (
     "despliegue/README.md",
     "despliegue/SERVIDOR.md",
-    "apps/documents/views.py",
+    "apps/documents/views/__init__.py",
 )
 
 
