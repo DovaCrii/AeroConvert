@@ -370,12 +370,20 @@ def _veredicto_generico(perfil_destino: PerfilDeDestino, inspeccion) -> Veredict
         return _veredicto_de_libreta(perfil_destino, inspeccion)
 
     if not inspeccion.crs.conocido and codigo not in ("kml", "kmz"):
+        # Una nube de escáner sin GNSS no tiene EPSG que declarar: está en coordenadas locales.
+        # Decirlo aquí evita que alguien se invente uno para poder seguir.
+        remedio = "Declarar el EPSG antes de convertir."
+        if inspeccion.familia == catalogo.NUBE:
+            remedio = (
+                "Declarar el EPSG antes de convertir, o marcar que son coordenadas locales "
+                "si el levantamiento no tiene sistema."
+            )
         return Veredicto(
             perfil_id=perfil_destino.id,
             perfil_nombre=perfil_destino.nombre,
             severidad=CON_REPAROS,
             motivo="Abre, pero no declara sistema de referencia.",
-            remedio="Declarar el EPSG antes de convertir.",
+            remedio=remedio,
         )
 
     if codigo not in perfil_destino.formatos_preferidos:

@@ -5,6 +5,15 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Sin publicar]
 
+### Añadido — coordenadas locales para nubes de puntos
+
+- **Una nube de escáner sin GNSS ya se puede convertir.** Está en el sistema de la estación,
+  con el origen en 0, y pedirle un EPSG obligaba a inventarlo, que es justo lo que la regla del
+  proyecto prohíbe. Ahora la ficha ofrece una casilla «Son coordenadas locales», **desmarcada
+  por omisión**, solo para nubes, excluyente con el campo de EPSG, y anotada en la bitácora con
+  el nombre de quien la marcó. Lo que sigue prohibido es **reproyectarlas**: pasar de local a
+  UTM es georreferenciar, y sin puntos de control no hay de dónde partir.
+
 ### Corregido — contraste y foco, medidos (fase 9.3, 2026-09-25)
 
 Siete pares estaban por debajo de WCAG 2.1 AA y ninguna prueba los miraba.
