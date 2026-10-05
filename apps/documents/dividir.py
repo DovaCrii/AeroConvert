@@ -73,6 +73,11 @@ class Trozo:
         return f"_{self.desde}" if self.desde == self.hasta else f"_{self.desde}-{self.hasta}"
 
 
+#: Cada trozo es un archivo que se escribe. Sin tope, un campo de miles de rangos ocupaba el
+#: proceso web de la petición (se contaban los repetidos en cuadrático) y el disco después.
+MAXIMO_TROZOS = 500
+
+
 def analizar_rangos(texto: str, total: int) -> list[Trozo]:
     """`1-5, 8, 12-14` a trozos, comprobados contra el documento.
 
@@ -83,6 +88,10 @@ def analizar_rangos(texto: str, total: int) -> list[Trozo]:
     for crudo in (texto or "").split(","):
         if not crudo.strip():
             continue
+        if len(trozos) >= MAXIMO_TROZOS:
+            raise ComposicionInvalida(
+                f"Son demasiados trozos: el máximo es {MAXIMO_TROZOS} por trabajo."
+            )
 
         coincidencia = PATRON_RANGO.match(crudo)
         if coincidencia is None:

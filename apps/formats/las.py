@@ -106,11 +106,20 @@ class CabeceraLas:
         millones el escalón es de unos 0,5 m. Hay que restar el desplazamiento de cabecera
         antes de convertir, y este indicador es lo que permite avisarlo antes.
         """
-        mayor = max(abs(self.minimo[1]), abs(self.maximo[1]), abs(self.minimo[0]))
+        import math
+
+        valores = (self.minimo[1], self.maximo[1], self.minimo[0])
+        # `max()` ignora un nan según el orden de los argumentos: se mira cada valor aparte.
+        if not all(math.isfinite(v) for v in valores):
+            return False
+        mayor = max(abs(v) for v in valores)
         if mayor == 0:
             return True
+        if not all(math.isfinite(e) and e > 0 for e in self.escala[:2]):
+            # Una cabecera con inf, nan o una escala nula no se puede juzgar: se avisa por el
+            # lado prudente y no se rompe la inspección.
+            return False
         # Escalón de un float32 en esa magnitud, contra el escalón declarado del archivo.
-        import math
 
         escalon = 2 ** (math.floor(math.log2(mayor)) - 23)
         return escalon <= min(self.escala[0], self.escala[1])
