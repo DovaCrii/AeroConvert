@@ -174,6 +174,7 @@ class TestElBuscador:
         assert all(g["acciones"] for g in grupos)
 
 
+@pytest.mark.usefixtures("con_gdal")
 class TestBuscarPorParDeFormatos:
     """**El hueco que dejaba un catálogo ordenado por intención.**
 
