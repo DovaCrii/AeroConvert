@@ -125,7 +125,7 @@ class TestElEnvio:
         casilla = cuerpo[cuerpo.index('name="crs_local"') :].split(">", 1)[0]
         assert "checked" in casilla
 
-    def test_en_un_raster_no_vale(self, sesion, tmp_path):
+    def test_en_un_raster_no_vale(self, sesion, tmp_path, con_gdal):
         """Un ráster sin georreferencia sigue siendo una imagen: no necesita esta salida, y
         aceptarla en cualquier familia la volvería un «no sé» universal."""
         from apps.formats.tests.constructor import geotiff_minimo
