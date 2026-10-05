@@ -74,8 +74,9 @@ case*; las siglas se mantienen (ECW, COG, LAZ, IFC, CRS, GSD, EPSG).
 internamente.
 
 **Ramas.** `codex/<área-o-fase>`. No `feat/` ni `fix/`. Nunca commit ni push directo a
-`main`. **Nunca fusionar un PR sin permiso explícito** — «dale» significa implementar y
-empujar, no fusionar.
+`main`. **El agente sube, abre y fusiona sus PR con el CI verde y sin conflictos; la persona solo
+despliega en la VM** (decisión del 2026-10-05, la misma que en AeroBim). Si la persona dice de
+una entrega concreta «no la fusiones», esa instrucción expresa manda sobre la regla general.
 
 **Commits.** Español, imperativo, con ámbito: `feat(raster): …`, `fix(formats): …`,
 `docs: …`. Un PR por fase; no mezclar fases en un commit.
