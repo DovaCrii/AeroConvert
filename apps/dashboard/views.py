@@ -743,7 +743,7 @@ def _ruta_de_salida(origen: Path, formato: str, perfil_id: str) -> Path:
     no perdida en un directorio de la aplicación.
     """
     definicion = catalogo.FORMATOS.get(formato)
-    extension = sorted(definicion.extensiones)[0] if definicion else ".out"
+    extension = definicion.extension_para_escribir if definicion else ".out"
     sufijo = perfil_id or formato
     if modo_mod.es_taller():
         return origen.with_name(f"{origen.stem}_{sufijo}{extension}")

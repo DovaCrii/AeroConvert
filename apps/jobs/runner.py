@@ -222,6 +222,7 @@ def _ejecutar(job: ConversionJob) -> Resultado:
     _exigir_crs(job, inspeccion)
     _exigir_metros(job, inspeccion)
     _exigir_memoria(job, inspeccion)
+    _exigir_crudo_entero(job, inspeccion)
 
     # --- 3. Conversion ---------------------------------------------------
     par = ParDeFormatos(job.source_format_code, job.target_format_code)
@@ -283,6 +284,10 @@ def _ejecutar(job: ConversionJob) -> Resultado:
             "updated_at",
         ]
     )
+    # Lo que el motor vio y no era motivo para fallar, pero conviene leer: queda en la
+    # bitácora además de en el recibo, porque el recibo se borra con la salida y la bitácora no.
+    for aviso in veredicto.detalles.get("avisos") or ():
+        job.registrar(str(aviso), nivel=JobEvent.AVISO, etapa=VERIFICACION)
     job.marcar_progreso(VERIFICACION, 1.0)
 
     # El original tiene que estar exactamente como estaba. No es una comprobacion de
@@ -508,6 +513,32 @@ def _exigir_memoria(job: ConversionJob, inspeccion) -> None:
     raise TrabajoFallido("memoria-insuficiente", estimacion.motivo_de_memoria)
 
 
+def _exigir_crudo_entero(job: ConversionJob, inspeccion) -> None:
+    """Un crudo de Trimble cortado no se convierte: se avisa y se pide copiarlo otra vez.
+
+    **El convertidor de Trimble no se queja.** Con un T02 partido por la mitad sale con código
+    0, dice «Success» y entrega un RINEX perfectamente válido que dura la mitad, sin una
+    palabra. Lo malo no es el error sino que no lo haya: quien lo reciba creerá que la sesión
+    duró lo que dura el archivo. Mirando la salida no hay forma de verlo; el dato está en el
+    crudo, y se comprueba aquí, antes de gastar minutos de conversión.
+    """
+    if inspeccion.trimble is None:
+        return
+
+    from apps.formats import trimble
+
+    integridad = trimble.comprobar_integridad(Path(inspeccion.ruta))
+    if integridad.completo:
+        return
+    if integridad.bloques == 0:
+        raise TrabajoFallido("crudo-incompleto", "El archivo no trae ningún bloque de datos.")
+    raise TrabajoFallido(
+        "crudo-incompleto",
+        f"El archivo está cortado: {integridad.cortados} de sus {integridad.bloques} bloques "
+        "no llegan a su final.",
+    )
+
+
 def _exigir_crs(job: ConversionJob, inspeccion) -> None:
     """La regla heredada: si falta el CRS, se para y se pregunta. No se adivina.
 
@@ -521,6 +552,13 @@ def _exigir_crs(job: ConversionJob, inspeccion) -> None:
 
     from apps.formats import catalogo
     from apps.formats import crs as crs_mod
+
+    # **Una observación GNSS no tiene sistema de referencia que echar en falta.** Son
+    # pseudodistancias y fases a satélites, no coordenadas; la posición aproximada de la
+    # cabecera de un RINEX es ECEF y sirve de ayuda al posproceso, no de CRS. El aviso de
+    # abajo —«la salida tampoco lo tendrá»— sería engañoso, así que ni se dice.
+    if inspeccion.familia == catalogo.GNSS:
+        return
 
     # **Lo declarado a mano cuenta, y hay formatos donde es la única vía.**
     #
