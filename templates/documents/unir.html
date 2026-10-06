@@ -55,7 +55,8 @@
           <input type="file" name="archivos" id="id_subir" class="form-control"
                  multiple accept="application/pdf,.pdf" data-tope-mb="{{ tope_mb }}">
           <p class="soltar-ayuda" style="margin:8px 0 0;">
-            Hasta {{ tope_mb }} MB cada uno. Si ya están en la carpeta compartida, mejor por ahí.
+            <span class="limite-subida">Límite por PDF: <strong>{{ tope_mb }} MB</strong></span>
+            Si ya están en la carpeta compartida, mejor por ahí.
           </p>
         </div>
       </div>
