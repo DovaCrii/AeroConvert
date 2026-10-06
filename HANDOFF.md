@@ -4,36 +4,29 @@
 > [`docs/historial/`](docs/historial/) y en `git log`. Si algo de aquí no cuadra con el código,
 > **gana el código**: actualice esta página antes de seguir.
 
-**Estado al:** 2026-10-05 · **`main` en:** `b36a395` · **Último PR fusionado:** #28
+**Estado al:** 2026-10-06 · **`main` en:** `72a7694` · **Último PR fusionado:** #38
 
 ## Quién hace qué
 
 **Claude hace todo lo de git**: ramas, commits, push, PR y fusiones a `main` con el CI verde
 (`/abrir-pr`, igual que en AeroBim). **Usted despliega en p340.** Sin commit ni push directo a
-`main`; cada PR va contra `main`, no apilado.
+`main`; cada PR va contra `main`, no apilado. El permiso de `gh pr merge` va en
+`.claude/settings.local.json` (ya creado en su máquina; el agente no puede concedérselo).
 
-**Una cosa que solo usted puede hacer:** el agente no puede concederse a sí mismo el permiso de
-`gh pr merge`. Cree `.claude/settings.local.json` (ya está en `.gitignore`) con
-`{"permissions": {"allow": ["PowerShell(gh pr merge *)", "Bash(gh pr merge:*)"]}}`, como en
-AeroBim. Hasta entonces las fusiones funcionaron pidiendo el permiso en cada sesión.
-
-**El CI de GitHub falla a veces con `The job was not acquired by Runner`**: es la infraestructura,
-no el código. Se relanza con `gh run rerun <id>` y se espera; no se fusiona con el CI en rojo.
+**El CI de GitHub falla a veces con `The job was not acquired by Runner`**: es la infraestructura.
+Se relanza con `gh run rerun <id>`; no se fusiona con el CI en rojo.
 
 ## Dónde está el proyecto
 
-- Desplegado en `p340` (publicado por Tailscale Funnel): dos servicios y el temporizador de
-  respaldo (03:15). F9.0 – F9.2 se desplegaron el 2026-09-25.
-- **Desplegado el 2026-10-05 a las 15:01:** hasta el #20 (GNSS con RTKLIB, calidad de RINEX y
-  RINEX a otra versión, todo menos lo que sigue).
-- **En `main` y sin desplegar:** la versión `0.10.0`, «Seguir donde lo dejaste» plegable, el
-  arreglo del motor RTKLIB (**sin él `rtklib-convbin` falla con un trabajo real**: desplegar),
-  los cierres de la auditoría (F11.9 y casi todo F11.10) y `documents/views/` en paquete.
-- Pruebas: 2.360 aprox. verdes sin GDAL ni PDAL (2026-10-05, última corrida completa 2.349 antes
-  de F11.10).
-- Versión: `0.10.0` en `pyproject.toml`, README y CHANGELOG (F11.4, 2026-10-05).
-
-Para desplegar (dentro de p340; no hay migraciones nuevas):
+- **Desplegado el 2026-10-05:** hasta el #20 (GNSS con RTKLIB, calidad y versiones de RINEX).
+- **En `main` sin desplegar** (#21 a #38): versión `0.10.0`; **arreglo del motor RTKLIB** (sin él
+  `rtklib-convbin` falla con un trabajo real); la portada con grupos plegables; el resultado de una
+  conversión y la barra a 375 px; el menú «Herramientas» y el límite de subida; cierres de la
+  auditoría (A-01, A-02, A-05, B-01, B-07, B-08, C-01, C-06, D-01, D-02, D-04, D-05); `views/` en
+  paquete; `Incidente` y `resumen_de_uso`.
+- **Dos migraciones nuevas** que `desplegar.sh` aplica sola: `core/0002` (borra la tabla
+  `Resultado`) y `core/0003` (crea `Incidente`).
+- Pruebas: ~2.400 verdes sin GDAL ni PDAL. Versión `0.10.0`.
 
 ```bash
 cd /opt/aeroconvert && sudo -u aeroconvert git pull && sudo scripts/desplegar.sh
@@ -41,46 +34,53 @@ cd /opt/aeroconvert && sudo -u aeroconvert git pull && sudo scripts/desplegar.sh
 
 ## Filas abiertas (`python scripts/claude/plan_fila.py --abiertas`)
 
-| Fila | Qué falta | Quién la cierra |
+| Fila | Qué falta | Quién |
 | --- | --- | --- |
-| `F10.5` | Wine en p340: copiar el MSI (hay uno firmado 4.0.1.10 en `Downloads`, ya probado en Windows), `apt install wine xvfb`, `AEROCONVERT_TRIMBLE_RINEX` y `AEROCONVERT_WINEPREFIX`, y fechar la corrida | Usted (licencia de Trimble) |
-| `F9.4` · `F9.5` · `F9.6` | Lo visual; paleta en OKLCH; `Incidente` y `resumen_de_uso` | Código |
+| `F10.5` | Convertidor de Trimble bajo Wine en p340 (pasos abajo) y fechar la corrida | Usted |
+| `F11.11` | Tres pruebas en p340: `X-Forwarded-For` ante Funnel, `AEROCONVERT_RAICES_PERMITIDAS`, VRT `.asc` (B-04) | Usted |
+| `F9.4` | Faltan profundidad, radios, iconos y tipografía | Código |
+| `F9.5` | La paleta en OKLCH sin cambiar lo que se ve | Código |
 | `F7.2c` | Tarjetas en la pantalla de convertir | Código |
 | `F3.5` ◐ · `F3.4` | LandXML real; DWG/DGN con ODA instalado | Un archivo o un puesto con ODA |
-| `F10.6` – `F10.8` ✅ | `convbin`, calidad de RINEX y RINEX a otra versión: hechos. Falta medir un flujo real UBX, SBF o RT17 en p340 | Usted + un archivo |
-| `F11.10` 🟨 | Faltan A-05 (cuota de subidas por usuario) y A-01 (cuerpo anónimo de 2 GB, toca nginx) | Código y usted |
-| `F11.11` | En p340: la prueba de `X-Forwarded-For` ante Funnel, el valor de `AEROCONVERT_RAICES_PERMITIDAS`, y un VRT `.asc` ante la GDAL desplegada (B-04) | Usted |
-| `F11.6` | Prueba de diseño de tres brazos antes de F9.4: pide descargar `ui-ux-pro-max`, Ponytail e `impeccable` | Su sí a las descargas |
 | `F2.6` · `F4.1` · `F4.2` | 3D Tiles; IFC y malla; AeroBim | Código |
 | `F1.6` | ECW: no, hasta que alguien lo pida dos veces | Decisión |
-| Fase 11 | Proceso de agentes y base de código (kit, gates, versión, auditoría, refactor) | Código y usted |
+| `F11.8` | `runner.py` e `inspeccionar`: bloqueada hasta que el uso lo pida | — |
+
+## Pasos en p340 (suyos)
+
+- **F10.5.** Copie el MSI (`convertToRinex_v4_0_1_10_sign.msi`, en `Downloads`) a `/tmp` y:
+  `sudo apt install msitools` · `sudo mkdir -p /opt/trimble-rinex && sudo msiextract -C
+  /opt/trimble-rinex /tmp/convertToRinex_v4_0_1_10_sign.msi` · `find /opt/trimble-rinex -name
+  convertToRinex.exe`. En `.env`: `AEROCONVERT_TRIMBLE_RINEX=<esa ruta>` y
+  `AEROCONVERT_WINEPREFIX=/var/lib/aeroconvert/wine`. Pruébelo con un T02 desde la web.
+- **F11.11.** `sudo grep AEROCONVERT_RAICES_PERMITIDAS /opt/aeroconvert/.env`; y las otras dos
+  pruebas, que Claude le prepara cuando quiera.
+- **Después de desplegar:** `sudo -u aeroconvert /opt/aeroconvert/.venv/bin/python manage.py
+  resumen_de_uso --dias 7` da la primera línea base del uso.
 
 ## Cabos con fecha
 
-- El modelo `Resultado` y la vista `documents:descargar` se retiraron el 2026-10-06; **el
-  despliegue aplica la migración `core/0002`**, que borra su tabla.
 - Pasada de teclado de F9.3, sin ratón, por la barra y un formulario, en los dos temas.
-- En `p340`: subir un PDF a cada herramienta y descargarlo desde la ficha; confirmar que una
-  contraseña no queda en `jobs_conversionjob`, `jobs_jobevent` ni `jobs_entradadetrabajo`.
-- Propuestas para `AGENTS.md`, sin aplicar por ser regla suya: en la regla 3, que «coordenadas
-  locales declaradas por una persona» es una respuesta y no un hueco; en la tabla de oráculos,
-  una fila GNSS («sin oráculo externo para el crudo»).
+- En `p340`: subir un PDF a cada herramienta; confirmar que una contraseña no queda en
+  `jobs_conversionjob`, `jobs_jobevent` ni `jobs_entradadetrabajo`.
+- Propuestas para `AGENTS.md`, sin aplicar por ser regla suya: la regla 3 (coordenadas locales
+  declaradas por una persona son una respuesta) y una fila GNSS en la tabla de oráculos.
 
 ## Lo que es suyo
 
-- **Copia de respaldo fuera de la máquina:** el servicio escribe en el mismo NVMe que la base. Es
-  lo único de la lista **sin arreglo posible después**.
+- **Copia de respaldo fuera de la máquina:** lo único sin arreglo posible después.
 - Office en el servidor (apagado con su motivo) · ECW · el correo no único en `auth.User`.
-- Tino está apagado y sin rastro (404); `AEROCONVERT_TINO_VISIBLE=true` lo vuelve a encender.
+- Tino está apagado y sin rastro (404); `AEROCONVERT_TINO_VISIBLE=true` lo enciende.
 
 ## Trampas vigentes
 
-- El código de salida de un motor no prueba nada; se verifica la salida.
-- El CRS no se adivina; `check --deploy` se corre con el módulo de producción fijado.
-- **El CI no tiene GDAL ni PDAL y la estación sí.** Para ver lo que ve el CI:
-  `$env:AEROCONVERT_GDAL_BIN = ""; $env:AEROCONVERT_PDAL_BIN = ""; uv run pytest`.
-- Hay tres gates (`verify.ps1`, `verificar.sh`, `ci.yml`) y no dicen lo mismo (fila F11.3).
-- Seis pruebas dependen del equipo (Tesseract sin `spa`, poca RAM): fila F11.2.
+- El código de salida de un motor no prueba nada; se verifica la salida. El CRS no se adivina.
+- **El CI no tiene GDAL ni PDAL y la estación sí:** `$env:AEROCONVERT_GDAL_BIN = "";
+  $env:AEROCONVERT_PDAL_BIN = ""; uv run pytest`.
+- **Algunas pruebas se contaminan según el orden** (el registro de motores, 21 del dashboard): en
+  el orden del CI pasan. Hay una tarea abierta para encontrar la causa.
+- Los comandos de `gh pr create` con `/T` o `/convertir/` en el texto los bloquea la herramienta:
+  el cuerpo va en un archivo (`--body-file`).
 
 ## Cómo retomar
 
@@ -90,6 +90,4 @@ uv run python scripts/claude/verificar.py todo        # lo que corre el CI
 python scripts/claude/plan_fila.py --abiertas         # qué sigue
 ```
 
-## Historial
-
-- Hasta 2026-10-05: [`docs/historial/HANDOFF-hasta-2026-10-05.md`](docs/historial/HANDOFF-hasta-2026-10-05.md)
+Historial: [`docs/historial/HANDOFF-hasta-2026-10-05.md`](docs/historial/HANDOFF-hasta-2026-10-05.md)
