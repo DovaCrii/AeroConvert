@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import dataclasses
 import re
 
 import pytest
@@ -69,8 +70,12 @@ class TestLaBaldosa:
             assert DestinoOfrecido(perfil=perfil, se_puede=True).icono == icono
 
     def test_un_perfil_sin_icono_propio_cae_al_generico(self):
-        perfil = next(p for p in perfiles_mod.PERFILES.values() if p.id not in ICONOS_DE_PERFIL)
-        assert DestinoOfrecido(perfil=perfil, se_puede=True).icono == "icon-destino"
+        sin_icono = dataclasses.replace(perfiles_mod.QGIS, id="perfil-sin-icono")
+        assert DestinoOfrecido(perfil=sin_icono, se_puede=True).icono == "icon-destino"
+
+    def test_todo_perfil_de_fabrica_tiene_icono_propio(self):
+        """Antes el de GNSS caía en la diana genérica, que no dice nada de un receptor."""
+        assert set(perfiles_mod.PERFILES) <= set(ICONOS_DE_PERFIL)
 
     def test_los_apagados_siguen_diciendo_por_que_y_no_prometen_un_sale(
         self, sesion, ortofoto, con_motor
