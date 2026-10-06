@@ -104,9 +104,33 @@
     return (evento.detail && evento.detail.target) || evento.target || null;
   }
 
+  /** Avisa al servidor de que algo falló aquí (F9.6), para poder contarlo después.
+   *
+   * Solo la ruta y el código: **nada del contenido**. Sin red no hay a quién avisar, así que el
+   * estado 0 no se manda. Cualquier fallo al avisar se traga: el informe no puede ser otro fallo. */
+  function informar(evento, estado) {
+    try {
+      if (!estado) return;
+      var campo = document.querySelector("input[name=csrfmiddlewaretoken]");
+      if (!campo) return;
+      var config = (evento.detail && evento.detail.requestConfig) || {};
+      var ruta = config.path || (evento.detail && evento.detail.pathInfo && evento.detail.pathInfo.requestPath) || "";
+      window.fetch("/incidentes/", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json", "X-CSRFToken": campo.value },
+        body: JSON.stringify({ ruta: String(ruta).split("?")[0], estado: estado }),
+        keepalive: true,
+      }).catch(function () {});
+    } catch (e) {
+      /* un informe que falla no se informa */
+    }
+  }
+
   document.addEventListener("htmx:responseError", function (evento) {
     var xhr = evento.detail && evento.detail.xhr;
     pintarFallo(destinoDe(evento), xhr ? xhr.status : 0);
+    informar(evento, xhr ? xhr.status : 0);
   });
 
   // Sin respuesta ninguna: la red, un proxy que corta, el servidor reiniciándose.

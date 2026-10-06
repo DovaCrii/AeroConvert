@@ -14,6 +14,7 @@ urlpatterns = [
     path("tino/", include("apps.tino.urls")),
     path("api/v1/", include("apps.engines.api_urls")),
     path("salud/", core_views.salud, name="salud"),
+    path("incidentes/", core_views.incidente_del_navegador, name="incidente"),
     path(
         "entrar/",
         auth_views.LoginView.as_view(

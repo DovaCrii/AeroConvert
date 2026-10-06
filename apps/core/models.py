@@ -115,3 +115,44 @@ class ArchivoSubido(BaseModel):
                 f"de este servidor son {settings.TOPE_MB} MB. Déjalo en la carpeta compartida "
                 "y pega su ruta: para archivos grandes es además mucho más rápido."
             )
+
+
+class Incidente(BaseModel):
+    """Algo que salió mal y de lo que antes no quedaba rastro (F9.6).
+
+    Hasta ahora un 500 al mirar un archivo, un 413 al subirlo o la red cortada dejaban la
+    pantalla quieta y **ningún registro**: el servidor decía «0 trabajos» sin distinguir «nadie
+    ha usado esto» de «se ha usado mucho y falla». Sin esto no hay forma de saber si una mejora
+    mejoró algo.
+
+    **Qué NO guarda, a propósito:** ni nombres de archivo, ni el cuerpo de la petición, ni la
+    consulta de la dirección (`?q=...` puede llevar texto de una persona). Solo dónde, qué
+    código y de quién, para poder contar.
+    """
+
+    SERVIDOR = "servidor-500"
+    NAVEGADOR = "navegador"
+    TIPOS = [
+        (SERVIDOR, "Error del servidor"),
+        (NAVEGADOR, "Fallo visto desde el navegador"),
+    ]
+
+    tipo = models.CharField(max_length=24, choices=TIPOS, db_index=True)
+    ruta = models.CharField(max_length=200)
+    estado = models.PositiveSmallIntegerField(null=True, blank=True)
+    detalle = models.CharField(max_length=300, blank=True)
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="incidentes",
+    )
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "incidente"
+        verbose_name_plural = "incidentes"
+
+    def __str__(self) -> str:
+        return f"{self.get_tipo_display()} en {self.ruta}"

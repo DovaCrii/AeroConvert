@@ -10,7 +10,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.forms import AdminUserCreationForm
 
-from .models import ArchivoSubido
+from .models import ArchivoSubido, Incidente
 
 admin.site.site_header = "AeroConvert — administración"
 admin.site.site_title = "AeroConvert"
@@ -122,3 +122,20 @@ class ArchivoSubidoAdmin(admin.ModelAdmin):
     @admin.display(description="Tamaño")
     def tamano(self, obj):
         return f"{obj.size_bytes / 1_048_576:.1f} MB"
+
+
+@admin.register(Incidente)
+class IncidenteAdmin(admin.ModelAdmin):
+    """Lo que falló, para contarlo: es historia y no se edita ni se añade a mano."""
+
+    list_display = ("created_at", "tipo", "ruta", "estado", "detalle", "owner")
+    list_filter = ("tipo", "estado", "created_at")
+    search_fields = ("ruta", "detalle")
+    date_hierarchy = "created_at"
+    list_select_related = ("owner",)
+
+    def get_readonly_fields(self, request, obj=None):
+        return [campo.name for campo in Incidente._meta.fields]
+
+    def has_add_permission(self, request):
+        return False

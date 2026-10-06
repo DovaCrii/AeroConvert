@@ -5,6 +5,18 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Sin publicar]
 
+### Añadido — saber si algo mejoró: incidentes y resumen de uso (F9.6)
+
+- **Nuevo modelo `Incidente`** (con migración `core/0003`, que `desplegar.sh` aplica sola). Cada
+  500 del servidor deja una fila, y el navegador avisa de los fallos de htmx por `POST /incidentes/`
+  (con sesión y con el token de CSRF). Guarda dónde, el código y la **clase** de la excepción:
+  nunca el mensaje, ni nombres de archivo, ni la consulta de la dirección. Tope de 500 por hora.
+- **`manage.py resumen_de_uso [--dias N]`:** trabajos, tasa de éxito, destinos y orígenes más
+  vistos, motivos de fallo, rutas con más incidentes. Es lo que permite comparar un periodo con
+  otro después de un cambio: hasta ahora el servidor decía «0 trabajos» sin distinguir «nadie lo
+  usa» de «se usa y falla».
+- Los incidentes se ven (sin editarlos) en el panel de administración.
+
 ### Retirado — el modelo `Resultado` y la vista `documents:descargar` (cabo de F9.2)
 
 - Desde la fase 9 todas las herramientas de documentos pasan por la cola y se bajan por la ficha
