@@ -5,6 +5,22 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Sin publicar]
 
+### Cambiado — el menú «Herramientas», el límite de subida y las rejillas, a 375 px (F9.4)
+
+- **El panel «Herramientas» ya no se sale de la pantalla.** Colgaba de la izquierda del botón,
+  que está hacia la derecha de la barra: en una ventana de 1.874 px se cortaba «Reconocer el
+  texto» y aparecía una barra de desplazamiento. Ahora cuelga de la barra entera, pegado a su
+  borde derecho (medido a 1.440, 900 y 375 px).
+- **Las columnas del panel salen parejas.** Cuatro grupos de 6, 1, 7 y 8 entradas caían en tres
+  columnas desiguales y una bajo la primera; ahora el navegador los reparte (7, 10 y 9 en esta
+  máquina, que tiene Office; 7, 8 y 7 en el servidor) y un grupo nuevo se acomoda solo.
+- **En teléfono el menú abre justo debajo de la barra**; antes su `top` se calculaba contra la
+  ventana entera.
+- **El límite de subida se ve, sin gritar:** una etiqueta pequeña de contorno fino, «Límite por
+  archivo: **2048 MB**», con solo la cifra en negrita, en las cinco pantallas que suben archivos.
+- **`/convertir/` y `/motores/` dejan de desbordar a 375 px.** Sus rejillas pedían columnas de
+  24 y 26 rem (384 y 416 px) con 351 útiles; ahora `min(…, 100%)`.
+
 ### Cambiado — el resultado de una conversión y la barra, a 375 px (primera pieza de F9.4)
 
 - **Una sola acción principal por estado** en el resultado de una conversión: antes salían dos
@@ -17,7 +33,6 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
   la navegación sumaban 615 px; ahora la navegación pasa a su propia fila (solo hasta 480 px).
   Medido en el navegador: portada, historial, documentos y resultado en 375 px exactos.
 - «Listo, ya puede descargarlo»: el trato de usted que pide `AGENTS.md`.
-- **Queda abierto:** la pantalla de compatibilidad (`/motores/`) desborda 440 px por su matriz.
 
 ### Cambiado — `apps/documents/views.py` pasa a ser un paquete
 

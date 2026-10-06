@@ -443,6 +443,8 @@ a:hover {
 /* --- La barra ----------------------------------------------------------- */
 
 .barra {
+  /* La referencia del panel del menú: ver `.menu-panel`. */
+  position: relative;
   background: linear-gradient(180deg, #22335a 0%, var(--av-navy) 100%);
   border-bottom: 1px solid rgb(241 91 181 / 22%);
   color: #fff;
@@ -747,7 +749,9 @@ a:hover {
  * `relative` no es decorativo: sin él el panel se ancla al `body` y aparece arriba del todo.
  */
 .menu {
-  position: relative;
+  /* `static`: el panel ya no cuelga del botón sino de la barra entera (`.barra` es `relative`),
+   * para que nunca se salga de la pantalla por la derecha. */
+  position: static;
 }
 
 .menu-boton {
@@ -778,26 +782,38 @@ a:hover {
 }
 
 /*
- * El panel. **Anclado a la izquierda del botón y no a la derecha**: la barra empuja la
- * navegación contra el borde derecho con `margin-left:auto`, y un panel de tres columnas
- * anclado ahí se sale de la pantalla en cuanto la ventana baja de 1400 px.
+ * El panel. **Colgado de la barra entera y pegado a su borde derecho**, no del botón: anclado a
+ * la izquierda del botón (que está hacia la derecha de la barra) un panel de tres columnas se
+ * salía de la pantalla —se cortaba «Reconocer el texto» y aparecía una barra de desplazamiento
+ * en una ventana de 1.874 px—, y anclado a la derecha del botón se salía por la izquierda al bajar
+ * de 1.400 px. Con la barra como referencia ocupa su ancho disponible y cabe siempre.
  */
 .menu-panel {
   position: absolute;
   z-index: 40;
   top: calc(100% + 8px);
-  left: 0;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
-  gap: 10px 26px;
-  width: max-content;
-  max-width: min(58rem, calc(100vw - 32px));
+  right: var(--av-s-5);
+  left: auto;
+  width: min(58rem, calc(100vw - 2 * var(--av-s-5)));
   padding: 18px var(--av-s-5);
   /* Sin `border`: el anillo va dentro de `--av-elev-2`, y en oscuro sube de contraste solo. */
   border-radius: var(--av-radius);
   background: var(--av-surface);
   color: var(--av-text);
   box-shadow: var(--av-elev-2);
+}
+
+/* Las columnas las reparte el navegador: cuatro grupos de 6, 1, 7 y 8 entradas caían en tres
+ * columnas de 7, 1... y una cuarta bajo la primera. Así salen de 7, 7 y 8, y un grupo nuevo
+ * se acomoda solo. `break-inside: avoid` impide que un grupo se parta entre columnas. */
+.menu-columnas {
+  columns: 3 15rem;
+  column-gap: 26px;
+}
+
+.menu-columna {
+  break-inside: avoid;
+  margin-bottom: 18px;
 }
 
 .menu-titulo {
@@ -1085,14 +1101,13 @@ a.menu-titulo:hover {
     display: inline;
   }
 
-  /* A este ancho el panel es la pantalla: anclarlo al botón lo sacaría por la derecha. */
+  /* A este ancho el panel es la pantalla: de borde a borde de la barra. Era `fixed`, y con
+   * `top: 100%` eso lo mandaba al borde inferior de la ventana, no debajo de la barra. */
   .menu-panel {
-    position: fixed;
     left: 12px;
     right: 12px;
     width: auto;
-    max-width: none;
-    max-height: calc(100vh - 80px);
+    max-height: calc(100vh - 120px);
     overflow-y: auto;
   }
 }
@@ -1273,7 +1288,9 @@ a.menu-titulo:hover {
  */
 .origenes {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(24rem, 1fr));
+  /* `min(24rem, 100%)`: sin él la columna pedía 384 px y en un teléfono (351 útiles) la
+   * página entera se desplazaba de lado. */
+  grid-template-columns: repeat(auto-fit, minmax(min(24rem, 100%), 1fr));
   gap: var(--av-s-4);
   margin-bottom: 16px;
   align-items: stretch;
@@ -2141,6 +2158,27 @@ legend {
   margin: 0 0 16px;
 }
 
+/* El tope de subida: visible sin que sea una alarma. Una etiqueta de contorno fino y texto
+ * secundario, con **solo la cifra** en negrita y en el color de texto normal. No usa color de
+ * aviso: pasarse del tope no es un error hasta que ocurre, y `subida.js` ya avisa antes de enviar.
+ * El texto lleva la palabra «límite»: la cifra sola no dice qué es. */
+.limite-subida {
+  display: inline-block;
+  margin-right: 6px;
+  padding: 1px 9px;
+  border: 1px solid var(--av-border-control);
+  border-radius: 999px;
+  font-size: var(--av-fs-xs);
+  line-height: 1.5;
+  color: var(--av-text-secondary);
+  white-space: nowrap;
+}
+
+.limite-subida strong {
+  font-weight: var(--av-peso-fuerte);
+  color: var(--av-text);
+}
+
 .soltar kbd {
   background: var(--av-surface);
   border: 1px solid var(--av-border-control);
@@ -2918,14 +2956,14 @@ code {
 
 .motores {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(20rem, 100%), 1fr));
   align-items: start;
   gap: 14px;
 }
 
 /* Las apagadas piden más sitio: llevan motivo, remedio y alternativa. */
 .motores-apagados {
-  grid-template-columns: repeat(auto-fit, minmax(26rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(26rem, 100%), 1fr));
 }
 
 .motor {

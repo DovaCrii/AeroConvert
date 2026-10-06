@@ -152,10 +152,11 @@
         {% endcomment %}
         <input type="file" id="archivo" name="archivo" class="form-control"
                data-envia-solo data-tope-mb="{{ tope_mb }}">
+        {# El tope, a la vista pero sin gritar: una etiqueta pequeña con la cifra en negrita. #}
         <p class="soltar-ayuda" style="margin:10px 0 0;">
-          Hasta <strong>{{ tope_mb }} MB</strong> por aquí. Si pesa más, déjalo en la carpeta
-          compartida: copiarlo ahí con el Explorador es reanudable, y subirlo por el
-          navegador no.
+          <span class="limite-subida">Límite por archivo: <strong>{{ tope_mb }} MB</strong></span>
+          Si pesa más, déjalo en la carpeta compartida: copiarlo ahí con el Explorador es
+          reanudable, y subirlo por el navegador no.
         </p>
       </div>
 

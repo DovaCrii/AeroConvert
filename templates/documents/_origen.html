@@ -57,7 +57,7 @@
                accept="{{ acepta|default:'.pdf' }}" data-tope-mb="{{ tope_mb }}">
         <button type="submit" name="accion" value="{{ accion }}" class="boton"
                 style="margin-top:10px;">{{ boton }}</button>
-        <p class="soltar-ayuda" style="margin:10px 0 0;">Hasta {{ tope_mb }} MB por aquí.</p>
+        <p class="soltar-ayuda" style="margin:10px 0 0;"><span class="limite-subida">Límite por archivo: <strong>{{ tope_mb }} MB</strong></span></p>
       </div>
 
       <div data-avance-subida hidden style="margin-top:10px;"></div>

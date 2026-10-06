@@ -95,6 +95,8 @@
           </summary>
 
           <div class="menu-panel">
+            {# Un contenedor de columnas: el navegador reparte los grupos para que queden parejas. #}
+            <div class="menu-columnas">
             {% for grupo in menu_grupos %}
               <div class="menu-columna">
                 {% if grupo.seccion %}
@@ -124,6 +126,7 @@
                 </ul>
               </div>
             {% endfor %}
+            </div>
 
             {% comment %}
               **Tino va aquí y no en la barra**, y es una decisión ya tomada dos veces: con
