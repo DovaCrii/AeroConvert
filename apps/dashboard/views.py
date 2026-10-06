@@ -242,7 +242,13 @@ def que_puedo_hacer(request):
             "titulo_pagina": "¿Qué necesitas hacer?",
             # Una línea. Los ejemplos ya están en el campo y en las etiquetas de debajo; decirlos
             # una tercera vez era ruido.
-            "proposito": "Escriba lo que necesita conseguir, o abra un grupo.",
+            #
+            # **Con saludo**: una portada que dice «Hola, Carlos» se reconoce como el sitio al
+            # que se vuelve. Es el nombre de pila si lo hay y, si no, el usuario.
+            "proposito": (
+                f"Hola, {request.user.first_name or request.user.get_username()}. "
+                "Escriba lo que necesita conseguir, o elija un grupo."
+            ),
         },
     )
 

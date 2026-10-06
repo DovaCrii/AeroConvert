@@ -15,6 +15,37 @@
   </span>
 {% endif %}
 
+{% comment %}
+  **El panel lateral: dónde ir, y lo último que se hizo.**
+
+  Veintiséis herramientas en cuatro grupos plegados obligaban a abrir y cerrar para saber qué
+  había. Aquí el índice está siempre a la vista: cada grupo es un enlace que lo abre y salta a
+  él, con su recuento. Debajo, lo que se hace seguido. En pantallas estrechas el panel pasa
+  encima del catálogo y el índice se vuelve una fila de etiquetas.
+
+  Vive **dentro del fragmento** de htmx para que el índice siga a la búsqueda: buscando, solo
+  salen los grupos que tienen resultados, y lo reciente se va como antes.
+{% endcomment %}
+<div class="portada-rejilla">
+  <aside class="portada-lateral" aria-label="Atajos">
+    <a class="boton portada-convertir" href="{% url 'dashboard:convertir' %}">Convertir un archivo</a>
+
+    {% if grupos %}
+      <nav class="lateral-bloque" aria-labelledby="lateral-grupos">
+        <h2 class="lateral-titulo" id="lateral-grupos">Grupos</h2>
+        <ul class="lateral-lista">
+          {% for grupo in grupos %}
+            <li>
+              <a class="lateral-enlace" href="#grupo-{{ grupo.titulo|slugify }}" data-abre>
+                <span class="lateral-nombre">{{ grupo.titulo }}</span>
+                <span class="lateral-cuenta">{{ grupo.acciones|length }}</span>
+              </a>
+            </li>
+          {% endfor %}
+        </ul>
+      </nav>
+    {% endif %}
+
 {% if repetibles %}
   {% comment %}
     **Lo que ya haces, antes del catálogo de todo lo que se puede hacer.**
@@ -57,6 +88,85 @@
     </div>
   </details>
 {% endif %}
+  </aside>
+
+  <div class="portada-grupos">
+    {% if primera_vez %}
+      {% comment %}
+        **La bienvenida, solo mientras hace falta.**
+
+        Sale a quien todavía no ha convertido nada y desaparece sola en cuanto lo hace. Sin
+        cookie, sin ajuste y sin un «no volver a mostrar» que alguien pulsa sin querer y luego no
+        sabe deshacer: el disparador es el historial, que ya existe y que además es la definición
+        exacta de «primera vez».
+
+        Tres ideas y no un manual. Lo que hay que saber antes de la primera conversión es de
+        dónde salen los archivos, que aquí se mira antes de convertir, y que cada herramienta
+        dice qué entrega. Lo demás se aprende usándolo.
+      {% endcomment %}
+      <section class="bienvenida">
+        <h2 class="bienvenida-titulo">Cómo funciona esto</h2>
+
+        {% comment %}
+          **El símbolo y el número, no uno de los dos.**
+
+          El número dice que hay un orden —primero esto, luego lo otro— y el dibujo dice de qué va
+          el paso sin leerlo. Es la misma pareja que ya usan los tres pasos de la pantalla de
+          convertir, y por el mismo motivo: tres iconos sueltos no se leen como una secuencia, y
+          tres números sueltos es lo que había aquí.
+        {% endcomment %}
+        <ol class="bienvenida-ideas">
+          <li>
+            <span class="paso-marca fam-componer" aria-hidden="true">
+              <svg class="paso-icono"><use href="{% static 'img/icons.svg' %}#icon-carpeta"></use></svg>
+              <span class="paso-numero">1</span>
+            </span>
+            <div>
+              <h3>El archivo, de dos sitios</h3>
+              <p>
+                De <strong>tu equipo</strong>, subiéndolo, o de la <strong>carpeta compartida</strong>,
+                que es donde el equipo deja las ortofotos y las nubes. Nunca hace falta escribir una
+                ruta.
+              </p>
+            </div>
+          </li>
+          <li>
+            <span class="paso-marca fam-transformar" aria-hidden="true">
+              <svg class="paso-icono"><use href="{% static 'img/icons.svg' %}#icon-mirar"></use></svg>
+              <span class="paso-numero">2</span>
+            </span>
+            <div>
+              <h3>Primero se mira</h3>
+              <p>
+                Antes de convertir, AeroConvert abre el archivo y dice <strong>qué es de
+                verdad</strong> —no por su extensión— y si le falta el sistema de referencia. El
+                original no se toca nunca.
+              </p>
+            </div>
+          </li>
+          <li>
+            <span class="paso-marca fam-destino" aria-hidden="true">
+              <svg class="paso-icono"><use href="{% static 'img/icons.svg' %}#icon-destino"></use></svg>
+              <span class="paso-numero">3</span>
+            </span>
+            <div>
+              <h3>Eliges el destino, no el formato</h3>
+              <p>
+                Dices <strong>dónde tiene que abrir</strong> —Civil 3D, QGIS, un informe— y los
+                ajustes se ponen solos. Cada herramienta dice <strong>qué entrega</strong> antes de
+                pulsar.
+              </p>
+            </div>
+          </li>
+        </ol>
+
+        <p class="bienvenida-pie">
+          Y lo que <em>no</em> se puede hacer en esta máquina también se dice, con su motivo, en
+          <a href="{% url 'engines:matriz' %}">Compatibilidad</a>. Esta tira desaparece sola en
+          cuanto conviertas tu primer archivo.
+        </p>
+      </section>
+    {% endif %}
 
 {% if conversion %}
   {% comment %}
@@ -132,7 +242,7 @@
     **Buscando, todo abierto y sin recordar nada**: lo que se encontró no puede quedar
     escondido tras un grupo que alguien cerró ayer.
   {% endcomment %}
-  <details class="grupo-herramientas"
+  <details class="grupo-herramientas" id="grupo-{{ grupo.titulo|slugify }}"
            {% if not q %}data-recuerda="grupo-{{ grupo.titulo|slugify }}"{% endif %}
            {% if q or forloop.first %}open{% endif %}>
     <summary class="grupo-resumen">
@@ -182,3 +292,5 @@
     </div>
   </details>
 {% endfor %}
+  </div>
+</div>
