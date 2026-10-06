@@ -244,10 +244,11 @@ def que_puedo_hacer(request):
             # una tercera vez era ruido.
             #
             # **Con saludo**: una portada que dice «Hola, Carlos» se reconoce como el sitio al
-            # que se vuelve. Es el nombre de pila si lo hay y, si no, el usuario.
+            # que se vuelve. Solo con el nombre de pila: el usuario («aeroconvert», «ana») no es
+            # un nombre, y saludarlo así suena a máquina.
             "proposito": (
-                f"Hola, {request.user.first_name or request.user.get_username()}. "
-                "Escriba lo que necesita conseguir, o elija un grupo."
+                (f"Hola, {request.user.first_name}. " if request.user.first_name else "")
+                + "Escriba lo que necesita conseguir, o elija un grupo."
             ),
         },
     )

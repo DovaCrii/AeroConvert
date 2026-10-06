@@ -3561,7 +3561,10 @@ code {
 }
 
 .portada-convertir {
+  display: flex;
+  align-items: center;
   justify-content: center;
+  min-height: var(--av-control-height);
   text-decoration: none;
   text-align: center;
 }
@@ -3628,6 +3631,9 @@ code {
 .portada-lateral .repetibles-lista {
   grid-template-columns: minmax(0, 1fr);
   gap: var(--av-s-2);
+  /* Sin barra propia el panel; si lo reciente fuera largo, se corta aquí y no empuja el resto. */
+  max-height: 22rem;
+  overflow-y: auto;
 }
 
 @media (min-width: 56rem) {
@@ -3639,8 +3645,6 @@ code {
   .portada-lateral {
     position: sticky;
     top: var(--av-s-4);
-    max-height: calc(100vh - 2 * var(--av-s-4));
-    overflow-y: auto;
   }
 
   .lateral-lista {
