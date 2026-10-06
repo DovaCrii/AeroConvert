@@ -4,7 +4,7 @@
 > [`docs/historial/`](docs/historial/) y en `git log`. Si algo de aquí no cuadra con el código,
 > **gana el código**: actualice esta página antes de seguir.
 
-**Estado al:** 2026-10-06 · **`main` en:** `72a7694` · **Último PR fusionado:** #38
+**Estado al:** 2026-10-06 · **`main` en:** `b82a35a` · **Último PR fusionado:** #40
 
 ## Quién hace qué
 
@@ -19,7 +19,7 @@ Se relanza con `gh run rerun <id>`; no se fusiona con el CI en rojo.
 ## Dónde está el proyecto
 
 - **Desplegado el 2026-10-05:** hasta el #20 (GNSS con RTKLIB, calidad y versiones de RINEX).
-- **En `main` sin desplegar** (#21 a #38): versión `0.10.0`; **arreglo del motor RTKLIB** (sin él
+- **En `main` sin desplegar** (#21 a #40): versión `0.10.0`; los destinos de la ficha como tarjetas; **arreglo del motor RTKLIB** (sin él
   `rtklib-convbin` falla con un trabajo real); la portada con grupos plegables; el resultado de una
   conversión y la barra a 375 px; el menú «Herramientas» y el límite de subida; cierres de la
   auditoría (A-01, A-02, A-05, B-01, B-07, B-08, C-01, C-06, D-01, D-02, D-04, D-05); `views/` en
@@ -40,7 +40,6 @@ cd /opt/aeroconvert && sudo -u aeroconvert git pull && sudo scripts/desplegar.sh
 | `F11.11` | Tres pruebas en p340: `X-Forwarded-For` ante Funnel, `AEROCONVERT_RAICES_PERMITIDAS`, VRT `.asc` (B-04) | Usted |
 | `F9.4` | Faltan profundidad, radios, iconos y tipografía | Código |
 | `F9.5` | La paleta en OKLCH sin cambiar lo que se ve | Código |
-| `F7.2c` | Tarjetas en la pantalla de convertir | Código |
 | `F3.5` ◐ · `F3.4` | LandXML real; DWG/DGN con ODA instalado | Un archivo o un puesto con ODA |
 | `F2.6` · `F4.1` · `F4.2` | 3D Tiles; IFC y malla; AeroBim | Código |
 | `F1.6` | ECW: no, hasta que alguien lo pida dos veces | Decisión |
