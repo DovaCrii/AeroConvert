@@ -57,8 +57,8 @@ cd /opt/aeroconvert && sudo -u aeroconvert git pull && sudo scripts/desplegar.sh
 
 ## Cabos con fecha
 
-- Retirar el modelo `Resultado` (`apps/core/models.py:120`) y la vista `documents:descargar`
-  (`apps/documents/urls.py:40`): siguen en el código; falta esperar a que caduquen sus filas.
+- El modelo `Resultado` y la vista `documents:descargar` se retiraron el 2026-10-06; **el
+  despliegue aplica la migración `core/0002`**, que borra su tabla.
 - Pasada de teclado de F9.3, sin ratón, por la barra y un formulario, en los dos temas.
 - En `p340`: subir un PDF a cada herramienta y descargarlo desde la ficha; confirmar que una
   contraseña no queda en `jobs_conversionjob`, `jobs_jobevent` ni `jobs_entradadetrabajo`.

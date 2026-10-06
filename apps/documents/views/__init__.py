@@ -94,7 +94,6 @@ from .pantalla_unir import (  # noqa: F401
     _generar,
     _receta_inicial,
     componer_vista,
-    descargar,
     miniatura,
     unir,
 )

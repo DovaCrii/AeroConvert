@@ -162,7 +162,6 @@ class Barrido:
     salidas_caducadas: int = 0
     entradas_borradas: int = 0
     subidas_caducadas: int = 0
-    resultados_caducados: int = 0
     huerfanos: int = 0
     bytes_liberados: int = 0
 
@@ -171,7 +170,6 @@ class Barrido:
             f"{self.salidas_caducadas} salidas caducadas, "
             f"{self.entradas_borradas} entradas, "
             f"{self.subidas_caducadas} subidas sin usar, "
-            f"{self.resultados_caducados} enlaces de descarga, "
             f"{self.huerfanos} huerfanos, "
             f"{self.bytes_liberados / 1e6:.1f} MB liberados"
         )
@@ -195,7 +193,7 @@ def barrer() -> Barrido:
     `expires_at` mientras esta suelta, y se le pone a `None` en cuanto un trabajo la reclama.
     A partir de ahi la borra el bloque 2, al terminar ese trabajo. Sin solaparse.
     """
-    from apps.core.models import ArchivoSubido, Resultado
+    from apps.core.models import ArchivoSubido
 
     from .models import TERMINALES, ConversionJob
 
@@ -226,17 +224,6 @@ def barrer() -> Barrido:
             pass
         subida.delete()
         resultado.subidas_caducadas += 1
-
-    # **La fila caduca; el archivo solo si vive en `MEDIA_ROOT`.** En la carpeta compartida el
-    # archivo es el entregable de la persona -- es el motivo por el que existe la politica
-    # permanente --, asi que lo unico que se va es el enlace de descarga. Es una regla que se
-    # equivoca en silencio si no esta escrita.
-    medios = str(getattr(settings, "MEDIA_ROOT", "") or "")
-    for fila in Resultado.objects.filter(expires_at__lt=ahora):
-        if medios and str(fila.ruta).startswith(medios):
-            resultado.bytes_liberados += _borrar_archivo(Path(fila.ruta))
-        fila.delete()
-        resultado.resultados_caducados += 1
 
     resultado.huerfanos, huerfanos_bytes = _barrer_huerfanos()
     resultado.bytes_liberados += huerfanos_bytes
