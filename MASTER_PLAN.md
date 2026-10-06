@@ -402,12 +402,36 @@ deseleccionadas), 42.280 líneas en `apps/` de las que 19.527 son de pruebas.
 | F11.3 | **G1** · alinear los tres gates (`verify.ps1`, `scripts/verificar.sh`, `.github/workflows/ci.yml`) y corregir el comentario desfasado de `verificar.sh` | Una tabla paso × gate sin celdas distintas: `check --fail-level WARNING`, `collectstatic`, `shellcheck` y el módulo de producción en los tres (o la diferencia anotada con su motivo) | Claude | ✅ 2026-10-05 (#16) · CI verde con `shellcheck` y `collectstatic` |
 | F11.4 | **G2** · una sola versión (README `v0.3.0-alpha`, `pyproject.toml` `0.1.0`, CHANGELOG `0.1.0`) | `rg` de la cadena de versión: un único valor en los tres sitios | **La persona decide** cuál es la verdadera; Claude lo aplica | ✅ 2026-10-05 · decidió `0.10.0` · `uv.lock` vuelto a resolver |
 | F11.5 | **Auditoría de seguridad**, una vez y antes de F9.4: `security-audit` de Cloudflare con el alcance de la superficie pública (`jobs/runner.py`, `engines/`, `documents/{ocr,office,tarea,views}.py`, `dashboard/`, `prod.py`, `scripts/{office_convertir.ps1,desplegar.sh}`). Informe **fuera** del repo; la skill se retira y se anota el commit usado | Informe con severidad, archivo, evidencia y la prueba de 403 o de aislamiento que faltaba, por hallazgo confirmado; los `alta` entran a este plan como filas nuevas | Claude audita; **la persona tría** | ✅ 2026-10-05 · perfil `quick`, cuatro revisores en solo lectura, **sin** ledger ni `findings.json` validados · skill en el commit `c1c8a8c`, nunca instalada y fuera del repo · informe en `C:\Users\cmunoz\security-audit-skill\AeroConvert\run-1\REPORT.md` · hallazgos en F11.9 a F11.11 |
-| F11.6 | **Prueba de diseño** para F9.4 y F9.5, tres brazos sobre la misma pantalla (la del resultado de conversión): A sin skill · B `ui-ux-pro-max` · C Ponytail `lite` + `impeccable audit` | Gana el brazo con pruebas verdes, menor diff, 375 px sin desbordes y mejor `npx impeccable detect`; contraste leído del CSS (`/verificar pruebas apps/core apps/dashboard`) y `apps/core/test_estilo.py`. Se descarta el que baje un umbral, cambie tokens sin pasar el test o añada CDN | Claude corre los brazos; **la persona elige** | ⬜ |
+| F11.6 | **Prueba de diseño** para F9.4 y F9.5, tres brazos sobre la misma pantalla (la del resultado de conversión): A sin skill · B `ui-ux-pro-max` · C Ponytail `lite` + `impeccable audit` | Gana el brazo con pruebas verdes, menor diff, 375 px sin desbordes y mejor `npx impeccable detect`; contraste leído del CSS (`/verificar pruebas apps/core apps/dashboard`) y `apps/core/test_estilo.py`. Se descarta el que baje un umbral, cambie tokens sin pasar el test o añada CDN | Claude corre los brazos; **la persona elige** | 🟨 2026-10-06 · medida hecha, **elige la persona** · tres ramas `codex/prueba-diseno-{a,b,c}` sin fusionar · ver el resultado abajo |
 | F11.7 | **R1** · dividir `apps/documents/views.py` (1.420 líneas) en paquete `views/` por herramienta, con re-exportación | Mapa de URL idéntico antes y después, suite igual de verde, `fail_under` intacto; un commit por grupo; `/refactor-seguro` | Claude | ✅ 2026-10-05 · `views/` con 11 módulos y `__init__.py` que reexporta · mapa de URL idéntico (20 rutas, antes y después) · suite completa 2349 verdes sin GDAL ni PDAL · un solo commit y no uno por grupo: el corte fue mecánico (`ast`), sin tocar el cuerpo de ninguna función |
 | F11.8 | **Etapa 3** · `jobs/runner.py` (1.181 líneas) y las funciones de más de 140 líneas (`inspeccionar`, `_ejecutar_documento`) | Pruebas de caracterización **antes** de tocar, `/oraculo` y paseo en `p340` | **Bloqueada**: solo si la auditoría (F11.5) o el uso la piden · la auditoría señaló B-07/B-08 (latido y árbol de procesos): decide la persona | ⬜ bloqueada |
 | F11.9 | **Auditoría · integridad**: C-01 (Markdown a PDF pisa un `.pdf`), A-02 (preajuste ajeno en `encolar`), C-06 (rangos de páginas sin tope y O(n²)), D-04 (`epsgCode` no numérico), D-05 (valores no finitos en TIFF y LAS) | Una prueba por hallazgo que **falla antes y pasa después**; el original con el mismo `sha256` y `mtime` en C-01 | Claude | ✅ 2026-10-05 (#25) · 13 de las 15 pruebas nuevas fallan sin el arreglo |
 | F11.10 | **Auditoría · memoria y disco**: D-01/B-02 (libretas leídas enteras), D-02 (línea de RINEX sin tope), B-01 (la estimación no impide una salida enorme), A-05 (cuota de subidas), A-01 (cuerpo anónimo de 2 GB) | Un archivo hostil de tamaño acotado que antes crecía la memoria y ahora no; medido con `tracemalloc` | Claude, salvo A-01 que toca nginx y `p340` | 🟨 2026-10-05 · hechos D-01/B-02, D-02 y B-01 (10 de 11 pruebas nuevas fallan sin el arreglo) · **faltan A-05 (cuota) y A-01 (cuerpo anónimo)** |
 | F11.11 | **Auditoría · hechos de `p340` y fixtures**: la prueba de `X-Forwarded-For` ante Funnel (A-03/D-06), el valor real de `AEROCONVERT_RAICES_PERMITIDAS`, y un VRT con extensión `.asc` ante la GDAL desplegada (B-04) | Cifras fechadas en `docs/PRUEBAS_CON_ORACULO.md` | **La persona** corre lo de `p340`; Claude arma los fixtures | ⬜ |
+
+**Resultado de la prueba de diseño (F11.6), 2026-10-06.** Pantalla: el resultado de una
+conversión (`templates/jobs/_progreso.html`), medida en el navegador a 375 px con los cuatro
+estados. La primera ronda **se anuló**: los brazos B y C se pisaron entre sí (clases de uno en la
+rama del otro) y uno escribió en el repositorio principal por una ruta relativa; se repitieron
+desde cero con rutas absolutas, y el reparto de clases se comprobó antes de medir.
+
+| | base | A sin skill | B ui-ux-pro-max | C Ponytail + impeccable |
+| --- | ---: | ---: | ---: | ---: |
+| Botones principales (hecho) | 2 | 1 | 1 | 1 |
+| Alto de la pantalla a 375 px | 2.456 | 1.728 | **1.647** | 1.728 |
+| Contenido fuera de 375 px | 0 | 0 | 0 | 0 |
+| Detector de impeccable | 6 | 6 | 6 | 6 |
+| Pruebas (core, jobs, ficha) | — | 925 ✔ (medido) | 925 ✔ (medido) | 1.032 ✔ (informado) |
+| Cambio (líneas) | — | +152 −37 | +188 −46 | +156 −46 |
+| Regla compartida tocada | — | no | no | no |
+
+**Lectura:** las tres skills y el brazo sin skill **empatan en todo lo medible**. B acorta un 5 %
+más la pantalla a costa de un 24 % más de cambio; el detector no se movió en ninguno porque sus
+seis hallazgos están en reglas compartidas que ninguno debía tocar. **Ninguna skill demuestra
+ventaja sobre no usar skill.** Dos hallazgos que ningún brazo tocaba: (1) a 375 px **toda la
+página** desborda 240 px por el menú «Herramientas» de la barra, que es de `base.html` y no de
+esta pantalla; (2) los tres corrigieron «puedes» a «puede» en el titular. Decide la persona qué
+rama se adopta como primera pieza de F9.4; ver `HANDOFF.md`.
 
 **Orden propuesto:** F11.1 → F11.2 → F11.3 → F11.4 → F11.5 → F11.6 → F11.7 (F11.8 aparte).
 F11.2 y F11.3 son de bajo riesgo y de efecto inmediato; F11.5 y F11.6 deben ir **antes** de F9.4.
