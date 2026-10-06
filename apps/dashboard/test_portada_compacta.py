@@ -68,7 +68,13 @@ class TestBuscando:
 class TestLaCabecera:
     def test_el_proposito_es_una_linea(self, sesion):
         cuerpo = sesion.get(reverse("dashboard:que_puedo_hacer")).content.decode()
-        assert "Hola, ana. Escriba lo que necesita conseguir, o elija un grupo." in cuerpo
+        assert "Escriba lo que necesita conseguir, o elija un grupo." in cuerpo
+        assert "Hola, ana" not in cuerpo, "el usuario no es un nombre"
+
+    def test_saluda_por_el_nombre_de_pila_cuando_lo_hay(self, sesion):
+        get_user_model().objects.filter(username="ana").update(first_name="Ana")
+        cuerpo = sesion.get(reverse("dashboard:que_puedo_hacer")).content.decode()
+        assert "Hola, Ana. Escriba lo que necesita" in cuerpo
 
 
 class TestElPanelLateral:
