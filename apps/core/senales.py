@@ -18,8 +18,10 @@ Ni la contraseña, ni nada que se le parezca. Solo el nombre, la dirección y si
 from __future__ import annotations
 
 import logging
+import sys
 
 from django.contrib.auth.signals import user_logged_in, user_logged_out, user_login_failed
+from django.core.signals import got_request_exception
 from django.dispatch import receiver
 
 from .ip import ip_del_cliente, viene_de_internet
@@ -43,6 +45,25 @@ def anotar_entrada(sender, request, user, **kwargs):
 def anotar_salida(sender, request, user, **kwargs):
     if user is not None:
         registro.info("Salió %s desde %s.", user.get_username(), _de_donde(request))
+
+
+@receiver(got_request_exception)
+def anotar_error_del_servidor(sender, request=None, **kwargs):
+    """Cada 500 deja una fila de `Incidente`: ruta, código y qué clase de excepción.
+
+    **El tipo de la excepción sí, su mensaje no**: puede llevar el nombre de un archivo o un
+    fragmento del contenido. Es lo justo para contar y para saber por dónde mirar en el registro.
+    """
+    from . import incidentes
+
+    excepcion = sys.exc_info()[1]
+    incidentes.registrar(
+        "servidor-500",
+        getattr(request, "path", "") or "",
+        estado=500,
+        detalle=type(excepcion).__name__ if excepcion else "",
+        usuario=getattr(request, "user", None),
+    )
 
 
 @receiver(user_login_failed)

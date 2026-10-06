@@ -347,7 +347,7 @@ etapa final. Cada etapa va en su rama `codex/fase-9-*` con su PR.
 | F9.3 | Contraste y foco medidos y sostenidos por pruebas: anillo en la barra, foco de formularios, enlaces, estados | ✅ 2026-09-25 · falta la pasada de teclado en los dos temas |
 | F9.4 | Lo visual: una acción principal, profundidad, radios, iconos, tipografía, móvil a 375 px | 🟨 2026-10-06 · hecha la pantalla del resultado de una conversión y el desborde de la barra a 375 px; menú «Herramientas» sin salirse y con columnas parejas, límite de subida a la vista, y `/convertir/` y `/motores/` sin desborde a 375 px; portada con grupos plegables (2.000 a 1.010 px); **faltan** profundidad, radios, iconos y tipografía |
 | F9.5 | La paleta en OKLCH sin cambiar lo que se ve | ⬜ |
-| F9.6 | Saber si mejoró: `Incidente` y `resumen_de_uso` | ⬜ |
+| F9.6 | Saber si mejoró: `Incidente` y `resumen_de_uso` | ✅ 2026-10-06 · modelo `Incidente` (500 del servidor y fallos de htmx), `manage.py resumen_de_uso`, 20 pruebas · falta ver cifras reales tras unos días en `p340` |
 
 **Lo que la auditoría encontró y motiva el orden**: 13 de las 20 herramientas no dejan
 descargar el resultado de un archivo subido; arrastrar y soltar no hace nada; ningún error de
