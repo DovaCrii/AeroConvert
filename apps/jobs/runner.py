@@ -906,6 +906,9 @@ def _lanzar(job: ConversionJob, plan: PlanDeEjecucion, parcial: Path) -> None:
             # llegaria nada hasta que la linea terminase.
             bufsize=0,
             shell=False,
+            # Cabeza de su propio grupo, para poder matarlo **con sus descendientes**: ODA, Wine,
+            # Office y `xvfb-run` lanzan nietos que sobrevivían a la cancelación y al plazo (B-08).
+            **_opciones_de_grupo(),
         )
     except FileNotFoundError as fallo:
         raise TrabajoFallido(
@@ -914,8 +917,11 @@ def _lanzar(job: ConversionJob, plan: PlanDeEjecucion, parcial: Path) -> None:
     except OSError as fallo:
         raise TrabajoFallido("error-del-motor", f"No se pudo lanzar el motor: {fallo}") from fallo
 
-    job.worker_pid = proceso.pid
-    job.save(update_fields=["worker_pid", "updated_at"])
+    # **`worker_pid` se queda con el del obrero**, el de `reclamar()`. Aquí se pisaba con el del
+    # motor, y en cuanto el motor terminaba y el obrero seguía con los pasos posteriores o la
+    # verificación, `recoger_muertos` veía un PID muerto y un latido viejo y marcaba como
+    # «interrumpido» un trabajo vivo (B-07 de la auditoría). Cancelar no lo necesita: es
+    # cooperativo y se pide por la base.
 
     lineas: queue.Queue[str | None] = queue.Queue()
     lector = threading.Thread(target=_leer_salida, args=(proceso, lineas), daemon=True)
@@ -1038,15 +1044,11 @@ def _pasos_posteriores(job, plan: PlanDeEjecucion, parcial: Path, entorno: dict)
             argv=list(comando),
         )
         try:
-            resultado = subprocess.run(  # nosec B603
+            resultado = _correr_en_grupo(
                 list(comando),
-                capture_output=True,
-                text=True,
                 cwd=str(plan.cwd) if plan.cwd else None,
-                env=entorno,
-                timeout=plan.timeout_s,
-                check=False,
-                shell=False,
+                entorno=entorno,
+                timeout_s=plan.timeout_s,
             )
         except subprocess.TimeoutExpired as agotado:
             _borrar(parcial)
@@ -1121,14 +1123,69 @@ def _leer_salida(proceso, lineas: queue.Queue) -> None:
         lineas.put(None)
 
 
+def _opciones_de_grupo() -> dict:
+    """Para que el hijo sea cabeza de su propio grupo de procesos y se pueda matar entero."""
+    if os.name == "nt":
+        return {"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP}
+    return {"start_new_session": True}
+
+
+def _senalar_arbol(proceso, *, a_la_fuerza: bool) -> None:
+    """Termina al proceso **y a todo lo que lanzó**.
+
+    Matar solo al hijo directo dejaba huérfanos a los nietos: ODA File Converter, `wine`,
+    `Xvfb`, Word, Excel y PowerPoint (servidores COM fuera de proceso) seguían vivos, con el
+    archivo bloqueado y la memoria ocupada, mientras el despachador arrancaba el siguiente
+    trabajo (B-08 de la auditoría). En POSIX se señala el grupo; en Windows, `taskkill /T`.
+    Si por lo que sea no se puede, se cae a lo de antes: al menos el hijo.
+    """
+    try:
+        if os.name == "nt":
+            comando = ["taskkill", "/PID", str(proceso.pid), "/T"]
+            if a_la_fuerza:
+                comando.append("/F")
+            subprocess.run(comando, capture_output=True, check=False, timeout=15)  # nosec B603 B607
+        else:
+            import signal
+
+            os.killpg(proceso.pid, signal.SIGKILL if a_la_fuerza else signal.SIGTERM)
+    except (OSError, subprocess.SubprocessError):
+        (proceso.kill if a_la_fuerza else proceso.terminate)()
+
+
 def _matar(proceso) -> None:
-    """Cancelacion cooperativa: primero por las buenas, luego por las malas."""
-    proceso.terminate()
+    """Cancelacion cooperativa: primero por las buenas, luego por las malas, y con el árbol."""
+    _senalar_arbol(proceso, a_la_fuerza=False)
     try:
         proceso.wait(timeout=GRACIA_AL_CANCELAR_S)
     except subprocess.TimeoutExpired:
-        proceso.kill()
+        _senalar_arbol(proceso, a_la_fuerza=True)
         proceso.wait(timeout=5)
+
+
+def _correr_en_grupo(comando: list[str], *, cwd, entorno: dict, timeout_s: int):
+    """`subprocess.run` que, al agotarse el plazo, mata al grupo entero y no solo al hijo.
+
+    `run(timeout=...)` mata únicamente al proceso directo y deja a sus descendientes: es el
+    mismo agujero de `_matar`, en los pasos posteriores.
+    """
+    proceso = subprocess.Popen(  # nosec B603
+        comando,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        cwd=cwd,
+        env=entorno,
+        shell=False,
+        **_opciones_de_grupo(),
+    )
+    try:
+        salida, errores = proceso.communicate(timeout=timeout_s)
+    except subprocess.TimeoutExpired:
+        _senalar_arbol(proceso, a_la_fuerza=True)
+        proceso.communicate()
+        raise
+    return subprocess.CompletedProcess(comando, proceso.returncode, salida, errores)
 
 
 def _limpiar_restos(parcial: Path) -> None:
