@@ -33,9 +33,38 @@ def guardar(archivo, *, usuario) -> ArchivoSubido:
         expires_at=timezone.now() + timedelta(hours=HORAS_DE_VIDA),
     )
     subida.clean()
+    _exigir_cuota(usuario, archivo.size)
     subida.archivo.save(subida.nombre_original, archivo, save=False)
     subida.save()
     return subida
+
+
+def _exigir_cuota(usuario, bytes_nuevos: int) -> None:
+    """Que una persona no llene el disco con subidas.
+
+    El tope de `TOPE_MB` es **por archivo**: nada impedía subir veinte de 2 GB seguidos, y cada
+    uno vive un día como mínimo (hallazgo A-05 de la auditoría de seguridad). Se suma lo que esa
+    persona tiene ahora en el servidor, esté sin usar o reclamado por un trabajo en curso, y se
+    rechaza **antes de escribir** si lo nuevo no cabe. `CUOTA_DE_SUBIDAS_MB` en 0 la apaga.
+    """
+    from django.conf import settings
+    from django.core.exceptions import ValidationError
+    from django.db.models import Sum
+
+    cuota = int(getattr(settings, "CUOTA_DE_SUBIDAS_MB", 0)) * 1_048_576
+    if not cuota:
+        return
+
+    ocupado = (
+        ArchivoSubido.objects.filter(owner=usuario).aggregate(total=Sum("size_bytes"))["total"] or 0
+    )
+    if ocupado + bytes_nuevos > cuota:
+        raise ValidationError(
+            f"Ya tiene {ocupado // 1_048_576} MB subidos que siguen en el servidor, y este "
+            f"archivo suma {bytes_nuevos // 1_048_576} MB: el máximo por persona son "
+            f"{settings.CUOTA_DE_SUBIDAS_MB} MB. Se borran solos al terminar su trabajo o a "
+            f"las {HORAS_DE_VIDA} horas; mientras tanto, déjelos en la carpeta compartida."
+        )
 
 
 def guardar_varios(archivos, *, usuario) -> list[ArchivoSubido]:

@@ -50,6 +50,11 @@ RAICES_PERMITIDAS = config("AEROCONVERT_RAICES_PERMITIDAS", default="")
 # nginx, `apps/core/manejador.py` mientras llega, y `ArchivoSubido.clean()`.
 TOPE_MB = config("AEROCONVERT_TOPE_MB", default=2048, cast=int)
 
+# Cuanto puede tener subido **una persona** a la vez, sin usar o en un trabajo en curso. El tope de
+# arriba es por archivo; sin esto, veinte de 2 GB seguidos llenaban el disco (A-05 de la auditoria).
+# 8192 = cuatro archivos del maximo. En 0 se apaga.
+CUOTA_DE_SUBIDAS_MB = config("AEROCONVERT_CUOTA_DE_SUBIDAS_MB", default=8192, cast=int)
+
 # El nuestro, que cuenta lo que llega y corta. Ver `apps/core/manejador.py`.
 FILE_UPLOAD_HANDLERS = ["apps.core.manejador.SubidaConTope"]
 
