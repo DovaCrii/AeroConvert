@@ -99,6 +99,8 @@
   --av-fam-texto-soft: oklch(0.9452 0.0254 56.06);
 
   --av-radius: 12px;
+  /* Para lo pequeño: chips de código y filetes. Estaban `3px`, `4px` y `6px` a mano. */
+  --av-radius-xs: 4px;
   --av-radius-sm: 8px;
   /* Para las píldoras y los círculos. Estaba escrito `999px` a mano seis veces. */
   --av-radius-pill: 999px;
@@ -607,7 +609,7 @@ a:hover {
 
 .portada-icono {
   color: var(--av-magenta);
-  font-size: 0.7rem;
+  font-size: var(--av-fs-xs);
 }
 
 .portada-familia {
@@ -710,7 +712,7 @@ a:hover {
  * que ya era el más pequeño de la hoja, así que sube a 0,84 y baja el interletraje.
  */
 .eyebrow {
-  font-size: 0.84rem;
+  font-size: var(--av-fs-sm);
   font-weight: var(--av-peso-fuerte);
   letter-spacing: 0.09em;
   text-transform: uppercase;
@@ -854,7 +856,7 @@ a.menu-titulo:hover {
   padding: 6px 8px;
   margin: 0 -8px;
   border-radius: var(--av-radius-sm);
-  font-size: 0.9rem;
+  font-size: var(--av-fs-sm);
   line-height: var(--av-alto-apretado);
 }
 
@@ -941,7 +943,7 @@ a.menu-titulo:hover {
   background: rgb(255 255 255 / 8%);
   color: #fff;
   font: inherit;
-  font-size: 0.88rem;
+  font-size: var(--av-fs-sm);
 }
 
 .buscador-barra input::placeholder {
@@ -1060,7 +1062,7 @@ a.menu-titulo:hover {
   .nav-item {
     padding: 6px 7px;
     gap: 5px;
-    font-size: 0.9rem;
+    font-size: var(--av-fs-sm);
   }
 
   .buscador-barra input {
@@ -1071,7 +1073,7 @@ a.menu-titulo:hover {
 @media (max-width: 1000px) {
   .nav-item {
     padding: 5px 5px;
-    font-size: 0.84rem;
+    font-size: var(--av-fs-sm);
   }
 
   .nav-icono {
@@ -1251,7 +1253,7 @@ a.menu-titulo:hover {
   color: var(--av-surface);
   /* Contra el fondo de la tarjeta, no contra el del cuadro: es lo que lo despega. */
   border: 2px solid var(--av-surface);
-  font-size: 0.7rem;
+  font-size: var(--av-fs-xs);
   font-weight: 800;
   font-variant-numeric: tabular-nums;
   line-height: 1;
@@ -1260,7 +1262,7 @@ a.menu-titulo:hover {
 .pasos strong {
   display: block;
   margin-bottom: 2px;
-  font-size: 1.02rem;
+  font-size: var(--av-fs-md);
   font-weight: var(--av-peso-medio);
   letter-spacing: -0.008em;
   line-height: var(--av-alto-apretado);
@@ -1338,7 +1340,7 @@ a.menu-titulo:hover {
 }
 
 .origen-titulo {
-  font-size: 1.02rem;
+  font-size: var(--av-fs-md);
   font-weight: var(--av-peso-medio);
   letter-spacing: -0.008em;
   margin: 0;
@@ -1439,7 +1441,7 @@ a.menu-titulo:hover {
   border-radius: var(--av-radius-sm);
   background: var(--av-surface-alt);
   color: var(--av-text-secondary);
-  font-size: 0.82rem;
+  font-size: var(--av-fs-sm);
   line-height: var(--av-alto-normal);
   white-space: pre;
 }
@@ -1810,20 +1812,20 @@ legend {
   border-radius: var(--av-radius-pill);
   background: var(--av-primary);
   color: var(--av-sobre-accion, #fff);
-  font-size: 0.68rem;
+  font-size: var(--av-fs-xs);
   font-weight: var(--av-peso-fuerte);
   line-height: 1;
 }
 
 .bienvenida-ideas h3 {
   margin: 0 0 4px;
-  font-size: 0.92rem;
+  font-size: var(--av-fs-sm);
   color: var(--av-primary);
 }
 
 .bienvenida-ideas p {
   margin: 0;
-  font-size: 0.9rem;
+  font-size: var(--av-fs-sm);
   line-height: var(--av-alto-normal);
   color: var(--av-text-secondary);
 }
@@ -1860,7 +1862,7 @@ legend {
 
 .respuesta-par {
   margin: 0 0 6px;
-  font-size: 1.15rem;
+  font-size: var(--av-fs-md);
   line-height: var(--av-alto-apretado);
 }
 
@@ -1943,7 +1945,7 @@ legend {
   background: none;
   border: 0;
   padding: 2px 6px;
-  border-radius: 6px;
+  border-radius: var(--av-radius-xs);
   color: var(--av-primary);
   cursor: pointer;
   font: inherit;
@@ -2071,7 +2073,7 @@ legend {
 }
 
 .remate-titulo {
-  font-size: 1.08rem;
+  font-size: var(--av-fs-md);
   font-weight: var(--av-peso-medio);
   letter-spacing: -0.008em;
 }
@@ -2167,7 +2169,7 @@ legend {
   margin-right: 6px;
   padding: 1px 9px;
   border: 1px solid var(--av-border-control);
-  border-radius: 999px;
+  border-radius: var(--av-radius-pill);
   font-size: var(--av-fs-xs);
   line-height: 1.5;
   color: var(--av-text-secondary);
@@ -2182,7 +2184,7 @@ legend {
 .soltar kbd {
   background: var(--av-surface);
   border: 1px solid var(--av-border-control);
-  border-radius: 4px;
+  border-radius: var(--av-radius-xs);
   padding: 0 5px;
   font-size: 0.85em;
   color: var(--av-text);
@@ -2558,7 +2560,7 @@ code {
   color: var(--av-text-secondary);
   background: color-mix(in srgb, var(--av-text-secondary) 12%, transparent);
   padding: 0 4px;
-  border-radius: 4px;
+  border-radius: var(--av-radius-xs);
   font-size: 0.86em;
 }
 
@@ -2840,7 +2842,7 @@ code {
 /* El nombre un punto por encima del cuerpo y con el interletraje cerrado: en una rejilla de
  * nueve, el nombre es lo que se busca y la explicación lo que se lee después. */
 .herramienta-texto strong {
-  font-size: 1.02rem;
+  font-size: var(--av-fs-md);
   font-weight: var(--av-peso-medio);
   letter-spacing: -0.008em;
   line-height: var(--av-alto-apretado);
@@ -2934,7 +2936,7 @@ code {
 }
 
 .bloque-titulo {
-  font-size: 1.12rem;
+  font-size: var(--av-fs-md);
   font-weight: var(--av-peso-medio);
   letter-spacing: -0.01em;
   margin: 0 0 4px;
@@ -2990,7 +2992,7 @@ code {
 .grupo-titulo {
   flex: none;
   margin: 0;
-  font-size: 1.12rem;
+  font-size: var(--av-fs-md);
   font-weight: var(--av-peso-medio);
   letter-spacing: -0.01em;
 }
@@ -3046,7 +3048,7 @@ code {
 }
 
 .grupo-herramientas .herramienta-texto strong {
-  font-size: 0.98rem;
+  font-size: var(--av-fs-base);
 }
 
 .grupo-herramientas .herramienta-que {
@@ -3165,7 +3167,7 @@ code {
 }
 
 .motor-nombre strong {
-  font-size: 0.98rem;
+  font-size: var(--av-fs-base);
   letter-spacing: -0.005em;
 }
 
@@ -3245,7 +3247,7 @@ code {
   width: auto;
   background: #fff;
   border: 1px solid var(--av-border);
-  border-radius: 3px;
+  border-radius: var(--av-radius-xs);
 }
 
 .tira-hoja figcaption {
@@ -3328,7 +3330,7 @@ code {
   object-fit: contain;
   background: #fff;
   border: 1px solid var(--av-border);
-  border-radius: 3px;
+  border-radius: var(--av-radius-xs);
 }
 
 /* Lo tocado se ve. Color **y** texto: la fila dice «girada 90°» además de teñirse. */
@@ -3372,7 +3374,7 @@ code {
 .pagina-acciones .boton-icono {
   width: 2rem;
   height: 2rem;
-  font-size: 1rem;
+  font-size: var(--av-fs-base);
   line-height: 1;
 }
 
@@ -3412,7 +3414,7 @@ code {
 
 .dibujo-punto text {
   fill: var(--av-text-secondary);
-  font-size: 11px;
+  font-size: var(--av-fs-xs);
   font-variant-numeric: tabular-nums;
 }
 
