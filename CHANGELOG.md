@@ -5,6 +5,15 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Sin publicar]
 
+### Cambiado — la paleta en OKLCH, sin cambiar lo que se ve (F9.5)
+
+- Los 95 tokens de color de `static/css/app.css` (claro, oscuro y oscuro del sistema) pasan de
+  `#rrggbb` a `oklch(L C H)`. Una variante nueva de una familia es ahora tocar la luminosidad, no
+  adivinar tres canales.
+- **Nada cambia a la vista:** el navegador pinta el mismo byte en los 95 (oráculo de canvas,
+  `docs/PRUEBAS_CON_ORACULO.md`). `apps/core/oklch.py` convierte en los dos sentidos; las pruebas de
+  contraste WCAG siguen midiendo sobre sRGB, y `test_oklch.py` guarda la paleta anterior como foto.
+
 ### Corregido — pruebas que dependían del orden de ejecución
 
 - **Causa encontrada:** `apps/raster/test_lectura_propietaria.py` sembraba solo los motores

@@ -25,27 +25,27 @@
   color-scheme: light;
 
   /* Estructura, compartida con las cuatro hermanas */
-  --av-navy: #1b2a4a;
+  --av-navy: oklch(0.2895 0.0622 263.95);
 
   /* Marca — solo pinta */
-  --av-magenta: #f15bb5;
+  --av-magenta: oklch(0.6929 0.2055 346.77);
 
   /* Acción — se lee */
-  --av-primary: #a3176f;
-  --av-primary-hover: #85115a;
-  --av-primary-soft: #fce7f3;
-  --av-sobre-accion: #ffffff;
+  --av-primary: oklch(0.4820 0.1877 348.75);
+  --av-primary-hover: oklch(0.4157 0.1617 348.66);
+  --av-primary-soft: oklch(0.9482 0.0276 342.26);
+  --av-sobre-accion: oklch(1.0000 0.0000 0.00);
 
-  --av-bg: #f4f7fb;
-  --av-surface: #ffffff;
-  --av-surface-alt: #f8fafc;
-  --av-border: #dbe3ee;
-  --av-border-control: #7f8b9e;
-  --av-text: #172238;
-  --av-text-secondary: #4f5b72;
+  --av-bg: oklch(0.9750 0.0062 255.47);
+  --av-surface: oklch(1.0000 0.0000 0.00);
+  --av-surface-alt: oklch(0.9842 0.0034 247.86);
+  --av-border: oklch(0.9130 0.0173 256.28);
+  --av-border-control: oklch(0.6335 0.0318 259.57);
+  --av-text: oklch(0.2535 0.0447 263.32);
+  --av-text-secondary: oklch(0.4700 0.0404 263.29);
   /* Era #626f85: pasaba sobre blanco y caía a 4,32 sobre `--av-primary-soft`, que es el
    * fondo del menú al pasar por encima, y a 4,26 en la píldora de «cancelado». */
-  --av-text-muted: #5a667a;
+  --av-text-muted: oklch(0.5076 0.0352 260.62);
 
   /* **Los enlaces y el foco, con nombre propio.** No había token de enlace: se pintaban con
    * el azul de Bootstrap, que en oscuro se quedaba en 3,39:1. Y el anillo de foco era el
@@ -58,17 +58,17 @@
 
   /* Oscurecidos lo justo para pasar con margen en su píldora y en su fondo suave: el verde
    * daba 4,35 en la píldora de «hecho» (#0f7a5f) y el rojo 4,19 (#c53b4d). */
-  --av-ok: #0e7359;
-  --av-warn: #8a5a00;
-  --av-danger: #b53647;
-  --av-ok-soft: #e4f6ea;
-  --av-warn-soft: #fdf1dc;
-  --av-danger-soft: #fce4e6;
+  --av-ok: oklch(0.4957 0.0950 169.40);
+  --av-warn: oklch(0.5078 0.1080 73.30);
+  --av-danger: oklch(0.5258 0.1625 17.26);
+  --av-ok-soft: oklch(0.9565 0.0247 156.73);
+  --av-warn-soft: oklch(0.9620 0.0305 81.76);
+  --av-danger-soft: oklch(0.9388 0.0265 11.87);
   /* **Información, que faltaba.** Sin ella, un «Hecho» o un «ya estaba comprimido» salían en el
    * ámbar de «cuidado», que es otra cosa. Azul, porque es el único tono de estado que no
    * significa ni «bien» ni «mal». */
-  --av-info: #1a5aad;
-  --av-info-soft: #e6eefb;
+  --av-info: oklch(0.4760 0.1472 257.03);
+  --av-info-soft: oklch(0.9469 0.0195 260.17);
 
   /* --- Las familias de herramientas ---------------------------------------
    *
@@ -83,20 +83,20 @@
    */
   --av-fam-componer: var(--av-primary);
   --av-fam-componer-soft: var(--av-primary-soft);
-  --av-fam-transformar: #1b5fb8;
-  --av-fam-transformar-soft: #e6eefb;
-  --av-fam-marcar: #6b3fbf;
-  --av-fam-marcar-soft: #ede8fb;
-  --av-fam-proteger: #0f6d78;
-  --av-fam-proteger-soft: #ddf1f3;
+  --av-fam-transformar: oklch(0.4954 0.1557 257.24);
+  --av-fam-transformar-soft: oklch(0.9469 0.0195 260.17);
+  --av-fam-marcar: oklch(0.4917 0.1896 294.09);
+  --av-fam-marcar-soft: oklch(0.9405 0.0259 297.93);
+  --av-fam-proteger: oklch(0.4905 0.0805 207.54);
+  --av-fam-proteger-soft: oklch(0.9440 0.0213 204.04);
   /* Los destinos geoespaciales. Antes reusaban el azul de `transformar`, así que las seis
    * tarjetas de «llevarlo a…» salían idénticas salvo por su título. */
-  --av-fam-destino: #2e4a8e;
-  --av-fam-destino-soft: #e8ecfa;
+  --av-fam-destino: oklch(0.4249 0.1175 264.98);
+  --av-fam-destino-soft: oklch(0.9442 0.0193 273.23);
   /* Y el grupo de texto y tablas. El bronce es el único hueco que queda sin pisar al verde,
    * al ámbar ni al rojo de los estados. */
-  --av-fam-texto: #8f4418;
-  --av-fam-texto-soft: #fbe9dd;
+  --av-fam-texto: oklch(0.4756 0.1156 47.20);
+  --av-fam-texto-soft: oklch(0.9452 0.0254 56.06);
 
   --av-radius: 12px;
   --av-radius-sm: 8px;
@@ -213,32 +213,32 @@
 :root[data-theme="dark"] {
   color-scheme: dark;
 
-  --av-magenta: #f15bb5;
-  --av-primary: #f5a8d3;
-  --av-primary-hover: #f9c4e1;
-  --av-primary-soft: #3a1030;
-  --av-sobre-accion: #1b0d16;
+  --av-magenta: oklch(0.6929 0.2055 346.77);
+  --av-primary: oklch(0.8183 0.1051 345.10);
+  --av-primary-hover: oklch(0.8755 0.0707 344.64);
+  --av-primary-soft: oklch(0.2561 0.0797 338.22);
+  --av-sobre-accion: oklch(0.1832 0.0289 341.38);
 
   /* El fondo baja y las superficies suben: antes iban a 12 puntos de luminancia y las
      tarjetas no se despegaban del fondo, así que la pantalla entera se leía como una
      mancha gris. Ahora hay tres escalones que se distinguen. */
-  --av-bg: #0e141d;
-  --av-surface: #1c2634;
-  --av-surface-alt: #24303f;
-  --av-border: #334054;
-  --av-border-control: #74829a;
-  --av-text: #eef1f6;
-  --av-text-secondary: #bcc6d6;
-  --av-text-muted: #9daabc;
+  --av-bg: oklch(0.1897 0.0206 258.33);
+  --av-surface: oklch(0.2659 0.0299 256.85);
+  --av-surface-alt: oklch(0.3051 0.0318 254.29);
+  --av-border: oklch(0.3687 0.0387 258.86);
+  --av-border-control: oklch(0.6038 0.0402 261.21);
+  --av-text: oklch(0.9573 0.0074 260.73);
+  --av-text-secondary: oklch(0.8238 0.0250 259.82);
+  --av-text-muted: oklch(0.7336 0.0299 256.51);
 
-  --av-ok: #5fd3ae;
-  --av-warn: #f0b45e;
-  --av-danger: #f08a97;
-  --av-ok-soft: #14361f;
-  --av-warn-soft: #3d2f14;
-  --av-danger-soft: #3d1a1e;
-  --av-info: #9cc6f8;
-  --av-info-soft: #17325a;
+  --av-ok: oklch(0.7896 0.1191 169.51);
+  --av-warn: oklch(0.8088 0.1244 74.28);
+  --av-danger: oklch(0.7457 0.1246 12.38);
+  --av-ok-soft: oklch(0.3002 0.0577 151.98);
+  --av-warn-soft: oklch(0.3143 0.0461 82.13);
+  --av-danger-soft: oklch(0.2701 0.0550 14.31);
+  --av-info: oklch(0.8144 0.0840 253.15);
+  --av-info-soft: oklch(0.3189 0.0789 258.19);
 
   /* Las familias, subidas de luz y con el fondo hundido: en oscuro el par se invierte.
    *
@@ -247,17 +247,17 @@
    * dibujo, no la pieza. El color de familia se reconoce por la mancha de fondo, no por el
    * trazo, así que si la mancha no existe el color no comunica y sobra. */
   --av-fam-componer: var(--av-primary);
-  --av-fam-componer-soft: #46143a;
-  --av-fam-transformar: #9cc6f8;
-  --av-fam-transformar-soft: #17325a;
-  --av-fam-marcar: #cdb4f8;
-  --av-fam-marcar-soft: #2f1d5c;
-  --av-fam-proteger: #7ddbe3;
-  --av-fam-proteger-soft: #14444b;
-  --av-fam-destino: #a9c0f2;
-  --av-fam-destino-soft: #1d2c52;
-  --av-fam-texto: #f0b088;
-  --av-fam-texto-soft: #4a2a14;
+  --av-fam-componer-soft: oklch(0.2882 0.0915 338.44);
+  --av-fam-transformar: oklch(0.8144 0.0840 253.15);
+  --av-fam-transformar-soft: oklch(0.3189 0.0789 258.19);
+  --av-fam-marcar: oklch(0.8147 0.0975 301.12);
+  --av-fam-marcar-soft: oklch(0.2936 0.1071 291.56);
+  --av-fam-proteger: oklch(0.8362 0.0901 202.70);
+  --av-fam-proteger-soft: oklch(0.3580 0.0516 208.73);
+  --av-fam-destino: oklch(0.8080 0.0755 265.47);
+  --av-fam-destino-soft: oklch(0.3015 0.0718 266.01);
+  --av-fam-texto: oklch(0.8077 0.0922 53.01);
+  --av-fam-texto-soft: oklch(0.3209 0.0585 53.51);
 
   /* **En oscuro la sombra casi no se ve, así que hacen falta las tres cosas a la vez.**
    *
@@ -286,26 +286,26 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
-    --av-primary: #f5a8d3;
-    --av-primary-hover: #f9c4e1;
-    --av-primary-soft: #3a1030;
-    --av-sobre-accion: #1b0d16;
-    --av-bg: #0e141d;
-    --av-surface: #1c2634;
-    --av-surface-alt: #24303f;
-    --av-border: #334054;
-    --av-border-control: #74829a;
-    --av-text: #eef1f6;
-    --av-text-secondary: #bcc6d6;
-    --av-text-muted: #9daabc;
-    --av-ok: #5fd3ae;
-    --av-warn: #f0b45e;
-    --av-danger: #f08a97;
-    --av-ok-soft: #14361f;
-    --av-warn-soft: #3d2f14;
-    --av-danger-soft: #3d1a1e;
-    --av-info: #9cc6f8;
-    --av-info-soft: #17325a;
+    --av-primary: oklch(0.8183 0.1051 345.10);
+    --av-primary-hover: oklch(0.8755 0.0707 344.64);
+    --av-primary-soft: oklch(0.2561 0.0797 338.22);
+    --av-sobre-accion: oklch(0.1832 0.0289 341.38);
+    --av-bg: oklch(0.1897 0.0206 258.33);
+    --av-surface: oklch(0.2659 0.0299 256.85);
+    --av-surface-alt: oklch(0.3051 0.0318 254.29);
+    --av-border: oklch(0.3687 0.0387 258.86);
+    --av-border-control: oklch(0.6038 0.0402 261.21);
+    --av-text: oklch(0.9573 0.0074 260.73);
+    --av-text-secondary: oklch(0.8238 0.0250 259.82);
+    --av-text-muted: oklch(0.7336 0.0299 256.51);
+    --av-ok: oklch(0.7896 0.1191 169.51);
+    --av-warn: oklch(0.8088 0.1244 74.28);
+    --av-danger: oklch(0.7457 0.1246 12.38);
+    --av-ok-soft: oklch(0.3002 0.0577 151.98);
+    --av-warn-soft: oklch(0.3143 0.0461 82.13);
+    --av-danger-soft: oklch(0.2701 0.0550 14.31);
+    --av-info: oklch(0.8144 0.0840 253.15);
+    --av-info-soft: oklch(0.3189 0.0789 258.19);
 
     /* **Las familias también aquí, y faltaban.**
      *
@@ -318,17 +318,17 @@
      * `:root[data-theme="dark"]`, y este bloque no es ninguno de los dos. Ahora también lo
      * lee. */
     --av-fam-componer: var(--av-primary);
-    --av-fam-componer-soft: #46143a;
-    --av-fam-transformar: #9cc6f8;
-    --av-fam-transformar-soft: #17325a;
-    --av-fam-marcar: #cdb4f8;
-    --av-fam-marcar-soft: #2f1d5c;
-    --av-fam-proteger: #7ddbe3;
-    --av-fam-proteger-soft: #14444b;
-    --av-fam-destino: #a9c0f2;
-    --av-fam-destino-soft: #1d2c52;
-    --av-fam-texto: #f0b088;
-    --av-fam-texto-soft: #4a2a14;
+    --av-fam-componer-soft: oklch(0.2882 0.0915 338.44);
+    --av-fam-transformar: oklch(0.8144 0.0840 253.15);
+    --av-fam-transformar-soft: oklch(0.3189 0.0789 258.19);
+    --av-fam-marcar: oklch(0.8147 0.0975 301.12);
+    --av-fam-marcar-soft: oklch(0.2936 0.1071 291.56);
+    --av-fam-proteger: oklch(0.8362 0.0901 202.70);
+    --av-fam-proteger-soft: oklch(0.3580 0.0516 208.73);
+    --av-fam-destino: oklch(0.8080 0.0755 265.47);
+    --av-fam-destino-soft: oklch(0.3015 0.0718 266.01);
+    --av-fam-texto: oklch(0.8077 0.0922 53.01);
+    --av-fam-texto-soft: oklch(0.3209 0.0585 53.51);
 
     /* Los mismos que el bloque de arriba. Este es el que manda **por omisión** —quien tiene
      * el sistema en oscuro y no ha tocado el interruptor— y ya se olvidó una vez: los colores
