@@ -55,6 +55,10 @@ TOPE_MB = config("AEROCONVERT_TOPE_MB", default=2048, cast=int)
 # 8192 = cuatro archivos del maximo. En 0 se apaga.
 CUOTA_DE_SUBIDAS_MB = config("AEROCONVERT_CUOTA_DE_SUBIDAS_MB", default=8192, cast=int)
 
+# Lo máximo que se acepta en un POST **sin sesión**: 1 MiB. Un formulario de entrada pesa unos
+# cientos de bytes; todo lo demás es alguien intentando que el servidor escriba por él (A-01).
+LIMITE_DE_CUERPO_ANONIMO_BYTES = 1_048_576
+
 # El nuestro, que cuenta lo que llega y corta. Ver `apps/core/manejador.py`.
 FILE_UPLOAD_HANDLERS = ["apps.core.manejador.SubidaConTope"]
 
@@ -194,6 +198,8 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    # Después de saber quién es y antes de que el CSRF lea el cuerpo: ver su docstring (A-01).
+    "apps.core.middleware.LimiteDeCuerpoMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "apps.core.middleware.ContentSecurityPolicyMiddleware",

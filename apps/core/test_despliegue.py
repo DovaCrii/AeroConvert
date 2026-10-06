@@ -240,9 +240,33 @@ class TestNginx:
 
         from django.conf import settings
 
-        hallado = re.search(r"client_max_body_size\s+(\d+)m", nginx)
-        assert hallado, "falta client_max_body_size"
-        assert int(hallado.group(1)) > settings.TOPE_MB
+        todos = [int(n) for n in re.findall(r"client_max_body_size\s+(\d+)m", nginx)]
+        assert todos, "falta client_max_body_size"
+        assert max(todos) > settings.TOPE_MB
+
+    def test_solo_las_rutas_de_subida_aceptan_gigas(self, nginx: str):
+        """A-01: con el tope grande en todo el `server`, un anónimo podía hacer que nginx
+        recibiera 2 GB por petición contra cualquier ruta que aceptara POST. El del servidor es
+        pequeño y los grandes viven dentro de un `location` de subida."""
+        import re
+
+        from django.conf import settings
+
+        servidor = re.search(
+            r"server\s*\{\s*(?:#[^\n]*\n|\s)*?.*?client_max_body_size\s+(\d+)m", nginx, re.S
+        )
+        assert servidor and int(servidor.group(1)) <= 8, (
+            "el tope del servidor tiene que ser pequeño"
+        )
+
+        for ubicacion in re.finditer(r"location\s+(=\s+)?(/\S*)\s*\{(.*?)\n    \}", nginx, re.S):
+            cuerpo = ubicacion.group(3)
+            grande = re.search(r"client_max_body_size\s+(\d+)m", cuerpo)
+            if grande and int(grande.group(1)) > 8:
+                assert ubicacion.group(2) in ("/subir/", "/documentos/"), (
+                    f"{ubicacion.group(2)} acepta {grande.group(1)} MB y no es una ruta de subida"
+                )
+        assert settings.TOPE_MB  # el ajuste existe y la otra prueba lo compara con el nginx
 
     def test_no_escucha_fuera_del_bucle_local(self, nginx: str):
         """Quien publica es Tailscale. Escuchar en 0.0.0.0 abriría una segunda puerta sin
