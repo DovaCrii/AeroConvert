@@ -168,7 +168,7 @@
     0 8px 16px -6px rgb(18 34 59 / 16%),
     0 24px 48px -12px rgb(18 34 59 / 20%);
 
-  /* Los dos de antes, conservados: `.tarjeta` y `.menu-panel` los usan y el objetivo de esta
+  /* Los dos de antes, conservados: `.tarjeta` los usa y el objetivo de esta
    * tanda es no mover nada todavía. Se retiran en la siguiente, al aplicar la elevación. */
 
   /* --- Tipografía ----------------------------------------------------------
@@ -445,7 +445,6 @@ a:hover {
 /* --- La barra ----------------------------------------------------------- */
 
 .barra {
-  /* La referencia del panel del menú: ver `.menu-panel`. */
   position: relative;
   background: linear-gradient(180deg, #22335a 0%, var(--av-navy) 100%);
   border-bottom: 1px solid rgb(241 91 181 / 22%);
@@ -744,103 +743,170 @@ a:hover {
   text-decoration: none;
 }
 
-/* --- El desplegable de herramientas --------------------------------------- */
-
-/*
- * `details` dentro de la barra. La posición absoluta del panel cuelga de aquí, así que este
- * `relative` no es decorativo: sin él el panel se ancla al `body` y aparece arriba del todo.
+/* --- El lateral ----------------------------------------------------------- *
+ *
+ * La navegación fija a la izquierda, como en AeroControl: las dos aplicaciones se recorren igual.
+ * Sustituye al desplegable de tres columnas que vivía en la barra.
+ *
+ * Desde 56 rem es una columna de la rejilla, pegada arriba y con su propio desplazamiento si no
+ * cabe; debajo, va encima del contenido. **Sin JavaScript queda siempre a la vista** (en móvil,
+ * apilado arriba): ocultarlo es de `lateral.js`, que marca `html.js-lateral`.
  */
-.menu {
-  /* `static`: el panel ya no cuelga del botón sino de la barra entera (`.barra` es `relative`),
-   * para que nunca se salga de la pantalla por la derecha. */
-  position: static;
-}
 
-.menu-boton {
-  cursor: pointer;
-  list-style: none; /* Firefox pinta un triángulo propio en `summary`. */
-  user-select: none;
-}
-
-/* El de WebKit, que no obedece a `list-style`. */
-.menu-boton::-webkit-details-marker {
-  display: none;
-}
-
-.menu-flecha {
-  width: 0.9rem;
-  height: 0.9rem;
-  opacity: 0.7;
-  transition: transform var(--av-rapido);
-}
-
-.menu[open] .menu-boton {
-  opacity: 1;
-  background: rgb(255 255 255 / 12%);
-}
-
-.menu[open] .menu-flecha {
-  transform: rotate(180deg);
-}
-
-/*
- * El panel. **Colgado de la barra entera y pegado a su borde derecho**, no del botón: anclado a
- * la izquierda del botón (que está hacia la derecha de la barra) un panel de tres columnas se
- * salía de la pantalla —se cortaba «Reconocer el texto» y aparecía una barra de desplazamiento
- * en una ventana de 1.874 px—, y anclado a la derecha del botón se salía por la izquierda al bajar
- * de 1.400 px. Con la barra como referencia ocupa su ancho disponible y cabe siempre.
- */
-.menu-panel {
-  position: absolute;
-  z-index: 40;
-  top: calc(100% + 8px);
-  right: var(--av-s-5);
-  left: auto;
-  width: min(58rem, calc(100vw - 2 * var(--av-s-5)));
-  padding: 18px var(--av-s-5);
-  /* Sin `border`: el anillo va dentro de `--av-elev-2`, y en oscuro sube de contraste solo. */
-  border-radius: var(--av-radius);
-  background: var(--av-surface);
-  color: var(--av-text);
-  box-shadow: var(--av-elev-2);
-}
-
-/* Las columnas las reparte el navegador: cuatro grupos de 6, 1, 7 y 8 entradas caían en tres
- * columnas de 7, 1... y una cuarta bajo la primera. Así salen de 7, 7 y 8, y un grupo nuevo
- * se acomoda solo. `break-inside: avoid` impide que un grupo se parta entre columnas. */
-.menu-columnas {
-  columns: 3 15rem;
-  column-gap: 26px;
-}
-
-.menu-columna {
-  break-inside: avoid;
-  margin-bottom: 18px;
-}
-
-.menu-titulo {
+.cuerpo-app {
   display: block;
-  margin-bottom: 8px;
-  padding-bottom: 6px;
+}
+
+.lateral {
+  padding: var(--av-s-4) var(--av-s-4) var(--av-s-5);
   border-bottom: 1px solid var(--av-border);
-  font-size: var(--av-fs-xs);
-  font-weight: var(--av-peso-fuerte);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  background: var(--av-surface);
+}
+
+.lateral-nav {
+  display: grid;
+  gap: var(--av-s-1);
+}
+
+.lateral-principal,
+.lateral-pie {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lateral-enlace-principal,
+.lateral-grupo-titulo {
+  display: flex;
+  align-items: center;
+  gap: var(--av-s-3);
+  padding: var(--av-s-2) var(--av-s-3);
+  border-radius: var(--av-radius-sm);
+  color: var(--av-text);
+  font-size: var(--av-fs-sm);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.lateral-enlace-principal:hover,
+.lateral-enlace-principal:focus-visible,
+.lateral-grupo-titulo:hover {
+  background: var(--av-primary-soft);
+  color: var(--av-text);
+  text-decoration: none;
+}
+
+/* La página donde se está: fondo, barra a la izquierda **y** el atributo para el lector de
+ * pantalla. El color no va solo. */
+.lateral-enlace-principal[aria-current="page"] {
+  background: var(--av-primary-soft);
+  box-shadow: inset 3px 0 0 var(--av-primary);
+}
+
+.lateral .nav-icono {
+  flex: none;
   color: var(--av-text-secondary);
 }
 
-/* El encabezado es enlace cuando la sección tiene pantalla propia. Dentro de `.barra` todo
- * enlace es blanco y translúcido; aquí el panel es claro y hay que devolverlo. */
-.menu-panel a {
-  color: inherit;
-  opacity: 1;
+.lateral-rotulo {
+  margin: var(--av-s-4) 0 var(--av-s-1);
+  padding: 0 var(--av-s-3);
+  color: var(--av-text-muted);
+  font-size: var(--av-fs-xs);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
-a.menu-titulo:hover {
-  color: var(--av-primary);
+/* Los grupos son `details`: el título es el botón, el chevron gira y cambia de forma. */
+.lateral-grupo-titulo {
+  justify-content: space-between;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+
+.lateral-grupo-titulo::-webkit-details-marker {
+  display: none;
+}
+
+.lateral-flecha {
+  flex: none;
+  width: 0.9rem;
+  height: 0.9rem;
+  color: var(--av-text-muted);
+  transition: transform var(--av-rapido);
+}
+
+.lateral-grupo:not([open]) .lateral-flecha {
+  transform: rotate(-90deg);
+}
+
+.lateral-grupo > .menu-lista {
+  padding: 2px 0 var(--av-s-2) var(--av-s-2);
+}
+
+.lateral .menu-enlace {
+  margin: 0;
+  color: var(--av-text);
   text-decoration: none;
-  border-bottom-color: var(--av-primary);
+}
+
+.lateral .menu-enlace:hover,
+.lateral .menu-enlace:focus-visible {
+  color: var(--av-text);
+}
+
+@media (min-width: 56rem) {
+  .con-lateral .cuerpo-app {
+    display: grid;
+    grid-template-columns: 17rem minmax(0, 1fr);
+  }
+
+  /* El fondo y el filete llegan hasta abajo; lo que se queda pegado al desplazar es el
+   * contenido, y es él quien se desplaza por dentro si no cabe. */
+  .lateral {
+    border-right: 1px solid var(--av-border);
+    border-bottom: 0;
+  }
+
+  .lateral-nav {
+    position: sticky;
+    top: var(--av-s-4);
+    max-height: calc(100vh - 2 * var(--av-s-4));
+    overflow-y: auto;
+  }
+
+  /* Oculto por la persona: la rejilla pierde la columna y el contenido ocupa todo. */
+  .lateral-oculto .cuerpo-app {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .lateral-oculto .lateral {
+    display: none;
+  }
+}
+
+@media (max-width: 55.99rem) {
+  /* Con JavaScript, el lateral nace plegado y el botón de la barra lo saca. */
+  .js-lateral .lateral {
+    display: none;
+  }
+
+  .js-lateral.lateral-abierto .lateral {
+    display: block;
+  }
+}
+
+.lateral-alternar {
+  flex: none;
+}
+
+/* Sin lateral (la pantalla de entrada) no hay nada que alternar. */
+body:not(.con-lateral) .lateral-alternar {
+  display: none;
 }
 
 .menu-lista {
@@ -872,20 +938,6 @@ a.menu-titulo:hover {
 .menu-icono {
   width: 1.05rem;
   height: 1.05rem;
-}
-
-/* Ocupa el ancho entero por debajo de las columnas, sean dos o tres. */
-.menu-pie {
-  grid-column: 1 / -1;
-  margin: 4px 0 0;
-  padding-top: 12px;
-  border-top: 1px solid var(--av-border);
-  font-size: var(--av-fs-xs);
-  color: var(--av-text-secondary);
-}
-
-.menu-pie a {
-  color: var(--av-primary);
 }
 
 /* --- El buscador de la barra ---------------------------------------------- */
@@ -1097,21 +1149,6 @@ a.menu-titulo:hover {
     padding: 7px 9px;
   }
 
-  /* **La del menú se queda.** Es la única entrada de la que cuelga todo lo demás, y un icono
-   * suelto no dice que se despliegue. Con cuatro entradas hay sitio de sobra para una palabra. */
-  .menu-boton span {
-    display: inline;
-  }
-
-  /* A este ancho el panel es la pantalla: de borde a borde de la barra. Era `fixed`, y con
-   * `top: 100%` eso lo mandaba al borde inferior de la ventana, no debajo de la barra. */
-  .menu-panel {
-    left: 12px;
-    right: 12px;
-    width: auto;
-    max-height: calc(100vh - 120px);
-    overflow-y: auto;
-  }
 }
 
 /*
@@ -3539,116 +3576,9 @@ code {
   }
 }
 
-/* --- La portada con panel lateral ------------------------------------------
- *
- * Dos columnas desde 56rem: a la izquierda el panel (convertir, índice de grupos y lo último
- * que se hizo) y a la derecha el catálogo. Debajo, el panel pasa encima y el índice se vuelve
- * una fila de etiquetas que se parte en líneas. Sin desborde horizontal a 375 px. */
-.portada-rejilla {
-  display: grid;
-  gap: var(--av-s-5);
-  align-items: start;
-}
-
-.portada-lateral {
-  display: grid;
-  gap: var(--av-s-5);
+/* Dentro de la rejilla, el contenido ocupa su columna entera. Con `margin: 0 auto` un elemento de
+ * rejilla se encoge a su contenido, y una tabla ancha lo estiraba más allá de la pantalla. */
+.cuerpo-app > .envoltorio {
+  width: 100%;
   min-width: 0;
-}
-
-.portada-grupos {
-  min-width: 0;
-}
-
-.portada-convertir {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: var(--av-control-height);
-  text-decoration: none;
-  text-align: center;
-}
-
-.lateral-titulo {
-  margin: 0 0 var(--av-s-2);
-  color: var(--av-text-muted);
-  font-size: var(--av-fs-xs);
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.lateral-lista {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--av-s-2);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.lateral-enlace {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--av-s-3);
-  padding: var(--av-s-2) var(--av-s-3);
-  border: 1px solid var(--av-border);
-  border-radius: var(--av-radius-sm);
-  background: var(--av-surface);
-  color: var(--av-text);
-  font-size: var(--av-fs-sm);
-  font-weight: 600;
-  text-decoration: none;
-}
-
-.lateral-enlace:hover,
-.lateral-enlace:focus-visible {
-  border-color: var(--av-primary);
-  color: var(--av-text);
-  text-decoration: none;
-}
-
-.lateral-cuenta {
-  min-width: 1.5rem;
-  padding: 0 var(--av-s-2);
-  border-radius: var(--av-radius-pill);
-  background: var(--av-surface-alt);
-  color: var(--av-text-secondary);
-  font-size: var(--av-fs-xs);
-  text-align: center;
-}
-
-.portada-grupos .grupo-herramientas {
-  scroll-margin-top: var(--av-s-4);
-}
-
-/* En el panel, lo reciente va en una sola columna y sin el aire de debajo. */
-.portada-lateral .repetibles {
-  margin: 0;
-}
-
-.portada-lateral .repetibles-lista {
-  grid-template-columns: minmax(0, 1fr);
-  gap: var(--av-s-2);
-  /* Sin barra propia el panel; si lo reciente fuera largo, se corta aquí y no empuja el resto. */
-  max-height: 22rem;
-  overflow-y: auto;
-}
-
-@media (min-width: 56rem) {
-  .portada-rejilla {
-    grid-template-columns: 15.5rem minmax(0, 1fr);
-    gap: var(--av-s-6);
-  }
-
-  .portada-lateral {
-    position: sticky;
-    top: var(--av-s-4);
-  }
-
-  .lateral-lista {
-    display: grid;
-    gap: var(--av-s-1);
-  }
 }

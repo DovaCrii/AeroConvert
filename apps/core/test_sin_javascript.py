@@ -39,18 +39,18 @@ def sesion(client):
     return client
 
 
-class TestElDesplegableAbreSolo:
-    """**Lo que abre y cierra el menú es `details`/`summary`, no `menu.js`.**
+class TestElLateralAbreSolo:
+    """**Lo que abre y cierra los grupos del lateral es `details`/`summary`, no `lateral.js`.**
 
-    Ese fichero solo añade lo que `details` no trae: cerrarlo al pulsar fuera, cerrarlo con
-    Escape devolviendo el foco, y cerrarlo al seguir un enlace. Si desapareciera, el menú
-    seguiría abriéndose con un clic y recorriéndose con el tabulador.
+    Ese fichero solo añade lo que `details` no trae: ocultar todo el lateral y sacarlo en
+    pantallas estrechas. Si desapareciera, el lateral seguiría a la vista, sus grupos
+    seguirían abriéndose con un clic y recorriéndose con el tabulador.
     """
 
-    def test_es_un_details_de_verdad(self, sesion):
+    def test_los_grupos_son_un_details_de_verdad(self, sesion):
         cuerpo = sesion.get(reverse("dashboard:que_puedo_hacer")).content.decode()
-        assert re.search(r"<details[^>]*class=\"[^\"]*\bmenu\b", cuerpo), (
-            "el desplegable dejó de ser un `details`: sin JavaScript ya no abre"
+        assert re.search(r"<details[^>]*class=\"[^\"]*\blateral-grupo\b", cuerpo), (
+            "el grupo dejó de ser un `details`: sin JavaScript ya no abre"
         )
         assert "<summary" in cuerpo, "un `details` sin `summary` no se puede pulsar"
 
@@ -58,9 +58,21 @@ class TestElDesplegableAbreSolo:
         """Si el panel viniera vacío para rellenarlo después, sin JavaScript sería un botón
         que abre un hueco."""
         cuerpo = sesion.get(reverse("dashboard:que_puedo_hacer")).content.decode()
-        panel = cuerpo[cuerpo.index('class="menu-panel"') : cuerpo.index("</details>")]
-        assert panel.count("menu-enlace") >= 5, "el menú llega sin sus entradas dentro"
-        assert reverse("dashboard:convertir") in panel
+        lateral = cuerpo[cuerpo.index('<aside class="lateral"') : cuerpo.index("</aside>")]
+        assert lateral.count("menu-enlace") >= 5, "el lateral llega sin sus entradas dentro"
+        assert reverse("dashboard:convertir") in lateral
+
+    def test_esconderlo_es_cosa_de_javascript_y_nada_lo_esconde_sin_el(self):
+        """Sin `lateral.js` nadie añade `js-lateral`, y el CSS solo esconde el lateral con ella."""
+        from pathlib import Path
+
+        from django.conf import settings
+
+        css = (Path(settings.BASE_DIR) / "static" / "css" / "app.css").read_text(encoding="utf-8")
+        reglas = re.findall(r"([^{}]*\.lateral(?![\w-])[^{}]*)\{[^}]*display:\s*none", css)
+        assert reglas, "no hay ninguna regla que esconda el lateral"
+        for selector in reglas:
+            assert "js-lateral" in selector or "lateral-oculto" in selector, selector.strip()
 
 
 class TestBuscarSinJavaScript:

@@ -52,19 +52,6 @@
     true
   );
 
-  // Un enlace con `data-abre` apunta a un `<details>` de esta página: se abre antes de saltar
-  // a él, porque saltar a un grupo plegado deja a la persona delante de un título cerrado.
-  document.addEventListener("click", function (evento) {
-    var enlace = evento.target && evento.target.closest && evento.target.closest("a[data-abre]");
-    if (!enlace) {
-      return;
-    }
-    var destino = document.getElementById((enlace.getAttribute("href") || "").slice(1));
-    if (destino && destino.tagName === "DETAILS") {
-      destino.open = true;
-    }
-  });
-
   document.addEventListener("htmx:load", function (evento) {
     restaurar(evento.target);
   });

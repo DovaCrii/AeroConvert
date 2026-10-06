@@ -447,29 +447,22 @@ class TestLaPantalla:
     def test_la_barra_no_crece_sin_control(self, sesion):
         """**La barra no puede envolver, así que hay un tope de entradas.**
 
-        Con seis más el buscador se partía en dos líneas, y eso duplica la altura de la
-        cabecera en todas las pantallas a cambio de nada. Lo que sobra se mueve al desplegable
-        —ahí fue «Preajustes»— o se queda en icono, como «Cuentas».
-
-        Cuatro con palabra es lo que cabe cómodo en un portátil. Si esta prueba falla es que
-        alguien añadió una quinta: la decisión no es subir el número, es decidir cuál baja.
+        Las secciones viven en el lateral; en la barra quedan el tema, las cuentas (solo para
+        quien administra) y salir. Si esta prueba falla es que alguien volvió a meter una
+        sección en la barra: su sitio es el lateral.
         """
         import re
 
         cuerpo = sesion.get(reverse("dashboard:que_puedo_hacer")).content.decode()
-        barra = cuerpo[cuerpo.index('class="barra-nav"') : cuerpo.index("</nav>")]
-        # Se cuentan las entradas, no los `<span>`: el panel del desplegable va dentro de esta
-        # misma etiqueta y tiene uno por herramienta, así que contar spans daba veintiocho.
-        con_palabra = [
-            c for c in re.findall(r'class="(nav-item[^"]*)"', barra) if "solo-icono" not in c
-        ]
-        assert len(con_palabra) <= 4, f"La barra no aguanta más entradas: {con_palabra}"
+        barra = cuerpo[cuerpo.index('class="barra-nav"') : cuerpo.index("</header>")]
+        entradas = re.findall(r'class="(nav-item[^"]*)"', barra)
+        assert len(entradas) <= 1, f"La barra no aguanta más entradas: {entradas}"
 
-    def test_preajustes_sigue_alcanzable_desde_el_menu(self, sesion):
-        """Sacarlo de la barra no puede ser perderlo: se llega desde el pie del desplegable."""
+    def test_preajustes_sigue_alcanzable_desde_el_lateral(self, sesion):
+        """Sacarlo de la barra no puede ser perderlo: se llega desde el pie del lateral."""
         cuerpo = sesion.get(reverse("dashboard:que_puedo_hacer")).content.decode()
-        menu = cuerpo[cuerpo.index('class="menu-panel"') : cuerpo.index("</details>")]
-        assert reverse("presets:lista") in menu
+        lateral = cuerpo[cuerpo.index('<aside class="lateral"') : cuerpo.index("</aside>")]
+        assert reverse("presets:lista") in lateral
 
     def test_la_marca_lleva_al_inicio(self, sesion):
         """**El logotipo es el enlace a casa en todas las páginas del mundo.**
@@ -490,14 +483,13 @@ class TestLaPantalla:
         crudo = (Path(settings.BASE_DIR) / "templates" / "403.html").read_text(encoding="utf-8")
         assert "dashboard:que_puedo_hacer" in crudo
 
-    def test_convertir_sigue_en_la_barra(self, sesion):
-        """**La pantalla que más se abre no puede vivir solo dentro de un menú.**
+    def test_convertir_sigue_a_un_clic(self, sesion):
+        """**La pantalla que más se abre no puede vivir solo dentro de un grupo plegado.**
 
-        Al reducir la barra de siete entradas a cuatro, «Convertir» pasó a ser el encabezado de
-        una columna del desplegable. Sobre el papel coherente; en uso, volver a ella desde la
-        portada exigía abrir el menú y acertar con el título de una columna.
+        Está en la parte fija del lateral, encima de los grupos, y se ve sin abrir nada.
         """
         cuerpo = sesion.get(reverse("dashboard:que_puedo_hacer")).content.decode()
-        barra = cuerpo[cuerpo.index('class="barra-nav"') : cuerpo.index("</nav>")]
-        assert f'href="{reverse("dashboard:convertir")}"' in barra
-        assert "<span>Convertir</span>" in barra
+        lateral = cuerpo[cuerpo.index('<aside class="lateral"') : cuerpo.index("</aside>")]
+        antes_de_los_grupos = lateral[: lateral.index("<details")]
+        assert f'href="{reverse("dashboard:convertir")}"' in antes_de_los_grupos
+        assert "<span>Convertir</span>" in antes_de_los_grupos
