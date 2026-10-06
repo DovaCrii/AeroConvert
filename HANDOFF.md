@@ -76,8 +76,9 @@ cd /opt/aeroconvert && sudo -u aeroconvert git pull && sudo scripts/desplegar.sh
 - El código de salida de un motor no prueba nada; se verifica la salida. El CRS no se adivina.
 - **El CI no tiene GDAL ni PDAL y la estación sí:** `$env:AEROCONVERT_GDAL_BIN = "";
   $env:AEROCONVERT_PDAL_BIN = ""; uv run pytest`.
-- **Algunas pruebas se contaminan según el orden** (el registro de motores, 21 del dashboard): en
-  el orden del CI pasan. Hay una tarea abierta para encontrar la causa.
+- El registro de motores es global: una fixture automática (`conftest.py`) lo guarda y lo
+  restaura alrededor de cada prueba. Sin ella, una prueba que lo vaciaba contaminaba a las demás
+  según el orden (resuelto el 2026-10-06; ver `test_aislamiento_del_registro.py`).
 - Los comandos de `gh pr create` con `/T` o `/convertir/` en el texto los bloquea la herramienta:
   el cuerpo va en un archivo (`--body-file`).
 

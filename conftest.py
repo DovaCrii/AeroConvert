@@ -13,11 +13,34 @@ se ocupa la sonda con sus propias pruebas. Así que se finge, igual que `con_ogr
 `test_libretas.py` y `con_pdal` en `test_crs_local.py`, y ahora en un solo sitio.
 
 Y para **reproducir CI en la estación**: `AEROCONVERT_GDAL_BIN= AEROCONVERT_PDAL_BIN= pytest`.
+
+## Por qué existe `registro_de_motores_intacto`
+
+El registro de motores es **global**, y una prueba que lo vacía o lo reemplaza lo deja así para
+todas las que corren después. `apps/raster/test_lectura_propietaria.py` sembraba solo los motores
+raster y **terminaba con `registry.limpiar()`**: cualquier prueba posterior veía el registro
+vacío. Solo se notaba en un orden de ejecución distinto del del CI —una de GNSS y 21 del
+dashboard fallaban sin que nada de lo suyo hubiera cambiado—, que es la peor clase de fallo:
+verde donde se mira y rojo donde no. Cada prueba empieza con lo que había y deja lo que había.
 """
 
 from __future__ import annotations
 
 import pytest
+
+
+@pytest.fixture(autouse=True)
+def registro_de_motores_intacto():
+    """Guarda el registro de motores antes de cada prueba y lo devuelve como estaba después."""
+    from apps.engines import registry
+
+    guardado = dict(registry._MOTORES)
+    try:
+        yield
+    finally:
+        registry._MOTORES.clear()
+        registry._MOTORES.update(guardado)
+
 
 #: Los controladores que hacen falta para que las conversiones raster habituales estén vivas.
 CONTROLADORES_DE_MENTIRA = frozenset(

@@ -5,6 +5,16 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Sin publicar]
 
+### Corregido — pruebas que dependían del orden de ejecución
+
+- **Causa encontrada:** `apps/raster/test_lectura_propietaria.py` sembraba solo los motores
+  raster y terminaba con `registry.limpiar()`, dejando el registro **vacío** para toda prueba
+  posterior. Una de GNSS y 21 del dashboard fallaban así, pero solo en un orden distinto del del
+  CI: verde donde se mira y rojo donde no.
+- **Arreglo de raíz:** una fixture automática en `conftest.py` guarda el registro antes de cada
+  prueba y lo devuelve como estaba. Una prueba nueva (`test_aislamiento_del_registro.py`) vacía el
+  registro a propósito y comprueba que la siguiente lo encuentra intacto; falla sin la fixture.
+
 ### Cambiado — los destinos de la pantalla de convertir, como tarjetas (F7.2c)
 
 - Cada destino lleva ahora la **baldosa** con el icono de su perfil —el mismo de la portada y del
