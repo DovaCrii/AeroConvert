@@ -43,7 +43,7 @@ class TestElCatalogo:
         pregunta con veinte respuestas, no con ciento ochenta y nueve."""
         planos = [a for a in acciones_mod.todas() if a.categoria == "planos"]
         assert 0 < len(planos) <= 12
-        assert all(a.nombre.startswith("Llevarlo a") for a in planos)
+        assert all(" · " in a.nombre for a in planos), "para qué sirve, y qué programa"
 
     def test_cada_una_dice_que_sale(self):
         assert all(a.sale for a in acciones_mod.todas())

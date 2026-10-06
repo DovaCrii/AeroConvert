@@ -94,4 +94,111 @@
   });
 
   window.matchMedia(ANCHO_MINIMO).addEventListener("change", pintar);
+
+  // --- El ancho ------------------------------------------------------------------------
+  //
+  // Se arrastra el asa del borde, o con el teclado: flechas de 16 px, Inicio y Fin para los
+  // extremos y doble clic para volver al ancho de fábrica. El valor va a una variable CSS de
+  // `<html>` puesta con `style.setProperty`, que la CSP permite (lo que prohíbe es el atributo
+  // `style` escrito en el HTML). Mínimo y máximo para que ni se coma el contenido ni deje el
+  // texto de los grupos en tres líneas.
+  var CLAVE_ANCHO = "aeroconvert:lateral-ancho";
+  var MINIMO = 208; // 13 rem
+  var MAXIMO = 416; // 26 rem
+  var DE_FABRICA = 272; // 17 rem
+  var asa = document.getElementById("lateral-asa");
+
+  function acotar(px) {
+    return Math.max(MINIMO, Math.min(MAXIMO, Math.round(px)));
+  }
+
+  function leerAncho() {
+    try {
+      var guardado = parseInt(window.localStorage.getItem(CLAVE_ANCHO), 10);
+      return isNaN(guardado) ? null : acotar(guardado);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function ponerAncho(px, recordar) {
+    var ancho_px = acotar(px);
+    raiz.style.setProperty("--lateral-ancho", ancho_px + "px");
+    if (asa) {
+      asa.setAttribute("aria-valuemin", String(MINIMO));
+      asa.setAttribute("aria-valuemax", String(MAXIMO));
+      asa.setAttribute("aria-valuenow", String(ancho_px));
+    }
+    if (recordar) {
+      try {
+        window.localStorage.setItem(CLAVE_ANCHO, String(ancho_px));
+      } catch (e) {
+        /* sin almacenamiento no se recuerda */
+      }
+    }
+    return ancho_px;
+  }
+
+  function anchoActual() {
+    return lateral.getBoundingClientRect().width;
+  }
+
+  if (asa) {
+    var guardado = leerAncho();
+    ponerAncho(guardado === null ? DE_FABRICA : guardado, false);
+
+    asa.addEventListener("pointerdown", function (evento) {
+      if (evento.button !== 0) {
+        return;
+      }
+      evento.preventDefault();
+      asa.setPointerCapture(evento.pointerId);
+      asa.classList.add("arrastrando");
+      var izquierda = lateral.getBoundingClientRect().left;
+
+      function mover(e) {
+        ponerAncho(e.clientX - izquierda, false);
+      }
+
+      function soltar(e) {
+        asa.classList.remove("arrastrando");
+        asa.releasePointerCapture(e.pointerId);
+        asa.removeEventListener("pointermove", mover);
+        asa.removeEventListener("pointerup", soltar);
+        asa.removeEventListener("pointercancel", soltar);
+        ponerAncho(anchoActual(), true);
+      }
+
+      asa.addEventListener("pointermove", mover);
+      asa.addEventListener("pointerup", soltar);
+      asa.addEventListener("pointercancel", soltar);
+    });
+
+    asa.addEventListener("keydown", function (evento) {
+      var actual = anchoActual();
+      var nuevo = null;
+      if (evento.key === "ArrowRight") {
+        nuevo = actual + 16;
+      } else if (evento.key === "ArrowLeft") {
+        nuevo = actual - 16;
+      } else if (evento.key === "Home") {
+        nuevo = MINIMO;
+      } else if (evento.key === "End") {
+        nuevo = MAXIMO;
+      }
+      if (nuevo !== null) {
+        evento.preventDefault();
+        ponerAncho(nuevo, true);
+      }
+    });
+
+    asa.addEventListener("dblclick", function () {
+      try {
+        window.localStorage.removeItem(CLAVE_ANCHO);
+      } catch (e) {
+        /* nada que quitar */
+      }
+      ponerAncho(DE_FABRICA, false);
+    });
+  }
 })();

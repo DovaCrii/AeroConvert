@@ -758,9 +758,11 @@ a:hover {
 }
 
 .lateral {
+  position: relative;
   padding: var(--av-s-4) var(--av-s-4) var(--av-s-5);
   border-bottom: 1px solid var(--av-border);
-  background: var(--av-surface);
+  /* Un degradado muy tenue hacia abajo: el lateral deja de ser una hoja plana pegada al fondo. */
+  background: linear-gradient(180deg, var(--av-surface), var(--av-surface-alt));
 }
 
 .lateral-nav {
@@ -810,9 +812,12 @@ a:hover {
   color: var(--av-text-secondary);
 }
 
+/* Cada sección empieza con un filete y su rótulo: entre «Herramientas» y «Más» ya no hay que
+ * adivinar dónde acaba una y empieza la otra. */
 .lateral-rotulo {
-  margin: var(--av-s-4) 0 var(--av-s-1);
-  padding: 0 var(--av-s-3);
+  margin: var(--av-s-5) 0 var(--av-s-2);
+  padding: var(--av-s-4) var(--av-s-3) 0;
+  border-top: 1px solid var(--av-border);
   color: var(--av-text-muted);
   font-size: var(--av-fs-xs);
   font-weight: 700;
@@ -844,8 +849,44 @@ a:hover {
   transform: rotate(-90deg);
 }
 
+.lateral-grupo {
+  border-radius: var(--av-radius-sm);
+}
+
+.lateral-grupo[open] {
+  background: var(--av-surface-alt);
+}
+
+.lateral-grupo + .lateral-grupo {
+  margin-top: 2px;
+}
+
+.lateral-grupo-nombre {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Cuántas herramientas trae el grupo, para saber qué tan lleno está sin abrirlo. */
+.lateral-cuenta {
+  min-width: 1.4rem;
+  padding: 0 var(--av-s-2);
+  border-radius: var(--av-radius-pill);
+  background: var(--av-surface-alt);
+  color: var(--av-text-secondary);
+  font-size: var(--av-fs-xs);
+  font-weight: 600;
+  text-align: center;
+}
+
+.lateral-grupo[open] .lateral-cuenta {
+  background: var(--av-surface);
+}
+
+/* Las herramientas cuelgan de su grupo con una guía a la izquierda. */
 .lateral-grupo > .menu-lista {
-  padding: 2px 0 var(--av-s-2) var(--av-s-2);
+  margin: 0 var(--av-s-2) var(--av-s-2) var(--av-s-4);
+  padding: 2px 0 2px var(--av-s-3);
+  border-left: 2px solid var(--av-border);
 }
 
 .lateral .menu-enlace {
@@ -862,7 +903,7 @@ a:hover {
 @media (min-width: 56rem) {
   .con-lateral .cuerpo-app {
     display: grid;
-    grid-template-columns: 17rem minmax(0, 1fr);
+    grid-template-columns: var(--lateral-ancho, 17rem) minmax(0, 1fr);
   }
 
   /* El fondo y el filete llegan hasta abajo; lo que se queda pegado al desplazar es el
@@ -914,6 +955,10 @@ a:hover {
     display: flex;
   }
 
+  .lateral-compacto .lateral-asa {
+    display: none;
+  }
+
   .lateral-compacto .lateral-pie,
   .lateral-compacto .lateral-principal {
     margin-bottom: var(--av-s-2);
@@ -922,6 +967,43 @@ a:hover {
 
 .lateral-solo-compacto {
   display: none;
+}
+
+/* El asa para cambiar el ancho. Solo desde 56 rem y solo con JavaScript: sin él no hay a qué
+ * agarrarse, así que ni se dibuja. */
+.lateral-asa {
+  display: none;
+}
+
+@media (min-width: 56rem) {
+  .js-lateral .lateral-asa {
+    display: block;
+    position: absolute;
+    top: 0;
+    right: -4px;
+    bottom: 0;
+    z-index: 5;
+    width: 8px;
+    cursor: col-resize;
+    touch-action: none;
+  }
+
+  .lateral-asa::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 3px;
+    width: 2px;
+    background: transparent;
+    transition: background var(--av-rapido);
+  }
+
+  .lateral-asa:hover::after,
+  .lateral-asa:focus-visible::after,
+  .lateral-asa.arrastrando::after {
+    background: var(--av-primary);
+  }
 }
 
 @media (max-width: 55.99rem) {
@@ -3616,4 +3698,58 @@ code {
 .cuerpo-app > .envoltorio {
   width: 100%;
   min-width: 0;
+}
+
+/* --- Las baldosas en oscuro: con color y con luz ---------------------------
+ *
+ * Sobre el fondo oscuro la baldosa era un cuadrado azul marino con un dibujo del mismo azul: se
+ * leía como un hueco. Aquí se tiñe con el color de **su familia** (el degradado) y se le pone un
+ * aro más marcado y un resplandor suave del mismo tono, así cada herramienta se distingue por
+ * su color y no solo por su forma. El color del dibujo no cambia, así que el contraste de los
+ * tokens que miden las pruebas sigue siendo el mismo.
+ */
+:root[data-theme="dark"]
+  :is(
+    .paso-marca,
+    .origen-marca,
+    .herramienta-marca,
+    .nota-privacidad-marca,
+    .motor-marca,
+    .repetible-marca,
+    .menu-marca
+  ) {
+  background:
+    linear-gradient(
+      160deg,
+      color-mix(in srgb, var(--marca-color, var(--av-primary)) 38%, transparent),
+      color-mix(in srgb, var(--marca-color, var(--av-primary)) 10%, transparent)
+    ),
+    var(--marca-fondo, var(--av-primary-soft));
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--marca-color, var(--av-primary)) 55%, transparent),
+    0 0 14px -3px color-mix(in srgb, var(--marca-color, var(--av-primary)) 38%, transparent);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"])
+    :is(
+      .paso-marca,
+      .origen-marca,
+      .herramienta-marca,
+      .nota-privacidad-marca,
+      .motor-marca,
+      .repetible-marca,
+      .menu-marca
+    ) {
+    background:
+      linear-gradient(
+        160deg,
+        color-mix(in srgb, var(--marca-color, var(--av-primary)) 38%, transparent),
+        color-mix(in srgb, var(--marca-color, var(--av-primary)) 10%, transparent)
+      ),
+      var(--marca-fondo, var(--av-primary-soft));
+    box-shadow:
+      inset 0 0 0 1px color-mix(in srgb, var(--marca-color, var(--av-primary)) 55%, transparent),
+      0 0 14px -3px color-mix(in srgb, var(--marca-color, var(--av-primary)) 38%, transparent);
+  }
 }
