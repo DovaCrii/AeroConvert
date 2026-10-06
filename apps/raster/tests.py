@@ -56,6 +56,22 @@ def _co(argv) -> dict[str, str]:
     return salida
 
 
+class TestLectorEstricto:
+    """B-04: un `.asc` se lee solo con el controlador de ASCII Grid, no con el que dicte el
+    contenido; si no, un VRT disfrazado leería otros archivos del disco."""
+
+    def test_un_asc_pide_el_lector_de_ascii_grid(self, usuario, tmp_path):
+        origen = tmp_path / "terreno.asc"
+        origen.write_text("ncols 1\n", encoding="utf-8")
+        trabajo = _trabajo(usuario, tmp_path, source_path=str(origen), source_format_code="asc")
+        argv = MotorGdalRaster().plan(trabajo).argv
+        assert argv[argv.index("-if") + 1] == "AAIGrid"
+        assert argv.index("-if") < argv.index(str(origen))
+
+    def test_un_geotiff_no_lleva_if(self, usuario, tmp_path):
+        assert "-if" not in MotorGdalRaster().plan(_trabajo(usuario, tmp_path)).argv
+
+
 class TestEleccionDeHerramienta:
     def test_sin_reproyectar_usa_gdal_translate(self, usuario, tmp_path):
         plan = MotorGdalRaster().plan(_trabajo(usuario, tmp_path))

@@ -311,6 +311,18 @@ def inspeccionar(ruta: str | Path) -> Inspeccion:
                     f"{formato_firma.nombre}. Gana el contenido."
                 )
 
+    # **B-04: GDAL decide el controlador por el contenido, no por la extensión.** Un VRT
+    # guardado como `falso.asc` o `falso.tif` lo abre el controlador VRT en `gdalinfo` y en
+    # `gdal_translate` (medido en p340 con GDAL 3.12.2, 2026-10-06), y un VRT nombra otros
+    # archivos del disco como fuente. Un VRT solo se acepta si se declara como tal.
+    if codigo != "vrt" and cabecera.lstrip(b"\xef\xbb\xbf \t\r\n").startswith(b"<VRTDataset"):
+        avisos.append(
+            f"{ruta.name} es un mosaico virtual (VRT) con otra extensión. Un VRT apunta a otros "
+            "archivos del disco, así que solo se acepta con la extensión .vrt."
+        )
+        codigo = None
+        confianza = CONFIANZA_DESCONOCIDA
+
     cabecera_tiff = None
     crs = crs_mod.SIN_CRS
     detalles: dict = {}

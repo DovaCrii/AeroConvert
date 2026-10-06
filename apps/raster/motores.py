@@ -98,6 +98,9 @@ SEGUNDOS_POR_GB_POR_DEFECTO = 900
 #: - `cog` las construye el propio controlador.
 #: - `jp2` y `ecw` son wavelet: son multirresolucion por construccion.
 #: - `asc` es texto plano y `png`/`jpeg`/`webp` no son formatos de archivo geoespacial.
+#: Entradas de texto plano, las que cualquier contenido podría disfrazar con su extensión.
+LECTOR_ESTRICTO = {"asc": "AAIGrid"}
+
 DESTINOS_CON_PIRAMIDES = frozenset({"geotiff", "bigtiff", "img"})
 
 
@@ -253,6 +256,13 @@ class MotorGdalRaster(Motor):
         # `gdal_translate` emite el avance por omision. `gdalwarp` necesita pedirselo.
         if reproyecta:
             argv += ["-progress"]
+
+        # **B-04:** sin `-if`, GDAL abre el archivo con el controlador que le dicte el contenido,
+        # y un VRT disfrazado de `.asc` leería otros archivos del disco. Con `-if` solo prueba
+        # el controlador que corresponde a lo que se declaró.
+        lector = LECTOR_ESTRICTO.get(getattr(trabajo, "source_format_code", ""))
+        if lector:
+            argv += ["-if", lector]
 
         argv += [str(origen), str(parcial)]
 

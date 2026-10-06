@@ -52,6 +52,30 @@ class TestSinFirma:
         assert inspeccion.codigo_formato == ""
 
 
+class TestUnVrtDisfrazado:
+    """B-04: GDAL elige el controlador por el contenido, y un VRT nombra otros archivos."""
+
+    VRT = (
+        '<VRTDataset rasterXSize="10" rasterYSize="1"><VRTRasterBand dataType="Byte" band="1">'
+        '<SimpleSource><SourceFilename relativeToVRT="0">otro.tif</SourceFilename>'
+        "<SourceBand>1</SourceBand></SimpleSource></VRTRasterBand></VRTDataset>"
+    )
+
+    @pytest.mark.parametrize("nombre", ["falso.asc", "falso.tif", "falso.grd", "falso.img"])
+    def test_con_otra_extension_no_se_reconoce(self, tmp_path, nombre):
+        inspeccion = deteccion.inspeccionar(_crear(tmp_path, nombre, self.VRT))
+        assert inspeccion.reconocido is False
+        assert any("mosaico virtual" in aviso for aviso in inspeccion.avisos)
+
+    def test_con_bom_y_espacios_delante_tampoco(self, tmp_path):
+        crudo = b"\xef\xbb\xbf  \r\n" + self.VRT.encode()
+        assert deteccion.inspeccionar(_crear(tmp_path, "falso.asc", crudo)).reconocido is False
+
+    def test_declarado_como_vrt_se_acepta(self, tmp_path):
+        inspeccion = deteccion.inspeccionar(_crear(tmp_path, "mosaico.vrt", self.VRT))
+        assert inspeccion.codigo_formato == "vrt"
+
+
 class TestGeorreferencia:
     def test_el_crs_incrustado_gana(self, tmp_path):
         inspeccion = deteccion.inspeccionar(_crear(tmp_path, "x.tif", geotiff_minimo(epsg=32719)))
