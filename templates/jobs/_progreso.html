@@ -21,12 +21,12 @@ generar 10.800 peticiones.
      hx-swap="outerHTML"
      {% endif %}>
 
-  <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+  <div class="estado-cabecera">
     <span class="pildora pildora-{{ trabajo.status }}">{{ trabajo.get_status_display }}</span>
     {% if trabajo.progress_stage and not trabajo.es_terminal %}
       <span class="etapa">{{ trabajo.get_progress_stage_display }}</span>
     {% endif %}
-    <span class="cifra tenue" style="margin-left:auto;">
+    <span class="cifra tenue estado-duracion">
       {% if trabajo.duracion_s %}{{ trabajo.duracion_s|floatformat:0 }} s{% endif %}
     </span>
   </div>
@@ -36,9 +36,9 @@ generar 10.800 peticiones.
          aria-valuenow="{{ trabajo.progress_percent }}" aria-valuemin="0" aria-valuemax="100">
       <div class="avance-relleno" style="width: {{ trabajo.progress_percent }}%;"></div>
     </div>
-    <p class="cifra tenue" style="margin:6px 0 0;">{{ trabajo.progress_percent }} %</p>
+    <p class="cifra tenue avance-texto">{{ trabajo.progress_percent }} %</p>
 
-    <form method="post" action="{% url 'jobs:cancelar' trabajo.pk %}" style="margin-top:10px;">
+    <form method="post" class="acciones-estado" action="{% url 'jobs:cancelar' trabajo.pk %}">
       {% csrf_token %}
       <button type="submit" class="boton boton-suave">Cancelar</button>
     </form>
@@ -91,7 +91,7 @@ generar 10.800 peticiones.
         <svg class="remate-icono"><use href="{% static 'img/icons.svg' %}#icon-veredicto-abre"></use></svg>
       </span>
       <div class="remate-texto">
-        <strong class="remate-titulo">Listo, ya puedes descargarlo</strong>
+        <strong class="remate-titulo">Listo, ya puede descargarlo</strong>
         <span class="remate-detalle">
           {% if trabajo.es_de_documentos %}
             {# «plano.pdf es ahora Numerar páginas» se leía como si numerar fuera un formato. #}
@@ -127,7 +127,7 @@ generar 10.800 peticiones.
       {# Llega sondeando, sin recargar: sin esto, el lector de pantalla no se entera de que terminó. #}
       <span class="visually-hidden" data-anunciar>Terminado: {{ trabajo.source_name }}, verificado.</span>
       <strong class="recibo-titulo">✓ Verificado contra el original</strong>
-      <dl style="margin-top:8px;">
+      <dl>
         <dt>Tamaño</dt>
         <dd>
           {{ trabajo.source_size_bytes|filesizeformat }} →
@@ -214,7 +214,7 @@ generar 10.800 peticiones.
               cada <span class="cifra">{{ trabajo.verification.intervalo_s|floatformat:"-3" }}</span> s
             {% endif %}
             {% if trabajo.verification.huecos %}
-              <span style="color:var(--av-warn);">
+              <span class="texto-aviso">
                 · {{ trabajo.verification.huecos }} hueco(s)
                 {% if trabajo.verification.esperadas %}(esperadas {{ trabajo.verification.esperadas }}){% endif %}
               </span>
@@ -264,7 +264,7 @@ generar 10.800 peticiones.
                   </span>
                 {% endif %}
                 {% if c.satelites_con_poca_presencia %}
-                  <br><span style="color:var(--av-warn);">
+                  <br><span class="texto-aviso">
                     Con poca presencia (menos del 90 % de las épocas):
                     {% for s in c.satelites_con_poca_presencia %}{{ s.id }} ({{ s.porcentaje }} %){% if not forloop.last %}, {% endif %}{% endfor %}{% if c.mas_satelites_con_poca_presencia %} y {{ c.mas_satelites_con_poca_presencia }} más{% endif %}
                   </span>
@@ -319,15 +319,6 @@ generar 10.800 peticiones.
           </dd>
         {% endif %}
 
-        <dt>Motor</dt>
-        <dd>{{ trabajo.engine_version|default:trabajo.engine_id }}</dd>
-
-        <dt>sha256 del original</dt>
-        <dd class="mono">
-          {{ trabajo.source_sha256|slice:":32" }}…
-          <span class="tenue">(el original no se tocó)</span>
-        </dd>
-
         {% if trabajo.expires_at %}
           <dt>Disponible hasta</dt>
           {# Con el día: «hasta las 14:30» no dice si es hoy o pasado mañana. #}
@@ -335,26 +326,43 @@ generar 10.800 peticiones.
         {% endif %}
       </dl>
 
+      {# Lo técnico va plegado pero a la vista: `details` abre con teclado y con tacto, sin hover. #}
+      <details class="recibo-tecnico">
+        <summary>Datos técnicos</summary>
+        <dl>
+          <dt>Motor</dt>
+          <dd>{{ trabajo.engine_version|default:trabajo.engine_id }}</dd>
+
+          <dt>sha256 del original</dt>
+          <dd class="mono">
+            {{ trabajo.source_sha256|slice:":32" }}…
+            <span class="tenue">(el original no se tocó)</span>
+          </dd>
+        </dl>
+      </details>
+
+      {# La descarga ya está arriba, en el remate: una sola acción principal por pantalla. #}
       {% if trabajo.output_path %}
-        <a class="boton" style="display:inline-block; margin-top:12px; text-decoration:none; line-height:42px;"
-           href="{% url 'jobs:descargar' trabajo.pk %}">Descargar</a>
         {% if trabajo.ruta_que_sirve %}
-          <p class="tenue" style="margin:8px 0 0; font-size:.85rem;">{{ trabajo.ruta_que_sirve }}</p>
+          <p class="tenue recibo-ruta">{{ trabajo.ruta_que_sirve }}</p>
         {% endif %}
       {% else %}
-        <p class="tenue" style="margin-top:10px;">El archivo ya se descargó y se borró.</p>
+        <p class="tenue recibo-ruta">El archivo ya se descargó y se borró.</p>
       {% endif %}
     </div>
   {% elif trabajo.status == 'error' %}
     {# El mensaje delante y el código plegado, igual que en la ficha. `role="alert"` porque llega sondeando, sin recargar. #}
-    <div class="error" role="alert">
-      <strong data-anunciar>{{ trabajo.reason_detail }}</strong>
-      {% if trabajo.reason_code %}
-        <details class="detalle-tecnico">
-          <summary>Detalle para soporte</summary>
-          <code>{{ trabajo.reason_code }}</code>
-        </details>
-      {% endif %}
+    <div class="error error-con-icono" role="alert">
+      <svg class="mensaje-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-veredicto-no"></use></svg>
+      <div class="error-cuerpo">
+        <strong data-anunciar>{{ trabajo.reason_detail }}</strong>
+        {% if trabajo.reason_code %}
+          <details class="detalle-tecnico">
+            <summary>Detalle para soporte</summary>
+            <code>{{ trabajo.reason_code }}</code>
+          </details>
+        {% endif %}
+      </div>
     </div>
 
     {% comment %}
@@ -367,32 +375,36 @@ generar 10.800 peticiones.
       Y cuando el motivo es que falta una herramienta, la respuesta útil no es «no»: es
       «no, y esto sí». De ahí los botones de alternativa.
     {% endcomment %}
-    <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:12px;">
+    <div class="acciones-estado acciones-estado-fila">
       {% if trabajo.es_reintentable %}
-        <form method="post" action="{% url 'jobs:reencolar' trabajo.pk %}" style="margin:0;">
+        <form method="post" action="{% url 'jobs:reencolar' trabajo.pk %}">
           {% csrf_token %}
           <button type="submit" class="boton">Reintentar</button>
         </form>
-        <span class="tenue" style="align-self:center; font-size:.85rem;">
+        <span class="tenue nota-accion">
           Esto suele arreglarse solo al repetirlo.
         </span>
       {% endif %}
 
+      {# Una sola acción principal: si hay «Reintentar», las alternativas son secundarias. #}
       {% for alternativa in alternativas %}
-        <form method="post" action="{% url 'jobs:reencolar' trabajo.pk %}" style="margin:0;">
+        <form method="post" action="{% url 'jobs:reencolar' trabajo.pk %}">
           {% csrf_token %}
           <input type="hidden" name="formato" value="{{ alternativa.codigo }}">
-          <button type="submit" class="boton {% if not forloop.first %}boton-suave{% endif %}">
+          <button type="submit" class="boton {% if trabajo.es_reintentable or not forloop.first %}boton-suave{% endif %}">
             Reencolar como {{ alternativa.nombre }}
           </button>
         </form>
       {% endfor %}
     </div>
   {% elif trabajo.status == 'cancelled' %}
-    <div class="aviso">Cancelado. No se escribió nada.</div>
-    <form method="post" action="{% url 'jobs:reencolar' trabajo.pk %}" style="margin-top:10px;">
+    <div class="aviso error-con-icono">
+      <svg class="mensaje-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-veredicto-reparos"></use></svg>
+      <span>Cancelado. No se escribió nada.</span>
+    </div>
+    <form method="post" class="acciones-estado" action="{% url 'jobs:reencolar' trabajo.pk %}">
       {% csrf_token %}
-      <button type="submit" class="boton boton-suave">Volver a encolar</button>
+      <button type="submit" class="boton">Volver a encolar</button>
     </form>
   {% endif %}
 </div>
