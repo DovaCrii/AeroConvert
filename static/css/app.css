@@ -2911,6 +2911,137 @@ code {
   max-width: 72ch;
 }
 
+/* --- La portada: los grupos de herramientas, plegables y compactos -------- */
+
+.grupo-herramientas {
+  margin-bottom: var(--av-s-4);
+  border-radius: var(--av-radius);
+}
+
+/* El título es el botón: Enter y espacio lo pliegan, y el lector de pantalla dice «contraído» o
+ * «expandido». Una fila: título, nota que cede si falta sitio, y el recuento a la derecha. */
+.grupo-resumen {
+  display: flex;
+  align-items: baseline;
+  gap: var(--av-s-3);
+  padding: 10px 4px;
+  border-bottom: 1px solid var(--av-border);
+  cursor: pointer;
+  list-style: none;
+}
+
+.grupo-resumen::-webkit-details-marker {
+  display: none;
+}
+
+/* El chevron gira: cambia de **forma**, no solo de color. */
+.grupo-resumen::before {
+  content: "";
+  flex: none;
+  align-self: center;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-right: 2px solid var(--av-text-muted);
+  border-bottom: 2px solid var(--av-text-muted);
+  transform: rotate(-45deg);
+  transition: transform var(--av-rapido);
+}
+
+.grupo-herramientas[open] > .grupo-resumen::before {
+  transform: rotate(45deg);
+}
+
+.grupo-titulo {
+  flex: none;
+  margin: 0;
+  font-size: 1.12rem;
+  font-weight: var(--av-peso-medio);
+  letter-spacing: -0.01em;
+}
+
+.grupo-nota {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--av-text-secondary);
+  font-size: var(--av-fs-sm);
+}
+
+.grupo-cuenta {
+  flex: none;
+  margin-left: auto;
+  color: var(--av-text-muted);
+  font-size: var(--av-fs-xs);
+  white-space: nowrap;
+}
+
+.grupo-herramientas > .herramientas {
+  padding-top: var(--av-s-3);
+}
+
+/* Tarjetas compactas: más columnas, menos aire, la descripción a dos líneas como mucho y la
+ * entrega («Sale:») sin raya ni margen. Lo que se pierde no es información: el texto entero
+ * está en la pantalla de cada herramienta, que es donde se necesita de verdad. */
+.grupo-herramientas .herramientas {
+  grid-template-columns: repeat(auto-fill, minmax(min(17rem, 100%), 1fr));
+  gap: 10px;
+}
+
+.grupo-herramientas .herramienta {
+  grid-template-columns: 2.2rem 1fr;
+  gap: 11px;
+  padding: 11px 14px;
+}
+
+.grupo-herramientas .herramienta-marca {
+  width: 2.2rem;
+  height: 2.2rem;
+}
+
+.grupo-herramientas .herramienta-icono {
+  width: 1.2rem;
+  height: 1.2rem;
+}
+
+.grupo-herramientas .herramienta-texto {
+  gap: 2px;
+}
+
+.grupo-herramientas .herramienta-texto strong {
+  font-size: 0.98rem;
+}
+
+.grupo-herramientas .herramienta-que {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: var(--av-fs-xs);
+}
+
+.grupo-herramientas .herramienta-sale {
+  margin-top: 3px;
+  padding-top: 0;
+  border-top: 0;
+}
+
+@media (max-width: 640px) {
+  /* La nota baja a su propia línea en vez de comerse el título. */
+  .grupo-resumen {
+    flex-wrap: wrap;
+    row-gap: 2px;
+  }
+
+  .grupo-nota {
+    flex-basis: 100%;
+    order: 3;
+    white-space: normal;
+  }
+}
+
 /* La tira de cifras de cabecera: el estado de la máquina en dos segundos. */
 .resumen-tiras {
   display: grid;
