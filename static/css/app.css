@@ -1097,6 +1097,31 @@ a.menu-titulo:hover {
   }
 }
 
+/*
+ * **Teléfono: la navegación pasa a su propia fila.** La regla de arriba («nunca en dos líneas»)
+ * se pensó para escritorio, donde sobraban entradas y no sitio. A 375 px la marca, la chapa y
+ * la navegación suman 615 px y **toda la página** se desplazaba de lado (medido el 2026-10-06 en
+ * todas las pantallas). Aquí sí hay que partir: se pierde un poco de altura y no se esconde
+ * nada. Las entradas se reparten por todo el ancho, con objetivos que siguen siendo tocables.
+ */
+@media (max-width: 480px) {
+  .barra {
+    flex-wrap: wrap;
+    padding: 8px 12px;
+    row-gap: 4px;
+  }
+
+  .barra-nav {
+    flex: 1 1 100%;
+    justify-content: space-between;
+    gap: 2px;
+  }
+
+  .nav-item {
+    padding: 8px 6px;
+  }
+}
+
 /* --- Los tres pasos ------------------------------------------------------- */
 
 .pasos {
@@ -3201,5 +3226,108 @@ code {
   *::after {
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
+  }
+}
+
+/* --- El resultado de una conversión (`_progreso.html`) ---------------------
+ * Una sola acción principal por estado: «Descargar» (hecho), «Reintentar» o la primera
+ * alternativa (error), «Volver a encolar» (cancelado). Las demás van en `.boton-suave`.
+ */
+.estado-cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--av-s-2) 10px;
+  margin-bottom: 10px;
+}
+
+.estado-duracion {
+  margin-left: auto;
+}
+
+.acciones-estado {
+  margin-top: 12px;
+}
+
+.acciones-estado-fila {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.acciones-estado-fila form {
+  margin: 0;
+}
+
+.nota-accion {
+  font-size: var(--av-fs-sm);
+}
+
+.texto-aviso {
+  color: var(--av-warn);
+}
+
+.error-con-icono {
+  display: flex;
+  gap: var(--av-s-2);
+  align-items: flex-start;
+}
+
+.error-cuerpo {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* El recibo: etiqueta encima del dato en estrecho, en dos columnas desde 640 px. */
+.recibo {
+  min-width: 0;
+}
+
+.recibo dd {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.recibo-ruta {
+  margin: 8px 0 0;
+  font-size: var(--av-fs-sm);
+}
+
+/* Lo técnico, plegado pero a la vista: `details` se abre con teclado y con tacto. */
+.recibo-tecnico {
+  margin-top: var(--av-s-3);
+  padding-top: var(--av-s-2);
+  border-top: 1px solid var(--av-border);
+  font-size: var(--av-fs-sm);
+}
+
+.recibo-tecnico summary {
+  cursor: pointer;
+  color: var(--av-text-secondary);
+}
+
+.recibo-tecnico dl {
+  margin-top: var(--av-s-2);
+}
+
+@media (max-width: 640px) {
+  .recibo dl {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+
+  .recibo dt {
+    margin-top: var(--av-s-2);
+    font-size: var(--av-fs-sm);
+  }
+
+  .acciones-estado-fila .boton,
+  .acciones-estado .boton {
+    width: 100%;
+  }
+
+  .acciones-estado-fila form {
+    flex: 1 1 100%;
   }
 }
