@@ -547,6 +547,33 @@ un oráculo de recuento, no de calidad: no dice si 86 % es bueno, solo que se cu
 
 ---
 
+## Corrida del 2026-10-06 — la paleta en OKLCH (F9.5)
+
+**Oráculo: el navegador.** Convertir la paleta a `oklch()` solo es correcto si el navegador pinta
+**el mismo byte** que pintaba el hexadecimal. La fórmula de `apps/core/oklch.py` contra sí misma
+no prueba eso, así que cada token se pintó en un `<canvas>` 1×1 y se leyó el píxel
+(`getImageData`), y se comparó con el hex original.
+
+| Bloque de `app.css` | Tokens | Idénticos |
+| --- | --- | --- |
+| `:root` (claro) | 32 | 32 |
+| `:root[data-theme="dark"]` | 32 | 32 |
+| `@media (prefers-color-scheme: dark)` | 31 | 31 |
+
+**95 de 95, canal por canal.** Con 4 decimales de L, 4 de C y 2 de H, ninguno se desvía ni un
+byte. `test_oklch.py` guarda además la paleta hexadecimal anterior como foto (`PALETA_ANTERIOR`) y
+exige que cada `oklch()` del CSS vuelva a ese hex; `test_paleta.py` sigue midiendo el contraste
+WCAG sobre sRGB, convirtiendo cada token con `a_hex()`.
+
+**Repetir:** abrir cualquier pantalla, y en la consola leer `getComputedStyle(documentElement)`
+por cada `--av-*`, pintarlo en un canvas y comparar con el hex de `PALETA_ANTERIOR`; hacerlo con
+`data-theme` en `light`, `dark` y ausente con el esquema del sistema oscuro.
+
+**Fuera de alcance, dicho:** quedan 49 literales hexadecimales que no son tokens (reglas sueltas)
+y `templates/500.html`, que no carga el CSS. No se tocan: no son paleta.
+
+---
+
 ## Lo que sigue sin oráculo, y se dice
 
 **ECW no se puede verificar aquí.** El GDAL de QGIS 4.0.2 **no trae el controlador ECW**, ni

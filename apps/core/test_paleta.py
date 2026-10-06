@@ -29,6 +29,8 @@ from pathlib import Path
 import pytest
 from django.conf import settings
 
+from apps.core import oklch
+
 CSS = Path(settings.BASE_DIR) / "static" / "css" / "app.css"
 
 #: El piso de AA para texto normal.
@@ -71,6 +73,21 @@ def _bloque(css: str, selector: str) -> str:
     return css[abre:cierra]
 
 
+def _color(valor: str) -> str | None:
+    """Un color del CSS como `#rrggbb`, sea hexadecimal u `oklch(L C H)`; `None` si no es color.
+
+    La paleta se escribe en OKLCH desde F9.5, y la fórmula de contraste de WCAG se calcula sobre
+    sRGB: aquí se convierte, con `apps/core/oklch.py`. Que esa conversión sea fiel lo comprueba
+    `test_oklch.py` contra la foto de la paleta anterior.
+    """
+    valor = valor.strip()
+    if valor.startswith("#"):
+        return valor
+    if valor.lower().startswith("oklch("):
+        return oklch.de_texto(valor)
+    return None
+
+
 def _variables(bloque: str) -> dict[str, str]:
     """Las variables con color literal. Las que apuntan a otra (`var(...)`) se resuelven."""
     crudas = dict(re.findall(r"(--av-[a-z-]+)\s*:\s*([^;]+);", bloque))
@@ -80,8 +97,9 @@ def _variables(bloque: str) -> dict[str, str]:
         apunta = re.fullmatch(r"var\((--av-[a-z-]+)\)", valor)
         if apunta:
             valor = crudas.get(apunta.group(1), "").strip()
-        if valor.startswith("#"):
-            resueltas[nombre] = valor
+        color = _color(valor)
+        if color:
+            resueltas[nombre] = color
     return resueltas
 
 
@@ -309,8 +327,9 @@ def _resolver(crudas: dict[str, str]) -> dict[str, str]:
             if not apunta:
                 break
             valor = crudas.get(apunta.group(1), "")
-        if valor.startswith("#"):
-            resueltas[nombre] = valor
+        color = _color(valor)
+        if color:
+            resueltas[nombre] = color
     return resueltas
 
 
