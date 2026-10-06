@@ -327,13 +327,14 @@ def desde_excel(
                 tabla = tablas[nombre_hoja.lower()]
                 filas = libro[nombre_hoja].iter_rows(values_only=True)
                 cabecera = next(filas, None)
-                if cabecera is None:
-                    continue
 
-                # **La plantilla se vacía entera**, incluso las tablas que la hoja no trae.
-                # Dejar las filas viejas de una tabla que ya no se editó mezcla dos catálogos
-                # en uno, y nadie lo vería hasta usarlo.
+                # **La plantilla se vacía entera**, incluso las tablas que la hoja no trae y
+                # las que trae **sin una sola celda**: dejar las filas viejas de una tabla que
+                # ya no se editó mezcla dos catálogos en uno, y nadie lo vería hasta usarlo.
                 cursor.execute(f"DELETE FROM [{_seguro(tabla.nombre, 'tabla')}]")  # nosec B608
+                if cabecera is None:
+                    avisos.append(f"{tabla.nombre}: la hoja venía vacía, la tabla queda vacía.")
+                    continue
                 _insertar(cursor, tabla, cabecera, filas, avisos)
 
             for sobrante in tablas:
