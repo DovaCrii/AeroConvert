@@ -232,10 +232,9 @@ def que_puedo_hacer(request):
             # que reconocer el sitio en una palabra, y la palabra es esa.
             "etiqueta_seccion": "Inicio",
             "titulo_pagina": "¿Qué necesitas hacer?",
-            "proposito": (
-                "Escribe lo que quieres conseguir —«juntar planos», «quitar la contraseña», "
-                "«pasar a Excel»— y sale con qué hacerlo."
-            ),
+            # Una línea. Los ejemplos ya están en el campo y en las etiquetas de debajo; decirlos
+            # una tercera vez era ruido.
+            "proposito": "Escriba lo que necesita conseguir, o abra un grupo.",
         },
     )
 

@@ -5,6 +5,21 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Sin publicar]
 
+### Cambiado — la portada deja de ser una pared (F9.4)
+
+- **Cada grupo de herramientas se pliega, y solo el primero nace abierto.** Eran veintiséis
+  tarjetas con descripción y «Sale:» a la vez (unos 2.000 px); ahora la portada mide unos 1.010 px
+  con un grupo abierto. Cada grupo muestra cuántas herramientas trae. Es un `<details>` nativo,
+  con teclado y táctil; `plegable.js` recuerda en el navegador lo que cada persona abrió o cerró.
+- **Buscando, todo abierto y sin recordar nada:** lo que se encontró no queda tras un grupo
+  cerrado.
+- **Tarjetas más compactas:** menos aire, más columnas, descripción a dos líneas como mucho y sin
+  la raya sobre «Sale:». El texto entero de cada herramienta sigue en su propia pantalla.
+- **La línea bajo el título** pasa de dos renglones a uno («Escriba lo que necesita conseguir, o
+  abra un grupo»): los ejemplos ya están en el campo y en las etiquetas.
+- `plegable.js` guarda ahora los dos estados, abierto y cerrado, porque unos bloques nacen abiertos
+  y otros cerrados.
+
 ### Cambiado — el menú «Herramientas», el límite de subida y las rejillas, a 375 px (F9.4)
 
 - **El panel «Herramientas» ya no se sale de la pantalla.** Colgaba de la izquierda del botón,

@@ -123,9 +123,23 @@
 {% endif %}
 
 {% for grupo in grupos %}
-  <section class="bloque">
-    <h2 class="bloque-titulo">{{ grupo.titulo }}</h2>
-    <p class="bloque-nota">{{ grupo.cuando }}</p>
+  {% comment %}
+    **Cada grupo se pliega, y solo el primero nace abierto.** Veintiséis tarjetas con su
+    descripción y su «Sale:» eran una pared: quien ya sabe qué quiere escribe en el buscador y
+    quien explora abre el grupo que le interesa. Un `<details>` nativo, con teclado y táctil y
+    sin JavaScript; `plegable.js` recuerda en este navegador lo que cada persona abrió o cerró.
+
+    **Buscando, todo abierto y sin recordar nada**: lo que se encontró no puede quedar
+    escondido tras un grupo que alguien cerró ayer.
+  {% endcomment %}
+  <details class="grupo-herramientas"
+           {% if not q %}data-recuerda="grupo-{{ grupo.titulo|slugify }}"{% endif %}
+           {% if q or forloop.first %}open{% endif %}>
+    <summary class="grupo-resumen">
+      <h2 class="grupo-titulo">{{ grupo.titulo }}</h2>
+      <span class="grupo-nota">{{ grupo.cuando }}</span>
+      <span class="grupo-cuenta">{{ grupo.acciones|length }} herramienta{{ grupo.acciones|length|pluralize }}</span>
+    </summary>
 
     <div class="herramientas">
       {% for accion in grupo.acciones %}
@@ -166,5 +180,5 @@
         {% endif %}
       {% endfor %}
     </div>
-  </section>
+  </details>
 {% endfor %}
