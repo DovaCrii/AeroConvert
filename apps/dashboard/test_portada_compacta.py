@@ -68,4 +68,32 @@ class TestBuscando:
 class TestLaCabecera:
     def test_el_proposito_es_una_linea(self, sesion):
         cuerpo = sesion.get(reverse("dashboard:que_puedo_hacer")).content.decode()
-        assert "Escriba lo que necesita conseguir, o abra un grupo." in cuerpo
+        assert "Hola, ana. Escriba lo que necesita conseguir, o elija un grupo." in cuerpo
+
+
+class TestElPanelLateral:
+    """La portada tiene un panel a la izquierda: convertir, el índice de grupos y lo reciente."""
+
+    def test_hay_un_enlace_por_grupo_y_cada_uno_lleva_a_un_grupo_que_existe(self, sesion):
+        cuerpo = sesion.get(reverse("dashboard:que_puedo_hacer")).content.decode()
+        enlaces = re.findall(r'class="lateral-enlace" href="#(grupo-[^"]+)" data-abre', cuerpo)
+        ids = re.findall(r'<details class="grupo-herramientas" id="(grupo-[^"]+)"', cuerpo)
+        assert len(enlaces) >= 3
+        assert enlaces == ids
+
+    def test_trae_el_boton_de_convertir(self, sesion):
+        cuerpo = sesion.get(reverse("dashboard:que_puedo_hacer")).content.decode()
+        assert "portada-lateral" in cuerpo
+        assert f'href="{reverse("dashboard:convertir")}">Convertir un archivo' in cuerpo
+
+    def test_buscando_el_indice_solo_trae_los_grupos_con_resultados(self, sesion):
+        todos = sesion.get(reverse("dashboard:que_puedo_hacer")).content.decode()
+        buscado = sesion.get(reverse("dashboard:que_puedo_hacer"), {"q": "contraseña"}).content
+        assert buscado.decode().count("lateral-enlace") < todos.count("lateral-enlace")
+
+    def test_el_fragmento_de_htmx_lleva_tambien_el_panel(self, sesion):
+        cuerpo = sesion.get(
+            reverse("dashboard:que_puedo_hacer"), {"q": "pdf"}, HTTP_HX_REQUEST="true"
+        ).content.decode()
+        assert "portada-lateral" in cuerpo
+        assert "<html" not in cuerpo

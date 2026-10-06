@@ -3538,3 +3538,113 @@ code {
     flex: 1 1 100%;
   }
 }
+
+/* --- La portada con panel lateral ------------------------------------------
+ *
+ * Dos columnas desde 56rem: a la izquierda el panel (convertir, índice de grupos y lo último
+ * que se hizo) y a la derecha el catálogo. Debajo, el panel pasa encima y el índice se vuelve
+ * una fila de etiquetas que se parte en líneas. Sin desborde horizontal a 375 px. */
+.portada-rejilla {
+  display: grid;
+  gap: var(--av-s-5);
+  align-items: start;
+}
+
+.portada-lateral {
+  display: grid;
+  gap: var(--av-s-5);
+  min-width: 0;
+}
+
+.portada-grupos {
+  min-width: 0;
+}
+
+.portada-convertir {
+  justify-content: center;
+  text-decoration: none;
+  text-align: center;
+}
+
+.lateral-titulo {
+  margin: 0 0 var(--av-s-2);
+  color: var(--av-text-muted);
+  font-size: var(--av-fs-xs);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.lateral-lista {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--av-s-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lateral-enlace {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--av-s-3);
+  padding: var(--av-s-2) var(--av-s-3);
+  border: 1px solid var(--av-border);
+  border-radius: var(--av-radius-sm);
+  background: var(--av-surface);
+  color: var(--av-text);
+  font-size: var(--av-fs-sm);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.lateral-enlace:hover,
+.lateral-enlace:focus-visible {
+  border-color: var(--av-primary);
+  color: var(--av-text);
+  text-decoration: none;
+}
+
+.lateral-cuenta {
+  min-width: 1.5rem;
+  padding: 0 var(--av-s-2);
+  border-radius: var(--av-radius-pill);
+  background: var(--av-surface-alt);
+  color: var(--av-text-secondary);
+  font-size: var(--av-fs-xs);
+  text-align: center;
+}
+
+.portada-grupos .grupo-herramientas {
+  scroll-margin-top: var(--av-s-4);
+}
+
+/* En el panel, lo reciente va en una sola columna y sin el aire de debajo. */
+.portada-lateral .repetibles {
+  margin: 0;
+}
+
+.portada-lateral .repetibles-lista {
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--av-s-2);
+}
+
+@media (min-width: 56rem) {
+  .portada-rejilla {
+    grid-template-columns: 15.5rem minmax(0, 1fr);
+    gap: var(--av-s-6);
+  }
+
+  .portada-lateral {
+    position: sticky;
+    top: var(--av-s-4);
+    max-height: calc(100vh - 2 * var(--av-s-4));
+    overflow-y: auto;
+  }
+
+  .lateral-lista {
+    display: grid;
+    gap: var(--av-s-1);
+  }
+}
