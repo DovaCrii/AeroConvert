@@ -5,6 +5,16 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Sin publicar]
 
+### Corregido — la cola y los procesos (B-07 y B-08 de la auditoría de seguridad)
+
+- **Cancelar o agotar el plazo ya mata a todo el árbol de procesos**, no solo al hijo directo.
+  ODA, Wine, `Xvfb`, Word, Excel y PowerPoint lanzan nietos que seguían vivos con el archivo
+  bloqueado y la memoria ocupada. Cada motor arranca como cabeza de su propio grupo (en Windows,
+  `taskkill /T`), y los pasos posteriores, como `gdaladdo`, también.
+- **Un trabajo vivo ya no se marca «interrumpido».** El PID guardado era el del motor y no el del
+  obrero: al terminar el motor, un paso posterior largo parecía un trabajo muerto, y «reintentar»
+  habría dejado dos procesos escribiendo el mismo parcial. Ahora se conserva el del obrero.
+
 ### Cambiado — la portada deja de ser una pared (F9.4)
 
 - **Cada grupo de herramientas se pliega, y solo el primero nace abierto.** Eran veintiséis
