@@ -415,4 +415,36 @@
     <path d="M12 11v5.5" />
     <path d="M12 7.6h.01" stroke-width="2.4" />
   </symbol>
+
+  <symbol id="icon-destino-satelite" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Un satélite con sus paneles: lo que registra un receptor GNSS es lo que ellos emiten. -->
+    <rect x="9" y="9" width="6" height="6" rx="1" transform="rotate(45 12 12)"
+          fill="currentColor" fill-opacity=".16" />
+    <path d="M5.2 7.2 8 4.4l2.4 2.4-2.8 2.8z" />
+    <path d="M13.6 17.2 16 19.6l2.8-2.8-2.4-2.4z" />
+    <path d="M4 14.5a6 6 0 0 0 5.5 5.5" />
+    <path d="M4 18.5a2 2 0 0 0 1.5 1.5" />
+  </symbol>
+
+  <symbol id="icon-texto-web" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Un globo con la flecha hacia fuera: el texto de una página que se lleva a un archivo. -->
+    <path d="M12.5 3.2A9 9 0 1 0 20.8 12" fill="currentColor" fill-opacity=".16" />
+    <path d="M3 12h9" />
+    <path d="M10 3.2c-2.4 2.4-3.6 5.4-3.6 8.8s1.2 6.4 3.6 8.8" />
+    <path d="M15 8h6" />
+    <path d="m18.5 5.5 2.5 2.5-2.5 2.5" />
+  </symbol>
+
+  <symbol id="icon-texto-pdf" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+    <!-- La hoja con la esquina doblada y la flecha hacia fuera: el texto de un PDF. -->
+    <path d="M14 3H6.5A1.5 1.5 0 0 0 5 4.5v15A1.5 1.5 0 0 0 6.5 21H14"
+          fill="currentColor" fill-opacity=".16" />
+    <path d="M9 3v4.5H5" />
+    <path d="M10 15h4" />
+    <path d="M14 12h7" />
+    <path d="m18.5 9.5 2.5 2.5-2.5 2.5" />
+  </symbol>
 </svg>

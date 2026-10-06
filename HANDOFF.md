@@ -38,7 +38,6 @@ cd /opt/aeroconvert && sudo -u aeroconvert git pull && sudo scripts/desplegar.sh
 | --- | --- | --- |
 | `F10.5` | Convertidor de Trimble bajo Wine en p340 (pasos abajo) y fechar la corrida | Usted |
 | `F11.11` | Tres pruebas en p340: `X-Forwarded-For` ante Funnel, `AEROCONVERT_RAICES_PERMITIDAS`, VRT `.asc` (B-04) | Usted |
-| `F9.4` | Falta la revisión de iconos (tipografía y radios cerrados) | Código |
 | `F3.5` ◐ · `F3.4` | LandXML real; DWG/DGN con ODA instalado | Un archivo o un puesto con ODA |
 | `F2.6` · `F4.1` · `F4.2` | 3D Tiles; IFC y malla; AeroBim | Código |
 | `F1.6` | ECW: no, hasta que alguien lo pida dos veces | Decisión |

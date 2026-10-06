@@ -179,7 +179,7 @@ HERRAMIENTAS = (
     {
         "id": "md_pdf",
         "categoria": "texto",
-        "icono": "icon-texto-parrafo",
+        "icono": "icon-texto-pdf",
         "sale": "un .md",
         "familia": "texto",
         "url": "documents:a_markdown",
@@ -201,7 +201,7 @@ HERRAMIENTAS = (
     {
         "id": "md_html",
         "categoria": "texto",
-        "icono": "icon-texto-parrafo",
+        "icono": "icon-texto-web",
         "sale": "un .md",
         "familia": "texto",
         "url": "documents:a_markdown",
