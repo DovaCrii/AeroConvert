@@ -1,5 +1,5 @@
 /*
- * El lateral: ocultarlo y mostrarlo.
+ * El lateral: reducirlo a iconos y ampliarlo.
  *
  * **La navegación no depende de esto.** Sin este fichero el lateral está siempre a la vista
  * (en pantallas estrechas, apilado encima del contenido) y los grupos abren y cierran porque son
@@ -8,14 +8,14 @@
  *
  * Lo que añade esto es lo que un `details` no trae:
  *
- *   1. El botón de la barra oculta y muestra el lateral. En pantallas anchas se acuerda de lo
- *      que se dejó, en este navegador; en las estrechas nace plegado cada vez, porque ahí tapa
- *      el contenido.
+ *   1. El botón de la barra reduce el lateral a una columna de iconos y lo vuelve a ampliar. En
+ *      pantallas anchas se acuerda de lo que se dejó, en este navegador; en las estrechas el
+ *      lateral nace plegado cada vez y el botón lo saca, porque ahí tapa el contenido.
  *   2. Escape lo cierra en pantallas estrechas y devuelve el foco al botón.
  *   3. Seguir un enlace del lateral lo cierra en pantallas estrechas: la página va a cambiar, y
  *      al volver atrás el navegador la restaura como estaba.
  *
- * Todo cuelga de clases en `<html>` (`js-lateral`, `lateral-oculto`, `lateral-abierto`) y no de
+ * Todo cuelga de clases en `<html>` (`js-lateral`, `lateral-compacto`, `lateral-abierto`) y no de
  * estilos en línea, por la misma CSP.
  */
 (function () {
@@ -43,16 +43,16 @@
     }
   }
 
-  function guardar(oculto) {
+  function guardar(compacto) {
     try {
-      window.localStorage.setItem(CLAVE, oculto ? "oculto" : "visible");
+      window.localStorage.setItem(CLAVE, compacto ? "compacto" : "ancho");
     } catch (e) {
       /* sin almacenamiento no se recuerda, y no pasa nada */
     }
   }
 
   function visible() {
-    return ancho() ? !raiz.classList.contains("lateral-oculto") : raiz.classList.contains("lateral-abierto");
+    return ancho() ? !raiz.classList.contains("lateral-compacto") : raiz.classList.contains("lateral-abierto");
   }
 
   function pintar() {
@@ -61,7 +61,7 @@
 
   function poner(mostrar) {
     if (ancho()) {
-      raiz.classList.toggle("lateral-oculto", !mostrar);
+      raiz.classList.toggle("lateral-compacto", !mostrar);
       guardar(!mostrar);
     } else {
       raiz.classList.toggle("lateral-abierto", mostrar);
@@ -70,8 +70,9 @@
   }
 
   raiz.classList.add("js-lateral");
-  if (leer() === "oculto") {
-    raiz.classList.add("lateral-oculto");
+  // «oculto» es el valor de la versión anterior, que ocultaba el lateral entero.
+  if (leer() === "compacto" || leer() === "oculto") {
+    raiz.classList.add("lateral-compacto");
   }
   pintar();
 

@@ -72,7 +72,7 @@ class TestElLateralAbreSolo:
         reglas = re.findall(r"([^{}]*\.lateral(?![\w-])[^{}]*)\{[^}]*display:\s*none", css)
         assert reglas, "no hay ninguna regla que esconda el lateral"
         for selector in reglas:
-            assert "js-lateral" in selector or "lateral-oculto" in selector, selector.strip()
+            assert "js-lateral" in selector, selector.strip()
 
 
 class TestBuscarSinJavaScript:
