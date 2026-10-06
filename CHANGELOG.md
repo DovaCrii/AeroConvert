@@ -5,6 +5,13 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Sin publicar]
 
+### Añadido — cuota de subidas por persona (A-05 de la auditoría de seguridad)
+
+- Cada persona puede tener subidos a la vez hasta **8.192 MB** (`AEROCONVERT_CUOTA_DE_SUBIDAS_MB`,
+  0 la apaga), sin usar o en un trabajo en curso. El tope de 2.048 MB es por archivo y no impedía
+  subir veinte seguidos. Se rechaza **antes de escribir**, con un mensaje que dice cuánto hay y
+  qué hacer (la carpeta compartida). Borrar una subida libera cuota.
+
 ### Cambiado — el menú «Herramientas», el límite de subida y las rejillas, a 375 px (F9.4)
 
 - **El panel «Herramientas» ya no se sale de la pantalla.** Colgaba de la izquierda del botón,
