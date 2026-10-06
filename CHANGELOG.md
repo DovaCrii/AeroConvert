@@ -5,6 +5,16 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Sin publicar]
 
+### Corregido — un anónimo ya no puede hacer que el servidor reciba 2 GB (A-01 de la auditoría)
+
+- **Nuevo `LimiteDeCuerpoMiddleware`**, antes de que el CSRF lea el cuerpo. Sin sesión, un POST de
+  más de 1 MiB recibe **413 sin leerse** (`LIMITE_DE_CUERPO_ANONIMO_BYTES`); con sesión, más de
+  `TOPE_MB` más 10 MiB de margen. Decide solo con `Content-Length`. Antes, el CSRF analizaba el
+  cuerpo entero y el manejador lo escribía hasta el tope, contra cualquier ruta con POST y varias
+  a la vez, antes del login.
+- **nginx (opcional, no desplegado):** 1 MB para todo el sitio y 2.100 MB solo en `/subir/` y
+  `/documentos/`.
+
 ### Corregido — la cola y los procesos (B-07 y B-08 de la auditoría de seguridad)
 
 - **Cancelar o agotar el plazo ya mata a todo el árbol de procesos**, no solo al hijo directo.
