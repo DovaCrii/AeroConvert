@@ -165,6 +165,7 @@ ICONOS_DE_PERFIL = {
     "google-earth": "icon-destino-chincheta",
     "web": "icon-destino-ventana",
     "aerobim": "icon-destino-cubo",
+    "posproceso": "icon-destino-satelite",
 }
 
 
