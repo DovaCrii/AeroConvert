@@ -4,7 +4,7 @@
 > [`docs/historial/`](docs/historial/) y en `git log`. Si algo de aquí no cuadra con el código,
 > **gana el código**: actualice esta página antes de seguir.
 
-**Estado al:** 2026-10-06 · **`main` en:** `b82a35a` · **Último PR fusionado:** #40
+**Estado al:** 2026-10-06 · **`main` en:** `d5ee523` · **Último PR fusionado:** #47
 
 ## Quién hace qué
 
@@ -19,11 +19,11 @@ Se relanza con `gh run rerun <id>`; no se fusiona con el CI en rojo.
 ## Dónde está el proyecto
 
 - **Desplegado el 2026-10-05:** hasta el #20 (GNSS con RTKLIB, calidad y versiones de RINEX).
-- **En `main` sin desplegar** (#21 a #40): versión `0.10.0`; los destinos de la ficha como tarjetas; **arreglo del motor RTKLIB** (sin él
+- **En `main` sin desplegar** (#21 a #47): versión `0.10.0`; los destinos de la ficha como tarjetas; **arreglo del motor RTKLIB** (sin él
   `rtklib-convbin` falla con un trabajo real); la portada con grupos plegables; el resultado de una
   conversión y la barra a 375 px; el menú «Herramientas» y el límite de subida; cierres de la
   auditoría (A-01, A-02, A-05, B-01, B-07, B-08, C-01, C-06, D-01, D-02, D-04, D-05); `views/` en
-  paquete; `Incidente` y `resumen_de_uso`.
+  paquete; la portada con panel lateral; la paleta en OKLCH; tipografía, radios e iconos desde la escala; B-04 (VRT disfrazado); `Incidente` y `resumen_de_uso`.
 - **Dos migraciones nuevas** que `desplegar.sh` aplica sola: `core/0002` (borra la tabla
   `Resultado`) y `core/0003` (crea `Incidente`).
 - Pruebas: ~2.400 verdes sin GDAL ni PDAL. Versión `0.10.0`.
@@ -37,7 +37,6 @@ cd /opt/aeroconvert && sudo -u aeroconvert git pull && sudo scripts/desplegar.sh
 | Fila | Qué falta | Quién |
 | --- | --- | --- |
 | `F10.5` | Convertidor de Trimble bajo Wine en p340 (pasos abajo) y fechar la corrida | Usted |
-| `F11.11` | Tres pruebas en p340: `X-Forwarded-For` ante Funnel, `AEROCONVERT_RAICES_PERMITIDAS`, VRT `.asc` (B-04) | Usted |
 | `F3.5` ◐ · `F3.4` | LandXML real; DWG/DGN con ODA instalado | Un archivo o un puesto con ODA |
 | `F2.6` · `F4.1` · `F4.2` | 3D Tiles; IFC y malla; AeroBim | Código |
 | `F1.6` | ECW: no, hasta que alguien lo pida dos veces | Decisión |
@@ -50,8 +49,6 @@ cd /opt/aeroconvert && sudo -u aeroconvert git pull && sudo scripts/desplegar.sh
   /opt/trimble-rinex /tmp/convertToRinex_v4_0_1_10_sign.msi` · `find /opt/trimble-rinex -name
   convertToRinex.exe`. En `.env`: `AEROCONVERT_TRIMBLE_RINEX=<esa ruta>` y
   `AEROCONVERT_WINEPREFIX=/var/lib/aeroconvert/wine`. Pruébelo con un T02 desde la web.
-- **F11.11.** `sudo grep AEROCONVERT_RAICES_PERMITIDAS /opt/aeroconvert/.env`; y las otras dos
-  pruebas, que Claude le prepara cuando quiera.
 - **Después de desplegar:** `sudo -u aeroconvert /opt/aeroconvert/.venv/bin/python manage.py
   resumen_de_uso --dias 7` da la primera línea base del uso.
 
