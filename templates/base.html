@@ -27,7 +27,7 @@
       {# Muestra y oculta el lateral. Sin JavaScript el lateral está siempre a la vista. #}
       <button type="button" class="boton-icono lateral-alternar" id="lateral-alternar"
               aria-controls="lateral" aria-expanded="true"
-              aria-label="Mostrar u ocultar el menú" title="Mostrar u ocultar el menú">
+              aria-label="Reducir o ampliar el menú" title="Reducir o ampliar el menú">
         <svg class="nav-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-menu"></use></svg>
       </button>
     {% endif %}
@@ -136,27 +136,34 @@
       <nav class="lateral-nav" aria-label="Secciones">
         <ul class="lateral-principal">
           <li>
-            <a class="lateral-enlace-principal" href="{% url 'dashboard:que_puedo_hacer' %}"
+            <a class="lateral-enlace-principal" href="{% url 'dashboard:que_puedo_hacer' %}" title="Inicio"
                {% if seccion == 'acciones' %}aria-current="page"{% endif %}>
               <svg class="nav-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-inicio"></use></svg>
               <span>Inicio</span>
             </a>
           </li>
           <li>
-            <a class="lateral-enlace-principal" href="{% url 'dashboard:convertir' %}"
+            <a class="lateral-enlace-principal" href="{% url 'dashboard:convertir' %}" title="Convertir"
                {% if seccion == 'convertir' %}aria-current="page"{% endif %}>
               <svg class="nav-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-convertir"></use></svg>
               <span>Convertir</span>
             </a>
           </li>
           <li>
-            <a class="lateral-enlace-principal" href="{% url 'jobs:lista' %}"
+            <a class="lateral-enlace-principal" href="{% url 'jobs:lista' %}" title="Historial"
                {% if seccion == 'historial' %}aria-current="page"{% endif %}>
               <svg class="nav-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-historial"></use></svg>
               <span>Historial</span>
             </a>
           </li>
         </ul>
+
+        {# Solo se ve con el lateral reducido: los grupos no caben en una columna de iconos. #}
+        <a class="lateral-enlace-principal lateral-solo-compacto" title="Todas las herramientas"
+           href="{% url 'dashboard:que_puedo_hacer' %}#resultados">
+          <svg class="nav-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-destino-capas"></use></svg>
+          <span>Todas las herramientas</span>
+        </a>
 
         <p class="lateral-rotulo">Herramientas</p>
         {% for grupo in menu_grupos %}
@@ -188,21 +195,21 @@
         <p class="lateral-rotulo">Más</p>
         <ul class="lateral-pie">
           <li>
-            <a class="lateral-enlace-principal" href="{% url 'engines:matriz' %}"
+            <a class="lateral-enlace-principal" href="{% url 'engines:matriz' %}" title="Compatibilidad"
                {% if seccion == 'compatibilidad' %}aria-current="page"{% endif %}>
               <svg class="nav-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-compatibilidad"></use></svg>
               <span>Compatibilidad</span>
             </a>
           </li>
           <li>
-            <a class="lateral-enlace-principal" href="{% url 'presets:lista' %}">
+            <a class="lateral-enlace-principal" href="{% url 'presets:lista' %}" title="Preajustes guardados">
               <svg class="nav-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-preajustes"></use></svg>
               <span>Preajustes guardados</span>
             </a>
           </li>
           {% if tino_visible %}
             <li>
-              <a class="lateral-enlace-principal" href="{% url 'tino:preguntar' %}">
+              <a class="lateral-enlace-principal" href="{% url 'tino:preguntar' %}" title="Preguntarle a Tino">
                 <svg class="nav-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-info"></use></svg>
                 <span>Preguntarle a Tino</span>
               </a>

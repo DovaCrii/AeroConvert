@@ -879,14 +879,49 @@ a:hover {
     overflow-y: auto;
   }
 
-  /* Oculto por la persona: la rejilla pierde la columna y el contenido ocupa todo. */
-  .lateral-oculto .cuerpo-app {
-    grid-template-columns: minmax(0, 1fr);
+  /* Reducido por la persona: una columna de iconos. **Las palabras no desaparecen para el
+   * lector de pantalla**: se esconden con el recorte de `visually-hidden`, no con `display`, y
+   * cada enlace trae además su `title` para quien pasa el ratón. */
+  .lateral-compacto .cuerpo-app {
+    grid-template-columns: 4.25rem minmax(0, 1fr);
   }
 
-  .lateral-oculto .lateral {
+  .lateral-compacto .lateral {
+    padding-inline: var(--av-s-2);
+  }
+
+  .lateral-compacto .lateral-enlace-principal {
+    justify-content: center;
+    padding-inline: 0;
+  }
+
+  .lateral-compacto .lateral-enlace-principal span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  /* Los grupos no caben en una columna de iconos: en su lugar, un enlace al catálogo. */
+  .lateral-compacto .lateral-rotulo,
+  .lateral-compacto .lateral-grupo {
     display: none;
   }
+
+  .lateral-compacto .lateral-solo-compacto {
+    display: flex;
+  }
+
+  .lateral-compacto .lateral-pie,
+  .lateral-compacto .lateral-principal {
+    margin-bottom: var(--av-s-2);
+  }
+}
+
+.lateral-solo-compacto {
+  display: none;
 }
 
 @media (max-width: 55.99rem) {

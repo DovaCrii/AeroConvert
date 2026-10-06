@@ -89,6 +89,43 @@ class TestLaPaginaDondeSeEsta:
         assert actuales == [texto]
 
 
+class TestElModoDeIconosSolos:
+    """Reducido, el lateral es una columna de iconos. **Un icono solo no puede dejar sin nombre
+    a un enlace**: cada uno trae `title`, y su palabra sigue en el HTML para el lector."""
+
+    def test_cada_enlace_fijo_trae_su_title_y_su_palabra(self, sesion):
+        lateral = _lateral(sesion.get(reverse("dashboard:que_puedo_hacer")).content.decode())
+        enlaces = re.findall(r'<a class="lateral-enlace-principal[^"]*"[^>]*>', lateral)
+        assert len(enlaces) >= 6
+        assert all('title="' in e for e in enlaces), enlaces
+        assert lateral.count("<span>") >= len(enlaces)
+
+    def test_hay_un_enlace_al_catalogo_solo_para_el_modo_reducido(self, sesion):
+        """Los grupos no caben en una columna de iconos: en su lugar, esto."""
+        lateral = _lateral(sesion.get(reverse("dashboard:que_puedo_hacer")).content.decode())
+        assert "lateral-solo-compacto" in lateral
+        assert 'title="Todas las herramientas"' in lateral
+
+    def test_el_css_esconde_las_palabras_con_recorte_y_no_con_display(self):
+        from pathlib import Path
+
+        from django.conf import settings
+
+        css = (Path(settings.BASE_DIR) / "static" / "css" / "app.css").read_text(encoding="utf-8")
+        regla = re.search(
+            r"\.lateral-compacto \.lateral-enlace-principal span \{([^}]*)\}", css
+        ).group(1)
+        assert "clip-path" in regla and "display" not in regla
+
+    def test_el_script_conoce_los_dos_valores_guardados(self):
+        from pathlib import Path
+
+        from django.conf import settings
+
+        js = (Path(settings.BASE_DIR) / "static" / "js" / "lateral.js").read_text(encoding="utf-8")
+        assert '"compacto"' in js and '"oculto"' in js, "una elección guardada antes no se pierde"
+
+
 class TestLaBarra:
     def test_la_barra_ya_no_lleva_secciones_solo_cuenta_y_apariencia(self, sesion):
         """Las secciones se mudaron al lateral. Lo que queda en la barra es el tema, las cuentas
@@ -103,7 +140,7 @@ class TestLaBarra:
         cuerpo = sesion.get(reverse("dashboard:que_puedo_hacer")).content.decode()
         boton = cuerpo[cuerpo.index('id="lateral-alternar"') - 80 : cuerpo.index("</button>")]
         assert 'aria-controls="lateral"' in boton
-        assert 'aria-label="Mostrar u ocultar el menú"' in boton
+        assert 'aria-label="Reducir o ampliar el menú"' in boton
         assert 'id="lateral"' in cuerpo
 
     def test_el_script_del_lateral_se_carga_y_el_del_menu_ya_no(self, sesion):
