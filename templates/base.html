@@ -169,7 +169,8 @@
         {% for grupo in menu_grupos %}
           <details class="lateral-grupo" data-recuerda="lateral-{{ grupo.titulo|slugify }}">
             <summary class="lateral-grupo-titulo">
-              <span>{{ grupo.titulo }}</span>
+              <span class="lateral-grupo-nombre">{{ grupo.titulo }}</span>
+              <span class="lateral-cuenta" aria-hidden="true">{{ grupo.acciones|length }}</span>
               <svg class="lateral-flecha" aria-hidden="true" viewBox="0 0 24 24" fill="none"
                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M6 9l6 6 6-6"></path>
@@ -217,6 +218,9 @@
           {% endif %}
         </ul>
       </nav>
+      {# El asa para cambiar el ancho. Con JavaScript: arrastrar, flechas, Inicio, Fin y doble clic. #}
+      <div class="lateral-asa" id="lateral-asa" role="separator" aria-orientation="vertical"
+           tabindex="0" aria-label="Cambiar el ancho del menú" title="Arrastre para cambiar el ancho; doble clic para restablecerlo"></div>
     </aside>
   {% endif %}
 

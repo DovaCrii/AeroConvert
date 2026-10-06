@@ -97,26 +97,26 @@ class Accion:
 CATEGORIAS = (
     (
         "planos",
-        "Planos, mapas y nubes de puntos",
-        "Lo que viene del vuelo o del levantamiento, y hay que dejar en un formato que abra.",
+        "Ortofotos, mapas y nubes",
+        "Entregar un levantamiento para dibujar, analizar o publicar.",
         "dashboard:convertir",
     ),
     (
         "gnss",
-        "Datos de receptores GNSS",
-        "Lo que graba el receptor en campo y hay que llevar a posproceso.",
+        "Datos GNSS a RINEX",
+        "Pasar lo que graba el receptor en campo a un formato de posproceso.",
         "dashboard:convertir",
     ),
     (
         "documentos",
-        "Documentos y PDF",
-        "Lo que acaba dentro de un informe o de una entrega.",
+        "Trabajar con PDF",
+        "Unir, dividir, comprimir, proteger y preparar un documento para entregarlo.",
         "documents:inicio",
     ),
     (
         "texto",
-        "Texto y tablas",
-        "Cuando el contenido tiene que salir del archivo y entrar en otro sitio.",
+        "Sacar texto y tablas",
+        "Pasar el contenido de un archivo a Markdown, Excel o PDF.",
         "documents:texto",
     ),
 )
@@ -144,7 +144,17 @@ SIGLAS = {
 
 #: Cómo se llama la tarjeta de un perfil cuando «Llevarlo a …» no tiene sentido. Nadie lleva
 #: un crudo GNSS «a Posproceso»: lo que quiere es pasarlo a RINEX.
-NOMBRES_DE_ACCION = {"posproceso": "Datos de un receptor GNSS a RINEX"}
+NOMBRES_DE_ACCION = {
+    "posproceso": "Datos de un receptor GNSS a RINEX",
+    # **Para qué sirve, y después el programa.** «Llevarlo a QGIS» decía dónde se abre y obligaba
+    # a saber qué hace cada programa; ahora la tarjeta dice el trabajo y nombra al programa.
+    "civil3d": "Diseño y planos · Civil 3D / AutoCAD",
+    "qgis": "Análisis y mapas · QGIS",
+    "arcgis": "Cartografía · ArcGIS Pro",
+    "google-earth": "Ver en el globo · Google Earth",
+    "web": "Publicar en la web · Visor web",
+    "aerobim": "Modelos BIM · AeroBim",
+}
 
 #: Lo que se escribe para llegar a un perfil, además de su id. Los geoespaciales comparten las
 #: palabras de siempre; el de posproceso habla de otra cosa y buscarlo por «ortofoto» sería

@@ -126,6 +126,50 @@ class TestElModoDeIconosSolos:
         assert '"compacto"' in js and '"oculto"' in js, "una elección guardada antes no se pierde"
 
 
+class TestElAnchoSeCambia:
+    def test_el_asa_es_un_separador_con_teclado_y_nombre(self, sesion):
+        cuerpo = sesion.get(reverse("dashboard:que_puedo_hacer")).content.decode()
+        asa = cuerpo[cuerpo.index('id="lateral-asa"') - 40 : cuerpo.index("</aside>")]
+        assert 'role="separator"' in asa and 'tabindex="0"' in asa
+        assert 'aria-label="Cambiar el ancho del menú"' in asa
+
+    def test_el_ancho_sale_de_una_variable_y_el_script_la_acota(self):
+        from pathlib import Path
+
+        from django.conf import settings
+
+        raiz = Path(settings.BASE_DIR) / "static"
+        css = (raiz / "css" / "app.css").read_text(encoding="utf-8")
+        js = (raiz / "js" / "lateral.js").read_text(encoding="utf-8")
+        assert "var(--lateral-ancho, 17rem)" in css
+        assert "--lateral-ancho" in js and "style.setProperty" in js
+        minimo, maximo = (int(n) for n in re.findall(r"var (?:MINIMO|MAXIMO) = (\d+);", js))
+        assert 160 <= minimo < 272 < maximo <= 480, "ni se come el contenido ni deja el texto roto"
+        assert "dblclick" in js and "ArrowLeft" in js, "el teclado y el doble clic también"
+
+    def test_el_asa_solo_se_dibuja_con_javascript_y_en_pantalla_ancha(self):
+        from pathlib import Path
+
+        from django.conf import settings
+
+        css = (Path(settings.BASE_DIR) / "static" / "css" / "app.css").read_text(encoding="utf-8")
+        assert re.search(r"\.lateral-asa \{\s*display: none;", css)
+        assert ".js-lateral .lateral-asa {" in css
+
+
+class TestLosNombresDicenParaQueSirve:
+    def test_los_grupos_ya_no_se_llaman_por_formato(self, sesion):
+        lateral = _lateral(sesion.get(reverse("dashboard:que_puedo_hacer")).content.decode())
+        for nombre in ("Ortofotos, mapas y nubes", "Trabajar con PDF", "Sacar texto y tablas"):
+            assert nombre in lateral
+        assert "Llevarlo a" not in lateral
+
+    def test_cada_herramienta_geoespacial_dice_el_trabajo_y_el_programa(self, sesion):
+        lateral = _lateral(sesion.get(reverse("dashboard:que_puedo_hacer")).content.decode())
+        assert "Diseño y planos · Civil 3D / AutoCAD" in lateral
+        assert "Análisis y mapas · QGIS" in lateral
+
+
 class TestLaBarra:
     def test_la_barra_ya_no_lleva_secciones_solo_cuenta_y_apariencia(self, sesion):
         """Las secciones se mudaron al lateral. Lo que queda en la barra es el tema, las cuentas

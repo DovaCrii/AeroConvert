@@ -448,6 +448,44 @@ no configura `concurrency` ni medición de subprocesos, así que es plausible, p
 
 ---
 
+## Fase 12 — Una suite de documentos práctica, en la línea de ONLYOFFICE
+
+> **Pedido del 2026-10-06.** «Que sea una suite completa como ONLYOFFICE: incorporar más
+> herramientas, y que sea práctico.» Hoy hay once herramientas de PDF y nueve de texto y tablas;
+> lo que falta no es cantidad sino **las que se usan a diario** y poder **encadenarlas** sobre el
+> mismo archivo sin volver a subirlo.
+
+**Regla de la fase:** cada herramienta nueva pasa por la cola (`tarea.py`), dice qué entrega,
+no toca el original y trae su oráculo: **otro lector abre lo escrito**, nunca el mismo código
+leyéndose a sí mismo.
+
+| # | Entrega | Oráculo (cómo se sabe que está) | La cierra | Estado |
+| --- | --- | --- | --- | --- |
+| F12.1 | **Organizar páginas** de un PDF: girar, reordenar, eliminar y duplicar, con miniaturas. Hoy se puede con «Unir PDF» pero no se encuentra | pypdf reabre y cuenta; PDFium (otro lector) renderiza y el giro coincide | Claude | ⬜ |
+| F12.2 | **Extraer las imágenes** de un PDF y **extraer páginas** a un archivo nuevo | PDFium cuenta las páginas; los bytes de cada imagen se abren con Pillow | Claude | ⬜ |
+| F12.3 | **Metadatos**: ver y editar título y autor, y **limpiarlos** antes de entregar | pypdf lee lo escrito; `pdfinfo` si existe | Claude | ⬜ |
+| F12.4 | **Rellenar un formulario** PDF y aplanarlo | pypdf lee los campos; PDFium renderiza el valor visible | Claude | ⬜ |
+| F12.5 | **Firmar con imagen y fecha** (firma visible, no digital) | PDFium renderiza y la imagen está en la posición pedida | Claude | ⬜ |
+| F12.6 | **Recortar márgenes** y **cambiar el tamaño de página** (A4, A3, carta) | PDFium: el tamaño de cada página coincide con el pedido | Claude | ⬜ |
+| F12.7 | **Comparar dos PDF**: qué páginas cambiaron, con una vista lado a lado | Dos renderizados de PDFium difieren solo donde se dice | Claude | ⬜ |
+| F12.8 | **Redactar de verdad**: tachar texto **quitándolo del archivo**, no tapándolo | `pdftotext` / pypdf **no encuentran** el texto tras redactar. Es la prueba que importa: un rectángulo negro encima no es redactar | Claude | ⬜ |
+| F12.9 | **PDF/A** para archivo de largo plazo | veraPDF (herramienta externa, se sondea; sin ella se dice y no se afirma) | Claude, con veraPDF | ⬜ |
+| F12.10 | **Encadenar**: el resultado de una herramienta se ofrece como entrada de la siguiente («ahora numerarlo», «ahora comprimirlo») sin volver a subir | La prueba de la cola: el trabajo hijo usa la salida verificada del padre, y el original sigue intacto | Claude | ⬜ |
+| F12.11 | **Editar Word, Excel y PowerPoint en el navegador** integrando ONLYOFFICE Document Server como herramienta externa (se sondea, no es dependencia) | El documento guardado se abre con otro lector (LibreOffice o `python-docx`) | **La persona decide** (ver abajo) | ⬜ |
+
+**Lo que hay que decidir antes de F12.11.** Una suite «como ONLYOFFICE» que **edite** documentos
+no se escribe aquí: se integra el propio ONLYOFFICE. Es AGPL-3 y corre como un servicio aparte (en
+la práctica, un contenedor en p340), así que respeta la regla de licencias —herramienta externa,
+no código copiado— pero **añade un servicio que desplegar, mantener y asegurar**, en una máquina
+que ya publica AeroConvert por internet. Alternativa más pequeña: quedarse en conversión y
+organización de PDF (F12.1 a F12.10) y dejar la edición a quien ya tenga Office.
+
+**Orden propuesto:** F12.1 y F12.10 primero (son lo que más se echa de menos y lo que vuelve
+práctico todo lo demás), luego F12.8 (la única con riesgo real si se hace mal), y el resto según
+lo pida el uso.
+
+---
+
 ## Deuda conocida
 
 > **Cómo se lee esta tabla, y por qué hizo falta arreglarla.**
