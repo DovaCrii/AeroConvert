@@ -5,6 +5,20 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Sin publicar]
 
+### Cambiado — el resultado de una conversión y la barra, a 375 px (primera pieza de F9.4)
+
+- **Una sola acción principal por estado** en el resultado de una conversión: antes salían dos
+  botones «Descargar»; en un error, «Reintentar» es el principal y las alternativas pasan a
+  secundarias; un trabajo cancelado ofrece «Volver a encolar». El recibo cabe en una columna
+  en pantalla estrecha, y motor, huella y piezas del zip van en un «Datos técnicos» plegable.
+  La pantalla mide 1.728 px de alto a 375 px, frente a los 2.456 de antes. Los 10 estilos en
+  línea de la plantilla pasaron a clases.
+- **La página entera ya no se desplaza de lado en un teléfono.** A 375 px la marca, la chapa y
+  la navegación sumaban 615 px; ahora la navegación pasa a su propia fila (solo hasta 480 px).
+  Medido en el navegador: portada, historial, documentos y resultado en 375 px exactos.
+- «Listo, ya puede descargarlo»: el trato de usted que pide `AGENTS.md`.
+- **Queda abierto:** la pantalla de compatibilidad (`/motores/`) desborda 440 px por su matriz.
+
 ### Cambiado — `apps/documents/views.py` pasa a ser un paquete
 
 - Las 1.436 líneas de `views.py` se reparten en `views/`: un módulo por pantalla

@@ -1097,6 +1097,31 @@ a.menu-titulo:hover {
   }
 }
 
+/*
+ * **Teléfono: la navegación pasa a su propia fila.** La regla de arriba («nunca en dos líneas»)
+ * se pensó para escritorio, donde sobraban entradas y no sitio. A 375 px la marca, la chapa y
+ * la navegación suman 615 px y **toda la página** se desplazaba de lado (medido el 2026-10-06 en
+ * todas las pantallas). Aquí sí hay que partir: se pierde un poco de altura y no se esconde
+ * nada. Las entradas se reparten por todo el ancho, con objetivos que siguen siendo tocables.
+ */
+@media (max-width: 480px) {
+  .barra {
+    flex-wrap: wrap;
+    padding: 8px 12px;
+    row-gap: 4px;
+  }
+
+  .barra-nav {
+    flex: 1 1 100%;
+    justify-content: space-between;
+    gap: 2px;
+  }
+
+  .nav-item {
+    padding: 8px 6px;
+  }
+}
+
 /* --- Los tres pasos ------------------------------------------------------- */
 
 .pasos {
