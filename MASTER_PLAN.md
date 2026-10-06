@@ -195,7 +195,7 @@ qué **no** se puede y por qué.
 | --- | --- | --- |
 | F7.2a | Iconos propios por familia, en dúotono y con color por tipo de operación | ✅ 2026-09-14 |
 | F7.2b | Grupos con encabezado, y «Sale: un PDF» en cada tarjeta | ✅ 2026-09-15 |
-| F7.2c | El mismo trato en la pantalla de convertir: los destinos geoespaciales como tarjetas con su formato de salida | ⬜ |
+| F7.2c | El mismo trato en la pantalla de convertir: los destinos geoespaciales como tarjetas con su formato de salida | ✅ 2026-10-06 · baldosa, «Sale:» y estimación; mirado en el navegador con los motores reales |
 
 ### F7.3 — Las herramientas de PDF que faltan
 

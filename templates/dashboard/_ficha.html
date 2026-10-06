@@ -413,10 +413,15 @@
                 class="destino{% if p.perfil.id == destino_preferido %} destino-elegido{% endif %}"
                 {% if not p.se_puede %}disabled{% endif %}
                 {% if not p.se_puede %}title="{{ p.motivo }}"{% endif %}>
+          {# La misma baldosa de las tarjetas de la portada (F7.2c): el destino se reconoce igual en los dos sitios. #}
+          <span class="herramienta-marca fam-destino destino-marca" aria-hidden="true">
+            <svg class="herramienta-icono"><use href="{% static 'img/icons.svg' %}#{{ p.icono }}"></use></svg>
+          </span>
+          <span class="destino-texto">
           <strong>{{ p.perfil.nombre }}</strong>
           <small>
             {% if p.se_puede %}
-              → {{ p.nombre_destino }}
+              <span class="destino-sale">Sale: <strong>{{ p.nombre_destino }}</strong></span>
               {% if p.estimacion %}
                 {# La linea honesta: cuanto va a pesar y cuanto va a tardar. #}
                 <br><span class="cifra">≈ {{ p.estimacion.bytes_salida|filesizeformat }}</span>
@@ -447,6 +452,7 @@
               {% if p.alternativas %}<br>En su lugar: {{ p.alternativas|join:", " }}{% endif %}
             {% endif %}
           </small>
+          </span>
         </button>
       {% endfor %}
     </div>

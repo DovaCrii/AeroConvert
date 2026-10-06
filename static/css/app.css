@@ -2316,6 +2316,10 @@ legend {
   text-align: left;
   min-height: var(--av-touch-min);
   padding: 12px 14px;
+  /* **Sin borde propio.** Un `<button>` trae `2px outset` blanco de fábrica y esta regla nunca lo
+   * quitaba: los destinos salían con un marco blanco en relieve, visible en el tema oscuro. El
+   * marco de verdad es el anillo de `--av-elev-1`. */
+  border: 0;
   border-radius: var(--av-radius-sm);
   box-shadow: var(--av-elev-1);
   background: var(--av-surface);
@@ -2347,16 +2351,48 @@ legend {
 .destino:disabled {
   opacity: 1; /* No se atenúa: se explica. Un botón fantasma no dice por qué. */
   cursor: not-allowed;
-  border-style: dashed;
+  /* El guion es lo que dice «apagado» sin depender del color; ahora que el borde base es 0
+   * hay que darle grosor y quitar el mismo pixel al relleno para que no cambie de tamaño. */
+  border: 1px dashed var(--av-border-control);
+  padding: 11px 13px;
   color: var(--av-text-muted);
 }
 
-.destino strong {
+/* El destino con su baldosa (F7.2c): icono a la izquierda y texto a la derecha, igual que las
+ * tarjetas de la portada. `align-items: start` para que la baldosa no se estire con el texto. */
+.destino {
+  display: grid;
+  grid-template-columns: 2.2rem 1fr;
+  gap: 11px;
+  align-items: start;
+}
+
+.destino-marca {
+  width: 2.2rem;
+  height: 2.2rem;
+}
+
+.destino-texto {
+  min-width: 0;
+}
+
+.destino-texto strong {
   display: block;
 }
 
 .destino small {
   color: var(--av-text-secondary);
+}
+
+/* «Sale: GeoTIFF» como en la portada: la palabra apagada y el formato en el color de texto. */
+.destino-sale {
+  color: var(--av-text-muted);
+}
+
+.destino-sale strong {
+  display: inline;
+  color: var(--av-text-secondary);
+  font-weight: var(--av-peso-medio);
 }
 
 /* --- Progreso ------------------------------------------------------------- */
