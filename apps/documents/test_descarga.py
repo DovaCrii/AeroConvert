@@ -9,12 +9,12 @@ Y se entrega por identificador, nunca por ruta. Una vista que aceptara `?ruta=<a
 convertiría una herramienta que **escribe** en **lectura de cualquier cosa del recurso
 compartido**, por GET y sin testigo.
 
-## Dos caminos, mientras dure la transición
+## Un solo camino
 
 Desde la fase 9 las herramientas pasan por la cola y se descargan por la ficha del trabajo
-(`jobs:descargar`), que ya comprobaba el dueño. La vista vieja —`documents:descargar`, con
-sus filas de `Resultado`— sigue viva **solo para las filas que quedan**, hasta que caduquen:
-quitarla antes rompería el enlace de alguien que compuso algo ayer.
+(`jobs:descargar`), que comprueba el dueño. La vista vieja —`documents:descargar`, con sus
+filas de `Resultado`— se retiró el 2026-10-06, cuando ya habían caducado las últimas filas
+(72 horas desde el 2026-09-25).
 """
 
 import io
@@ -25,8 +25,7 @@ from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 
-from apps.core import subidas as subidas_mod
-from apps.core.models import ArchivoSubido, Resultado
+from apps.core.models import ArchivoSubido
 from apps.formats import pdf as lector
 from apps.jobs import despachador
 from apps.jobs.models import ConversionJob
@@ -93,10 +92,16 @@ class TestDesdeLaCola:
         assert "memoria_unido.pdf" in respuesta["Content-Disposition"]
         assert b"".join(respuesta.streaming_content).startswith(b"%PDF")
 
-    def test_ya_no_crea_filas_de_resultado(self, sesion):
-        """La tabla vieja se vacía sola a medida que caducan las que quedan."""
-        _unir_subiendo(sesion)
-        assert not Resultado.objects.exists()
+    def test_la_vista_y_el_modelo_viejos_ya_no_existen(self):
+        """Por identificador y nunca por ruta sigue siendo la regla: lo único que baja un
+        archivo es la ficha de un trabajo, con su dueño."""
+        from django.urls import NoReverseMatch
+
+        from apps.core import models
+
+        assert not hasattr(models, "Resultado")
+        with pytest.raises(NoReverseMatch):
+            reverse("documents:descargar", kwargs={"pk": "00000000-0000-0000-0000-000000000000"})
 
     def test_si_salio_de_una_subida_no_se_ensena_la_ruta_del_servidor(self, sesion, settings):
         """No sirve para nada desde el equipo de la persona, y enseñarla invita a pegarla."""
@@ -126,80 +131,3 @@ class TestDesdeLaCola:
         client.logout()
         url = reverse("jobs:descargar", kwargs={"pk": trabajo.pk})
         assert client.get(url).status_code in (302, 403)
-
-
-# --- La vista vieja, mientras le queden filas ---------------------------------
-
-
-@pytest.fixture
-def fila_vieja(sesion, tmp_path):
-    """Una fila como las que dejaban Unir e Imágenes antes de pasar por la cola."""
-    ruta = tmp_path / "trabajo" / "memoria_unido.pdf"
-    ruta.parent.mkdir(parents=True, exist_ok=True)
-    ruta.write_bytes(_pdf())
-    ana = get_user_model().objects.get(username="ana")
-    return subidas_mod.anotar_resultado(ruta, usuario=ana, herramienta="unir")
-
-
-class TestLasFilasDeAntes:
-    def test_se_siguen_bajando(self, sesion, fila_vieja):
-        respuesta = sesion.get(reverse("documents:descargar", kwargs={"pk": fila_vieja.pk}))
-        assert respuesta.status_code == 200
-        assert "memoria_unido.pdf" in respuesta["Content-Disposition"]
-
-    def test_la_de_otra_persona_no_se_baja(self, sesion, fila_vieja, client):
-        otra = get_user_model().objects.create_user("beto", password="x" * 20)  # nosec B106
-        client.force_login(otra)
-        url = reverse("documents:descargar", kwargs={"pk": fila_vieja.pk})
-        assert client.get(url).status_code == 404
-
-    def test_la_url_solo_admite_un_identificador(self):
-        """**La razón entera de que exista una fila.** Con `?ruta=` bastaría un enlace en un
-        correo para sacar un archivo por el navegador de otra persona."""
-        from django.urls import NoReverseMatch
-
-        with pytest.raises(NoReverseMatch):
-            reverse("documents:descargar", kwargs={"pk": "/mnt/entregas/secreto.pdf"})
-
-    def test_si_el_archivo_se_fue_lo_dice_en_vez_de_reventar(self, sesion, fila_vieja):
-        Path(fila_vieja.ruta).unlink()
-        cuerpo = sesion.get(
-            reverse("documents:descargar", kwargs={"pk": fila_vieja.pk}), follow=True
-        ).content.decode()
-        assert "ya no está donde se dejó" in cuerpo
-
-
-class TestElBarrido:
-    def test_se_lleva_el_enlace_caducado(self, sesion, fila_vieja):
-        from datetime import timedelta
-
-        from django.utils import timezone
-
-        from apps.jobs import retencion
-
-        Resultado.objects.filter(pk=fila_vieja.pk).update(
-            expires_at=timezone.now() - timedelta(hours=1)
-        )
-        resumen = retencion.barrer()
-        assert resumen.resultados_caducados == 1
-        assert Resultado.objects.count() == 0
-
-    def test_pero_no_el_entregable_de_la_carpeta_compartida(self, sesion, tmp_path):
-        """**La fila caduca; el archivo no**, salvo que viva en `MEDIA_ROOT`. En el recurso
-        compartido el archivo es el entregable de la persona — es el motivo por el que existe
-        la política permanente."""
-        from datetime import timedelta
-
-        from django.utils import timezone
-
-        from apps.jobs import retencion
-
-        entregable = tmp_path / "memoria_unido.pdf"
-        entregable.write_bytes(_pdf())
-        ana = get_user_model().objects.get(username="ana")
-        fila = subidas_mod.anotar_resultado(entregable, usuario=ana, herramienta="unir")
-        Resultado.objects.filter(pk=fila.pk).update(expires_at=timezone.now() - timedelta(hours=1))
-
-        retencion.barrer()
-        assert Resultado.objects.count() == 0
-        assert entregable.exists(), "se llevó el entregable de la carpeta compartida"

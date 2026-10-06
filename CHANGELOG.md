@@ -5,6 +5,14 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Sin publicar]
 
+### Retirado — el modelo `Resultado` y la vista `documents:descargar` (cabo de F9.2)
+
+- Desde la fase 9 todas las herramientas de documentos pasan por la cola y se bajan por la ficha
+  del trabajo. El modelo viejo y su vista se mantuvieron hasta que caducaran las últimas filas (72
+  horas desde el 25 de septiembre) y hoy ya no queda ninguna. **Lleva una migración**
+  (`core/0002_retirar_resultado`, borra una tabla): `desplegar.sh` la aplica sola. También se
+  van su panel de administración, el conteo «enlaces de descarga» del barrido y `anotar_resultado`.
+
 ### Corregido — un anónimo ya no puede hacer que el servidor reciba 2 GB (A-01 de la auditoría)
 
 - **Nuevo `LimiteDeCuerpoMiddleware`**, antes de que el CSRF lea el cuerpo. Sin sesión, un POST de

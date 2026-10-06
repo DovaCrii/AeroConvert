@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
@@ -89,42 +87,6 @@ def componer_vista(request):
         return _generar(request, origenes, entradas)
 
     return render(request, "documents/unir.html", _contexto(origenes, entradas))
-
-
-@login_required
-def descargar(request, pk):
-    """Entrega un archivo que una de estas pantallas escribió.
-
-    **Por identificador y no por ruta**, y esa es toda la razón de que exista una fila. Una
-    vista que aceptara `?ruta=<absoluta>` convertiría una herramienta que escribe en lectura
-    de cualquier cosa del recurso compartido, por GET y sin testigo: pasaría la comprobación
-    de raíces —y por tanto sería «permitida»— y bastaría un enlace en un correo para sacar un
-    archivo a través del navegador de otra persona.
-
-    404 y no 403 cuando es de otro, por lo mismo que las fichas de trabajo: no confirmar que
-    un identificador ajeno es válido.
-    """
-    from django.http import FileResponse
-    from django.shortcuts import get_object_or_404
-
-    from apps.core.models import Resultado
-
-    fila = get_object_or_404(Resultado, pk=pk, owner=request.user)
-    ruta = Path(fila.ruta)
-
-    if not ruta.exists():
-        messages.error(
-            request,
-            f"{fila.nombre} ya no está donde se dejó. Puede que alguien lo haya movido desde "
-            "la carpeta compartida, o que ya se barriera.",
-        )
-        return redirect("documents:inicio")
-
-    return FileResponse(
-        open(ruta, "rb"),  # noqa: SIM115 - FileResponse se encarga de cerrarlo
-        as_attachment=True,
-        filename=fila.nombre,
-    )
 
 
 @login_required

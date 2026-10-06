@@ -37,5 +37,4 @@ urlpatterns = [
     path("excel-a-catalogo/", views.excel_a_catalogo, name="excel_a_catalogo"),
     path("miniatura/", views.miniatura, name="miniatura"),
     # Por identificador y **nunca por ruta**: ver el docstring de la vista.
-    path("descargar/<uuid:pk>/", views.descargar, name="descargar"),
 ]

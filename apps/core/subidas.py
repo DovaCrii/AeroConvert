@@ -70,32 +70,3 @@ def _exigir_cuota(usuario, bytes_nuevos: int) -> None:
 def guardar_varios(archivos, *, usuario) -> list[ArchivoSubido]:
     """Las que lleguen de un `<input multiple>`, en orden."""
     return [guardar(archivo, usuario=usuario) for archivo in archivos]
-
-
-#: Cuanto se puede volver a bajar un resultado. Tres dias: lo que dura un fin de semana mas
-#: el lunes por la manana, que es cuando alguien vuelve a por lo que hizo el viernes.
-HORAS_DE_RESULTADO = 72
-
-
-def anotar_resultado(ruta, *, usuario, herramienta: str):
-    """Deja constancia de un archivo recién escrito para poder ofrecerlo de vuelta.
-
-    Devuelve la fila, o `None` si el archivo no está — que no es un fallo digno de tumbar la
-    pantalla: el trabajo ya se hizo y la ruta se enseña igual.
-    """
-    from .models import Resultado
-
-    ruta = Path(ruta)
-    try:
-        tamano = ruta.stat().st_size
-    except OSError:  # pragma: no cover
-        return None
-
-    return Resultado.objects.create(
-        owner=usuario,
-        ruta=str(ruta),
-        nombre=ruta.name,
-        size_bytes=tamano,
-        herramienta=herramienta,
-        expires_at=timezone.now() + timedelta(hours=HORAS_DE_RESULTADO),
-    )
