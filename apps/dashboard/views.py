@@ -45,6 +45,14 @@ class DestinoOfrecido:
 
     perfil: perfiles_mod.PerfilDeDestino
     se_puede: bool
+
+    @property
+    def icono(self) -> str:
+        """El mismo icono que lleva el perfil en la portada y en el menú."""
+        from .acciones import ICONOS_DE_PERFIL
+
+        return ICONOS_DE_PERFIL.get(self.perfil.id, "icon-destino")
+
     nombre_destino: str = ""
     motivo: str = ""
     alternativas: tuple[str, ...] = ()

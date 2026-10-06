@@ -5,6 +5,15 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Sin publicar]
 
+### Cambiado — los destinos de la pantalla de convertir, como tarjetas (F7.2c)
+
+- Cada destino lleva ahora la **baldosa** con el icono de su perfil —el mismo de la portada y del
+  menú—, su nombre, **«Sale: GeoTIFF clásico»** y la estimación de tamaño y tiempo. Un destino
+  apagado conserva la baldosa y su motivo, y no promete un «Sale:».
+- **Corregido: marco blanco en relieve.** Los botones de destino salían con el borde `2px outset`
+  que el navegador pone a cualquier `<button>`, porque la regla nunca lo quitaba; se veía en el
+  tema oscuro. Ahora el marco es solo el anillo de la sombra, y el apagado lleva su guion de 1 px.
+
 ### Añadido — saber si algo mejoró: incidentes y resumen de uso (F9.6)
 
 - **Nuevo modelo `Incidente`** (con migración `core/0003`, que `desplegar.sh` aplica sola). Cada
