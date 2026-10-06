@@ -1,7 +1,10 @@
-/* Recuerda, en este navegador, qué bloques plegables se dejaron cerrados.
+/* Recuerda, en este navegador, qué bloques plegables se abrieron o se cerraron.
  *
  * El plegado en sí es un `<details>` nativo y no necesita esto: sin JavaScript funciona igual,
- * solo que cada visita lo vuelve a abrir. Se marca con `data-recuerda="clave"`.
+ * solo que cada visita lo deja como lo trae el servidor. Se marca con `data-recuerda="clave"`.
+ *
+ * Se guardan **los dos estados**: unos bloques nacen abiertos (el recibo, el primer grupo) y
+ * otros cerrados (los demás grupos), y recordar solo «cerrado» no dejaría abrir los segundos.
  *
  * Los fragmentos llegan por htmx y reemplazan el bloque, así que se restaura en cada carga y
  * el cambio se escucha en la captura del documento: `toggle` no burbujea. */
@@ -14,17 +17,13 @@
     try {
       return window.localStorage.getItem(PREFIJO + clave);
     } catch (e) {
-      return null; // modo privado o almacenamiento bloqueado: se abre, como siempre
+      return null; // modo privado o almacenamiento bloqueado: queda como lo trae el servidor
     }
   }
 
   function guardar(clave, abierto) {
     try {
-      if (abierto) {
-        window.localStorage.removeItem(PREFIJO + clave);
-      } else {
-        window.localStorage.setItem(PREFIJO + clave, "cerrado");
-      }
+      window.localStorage.setItem(PREFIJO + clave, abierto ? "abierto" : "cerrado");
     } catch (e) {
       /* sin almacenamiento no se recuerda, y no pasa nada */
     }
@@ -33,8 +32,11 @@
   function restaurar(raiz) {
     var bloques = (raiz || document).querySelectorAll("details[data-recuerda]");
     for (var i = 0; i < bloques.length; i++) {
-      if (leer(bloques[i].getAttribute("data-recuerda")) === "cerrado") {
+      var estado = leer(bloques[i].getAttribute("data-recuerda"));
+      if (estado === "cerrado") {
         bloques[i].open = false;
+      } else if (estado === "abierto") {
+        bloques[i].open = true;
       }
     }
   }
