@@ -32,8 +32,8 @@ from __future__ import annotations
 import re
 import zipfile
 from dataclasses import dataclass, field
+from html import escape
 from pathlib import Path
-from xml.sax.saxutils import escape
 
 from django.conf import settings
 
