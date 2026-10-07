@@ -88,6 +88,11 @@ ESPECIFICACIONES: dict[str, Especificacion] = {
     "imagenes": Especificacion(),
     # La contraseña llega por `secretos`, nunca por el encargo. Ver `plan()`.
     "proteger": Especificacion(con_secreto=True),
+    # Los términos a tachar llegan por el mismo camino que la contraseña: son justo lo que se
+    # tapa, y no pueden quedar en la base. Dibuja cada página afectada: puede tardar.
+    "redactar": Especificacion(
+        carril=PESADO, timeout_s=1800, emite_progreso=True, con_secreto=True
+    ),
     # Al pesado: quinientas páginas son unos cuarenta minutos. El plazo crece con ellas; ver
     # `ocr.plazo_s`, que es quien sabe cuánto tarda una.
     "ocr": Especificacion(carril=PESADO, emite_progreso=True, exige="tesseract"),

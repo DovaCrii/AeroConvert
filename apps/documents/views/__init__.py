@@ -93,6 +93,9 @@ from .pantalla_proteger import (  # noqa: F401
     _problema_de_proteger,
     proteger_vista,
 )
+from .pantalla_redactar import (  # noqa: F401
+    redactar_vista,
+)
 from .pantalla_unir import (  # noqa: F401
     _generar,
     _receta_inicial,

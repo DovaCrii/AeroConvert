@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block titulo %}Redactar: tachar de verdad · AeroConvert{% endblock %}
+
+{% block contenido %}
+
+<div class="tarjeta">
+  <div class="eyebrow">Qué hace esto, y qué cuesta</div>
+  <p class="av-mb-2">
+    Un rectángulo negro encima de un nombre lo tapa a la vista y <strong>lo deja debajo</strong>,
+    donde se copia y se busca. Aquí las páginas con algo que tachar se <strong>convierten en
+    imagen</strong> con lo tachado ya puesto: del original no queda nada de esa página.
+  </p>
+  <p class="av-mb-0">
+    El precio: <strong>las páginas redactadas ya no tienen texto</strong> que buscar ni copiar, y
+    pierden sus marcadores y anotaciones. Las demás pasan tal cual. Para recuperar la búsqueda,
+    pase el resultado por «Reconocer texto (OCR)». Siempre se entrega una copia; el original no se
+    toca.
+  </p>
+</div>
+
+<form method="post" id="forma-documento" enctype="multipart/form-data">
+  {% csrf_token %}
+
+  {% include "documents/_origen.html" with pregunta="¿Qué PDF hay que redactar?" accion="mirar" boton="Ver el documento" %}
+
+  {% if cabecera %}
+    <div class="tarjeta">
+      <div class="cabecera-tarjeta">
+        <div>
+          <div class="eyebrow">Qué tachar</div>
+          <h2>{{ cabecera.resumen }}</h2>
+        </div>
+        <button type="submit" name="accion" value="redactar" class="boton">Tachar</button>
+      </div>
+
+      <div class="av-mb-3 av-mw-38">
+        <label class="fw-semibold" for="id_terminos">Textos, uno por línea</label>
+        {# Vacío siempre: lo escrito aquí es justo lo que se tapa, y no vuelve al formulario. #}
+        <textarea id="id_terminos" name="terminos" class="form-control" rows="4"
+                  placeholder="12.345.678-9&#10;Juan Pérez Soto" autocomplete="off"></textarea>
+        <p class="tenue av-mt-1 av-mb-0 av-fs-sm">
+          Sin distinguir mayúsculas. Cada coincidencia se tacha. Los textos no se guardan: salen de
+          aquí directo al trabajo, y el campo se vacía en cada pantalla.
+        </p>
+      </div>
+
+      <div class="av-mb-3 av-mw-38">
+        <label class="fw-semibold" for="id_areas">Áreas, una por línea (opcional)</label>
+        <textarea id="id_areas" name="areas" class="form-control" rows="3"
+                  placeholder="1: 20, 30, 120, 50" autocomplete="off">{{ areas_texto }}</textarea>
+        <p class="tenue av-mt-1 av-mb-0 av-fs-sm">
+          «Página: izquierda, arriba, derecha, abajo», en milímetros desde la esquina de arriba a
+          la izquierda de lo que se ve. Sirve para una foto, un sello o una firma, que no son texto.
+        </p>
+      </div>
+
+      <div class="av-mb-0 av-mw-22">
+        <label class="fw-semibold" for="id_ppp">Resolución de las páginas redactadas</label>
+        <select id="id_ppp" name="ppp" class="form-select">
+          {% for valor, texto in resoluciones.items %}
+            <option value="{{ valor }}" {% if valor == ppp_elegido %}selected{% endif %}>{{ valor }} ppp · {{ texto }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+  {% endif %}
+</form>
+
+{% endblock %}

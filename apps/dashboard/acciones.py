@@ -281,6 +281,14 @@ def _de_los_documentos() -> list[Accion]:
             "llenar un formulario",
             "casillas",
         ),
+        "redactar": (
+            "tachar",
+            "censurar",
+            "ocultar un nombre",
+            "datos personales",
+            "anonimizar",
+            "rut",
+        ),
         "numerar": ("foliar", "paginacion", "numeracion", "numeros de pagina"),
         "marca": ("borrador", "confidencial", "sello", "estampar", "watermark"),
         "proteger": ("contrasena", "clave", "cifrar", "desbloquear", "aes"),
@@ -361,6 +369,7 @@ HERRAMIENTAS_POR_EXTENSION = {
     ".pdf": (
         "formularios",
         "firma_visible",
+        "redactar",
         "unir",
         "organizar",
         "dividir",
