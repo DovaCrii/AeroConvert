@@ -5,6 +5,13 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Sin publicar]
 
+### Cambiado — iconos sin conflictos, una sola familia y tres colores de familia nuevos (F13.4 a F13.6)
+
+- **Un icono, un significado.** «Todas las herramientas» ya no usa el de QGIS (`icon-todas`), Tino ya no comparte el del mensaje informativo (`icon-tino`), CSV a Markdown deja el de Excel (`icon-texto-csv`), `icon-pdf-a-pdf` pasa a llamarse `icon-imagen-a-pdf` y la flecha de los grupos del lateral, que estaba dibujada suelta en `base.html`, entra al sprite (`icon-chevron`).
+- **Una familia de trazo:** los 51 símbolos del sprite usan **un solo grosor, 1,75**, sobre 24 × 24 con extremos redondeados. Había nueve grosores distintos (de 1,5 a 2,4) y los iconos no parecían de la misma mano.
+- **Color por familia también fuera de PDF:** GNSS (celeste), planta (oliva) e imagen (orquídea), puestos en los huecos de matiz que dejan las seis familias y los tres estados (rojo, ámbar y verde siguen siendo solo de los estados). El de GNSS y los catálogos de Plant 3D ya no comparten color con el resto.
+- **Pruebas:** `test_iconos.py` falla con dos significados para un icono, con un trazo distinto o con un SVG dibujado suelto en una plantilla; `test_paleta.py` mide el contraste de las tres familias nuevas en los tres temas y exige 20° de separación de matiz con todo lo demás.
+
 ### Cambiado — nombres con una convención (F13.2)
 
 - **Los seis programas de destino son el programa, con su propósito debajo**: «Civil 3D / AutoCAD» y «Para dibujar y diseñar», «QGIS» y «Para analizar y hacer mapas», «ArcGIS Pro», «Google Earth», «Visor web» y «AeroBim». Se acabó «Llevarlo a QGIS». El propósito sale bajo el nombre en la tarjeta de la portada y en el lateral.

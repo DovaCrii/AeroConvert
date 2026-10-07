@@ -161,7 +161,7 @@
         {# Solo se ve con el lateral reducido: los grupos no caben en una columna de iconos. #}
         <a class="lateral-enlace-principal lateral-solo-compacto" title="Todas las herramientas"
            href="{% url 'dashboard:que_puedo_hacer' %}#resultados">
-          <svg class="nav-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-destino-capas"></use></svg>
+          <svg class="nav-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-todas"></use></svg>
           <span>Todas las herramientas</span>
         </a>
 
@@ -171,10 +171,7 @@
             <summary class="lateral-grupo-titulo">
               <span class="lateral-grupo-nombre">{{ grupo.titulo }}</span>
               <span class="lateral-cuenta" aria-hidden="true">{{ grupo.acciones|length }}</span>
-              <svg class="lateral-flecha" aria-hidden="true" viewBox="0 0 24 24" fill="none"
-                   stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M6 9l6 6 6-6"></path>
-              </svg>
+              <svg class="lateral-flecha" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-chevron"></use></svg>
             </summary>
             <ul class="menu-lista">
               {% for accion in grupo.acciones %}
@@ -214,7 +211,7 @@
           {% if tino_visible %}
             <li>
               <a class="lateral-enlace-principal" href="{% url 'tino:preguntar' %}" title="Preguntarle a Tino">
-                <svg class="nav-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-info"></use></svg>
+                <svg class="nav-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-tino"></use></svg>
                 <span>Preguntarle a Tino</span>
               </a>
             </li>
