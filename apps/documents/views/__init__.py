@@ -1,4 +1,4 @@
-"""Las pantallas de las veintisiete herramientas de documentos.
+"""Las pantallas de las treinta herramientas de documentos.
 
 ## Mirar aquí, hacer en la cola
 
@@ -95,6 +95,9 @@ from .pantalla_paginas import (  # noqa: F401
 from .pantalla_proteger import (  # noqa: F401
     _problema_de_proteger,
     proteger_vista,
+)
+from .pantalla_redactar import (  # noqa: F401
+    redactar_vista,
 )
 from .pantalla_reparar import (  # noqa: F401
     html_a_pdf_vista,

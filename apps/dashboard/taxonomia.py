@@ -123,6 +123,7 @@ DE_DOCUMENTOS: dict[str, str] = {
     "numerar": "revisar",
     "marca": "revisar",
     "proteger": "revisar",
+    "redactar": "revisar",
     "formularios": "revisar",
     "firma_visible": "revisar",
     "metadatos": "revisar",

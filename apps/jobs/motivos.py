@@ -198,6 +198,12 @@ DESENLACES: dict[str, Motivo] = dict(
             "Si lo que quiere es cada página como imagen, use «PDF a imágenes».",
         ),
         _m(
+            "nada-que-redactar",
+            "Ningún texto de la lista aparece en el documento, y no se pidió ningún área: no hay "
+            "nada que tachar.",
+            "Compruebe la ortografía, o que el PDF tenga texto y no sea un escaneo.",
+        ),
+        _m(
             "sin-diferencias",
             "Los dos PDF se ven iguales: no hay ninguna página que difiera.",
             "Si esperaba cambios, compruebe que son las dos versiones que quería comparar.",

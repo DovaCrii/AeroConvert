@@ -5,6 +5,17 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Sin publicar]
 
+### Añadido — reparar un PDF dañado y pasar una página web a PDF (F14.20)
+
+- **«Reparar un PDF dañado»**: recupera las páginas que se puedan leer de un PDF que no abre (una descarga cortada, un adjunto truncado). PDFium reconstruye el índice leyendo el archivo entero y se escribe de nuevo, válido; dice cuántas páginas se recuperaron. A diferencia de las demás pantallas, **no lee la cabecera antes**: justo ese es el archivo que se quiere arreglar. No inventa lo que ya no está.
+- **«Página web a PDF»**: el texto, los títulos, las listas y las tablas de una página guardada (`.html`). **No es un navegador**: no respeta el diseño, no baja imágenes ni hojas de estilo y no ejecuta programas; la pantalla lo dice antes. Pasa por los dos convertidores que ya existían (HTML a Markdown, Markdown a PDF).
+
+### Añadido — redactar de verdad un PDF (F14.8)
+
+- **«Redactar: tachar de verdad»**: tacha textos (un nombre, un RUT; sin distinguir mayúsculas) y áreas (en milímetros, para una foto o un sello) de modo que **ya no existan en el archivo**. Un rectángulo negro encima deja el texto debajo, donde se copia; aquí las páginas afectadas se convierten en imagen con lo tachado ya puesto y el documento se escribe nuevo, así que del original no pasa nada de esa página (ni texto, ni imágenes de debajo, ni el `Info`).
+- **El precio, dicho en pantalla**: la página redactada ya no tiene texto que buscar ni copiar, y pierde marcadores y anotaciones. Las demás pasan tal cual; para recuperar la búsqueda, «Reconocer texto (OCR)».
+- **Los textos a tachar no se guardan**: salen de la pantalla al trabajo por el mismo camino cifrado que la contraseña de «Proteger», y el informe cuenta cuántas veces apareció cada uno sin decir cuál era. Si nada aparece y no hay áreas, termina «hecho» sin archivo (`nada-que-redactar`).
+
 ### Añadido — recortar y cambiar el tamaño de un PDF, y compararlo con otra versión (F14.6, F14.7)
 
 - **«Recortar y cambiar el tamaño»**: tres modos. **Al contenido**: cada hoja queda del tamaño de lo que tiene dibujado más un margen (se mide dibujándola con PDFium; una hoja en blanco se deja como está). **A mano**: tantos milímetros de cada lado, de lo que se ve. **A otra hoja** (A0 a A4, Carta, Oficio): el contenido se escala sin deformarse y queda centrado; una lámina apaisada sigue apaisada. Funciona también con páginas giradas. Recortar no es borrar: lo que queda fuera sigue en el archivo, y la pantalla lo dice.
