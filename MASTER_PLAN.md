@@ -489,7 +489,7 @@ volver atrás**, igual que `test_escala_visual.py` y `test_iconos.py`. Versión 
 
 | # | Entrega | Oráculo | La cierra | Estado |
 | --- | --- | --- | --- | --- |
-| F14.0 | **Reparto con Stirling-PDF** (D4): las ~12 de uso diario en casa, Stirling local sondeado para la cola larga | Documento en `docs/` | Claude propone · **la persona aprueba** | ⬜ |
+| F14.0 | **Reparto con Stirling-PDF** (D4): las ~12 de uso diario en casa, Stirling local sondeado para la cola larga | Documento en `docs/` | Claude propone · **la persona aprueba** | ✅ 2026-10-07 · aprobado por la persona; [`docs/DECISION_STIRLING_PDF.md`](docs/DECISION_STIRLING_PDF.md) |
 | F14.1 | **Organizar páginas** (era F12.1) y **extraer páginas e imágenes** (era F12.2) | Organizar: PDFium cuenta y pypdf reabre. Extraer: PDFium cuenta; Pillow abre cada imagen | Claude | ✅ 2026-10-07 · organizar (#54); extraer páginas ya lo hace «Dividir PDF» (rangos) y extraer imágenes es nuevo: cada objeto una vez, sin las diminutas, siempre en zip; Pillow abre cada una con el tamaño de la imagen de entrada (`test_extraer_imagenes.py`) |
 | F14.2 | **Metadatos**: ver, editar y limpiar antes de entregar (era F12.3) | `pikepdf` lee lo escrito; no quedan `/Author` ni XMP si se pidió limpiar | Claude | ⬜ |
 | F14.3 | **Formularios**: rellenar y aplanar (era F12.4) | `pypdf` lee los campos; PDFium muestra el valor visible | Claude | ⬜ |

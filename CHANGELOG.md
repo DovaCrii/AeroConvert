@@ -11,6 +11,10 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 - Un PDF sin imágenes no falla: termina «hecho» sin archivo y lo explica (`sin-imagenes`).
 - Extraer páginas ya lo hace «Dividir PDF» con rangos; esta fila cierra F14.1.
 
+### Documentación — el reparto con Stirling-PDF (F14.0)
+
+- [`docs/DECISION_STIRLING_PDF.md`](docs/DECISION_STIRLING_PDF.md): las herramientas de PDF de uso diario se hacen dentro de AeroConvert; la cola larga se delega en Stirling-PDF **local y sondeado** (`AEROCONVERT_STIRLING_URL`), apagada con motivo y alternativa si falta. Nada sale del equipo y no se importa ni se copia nada suyo.
+
 ## [0.11.0] — 2026-10-07
 
 Cierra la fase 13: una interfaz con un solo árbol de herramientas, nombres por utilidad, trato de
