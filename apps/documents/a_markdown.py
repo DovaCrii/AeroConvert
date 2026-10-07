@@ -234,7 +234,7 @@ def de_excel(origen: str | Path) -> str:
     if not con_algo and _tiene_formulas(origen):
         raise SinTextoQueSacar(
             f"{origen.name} tiene fórmulas pero ningún resultado guardado, así que todas las "
-            "celdas saldrían vacías. Ábrelo con Excel y vuelve a guardarlo: al guardar, Excel "
+            "celdas saldrían vacías. Ábralo con Excel y vuelva a guardarlo: al guardar, Excel "
             "deja dentro el valor de cada fórmula."
         )
 
@@ -568,7 +568,7 @@ def de_pdf(origen: str | Path) -> str:
 
     if lector.is_encrypted:
         raise ComposicionInvalida(
-            f"{origen.name} está protegido con contraseña. Quítasela primero con «Proteger PDF»."
+            f"{origen.name} está protegido con contraseña. Quítesela primero con «Proteger PDF»."
         )
 
     partes: list[str] = [f"# {origen.stem}", ""]

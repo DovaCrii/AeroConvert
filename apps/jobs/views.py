@@ -239,7 +239,7 @@ def _reencolar_documento(request, anterior: ConversionJob):
         messages.error(
             request,
             f"Ya no está {', '.join(faltan)}: una subida se borra sola pasado un día. "
-            "Vuelve a elegirlo.",
+            "Vuelva a elegirlo.",
         )
         return redirect(pantalla)
 

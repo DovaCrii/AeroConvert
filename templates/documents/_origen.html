@@ -32,7 +32,7 @@
     <p class="origen-elegido">
       <svg class="linea-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-archivo"></use></svg>
       <strong>{{ nombre_origen|default:ruta_texto }}</strong>
-      <span class="tenue">· elige otro abajo si te equivocaste</span>
+      <span class="tenue">· elija otro abajo si se equivocó</span>
     </p>
   {% endif %}
 
@@ -45,13 +45,13 @@
           <svg class="origen-icono"><use href="{% static 'img/icons.svg' %}#icon-equipo"></use></svg>
         </span>
         <div>
-          <h3 class="origen-titulo">Desde tu equipo</h3>
+          <h3 class="origen-titulo">Desde su equipo</h3>
           <p class="origen-nota">Se sube y se borra solo en un día.</p>
         </div>
       </div>
 
       <div class="soltar soltar-compacto">
-        <label class="visually-hidden" for="id_archivo">Elegir un documento de tu equipo</label>
+        <label class="visually-hidden" for="id_archivo">Elegir un documento de su equipo</label>
         {# El tope lo pone el servidor; `subida.js` lo comprueba antes de mandar nada. #}
         <input type="file" id="id_archivo" name="archivo" class="form-control"
                accept="{{ acepta|default:'.pdf' }}" data-tope-mb="{{ tope_mb }}">
@@ -70,7 +70,7 @@
         </span>
         <div>
           <h3 class="origen-titulo">De la carpeta compartida</h3>
-          <p class="origen-nota">Lo que ve todo el equipo. Pincha para entrar.</p>
+          <p class="origen-nota">Lo que ve todo el equipo. Pinche para entrar.</p>
         </div>
       </div>
 

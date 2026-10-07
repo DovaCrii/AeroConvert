@@ -239,7 +239,7 @@ def que_puedo_hacer(request):
             # que hay pero no dice **dónde estás**. Quien pulsa la marca y aterriza aquí tiene
             # que reconocer el sitio en una palabra, y la palabra es esa.
             "etiqueta_seccion": "Inicio",
-            "titulo_pagina": "¿Qué necesitas hacer?",
+            "titulo_pagina": "¿Qué necesita hacer?",
             # Una línea. Los ejemplos ya están en el campo y en las etiquetas de debajo; decirlos
             # una tercera vez era ruido.
             #

@@ -112,7 +112,7 @@ class TestLoQueTraeLaCola:
         """Antes el uso de PDF no dejaba rastro, y la portada no podía ofrecer repetirlo."""
         _subir_y_numerar(sesion)
         cuerpo = sesion.get(reverse("dashboard:que_puedo_hacer")).content.decode()
-        assert "Seguir donde lo dejaste" in cuerpo
+        assert "Seguir donde lo dejó" in cuerpo
         assert f'href="{reverse("documents:numerar")}"' in cuerpo
 
     def test_la_bienvenida_deja_de_salir(self, sesion):

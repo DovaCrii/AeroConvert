@@ -5,6 +5,12 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Sin publicar]
 
+### Cambiado — la interfaz habla de usted (F13.3)
+
+- Unas 60 frases que tuteaban pasan a trato de usted, en plantillas, mensajes de las vistas, mensajes del navegador (`respuestas.js`) y descripciones de las herramientas: «Desde su equipo», «Elija el archivo», «Suelte cualquier archivo», «Seguir donde lo dejó», «¿Qué necesita hacer?», «Su cuenta no puede hacer esto». Donde el texto describe lo que hace la aplicación se dice en tercera persona («Se elige el destino, no el formato»).
+- **Una prueba lo vigila** (`apps/core/test_trato.py`): mira solo lo que una persona puede leer —texto visible de las plantillas sin sus comentarios, cadenas de Python sin docstrings, cadenas de `static/js/` y los `msgstr` de `locale/es/`— y distingue las palabras que solo existen en tú («tu», «eliges», «quieres»…) de los imperativos de tú **al abrir una frase**, para no marcar «hojas sueltas» ni «lo mira y escribe». La instrucción que se le da al modelo de Tino (`apps/tino/fuera.py`) está exenta: no llega a ninguna pantalla.
+- Los `msgstr` de `locale/es/` hoy son solo la cabecera, así que esa parte de la prueba protege lo que se traduzca en adelante.
+
 ### Añadido — el plan F13 a F16 y sus decisiones
 
 - **Cuatro fases nuevas en `MASTER_PLAN.md`**: F13 interfaz (una taxonomía, nombres, usted, iconos, plano con color, portada «archivo primero», mapa), F14 suite documental y creativa libre, F15 datums de Chile y calibración, F16 lotes, informe y API. El plan completo, con el diagnóstico y las equivalencias libres de Adobe, está en `docs/planes/PLAN_2026-10-07.md`. La Fase 12 queda como cabecera que remite a la 14.

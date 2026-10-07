@@ -37,7 +37,7 @@
   {% endcomment %}
   <details class="repetibles" open data-recuerda="repetibles" aria-label="Lo que sueles hacer">
     <summary class="repetibles-resumen">
-      <h2 class="repetibles-titulo">Seguir donde lo dejaste</h2>
+      <h2 class="repetibles-titulo">Seguir donde lo dejó</h2>
     </summary>
     <div class="repetibles-lista">
       {% for r in repetibles %}
@@ -90,7 +90,7 @@
             <div>
               <h3>El archivo, de dos sitios</h3>
               <p>
-                De <strong>tu equipo</strong>, subiéndolo, o de la <strong>carpeta compartida</strong>,
+                De <strong>su equipo</strong>, subiéndolo, o de la <strong>carpeta compartida</strong>,
                 que es donde el equipo deja las ortofotos y las nubes. Nunca hace falta escribir una
                 ruta.
               </p>
@@ -116,7 +116,7 @@
               <span class="paso-numero">3</span>
             </span>
             <div>
-              <h3>Eliges el destino, no el formato</h3>
+              <h3>Se elige el destino, no el formato</h3>
               <p>
                 Dices <strong>dónde tiene que abrir</strong> —Civil 3D, QGIS, un informe— y los
                 ajustes se ponen solos. Cada herramienta dice <strong>qué entrega</strong> antes de
@@ -129,7 +129,7 @@
         <p class="bienvenida-pie">
           Y lo que <em>no</em> se puede hacer en esta máquina también se dice, con su motivo, en
           <a href="{% url 'engines:matriz' %}">Compatibilidad</a>. Esta tira desaparece sola en
-          cuanto conviertas tu primer archivo.
+          cuanto convierta su primer archivo.
         </p>
       </section>
     {% endif %}
@@ -154,7 +154,7 @@
     </p>
 
     {% if conversion.se_puede %}
-      <p class="respuesta-texto">Sí se puede. Elige el archivo y pide <strong>{{ conversion.nombre_destino }}</strong> en «ajustar a mano».</p>
+      <p class="respuesta-texto">Sí se puede. Elija el archivo y pida <strong>{{ conversion.nombre_destino }}</strong> en «ajustar a mano».</p>
       <a class="boton" href="{% url 'dashboard:convertir' %}?formato={{ conversion.destino }}">Convertir a {{ conversion.nombre_destino }}</a>
     {% else %}
       <p class="respuesta-texto">

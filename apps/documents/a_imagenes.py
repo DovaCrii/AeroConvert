@@ -66,7 +66,7 @@ def paginas_a_imagenes(
 
     numeros = sorted({n for trozo in trozos for n in range(trozo.desde, trozo.hasta + 1)})
     if not numeros:
-        raise ComposicionInvalida("No indicaste ninguna página.")
+        raise ComposicionInvalida("No indicó ninguna página.")
 
     try:
         documento = pypdfium2.PdfDocument(str(origen))

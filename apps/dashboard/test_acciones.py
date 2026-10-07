@@ -243,7 +243,7 @@ class TestBuscarPorParDeFormatos:
 
     def test_convertir_recoge_ese_formato(self, sesion):
         cuerpo = sesion.get(reverse("dashboard:convertir"), {"formato": "jp2"}).content.decode()
-        assert "Vas a convertir a" in cuerpo
+        assert "Va a convertir a" in cuerpo
         assert 'name="formato" value="jp2"' in cuerpo
 
     def test_un_formato_inventado_se_ignora(self, sesion):
@@ -361,7 +361,7 @@ class TestElViajeCompleto:
 
     def test_convertir_reconoce_el_destino_y_lo_dice(self, sesion):
         cuerpo = sesion.get(reverse("dashboard:convertir"), {"destino": "qgis"}).content.decode()
-        assert "Vas a llevarlo a" in cuerpo
+        assert "Va a llevarlo a" in cuerpo
         assert "QGIS" in cuerpo
 
     def test_y_lo_lleva_escondido_para_que_la_ficha_lo_marque(self, sesion):
@@ -370,7 +370,7 @@ class TestElViajeCompleto:
 
     def test_sin_destino_no_aparece_la_linea_ni_el_campo(self, sesion):
         cuerpo = sesion.get(reverse("dashboard:convertir")).content.decode()
-        assert "Vas a llevarlo a" not in cuerpo
+        assert "Va a llevarlo a" not in cuerpo
         assert 'name="destino"' not in cuerpo
 
     def test_un_destino_inventado_se_ignora_en_silencio(self, sesion):
@@ -385,7 +385,7 @@ class TestLaPantalla:
     def test_abre(self, sesion):
         respuesta = sesion.get(reverse("dashboard:que_puedo_hacer"))
         assert respuesta.status_code == 200
-        assert "¿Qué necesitas hacer?" in respuesta.content.decode()
+        assert "¿Qué necesita hacer?" in respuesta.content.decode()
 
     def test_filtra_con_lo_escrito(self, sesion):
         """**Se mira el fragmento, no la página.**

@@ -1,4 +1,4 @@
-"""«Seguir donde lo dejaste», que es historial y no favoritos.
+"""«Seguir donde lo dejó», que es historial y no favoritos.
 
 Los dos son «guarda lo que usas para tenerlo a mano» y cuestan lo mismo de escribir. La
 diferencia decide cuál sirve: **uno se llena solo y el otro nace vacío**. Lo que se vigila
@@ -125,7 +125,7 @@ class TestEnLaPortada:
         client.force_login(topografo)
         _trabajo(topografo, perfil="qgis")
         cuerpo = client.get(reverse("dashboard:que_puedo_hacer")).content.decode()
-        assert "Seguir donde lo dejaste" in cuerpo
+        assert "Seguir donde lo dejó" in cuerpo
 
     def test_se_puede_plegar_con_un_details_nativo_y_abre_por_omision(self, client, topografo):
         """Plegable sin JavaScript: `<details>` abre y cierra con teclado y táctil. Abierto por
@@ -144,7 +144,7 @@ class TestEnLaPortada:
         client.force_login(topografo)
         _trabajo(topografo, perfil="qgis")
         cuerpo = client.get(reverse("dashboard:que_puedo_hacer"), {"q": "unir"}).content.decode()
-        assert "Seguir donde lo dejaste" not in cuerpo
+        assert "Seguir donde lo dejó" not in cuerpo
 
     def test_la_bienvenida_y_el_historial_no_coinciden_nunca(self, client, topografo):
         """Uno sale cuando no has convertido nada y el otro cuando sí: **son la misma
@@ -157,4 +157,4 @@ class TestEnLaPortada:
         _trabajo(topografo, perfil="qgis")
         llena = client.get(reverse("dashboard:que_puedo_hacer")).content.decode()
         assert "Cómo funciona esto" not in llena
-        assert "Seguir donde lo dejaste" in llena
+        assert "Seguir donde lo dejó" in llena

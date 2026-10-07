@@ -88,7 +88,7 @@ class TestSubirDesdeElEquipo:
     def test_sin_archivo_ni_ruta_lo_dice_y_no_revienta(self, sesion, pantalla):
         respuesta = sesion.post(reverse(pantalla), {"accion": "mirar"})
         assert respuesta.status_code == 200
-        assert "No indicaste ningún archivo" in respuesta.content.decode()
+        assert "No indicó ningún archivo" in respuesta.content.decode()
 
 
 class TestElFormularioMandaElArchivo:

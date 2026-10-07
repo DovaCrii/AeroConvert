@@ -31,7 +31,7 @@ def office_vista(request):
         "etiqueta_seccion": "PDF",
         "titulo_pagina": "Word, Excel o PowerPoint a PDF",
         "proposito": (
-            "Lo convierte el Office de tu equipo, así que el PDF sale idéntico al original."
+            "Lo convierte el Office del equipo, así que el PDF sale idéntico al original."
         ),
         "office": office,
         "ruta_texto": (request.GET.get("ruta") or "").strip(),
@@ -85,7 +85,7 @@ def a_word_vista(request):
         "seccion": "pdf",
         "etiqueta_seccion": "PDF",
         "titulo_pagina": "PDF a Word",
-        "proposito": "Para poder editarlo. Mira antes lo que vas a recibir de verdad.",
+        "proposito": "Para poder editarlo. Mire antes lo que va a recibir de verdad.",
         "office": office,
         "ruta_texto": (request.GET.get("ruta") or "").strip(),
     }

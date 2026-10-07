@@ -85,7 +85,7 @@ def _sobre_una_conversion(pregunta: str) -> Respuesta | None:
     if conversion.se_puede:
         return Respuesta(
             titulo=f"Sí: {conversion.nombre_origen} → {conversion.nombre_destino} se puede aquí.",
-            detalle="Elige el archivo y pide ese formato en «ajustar a mano».",
+            detalle="Elija el archivo y pida ese formato en «ajustar a mano».",
             accion=f"Convertir a {conversion.nombre_destino}",
             enlace=f"/convertir/?formato={conversion.destino}",
             fuente="la matriz de capacidades",

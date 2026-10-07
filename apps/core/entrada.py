@@ -89,7 +89,7 @@ def resolver(crudo: str, *, usuario) -> Origen:
     """Una ruta del disco **o** `subida:<uuid>`, resuelta a algo con un `Path` dentro."""
     texto = (crudo or "").strip().strip('"')
     if not texto:
-        raise EntradaNoPermitida("No indicaste ningún archivo.", "ruta-no-permitida")
+        raise EntradaNoPermitida("No indicó ningún archivo.", "ruta-no-permitida")
 
     if texto.startswith(PREFIJO):
         return _de_una_subida(texto[len(PREFIJO) :].strip(), usuario=usuario)
@@ -135,7 +135,7 @@ def _de_una_subida(identificador: str, *, usuario) -> Origen:
         # de trabajo dan 404 y no 403: distinguirlos confirmaria que un identificador ajeno
         # es valido.
         raise EntradaNoPermitida(
-            "Ese archivo subido ya no está. Vuelve a subirlo.", "origen-no-legible"
+            "Ese archivo subido ya no está. Vuelva a subirlo.", "origen-no-legible"
         ) from fallo
 
     ruta = subida.ruta

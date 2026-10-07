@@ -29,7 +29,7 @@ HERRAMIENTAS = (
         "familia": "componer",
         "nombre": "Unir PDF",
         "que_hace": (
-            "Junta varios en uno. Eliges qué páginas entran, en qué orden, y giras las "
+            "Junta varios en uno. Se elige qué páginas entran, en qué orden, y se giran las "
             "láminas que lo necesiten."
         ),
     },
@@ -106,7 +106,7 @@ HERRAMIENTAS = (
         "familia": "marcar",
         "url": "documents:numerar",
         "nombre": "Numerar páginas",
-        "que_hace": ("Pone «3 / 56» en cada hoja. Sin numerar la portada, si no quieres."),
+        "que_hace": ("Pone «3 / 56» en cada hoja. Sin numerar la portada, si no se quiere."),
     },
     {
         "id": "marca",
@@ -124,7 +124,7 @@ HERRAMIENTAS = (
         "familia": "proteger",
         "url": "documents:proteger",
         "nombre": "Proteger PDF",
-        "que_hace": "Le pone contraseña, con AES-256. O se la quita, si la sabes.",
+        "que_hace": "Le pone contraseña, con AES-256. O se la quita, si se conoce.",
     },
     {
         "id": "office",
@@ -133,7 +133,7 @@ HERRAMIENTAS = (
         "familia": "transformar",
         "url": "documents:office",
         "nombre": "Word, Excel o PowerPoint a PDF",
-        "que_hace": "Con el Office de tu equipo, así que sale idéntico al original.",
+        "que_hace": "Con el Office del equipo, así que sale idéntico al original.",
         # La unica que depende de algo de fuera. Cuando no esta, la tarjeta **sigue
         # saliendo**, apagada y con el motivo: ocultarla haria parecer que nunca existio.
         "exige_office": True,

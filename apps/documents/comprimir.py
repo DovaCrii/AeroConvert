@@ -105,7 +105,7 @@ def comprimir(
 
     if lector.is_encrypted:
         raise ComposicionInvalida(
-            f"{origen.name} está protegido con contraseña. Quítasela primero con «Proteger PDF»."
+            f"{origen.name} está protegido con contraseña. Quítesela primero con «Proteger PDF»."
         )
 
     escritor = PdfWriter()

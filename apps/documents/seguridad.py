@@ -83,7 +83,7 @@ def proteger(origen: str | Path, destino: str | Path, contrasena: str) -> int:
 
     if lector.is_encrypted:
         raise ComposicionInvalida(
-            f"{origen.name} ya está protegido. Quítale la contraseña primero si quieres cambiarla."
+            f"{origen.name} ya está protegido. Quítele la contraseña primero si quiere cambiarla."
         )
 
     escritor = PdfWriter()

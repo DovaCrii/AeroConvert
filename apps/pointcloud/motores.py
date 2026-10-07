@@ -328,7 +328,7 @@ class MotorReCap(Motor):
             "formato-propietario",
             "RCS y RCP son binarios cerrados de Autodesk: no hay ningún lector abierto.",
             sugerencia=(
-                "Ábrelo en ReCap Pro y usa Exportar → E57 (o LAS). Ese archivo sí se "
+                "Ábralo en ReCap Pro y use Exportar → E57 (o LAS). Ese archivo sí se "
                 "convierte aquí."
             ),
             alternativas=("e57", "las", "laz"),

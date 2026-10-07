@@ -77,4 +77,4 @@ class TestLasDemas:
 
     def test_el_403_no_confirma_que_algo_exista(self):
         crudo = (PLANTILLAS / "403.html").read_text(encoding="utf-8")
-        assert "no es tuyo" in crudo.lower()
+        assert "no es suyo" in crudo.lower()
