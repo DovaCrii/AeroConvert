@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block titulo %}Recortar y cambiar el tamaño · AeroConvert{% endblock %}
+
+{% block contenido %}
+
+<form method="post" id="forma-documento" enctype="multipart/form-data">
+  {% csrf_token %}
+
+  {% include "documents/_origen.html" with pregunta="¿Qué PDF?" accion="mirar" boton="Ver el documento" %}
+
+  {% if cabecera %}
+    <div class="tarjeta">
+      <div class="cabecera-tarjeta">
+        <div>
+          <div class="eyebrow">Qué hacer</div>
+          <h2>{{ cabecera.resumen }}</h2>
+        </div>
+        <button type="submit" name="accion" value="hacer" class="boton">Hacerlo</button>
+      </div>
+
+      <fieldset>
+        <legend class="eyebrow">Cómo</legend>
+
+        <label class="opcion">
+          <input type="radio" name="modo" value="contenido" {% if modo == 'contenido' %}checked{% endif %}>
+          <span>
+            <strong>Recortar al contenido</strong>
+            <span class="tenue">Cada hoja queda del tamaño de lo que tiene dibujado, más un margen. Una hoja en blanco se deja como está.</span>
+          </span>
+        </label>
+        <div class="av-mt-2 av-mb-3 av-ml-6 av-mw-16">
+          <label class="visually-hidden" for="id_margen_mm">Margen, en milímetros</label>
+          <input type="text" inputmode="decimal" name="margen_mm" id="id_margen_mm"
+                 class="form-control" value="{{ margen_mm }}" autocomplete="off">
+          <p class="tenue av-mt-1 av-mb-0 av-fs-sm">Margen, en milímetros (0 a 50).</p>
+        </div>
+
+        <label class="opcion">
+          <input type="radio" name="modo" value="mano" {% if modo == 'mano' %}checked{% endif %}>
+          <span>
+            <strong>Recortar a mano</strong>
+            <span class="tenue">Quita tantos milímetros de cada lado, de lo que se ve.</span>
+          </span>
+        </label>
+        <div class="av-mt-2 av-mb-3 av-ml-6">
+          {% for lado, valor in lados.items %}
+            <div class="av-mb-2 av-mw-16">
+              <label class="fw-semibold" for="id_lado_{{ lado }}">{{ lado|capfirst }} (mm)</label>
+              <input type="text" inputmode="decimal" name="lado_{{ lado }}" id="id_lado_{{ lado }}"
+                     class="form-control" value="{{ valor }}" autocomplete="off">
+            </div>
+          {% endfor %}
+        </div>
+
+        <label class="opcion">
+          <input type="radio" name="modo" value="hoja" {% if modo == 'hoja' %}checked{% endif %}>
+          <span>
+            <strong>Pasar a otra hoja</strong>
+            <span class="tenue">El contenido se escala para que quepa, sin deformarse y centrado. Una lámina apaisada sigue apaisada.</span>
+          </span>
+        </label>
+        <div class="av-mt-2 av-mb-3 av-ml-6 av-mw-22">
+          <label class="visually-hidden" for="id_hoja">Hoja</label>
+          <select name="hoja" id="id_hoja" class="form-select">
+            {% for valor, texto in hojas.items %}
+              <option value="{{ valor }}" {% if valor == hoja %}selected{% endif %}>{{ texto }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </fieldset>
+
+      <p class="tenue av-mb-0 av-fs-sm">
+        <strong>Recortar no es borrar:</strong> lo que queda fuera de la hoja sigue dentro del
+        archivo, así que esto no sirve para ocultar información. Siempre se entrega una copia; el
+        original no se toca.
+      </p>
+    </div>
+  {% endif %}
+</form>
+
+{% endblock %}

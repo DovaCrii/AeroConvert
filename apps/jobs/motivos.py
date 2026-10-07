@@ -203,6 +203,11 @@ DESENLACES: dict[str, Motivo] = dict(
             "nada que tachar.",
             "Compruebe la ortografía, o que el PDF tenga texto y no sea un escaneo.",
         ),
+        _m(
+            "sin-diferencias",
+            "Los dos PDF se ven iguales: no hay ninguna página que difiera.",
+            "Si esperaba cambios, compruebe que son las dos versiones que quería comparar.",
+        ),
         _m("con-avisos", "Hecho, con avisos que conviene leer antes de usarlo."),
     ]
 )

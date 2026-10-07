@@ -1,4 +1,4 @@
-"""Las pantallas de las veinticinco herramientas de documentos.
+"""Las pantallas de las veintiocho herramientas de documentos.
 
 ## Mirar aquí, hacer en la cola
 
@@ -57,6 +57,9 @@ from .pantalla_catalogos import (  # noqa: F401
     catalogo_a_excel,
     excel_a_catalogo,
 )
+from .pantalla_comparar import (  # noqa: F401
+    comparar_vista,
+)
 from .pantalla_comprimir import (  # noqa: F401
     comprimir,
     ocr_vista,
@@ -95,6 +98,9 @@ from .pantalla_proteger import (  # noqa: F401
 )
 from .pantalla_redactar import (  # noqa: F401
     redactar_vista,
+)
+from .pantalla_tamano import (  # noqa: F401
+    tamano_vista,
 )
 from .pantalla_unir import (  # noqa: F401
     _generar,

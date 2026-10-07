@@ -259,6 +259,49 @@ def _extraer_imagenes(entradas: list[dict], opciones: dict, parcial: Path) -> di
         shutil.rmtree(carpeta, ignore_errors=True)
 
 
+def _comparar(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
+    from apps.documents import comparar
+
+    if len(entradas) < 2:
+        raise FalloDeTarea("documento-invalido", "Hacen falta los dos PDF: el antes y el después.")
+    hecho = comparar.comparar(entradas[0]["ruta"], entradas[1]["ruta"], parcial, progreso=progreso)
+    detalles = {
+        "paginas_antes": hecho.paginas_a,
+        "paginas_despues": hecho.paginas_b,
+        "paginas_distintas": list(hecho.paginas_distintas),
+        "regiones": len(hecho.regiones),
+    }
+    if hecho.iguales:
+        raise SinArchivo("sin-diferencias", detalles)
+    return detalles
+
+
+def _tamano(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
+    from apps.documents import tamano
+
+    origen = entradas[0]["ruta"]
+    modo = opciones.get("modo")
+    if modo == "contenido":
+        hecho = tamano.recortar_al_contenido(
+            origen, parcial, margen_mm=float(opciones.get("margen_mm", 5))
+        )
+    elif modo == "mano":
+        lados = opciones.get("lados_mm") or {}
+        hecho = tamano.recortar_a_mano(
+            origen,
+            parcial,
+            arriba_mm=float(lados.get("arriba", 0)),
+            derecha_mm=float(lados.get("derecha", 0)),
+            abajo_mm=float(lados.get("abajo", 0)),
+            izquierda_mm=float(lados.get("izquierda", 0)),
+        )
+    elif modo == "hoja":
+        hecho = tamano.cambiar_tamano(origen, parcial, opciones.get("hoja", ""))
+    else:
+        raise FalloDeTarea("documento-invalido", f"«{modo}» no es recortar ni cambiar el tamaño.")
+    return {"paginas": hecho.paginas, "modificadas": hecho.modificadas}
+
+
 def _formularios(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
     from apps.documents import formularios
 
@@ -463,6 +506,8 @@ TAREAS = {
     "md_a_pdf": _markdown_a_pdf,
     "comprimir": _comprimir,
     "dividir": _dividir,
+    "tamano": _tamano,
+    "comparar": _comparar,
     "a_imagenes": _a_imagenes,
     "metadatos": _metadatos,
     "extraer_imagenes": _extraer_imagenes,
