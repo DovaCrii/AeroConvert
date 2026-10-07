@@ -103,7 +103,7 @@ sondea, y la matriz de compatibilidad saldría medio apagada sin decir por qué.
 sudo apt install tesseract-ocr tesseract-ocr-spa tesseract-ocr-eng
 ```
 
-Sin ella, «Reconocer el texto de un escaneo» sale apagada y «PDF a Markdown» sigue sin poder
+Sin ella, «Reconocer texto (OCR)» sale apagada y «PDF a Markdown» sigue sin poder
 hacer nada con un escaneo. Con ella, las dos funcionan: verificado ese día sobre un escaneo
 real, que entró sin texto y salió devolviendo `ACTA DE RECEPCION`. Ver `SERVIDOR.md` para
 las otras cuatro apagadas, que son de Microsoft y no tienen arreglo en Linux.

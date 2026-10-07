@@ -45,7 +45,11 @@ fusiones con el CI verde. **La persona solo despliega en la VM `p340`, y lo hace
    Si falla, leer `gh run view <id> --log-failed`, arreglar y volver a subir; si es la
    infraestructura de GitHub (`not acquired by Runner`), `gh run rerun`. **Nunca** `push --force`,
    nunca fusionar en rojo, nunca bajar `fail_under`.
-9. **Seguir.** Volver al paso 1 con el siguiente. Al terminar un bloque, el informe corto (abajo).
+9. **Seguir, sin parar a consultar** (la persona lo pidió el 2026-10-07: «sin consultar, cuando
+   termines un bloque, hasta finalizar todo»). Al cerrar una fila o un bloque **no se detiene ni se
+   pregunta**: se vuelve al paso 1 con lo siguiente. El informe corto de abajo **se entrega una sola
+   vez, al terminar todo** (o cuando no quede ninguna fila sin bloqueo); entre bloques basta una
+   línea de estado. Lo que falte de la persona se anota como pedido y se sigue con otra fila.
 
 ## Cuando hace falta algo de la persona
 
@@ -59,8 +63,10 @@ fusiones con el CI verde. **La persona solo despliega en la VM `p340`, y lo hace
 
 Casos conocidos: aprobar la tabla de renombres (F13.2); aprobar el reparto con Stirling (F14.0);
 plantilla J.E.J. (F14.19); puntos de control (F15.1); archivos de Deswik/Vulcan/Surpac (F15.4);
-instalar ODA (F15.8); confirmar el cierre de las ramas de F11.6 (F13.12). Una consulta que cambia lo
-que se hace a continuación se hace **con `AskUserQuestion`**, no escondida en un párrafo.
+instalar ODA (F15.8); confirmar el cierre de las ramas de F11.6 (F13.12). **No se consulta durante el
+avance**: una decisión que solo es de la persona se anota como pedido y la fila queda en espera; si
+la decisión era razonable con la recomendación del plan, se aplica **la recomendación** y se deja
+escrito en el PR que fue por omisión y cómo deshacerla.
 
 ## El informe al terminar un bloque (corto)
 

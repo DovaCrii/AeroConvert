@@ -71,10 +71,15 @@ class Accion:
     #: Lo que hay que llevarse en la cadena de consulta para que el enlace no pierda la
     #: elección. Ver `enlace`.
     consulta: dict[str, str] = field(default_factory=dict)
+    #: El propósito, debajo del nombre, cuando el nombre es el de un programa: «Para dibujar y
+    #: diseñar». La gente busca por programa, pero tiene que seguir viendo para qué sirve.
+    para: str = ""
 
     @property
     def texto_de_busqueda(self) -> str:
-        return sin_tildes(" ".join((self.nombre, self.que_hace, self.sale, *self.palabras)))
+        return sin_tildes(
+            " ".join((self.nombre, self.para, self.que_hace, self.sale, *self.palabras))
+        )
 
     @property
     def enlace(self) -> str:
@@ -111,25 +116,48 @@ SIGLAS = {
     "rinex": "RINEX",
 }
 
-#: Cómo se llama la tarjeta de un perfil cuando «Llevarlo a …» no tiene sentido. Nadie lleva
-#: un crudo GNSS «a Posproceso»: lo que quiere es pasarlo a RINEX.
-NOMBRES_DE_ACCION = {
-    "posproceso": "Datos de un receptor GNSS a RINEX",
-    # **Para qué sirve, y después el programa.** «Llevarlo a QGIS» decía dónde se abre y obligaba
-    # a saber qué hace cada programa; ahora la tarjeta dice el trabajo y nombra al programa.
-    "civil3d": "Diseño y planos · Civil 3D / AutoCAD",
-    "qgis": "Análisis y mapas · QGIS",
-    "arcgis": "Cartografía · ArcGIS Pro",
-    "google-earth": "Ver en el globo · Google Earth",
-    "web": "Publicar en la web · Visor web",
-    "aerobim": "Modelos BIM · AeroBim",
+#: Cómo se llama la tarjeta de un perfil cuando no es solo el nombre del programa. Nadie lleva un
+#: crudo GNSS «a Posproceso»: lo que quiere es pasarlo a RINEX. **Los demás son el programa**
+#: («QGIS», «Civil 3D / AutoCAD»): la gente busca por programa, y para qué sirve va debajo.
+NOMBRES_DE_ACCION = {"posproceso": "T02, T04 y crudos a RINEX"}
+
+#: Para qué sirve cada programa, en una línea: el subtítulo de su tarjeta (F13.2).
+PARA_DE_PERFIL = {
+    "civil3d": "Para dibujar y diseñar",
+    "qgis": "Para analizar y hacer mapas",
+    "arcgis": "Para cartografía profesional",
+    "google-earth": "Para ver en el globo",
+    "web": "Para publicar en la web",
+    "aerobim": "Para modelos BIM",
+    "posproceso": "Para posprocesar con RTKLIB o PPP",
 }
 
 #: Lo que se escribe para llegar a un perfil, además de su id. Los geoespaciales comparten las
 #: palabras de siempre; el de posproceso habla de otra cosa y buscarlo por «ortofoto» sería
 #: encontrarlo donde no es.
 PALABRAS_DE_PERFIL = {
-    "posproceso": ("rinex", "gnss", "gps", "trimble", "t02", "t04", "receptor", "ppp", "crudo"),
+    "posproceso": (
+        "rinex",
+        "gnss",
+        "gps",
+        "trimble",
+        "t02",
+        "t04",
+        "receptor",
+        "ppp",
+        "crudo",
+        "datos de un receptor",
+    ),
+}
+
+#: Los nombres que tuvo cada programa, para que quien los recuerde siga encontrándolos.
+PALABRAS_DE_NOMBRES_VIEJOS = {
+    "civil3d": ("diseno y planos", "planos", "diseno", "llevarlo a civil"),
+    "qgis": ("analisis y mapas", "analisis", "mapas", "llevarlo a qgis"),
+    "arcgis": ("cartografia", "llevarlo a arcgis"),
+    "google-earth": ("ver en el globo", "globo", "llevarlo a google earth"),
+    "web": ("publicar en la web", "publicar", "llevarlo a visor"),
+    "aerobim": ("modelos bim", "bim", "modelos", "llevarlo a aerobim"),
 }
 
 #: Un símbolo por perfil, y **distinguible**, no solo distinto.
@@ -181,7 +209,8 @@ def _de_los_perfiles() -> list[Accion]:
     return [
         Accion(
             id=f"perfil-{perfil.id}",
-            nombre=NOMBRES_DE_ACCION.get(perfil.id, f"Llevarlo a {perfil.nombre}"),
+            nombre=NOMBRES_DE_ACCION.get(perfil.id, perfil.nombre),
+            para=PARA_DE_PERFIL.get(perfil.id, ""),
             que_hace=perfil.descripcion,
             sale=_salidas_de(perfil),
             categoria=taxonomia.grupo_de_perfil(perfil),
@@ -189,8 +218,11 @@ def _de_los_perfiles() -> list[Accion]:
             consulta={"destino": perfil.id},
             icono=ICONOS_DE_PERFIL.get(perfil.id, "icon-destino"),
             familia="destino",
-            palabras=PALABRAS_DE_PERFIL.get(
-                perfil.id, ("ortofoto", "nube de puntos", "raster", "vectorial", perfil.id)
+            palabras=(
+                *PALABRAS_DE_PERFIL.get(
+                    perfil.id, ("ortofoto", "nube de puntos", "raster", "vectorial", perfil.id)
+                ),
+                *PALABRAS_DE_NOMBRES_VIEJOS.get(perfil.id, ()),
             ),
         )
         for perfil in perfiles_mod.PERFILES.values()
@@ -234,6 +266,7 @@ def _de_los_documentos() -> list[Accion]:
         # buscar dentro de un escaneo.
         "ocr": (
             "ocr",
+            "reconocer el texto de un escaneo",
             "escaneo",
             "escaneado",
             "reconocer texto",
@@ -249,6 +282,9 @@ def _de_los_documentos() -> list[Accion]:
         "md_epub": ("md", "markdown", "libro", "ebook", "capitulos"),
         "md_html": ("md", "markdown", "pagina web", "htm", "limpiar"),
         "md_a_pdf": ("md", "markdown", "imprimir", "entregar", "maquetar"),
+        # Los catálogos se llamaban «de tubería»: se sigue encontrando por la palabra vieja.
+        "catalogo_excel": ("tuberia", "catalogo de tuberia", "plant 3d", "mdb", "access"),
+        "excel_catalogo": ("tuberia", "catalogo de tuberia", "plant 3d", "mdb", "access"),
     }
 
     return [

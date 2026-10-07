@@ -29,7 +29,7 @@ def office_vista(request):
     contexto = {
         "seccion": "pdf",
         "etiqueta_seccion": "PDF",
-        "titulo_pagina": "Word, Excel o PowerPoint a PDF",
+        "titulo_pagina": "Office a PDF",
         "proposito": (
             "Lo convierte el Office del equipo, así que el PDF sale idéntico al original."
         ),

@@ -131,7 +131,7 @@ class Command(BaseCommand):
                 f"No se puede escribir en {carpeta}: {fallo}. Si esto corre como servicio, "
                 "`ProtectSystem=strict` deja todo en solo lectura salvo lo que el propio "
                 "servicio declare en `ReadWritePaths` — y el destino tiene que ser uno de "
-                "esos. Pásalo con --carpeta, como hace aeroconvert-respaldo.service."
+                "esos. Páselo con --carpeta, como hace aeroconvert-respaldo.service."
             ) from fallo
 
         sello = timezone.localtime().strftime("%Y%m%d-%H%M%S")

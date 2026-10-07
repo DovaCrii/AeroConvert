@@ -230,6 +230,7 @@
             </span>
             <span class="herramienta-texto">
               <strong>{{ accion.nombre }}</strong>
+              {% if accion.para %}<span class="herramienta-para">{{ accion.para }}</span>{% endif %}
               <span class="herramienta-que">{{ accion.que_hace }}</span>
               <span class="herramienta-sale">Sale: <strong>{{ accion.sale }}</strong></span>
             </span>
@@ -246,6 +247,7 @@
             </span>
             <span class="herramienta-texto">
               <strong>{{ accion.nombre }}</strong>
+              {% if accion.para %}<span class="herramienta-para">{{ accion.para }}</span>{% endif %}
               <span class="herramienta-que">{{ accion.que_hace }}</span>
               <span class="motivo">
                 <span aria-hidden="true">⊘</span> Aquí no se puede.

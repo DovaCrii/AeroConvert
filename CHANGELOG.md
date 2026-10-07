@@ -5,6 +5,13 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Sin publicar]
 
+### Cambiado — nombres con una convención (F13.2)
+
+- **Los seis programas de destino son el programa, con su propósito debajo**: «Civil 3D / AutoCAD» y «Para dibujar y diseñar», «QGIS» y «Para analizar y hacer mapas», «ArcGIS Pro», «Google Earth», «Visor web» y «AeroBim». Se acabó «Llevarlo a QGIS». El propósito sale bajo el nombre en la tarjeta de la portada y en el lateral.
+- **Siete renombres aprobados:** «Datos de un receptor GNSS a RINEX» → «T02, T04 y crudos a RINEX»; «Word, Excel o PowerPoint a PDF» → «Office a PDF»; «Reconocer el texto de un escaneo» → «Reconocer texto (OCR)»; «Marca de agua» → «Poner marca de agua»; «Proteger PDF» → «Proteger o desbloquear PDF» (también quita la contraseña y el nombre no lo decía); y los catálogos pasan de «de tubería» a «Plant 3D».
+- **Una convención con prueba** (`test_nombres.py`): una conversión es «Origen a destino», una operación empieza por un verbo en infinitivo, y ningún nombre pasa de 28 caracteres. **Quien recuerde un nombre viejo lo sigue encontrando:** el buscador halla las herramientas por los doce nombres anteriores.
+- El historial guarda el id de la herramienta y no su nombre, así que los trabajos viejos muestran el nombre nuevo sin migrar nada.
+
 ### Cambiado — una sola taxonomía de herramientas (F13.1)
 
 - **Ocho grupos, un solo árbol** (`apps/dashboard/taxonomia.py`): Entregar a un programa · Coordenadas y datos GNSS · Organizar PDF · Convertir documentos · Optimizar y reconocer · Revisar, firmar y proteger · Texto, tablas y Markdown · Imagen, video y planta. La portada, el lateral y los dos índices de `/documentos/` lo leen de aquí y **ya no se contradicen**: antes había dos clasificaciones distintas (`CATEGORIAS` y `GRUPOS`) y la misma herramienta vivía en dos grupos según la pantalla.

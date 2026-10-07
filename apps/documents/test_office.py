@@ -302,7 +302,7 @@ class TestMirarElPdfAntesDeMandarloAWord:
         memoria = _pdf(tmp_path, texto="hola")
         cerrado = tmp_path / "cerrado.pdf"
         seguridad.proteger(memoria, cerrado, "una-clave-larga")
-        with pytest.raises(ComposicionInvalida, match="Proteger PDF"):
+        with pytest.raises(ComposicionInvalida, match="Proteger o desbloquear PDF"):
             office.mirar_pdf(cerrado)
 
 

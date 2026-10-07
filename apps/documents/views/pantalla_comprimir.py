@@ -89,7 +89,7 @@ def ocr_vista(request):
     contexto = {
         "seccion": "pdf",
         "etiqueta_seccion": "PDF",
-        "titulo_pagina": "Reconocer el texto de un escaneo",
+        "titulo_pagina": "Reconocer texto (OCR)",
         "proposito": "Para poder buscar y copiar dentro de un PDF que solo tiene imágenes.",
         "tesseract": tesseract,
         "idiomas": ocr_mod.IDIOMAS,

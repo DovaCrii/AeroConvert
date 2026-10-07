@@ -166,8 +166,8 @@ class TestLosNombresDicenParaQueSirve:
 
     def test_cada_herramienta_geoespacial_dice_el_trabajo_y_el_programa(self, sesion):
         lateral = _lateral(sesion.get(reverse("dashboard:que_puedo_hacer")).content.decode())
-        assert "Diseño y planos · Civil 3D / AutoCAD" in lateral
-        assert "Análisis y mapas · QGIS" in lateral
+        assert "Civil 3D / AutoCAD" in lateral and "Para dibujar y diseñar" in lateral
+        assert "QGIS" in lateral and "Para analizar y hacer mapas" in lateral
 
 
 class TestLaBarra:

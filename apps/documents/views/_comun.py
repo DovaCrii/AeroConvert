@@ -297,7 +297,7 @@ def _mirar_pdf(request):
             None,
             origen,
             # El nombre que la persona reconoce, no el que quedó en el servidor.
-            f"{origen.nombre} pide contraseña. Quítesela primero en «Proteger PDF».",
+            f"{origen.nombre} pide contraseña. Quítesela primero en «Proteger o desbloquear PDF».",
         )
     return cabecera, origen, None
 

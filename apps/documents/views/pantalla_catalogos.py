@@ -30,7 +30,7 @@ def catalogo_a_excel(request):
     contexto = {
         "seccion": "pdf",
         "etiqueta_seccion": "Catálogos de tubería",
-        "titulo_pagina": "Catálogo de tubería a Excel",
+        "titulo_pagina": "Catálogo Plant 3D a Excel",
         "proposito": "Para poder editarlo sin abrir Access, y volver a meterlo después.",
         "access": access,
         "ruta_texto": (request.GET.get("ruta") or "").strip(),
@@ -63,7 +63,7 @@ def excel_a_catalogo(request):
     contexto = {
         "seccion": "pdf",
         "etiqueta_seccion": "Catálogos de tubería",
-        "titulo_pagina": "Excel a catálogo de tubería",
+        "titulo_pagina": "Excel a catálogo Plant 3D",
         "proposito": "El camino de vuelta. Hacen falta los dos: la hoja editada y el catálogo.",
         "access": access,
         "ruta_texto": (request.GET.get("ruta") or "").strip(),

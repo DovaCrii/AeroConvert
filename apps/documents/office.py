@@ -223,7 +223,7 @@ def mirar_pdf(origen: str | Path) -> QueTraeElPdf:
 
     if cabecera.cifrado:
         raise ComposicionInvalida(
-            f"{origen.name} pide contraseña. Quítesela primero en «Proteger PDF»."
+            f"{origen.name} pide contraseña. Quítesela primero en «Proteger o desbloquear PDF»."
         )
 
     from pypdf import PdfReader

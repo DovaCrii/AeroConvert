@@ -282,7 +282,7 @@ class TestLoQueSeNiegaAHacer:
         cerrado = tmp_path / "cerrado.pdf"
         seguridad.proteger(memoria, cerrado, "una-clave-larga")
 
-        with pytest.raises(ComposicionInvalida, match="Proteger PDF"):
+        with pytest.raises(ComposicionInvalida, match="Proteger o desbloquear PDF"):
             marcas.numerar(cerrado, tmp_path / "x.pdf")
 
     def test_algo_que_no_es_un_pdf(self, tmp_path):
