@@ -132,7 +132,7 @@ def _contexto(origenes: list, entradas, extra: dict | None = None) -> dict:
         "etiqueta_seccion": "PDF",
         "titulo_pagina": "Junta varios PDF en uno",
         "proposito": (
-            "Elige qué páginas entran, en qué orden, y gira las láminas que lo necesiten."
+            "Elija qué páginas entran, en qué orden, y gire las láminas que lo necesiten."
         ),
         "nombres": [o.nombre for o in origenes],
         "receta": receta_mod.a_texto(entradas),
@@ -296,7 +296,7 @@ def _mirar_pdf(request):
             None,
             origen,
             # El nombre que la persona reconoce, no el que quedó en el servidor.
-            f"{origen.nombre} pide contraseña. Quítasela primero en «Proteger PDF».",
+            f"{origen.nombre} pide contraseña. Quítesela primero en «Proteger PDF».",
         )
     return cabecera, origen, None
 

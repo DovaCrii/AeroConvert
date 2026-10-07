@@ -165,7 +165,7 @@ class TestElIndice:
         """Es la razón de que esto exista: un plano bajo acuerdo de confidencialidad no
         puede subirse al servidor de nadie."""
         cuerpo = sesion.get(reverse("documents:inicio")).content.decode()
-        assert "suben tu archivo" in cuerpo
+        assert "suben el archivo a un servidor ajeno" in cuerpo
 
 
 class TestDividir:

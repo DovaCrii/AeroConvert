@@ -25,8 +25,8 @@ def lista(request):
             "etiqueta_seccion": "Preajustes",
             "titulo_pagina": "Destinos guardados con nombre propio",
             "proposito": (
-                "Los de fábrica salen de los perfiles y se actualizan con ellos. Copia uno "
-                "y cámbialo para tener el tuyo: «Entrega cliente BHP», por ejemplo."
+                "Los de fábrica salen de los perfiles y se actualizan con ellos. Copie uno "
+                "y cámbielo para tener el suyo: «Entrega cliente BHP», por ejemplo."
             ),
         },
     )

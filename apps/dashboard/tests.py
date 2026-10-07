@@ -227,7 +227,7 @@ class TestInspeccionar:
         """
         respuesta = entrado.get("/inspeccionar/")
         assert respuesta.status_code == 200
-        assert "Elige un archivo" in respuesta.content.decode()
+        assert "Elija un archivo" in respuesta.content.decode()
         assert b"Inspeccionar" not in respuesta.content
 
     def test_una_ruta_fuera_de_las_raices_se_rechaza_con_su_motivo(self, entrado, taller):

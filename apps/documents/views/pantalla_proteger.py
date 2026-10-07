@@ -35,7 +35,7 @@ def proteger_vista(request):
         "seccion": "pdf",
         "etiqueta_seccion": "PDF",
         "titulo_pagina": "Proteger un PDF",
-        "proposito": "Ponle contraseña antes de mandarlo, o quítasela para poder componerlo.",
+        "proposito": "Póngale contraseña antes de mandarlo, o quítesela para poder componerlo.",
         "ruta_texto": (request.GET.get("ruta") or "").strip(),
         "minimo": seguridad_mod.MINIMO,
         "algoritmo": seguridad_mod.ALGORITMO,
@@ -101,7 +101,7 @@ def _problema_de_proteger(accion: str, origen, cabecera, contrasena: str) -> str
     if accion == "proteger":
         if cabecera.cifrado:
             return (
-                f"{origen.nombre} ya está protegido. Quítale la contraseña primero si quieres "
+                f"{origen.nombre} ya está protegido. Quítele la contraseña primero si quiere "
                 "cambiarla."
             )
         if len(contrasena) < seguridad_mod.MINIMO:

@@ -97,7 +97,7 @@ class TestLaPantalla:
         ).content.decode()
         assert "3</span> página(s)" in cuerpo
         assert "menos de un minuto" in cuerpo
-        assert "puedes cerrar esta pestaña" in cuerpo
+        assert "puede cerrar esta pestaña" in cuerpo
 
     def test_reconocer_encola_en_el_carril_pesado(self, sesion, entorno, con_tesseract):
         escaneo = _pdf(entorno / "escaneo.pdf", 3)

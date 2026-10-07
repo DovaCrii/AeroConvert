@@ -114,7 +114,7 @@ def analizar_rangos(texto: str, total: int) -> list[Trozo]:
         trozos.append(Trozo(desde, hasta))
 
     if not trozos:
-        raise ComposicionInvalida("No indicaste ningún rango.")
+        raise ComposicionInvalida("No indicó ningún rango.")
     return trozos
 
 
@@ -191,7 +191,7 @@ def desde_imagenes(
 
     rutas = [Path(i) for i in imagenes]
     if not rutas:
-        raise ComposicionInvalida("No indicaste ninguna imagen.")
+        raise ComposicionInvalida("No indicó ninguna imagen.")
     if tamano not in ("a4", "imagen"):
         raise ComposicionInvalida(f"«{tamano}» no es un tamaño de página conocido.")
 

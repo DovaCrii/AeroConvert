@@ -12,7 +12,7 @@
     la elección parece haberse perdido.
   {% endcomment %}
   <p class="aviso destino-traido">
-    Vas a convertir a <strong>{{ nombre_formato }}</strong>. Elige el archivo y lo verás ya
+    Va a convertir a <strong>{{ nombre_formato }}</strong>. Elija el archivo y lo verá ya
     puesto en «ajustar a mano».
   </p>
 {% endif %}
@@ -24,8 +24,8 @@
     y la elección parece haberse perdido aunque no se haya perdido.
   {% endcomment %}
   <p class="aviso destino-traido">
-    Vas a llevarlo a <strong>{{ nombre_preferido }}</strong>. Elige el archivo y te lo dejo
-    marcado; todavía puedes cambiarlo.
+    Va a llevarlo a <strong>{{ nombre_preferido }}</strong>. Elija el archivo y se lo dejo
+    marcado; todavía puede cambiarlo.
   </p>
 {% endif %}
 
@@ -60,13 +60,13 @@
       <span class="paso-numero">1</span>
     </span>
     <div>
-      <strong>Suelta cualquier archivo</strong>
+      <strong>Suelte cualquier archivo</strong>
       {% comment %}
         Decía «no se copia ni se sube: se queda en tu equipo», y dos tarjetas más abajo la
         de «Desde tu equipo» dice «se sube al servidor». Las dos no pueden ser verdad. Lo que
         es verdad siempre, venga de donde venga, es lo del original.
       {% endcomment %}
-      <span>Desde tu equipo o de la carpeta compartida. El original no se toca nunca.</span>
+      <span>Desde su equipo o de la carpeta compartida. El original no se toca nunca.</span>
     </div>
   </li>
   <li>
@@ -75,7 +75,7 @@
       <span class="paso-numero">2</span>
     </span>
     <div>
-      <strong>Mira qué es en realidad</strong>
+      <strong>Vea qué es en realidad</strong>
       <span>Sin abrirlo: qué formato tiene de verdad y qué trae dentro.</span>
     </div>
   </li>
@@ -85,7 +85,7 @@
       <span class="paso-numero">3</span>
     </span>
     <div>
-      <strong>Elige dónde tiene que abrir</strong>
+      <strong>Elija dónde tiene que abrir</strong>
       <span>Dices el programa, no la extensión. Los ajustes se ponen solos.</span>
     </div>
   </li>
@@ -121,7 +121,7 @@
         <svg class="origen-icono"><use href="{% static 'img/icons.svg' %}#icon-equipo"></use></svg>
       </span>
       <div>
-        <h2 class="origen-titulo">Desde tu equipo</h2>
+        <h2 class="origen-titulo">Desde su equipo</h2>
         <p class="origen-nota">Se sube al servidor y se borra solo en un día.</p>
       </div>
     </div>
@@ -138,13 +138,13 @@
         <svg class="soltar-icono" aria-hidden="true">
           <use href="{% static 'img/icons.svg' %}#icon-soltar"></use>
         </svg>
-        <p class="soltar-titulo">Arrastra el archivo aquí, o elígelo</p>
+        <p class="soltar-titulo">Arrastre el archivo aquí, o elíjalo</p>
         {% comment %}
           `data-envia-solo` y no un `onchange=`: la CSP es `script-src 'self'` sin
           `unsafe-inline`, así que un manejador en el atributo no se ejecutaría — y no
           avisaría. Lo recoge `static/js/explorador.js`.
         {% endcomment %}
-        <label class="visually-hidden" for="archivo">Elegir un archivo de tu equipo</label>
+        <label class="visually-hidden" for="archivo">Elegir un archivo de su equipo</label>
         {% comment %}
           `data-tope-mb` lo pone el servidor. Escrito a mano aquí se quedaría desfasado el
           día que alguien cambie `AEROCONVERT_TOPE_MB`, y un tope que miente es peor que
@@ -176,7 +176,7 @@
       </span>
       <div>
         <h2 class="origen-titulo">De la carpeta compartida</h2>
-        <p class="origen-nota">Lo que ve todo el equipo. Pincha para entrar.</p>
+        <p class="origen-nota">Lo que ve todo el equipo. Pinche para entrar.</p>
       </div>
     </div>
 

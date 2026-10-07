@@ -56,7 +56,7 @@ UNIR = Modo(
     componer="documents:componer",
     sufijo="_unido.pdf",
     titulo="Junta varios PDF en uno",
-    proposito="Elige qué páginas entran, en qué orden, y gira las láminas que lo necesiten.",
+    proposito="Elija qué páginas entran, en qué orden, y gire las láminas que lo necesiten.",
     un_solo_archivo=False,
 )
 
@@ -144,7 +144,7 @@ def _componer(request, modo: Modo):
         return redirect(modo.pantalla)
 
     if not origenes:
-        messages.error(request, "No indicaste ningún archivo.")
+        messages.error(request, "No indicó ningún archivo.")
         return redirect(modo.pantalla)
 
     if modo.un_solo_archivo and len(origenes) > 1:
@@ -233,7 +233,7 @@ def _receta_inicial(origenes: list):
             raise ComposicionInvalida(f"{origen.nombre}: {fallo}") from fallo
         if cabecera.cifrado:
             raise ComposicionInvalida(
-                f"{origen.nombre} pide contraseña. Ábrelo con ella y guárdalo sin ella."
+                f"{origen.nombre} pide contraseña. Ábralo con ella y guárdelo sin ella."
             )
         entradas.extend(receta_mod.Entrada(indice, pagina.numero) for pagina in cabecera.paginas)
     return entradas

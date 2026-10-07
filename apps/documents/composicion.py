@@ -153,7 +153,7 @@ def receta_de_archivos(archivos: Iterable[str | Path]) -> list[PaginaElegida]:
         cabecera = lectura.leer_cabecera(ruta)
         if cabecera.cifrado:
             raise ComposicionInvalida(
-                f"{ruta.name} pide contraseña. Ábrelo y guárdalo sin ella para poder usarlo."
+                f"{ruta.name} pide contraseña. Ábralo y guárdelo sin ella para poder usarlo."
             )
         elegidas.extend(PaginaElegida(ruta, pagina.numero) for pagina in cabecera.paginas)
     return elegidas

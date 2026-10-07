@@ -54,13 +54,13 @@
     if (estado === 413) {
       return {
         titulo: "El archivo es demasiado grande para subirlo por aquí.",
-        detalle: "Déjalo en la carpeta compartida y elígelo desde allí.",
+        detalle: "Déjelo en la carpeta compartida y elíjalo desde allí.",
       };
     }
     if (estado === 403) {
       return {
         titulo: "La sesión ya no vale.",
-        detalle: "Recarga la página; si te pide entrar, vuelve a entrar.",
+        detalle: "Recargue la página; si le pide entrar, vuelva a entrar.",
       };
     }
     if (estado === 404) {
@@ -72,12 +72,12 @@
     if (estado >= 500) {
       return {
         titulo: "El servidor falló al hacerlo.",
-        detalle: "No es por tu archivo. Vuelve a intentarlo; si se repite, avisa y di el código.",
+        detalle: "No es por su archivo. Vuelva a intentarlo; si se repite, avise y diga el código.",
       };
     }
     return {
       titulo: "No salió bien.",
-      detalle: "Vuelve a intentarlo.",
+      detalle: "Vuelva a intentarlo.",
     };
   }
 

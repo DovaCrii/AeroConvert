@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block titulo %}Qué necesitas hacer · AeroConvert{% endblock %}
+{% block titulo %}Qué necesita hacer · AeroConvert{% endblock %}
 
 {% block contenido %}
 
@@ -18,7 +18,7 @@
       hx-swap="innerHTML"
       hx-trigger="input changed delay:250ms from:#q, submit"
       hx-indicator="#buscando">
-  <label class="visually-hidden" for="q">Qué necesitas hacer</label>
+  <label class="visually-hidden" for="q">Qué necesita hacer</label>
   <svg class="buscador-lupa" aria-hidden="true">
     <use href="{% static 'img/icons.svg' %}#icon-mirar"></use>
   </svg>
@@ -55,7 +55,7 @@
   manejadores en línea, así que además es lo único que funcionaría sin un fichero aparte.
 {% endcomment %}
 <nav class="ejemplos" aria-label="Ejemplos de búsqueda">
-  <span class="ejemplos-rotulo">Prueba con</span>
+  <span class="ejemplos-rotulo">Pruebe con</span>
   {% for texto, pista in ejemplos %}
     <a class="ejemplo" href="?q={{ texto|urlencode }}" title="{{ pista }}">{{ texto }}</a>
   {% endfor %}

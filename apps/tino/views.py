@@ -46,8 +46,8 @@ def preguntar(request):
     contexto = {
         "seccion": "tino",
         "etiqueta_seccion": "Tino",
-        "titulo_pagina": "Pregúntale a Tino",
-        "proposito": "Lo que esta máquina sabe de tus archivos y de lo que se puede hacer.",
+        "titulo_pagina": "Pregúntele a Tino",
+        "proposito": "Lo que esta máquina sabe de sus archivos y de lo que se puede hacer.",
         "p": pregunta,
         "respuesta": respuesta,
         "ejemplos": EJEMPLOS,

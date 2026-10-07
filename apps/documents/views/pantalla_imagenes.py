@@ -62,7 +62,7 @@ def imagenes_vista(request):
     contexto["rutas_texto"] = "\n".join(o.token for o in origenes)
 
     if not origenes:
-        messages.error(request, "No indicaste ninguna imagen.")
+        messages.error(request, "No indicó ninguna imagen.")
         return render(request, "documents/imagenes.html", contexto)
 
     if contexto["tamano"] not in ("a4", "imagen"):

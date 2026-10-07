@@ -39,7 +39,7 @@
       hx-swap="innerHTML"
       hx-trigger="input changed delay:300ms from:#q, submit"
       hx-indicator="#pensando">
-  <label class="visually-hidden" for="q">Qué quieres saber</label>
+  <label class="visually-hidden" for="q">Qué quiere saber</label>
   <svg class="buscador-lupa" aria-hidden="true">
     <use href="{% static 'img/icons.svg' %}#icon-mirar"></use>
   </svg>
@@ -55,7 +55,7 @@
   demostrado sin explicarlo: pulsas uno, recibes una respuesta exacta, y no ha salido nada.
 {% endcomment %}
 <nav class="ejemplos" aria-label="Ejemplos de pregunta">
-  <span class="ejemplos-rotulo">Prueba con</span>
+  <span class="ejemplos-rotulo">Pruebe con</span>
   {% for texto in ejemplos %}
     <a class="ejemplo" href="?p={{ texto|urlencode }}">{{ texto }}</a>
   {% endfor %}

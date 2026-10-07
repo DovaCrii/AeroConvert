@@ -505,8 +505,8 @@ def _avisos_de_pdf(cabecera: pdf_mod.CabeceraPdf) -> list[str]:
     """
     if cabecera.cifrado:
         return [
-            "Pide contraseña, así que no se puede leer ni componer. Ábrelo con la clave y "
-            "guárdalo sin ella."
+            "Pide contraseña, así que no se puede leer ni componer. Ábralo con la clave y "
+            "guárdelo sin ella."
         ]
 
     avisos = [f"Contiene {cabecera.resumen}."]

@@ -157,7 +157,7 @@ def _abrir(origen: Path):
         raise ComposicionInvalida(f"No se pudo leer {origen.name}: {fallo}") from fallo
     if lector.is_encrypted:
         raise ComposicionInvalida(
-            f"{origen.name} pide contraseña. Quítasela primero en «Proteger PDF»."
+            f"{origen.name} pide contraseña. Quítesela primero en «Proteger PDF»."
         )
     return lector
 
