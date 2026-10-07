@@ -4,7 +4,7 @@
 > [`docs/historial/`](docs/historial/) y en `git log`. Si algo de aquí no cuadra con el código,
 > **gana el código**: actualice esta página antes de seguir.
 
-**Estado al:** 2026-10-07 · **`main` en:** `516f102` · **Último PR fusionado:** #54
+**Estado al:** 2026-10-07 · **`main` en:** `c551dcd` · **Último PR fusionado:** #56
 
 ## Quién hace qué
 
@@ -19,13 +19,13 @@ Se relanza con `gh run rerun <id>`; no se fusiona con el CI en rojo.
 ## Dónde está el proyecto
 
 - **Desplegado el 2026-10-05:** hasta el #20 (GNSS con RTKLIB, calidad y versiones de RINEX).
-- **En `main` sin desplegar** (#21 a #54): versión `0.10.0`; el lateral de navegación con modo de
+- **En `main` sin desplegar** (#21 a #56): versión `0.10.0`; el lateral de navegación con modo de
   iconos y ancho a mano; nombres por utilidad; baldosas con color en oscuro; la portada con grupos
   plegables; «Organizar páginas» y «Seguir con este archivo» (#54); la paleta en OKLCH; tipografía,
   radios e iconos desde la escala; cierres de la auditoría y B-04 (VRT disfrazado); `Incidente` y
   `resumen_de_uso`; cobertura de la cola.
-- **Dos migraciones nuevas** que `desplegar.sh` aplica sola: `core/0002` y `core/0003`.
-- Pruebas: ~2.770 verdes sin GDAL ni PDAL. 21 herramientas de documentos.
+- **Dos migraciones nuevas** (`core/0002`, `core/0003`) que `desplegar.sh` aplica sola. Pruebas:
+  ~2.780 verdes sin GDAL ni PDAL. 21 herramientas de documentos.
 
 ```bash
 cd /opt/aeroconvert && sudo -u aeroconvert git pull && sudo scripts/desplegar.sh
@@ -34,8 +34,9 @@ cd /opt/aeroconvert && sudo -u aeroconvert git pull && sudo scripts/desplegar.sh
 ## El plan que se ejecuta ahora
 
 **`docs/planes/PLAN_2026-10-07.md`** → `MASTER_PLAN.md` **F13 a F16** (decidido el 2026-10-07):
-F13 interfaz, F14 suite documental y creativa libre, F15 datums de Chile y calibración, F16 lotes,
-informe y API. **Ejecuta Claude**, un PR por fila. Versión `0.11.0` al cerrar F13.
+F13 interfaz, F14 suite documental, F15 datums de Chile, F16 lotes y API. **Ejecuta Claude** con
+**`/avanzar`**; el tablero y **lo que se le pide a usted** están en `docs/planes/SEGUIMIENTO.md`.
+Usted despliega **al final de todo**. Versión `0.11.0` al cerrar F13.
 
 ## Filas abiertas (`python scripts/claude/plan_fila.py --abiertas`)
 
@@ -65,8 +66,7 @@ informe y API. **Ejecuta Claude**, un PR por fila. Versión `0.11.0` al cerrar F
 - Pasada de teclado de F9.3, sin ratón, por la barra, el lateral y un formulario, en los dos temas.
 - En `p340`: subir un PDF a cada herramienta; confirmar que una contraseña no queda en
   `jobs_conversionjob`, `jobs_jobevent` ni `jobs_entradadetrabajo`.
-- Propuestas para `AGENTS.md`, sin aplicar por ser regla suya: la regla 3 (coordenadas locales
-  declaradas por una persona son una respuesta) y una fila GNSS en la tabla de oráculos.
+- Propuestas para `AGENTS.md`, sin aplicar (regla suya): regla 3 con coordenadas locales; fila GNSS.
 
 ## Lo que es suyo
 
