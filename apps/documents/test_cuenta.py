@@ -94,7 +94,10 @@ def test_ningun_sitio_publica_una_cifra_vieja(archivo):
         palabra
         for cuantas, palabra in EN_LETRA.items()
         if cuantas != _cuantas()
-        and re.search(rf"\b{palabra}\b[^.\n]{{0,40}}(herramientas|de documentos|de PDF)", texto)
+        # `(?! y\b)`: «treinta» a secas no es lo que dice «treinta y una».
+        and re.search(
+            rf"\b{palabra}\b(?! y\b)[^.\n]{{0,40}}(herramientas|de documentos|de PDF)", texto
+        )
     ]
     assert not viejas, (
         f"{archivo} habla de «{viejas[0]}» herramientas y son {_cuantas()} ({correcta}). "
