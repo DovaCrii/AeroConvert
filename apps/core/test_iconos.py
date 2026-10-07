@@ -149,8 +149,9 @@ def test_ninguna_plantilla_dibuja_un_svg_suelto():
             continue
         texto = ruta.read_text(encoding="utf-8")
         for m in re.finditer(r"<svg\b([^>]*)>(.*?)</svg>", texto, re.DOTALL):
-            # `dibujo-puntos` es un gráfico de datos (los puntos de una libreta), no un icono.
-            if "dibujo-" in m.group(1):
+            # `dibujo-puntos` (los puntos de una libreta) y `mapa-svg` (la huella sobre la
+            # retícula) son gráficos de datos, no iconos.
+            if "dibujo-" in m.group(1) or "mapa-svg" in m.group(1):
                 continue
             if re.search(r"<(path|circle|rect|line|polyline|polygon|ellipse)\b", m.group(2)):
                 sueltos.append(ruta.relative_to(RAIZ).as_posix())

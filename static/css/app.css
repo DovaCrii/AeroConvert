@@ -977,6 +977,36 @@ a:hover {
     display: flex;
   }
 
+  /* Un icono por grupo, con su cuenta como insignia en la esquina. El nombre y la cuenta van
+   * en el `title` y en el texto oculto para el lector de pantalla. */
+  .lateral-compacto .lateral-compactos {
+    display: block;
+    margin: var(--av-s-2) 0 0;
+    padding: var(--av-s-2) 0 0;
+    border-top: 1px solid var(--av-border);
+  }
+
+  .lateral-compacto .lateral-grupo-compacto {
+    position: relative;
+  }
+
+  .lateral-compacto .lateral-enlace-principal .lateral-insignia {
+    position: absolute;
+    top: 1px;
+    right: 3px;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip-path: none;
+    padding: 0 var(--av-s-1);
+    border-radius: var(--av-radius-pill);
+    background: var(--av-surface-alt);
+    box-shadow: 0 0 0 1px var(--av-anillo);
+    color: var(--av-text-secondary);
+    font-size: var(--av-fs-xs);
+    line-height: 1.3;
+  }
+
   .lateral-compacto .lateral-asa {
     display: none;
   }
@@ -987,8 +1017,21 @@ a:hover {
   }
 }
 
-.lateral-solo-compacto {
+.lateral-solo-compacto,
+.lateral-compactos {
   display: none;
+}
+
+.lateral-compactos {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* Con el lateral ancho, cada grupo lleva su símbolo delante del nombre. */
+.lateral-grupo-icono {
+  width: 1.05rem;
+  height: 1.05rem;
 }
 
 /* El asa para cambiar el ancho. Solo desde 56 rem y solo con JavaScript: sin él no hay a qué
@@ -1107,9 +1150,11 @@ body:not(.con-lateral) .lateral-alternar {
   position: relative;
   display: flex;
   align-items: center;
-  flex: 1 1 8rem;
+  /* F13.9: nunca por debajo de 10 rem (160 px). Ya no compite con la explicación del modo,
+   * que vive en el lateral, así que no hace falta que ceda hasta desaparecer. */
+  flex: 1 1 10rem;
   max-width: 20rem;
-  min-width: 0;
+  min-width: 10rem;
   margin: 0;
 }
 
@@ -1256,9 +1301,6 @@ body:not(.con-lateral) .lateral-alternar {
     font-size: var(--av-fs-sm);
   }
 
-  .buscador-barra input {
-    width: 8.5rem;
-  }
 }
 
 @media (max-width: 1000px) {
@@ -1272,11 +1314,6 @@ body:not(.con-lateral) .lateral-alternar {
     height: 1.05rem;
   }
 
-  /* El buscador cae aquí, no la palabra de las entradas. Está a un clic desde la portada y
-   * desde el menú, así que perderlo cuesta menos que perder los nombres de las secciones. */
-  .buscador-barra {
-    display: none;
-  }
 }
 
 @media (max-width: 720px) {
@@ -1304,15 +1341,138 @@ body:not(.con-lateral) .lateral-alternar {
     row-gap: 4px;
   }
 
+  /* Segunda fila: el buscador ocupa lo que sobra y la cuenta se queda a su derecha. */
+  .buscador-barra {
+    order: 3;
+    flex: 1 1 10rem;
+    max-width: none;
+  }
+
   .barra-nav {
-    flex: 1 1 100%;
-    justify-content: space-between;
+    order: 4;
+    flex: 0 0 auto;
     gap: 2px;
+  }
+
+  .barra .chapa {
+    margin-right: auto;
   }
 
   .nav-item {
     padding: 8px 6px;
   }
+}
+
+/* F13.9: la explicación del modo, al pie del lateral y siempre visible. Reducido el lateral,
+ * se esconde (la chapa de la barra sigue diciendo el modo). */
+.lateral-modo {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--av-s-2);
+  margin: var(--av-s-4) 0 0;
+  padding: var(--av-s-3);
+  border-radius: var(--av-radius-sm);
+  box-shadow: 0 0 0 1px var(--av-anillo);
+  font-size: var(--av-fs-xs);
+  color: var(--av-text-muted);
+}
+
+.lateral-compacto .lateral-modo {
+  display: none;
+}
+
+/* F13.8: la portada empieza por el archivo. La zona de soltar, la pista leída de su cabecera y
+ * su ficha, antes del buscador. Vacíos, no ocupan sitio. */
+.portada-soltar {
+  margin-bottom: var(--av-ritmo);
+}
+
+.portada-soltar #reconocido:empty,
+.portada-soltar #ficha:empty {
+  display: none;
+}
+
+.reconocido-titulo {
+  margin: 0 0 var(--av-s-2);
+  font-size: var(--av-fs-md);
+  overflow-wrap: anywhere;
+}
+
+.reconocido-sub {
+  margin: var(--av-s-4) 0 var(--av-s-2);
+  font-size: var(--av-fs-sm);
+  font-weight: var(--av-peso-fuerte);
+  color: var(--av-text-muted);
+}
+
+/* F13.11: la huella sobre la retícula, sin mapa base. Todo con los colores del tema. */
+.mapa-svg {
+  display: block;
+  width: 100%;
+  max-width: 34rem;
+  height: auto;
+}
+
+.mapa-caja {
+  fill: var(--av-surface-alt);
+  stroke: var(--av-border);
+}
+
+.mapa-linea {
+  stroke: var(--av-border);
+  stroke-dasharray: 3 4;
+}
+
+.mapa-texto {
+  fill: var(--av-text-muted);
+  font-size: var(--av-fs-xs);
+}
+
+.mapa-huella {
+  fill: var(--av-primary-soft);
+  stroke: var(--av-primary);
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+
+/* La lista de sistemas de referencia que cuadran con lo escrito. Plana, con anillo. */
+.crs-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 16rem;
+  overflow-y: auto;
+  border-radius: var(--av-radius-sm);
+  box-shadow: 0 0 0 1px var(--av-anillo);
+}
+
+.crs-opcion {
+  display: grid;
+  gap: var(--av-s-1);
+  width: 100%;
+  padding: var(--av-s-2) var(--av-s-3);
+  border: 0;
+  border-bottom: 1px solid var(--av-border);
+  background: var(--av-surface);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.crs-opcion:hover,
+.crs-opcion:focus-visible {
+  background: var(--av-primary-soft);
+}
+
+.crs-nombre {
+  font-weight: var(--av-peso-fuerte);
+}
+
+.crs-codigo,
+.crs-area {
+  font-size: var(--av-fs-xs);
 }
 
 /* --- Los tres pasos ------------------------------------------------------- */

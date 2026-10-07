@@ -41,6 +41,20 @@
     }
   }
 
+  // Un enlace con `#grupo-…` (el lateral reducido lleva así a cada grupo) abre ese grupo aunque
+  // la persona lo hubiera dejado cerrado: se llegó pidiéndolo. Va después de restaurar.
+  function abrirElDelEnlace() {
+    var id = window.location.hash.slice(1);
+    if (!id) return;
+    var bloque = document.getElementById(id);
+    if (bloque && bloque.tagName === "DETAILS") {
+      bloque.open = true;
+      bloque.scrollIntoView();
+    }
+  }
+
+  window.addEventListener("hashchange", abrirElDelEnlace);
+
   document.addEventListener(
     "toggle",
     function (evento) {
@@ -59,8 +73,10 @@
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", function () {
       restaurar(document);
+      abrirElDelEnlace();
     });
   } else {
     restaurar(document);
+    abrirElDelEnlace();
   }
 })();

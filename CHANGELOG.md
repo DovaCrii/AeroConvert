@@ -5,6 +5,23 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Sin publicar]
 
+### Añadido — buscar el sistema de referencia por nombre, sin saber el EPSG
+
+- En la ficha de un archivo sin sistema declarado, **sobre el campo «Código EPSG»**, hay un buscador: «UTM 19 sur», «SIRGAS Chile», «PSAD56», «wgs84» o el número. La lista sale de la base de PROJ que ya trae `pyproj` (nada nuevo que instalar ni copiar): sistemas vigentes, proyectados y geográficos, con su zona de uso.
+- **No adivina** (regla 3): con la caja vacía no ofrece ninguno, el orden depende solo de lo escrito y nada viene elegido. Pulsar uno lo escribe en el campo EPSG y dice cuál se eligió; el servidor lo valida igual que si se hubiera tecleado, y queda en la bitácora con su nombre.
+- Pruebas: `test_crs_busqueda.py` (cada resultado se abre con `pyproj` con el mismo nombre) y `test_buscar_crs.py`.
+
+### Añadido — la portada empieza por el archivo (F13.8)
+
+- **Arriba, la zona de soltar** (la misma de Convertir, ahora un componente compartido); el buscador y el catálogo quedan debajo para quien trae una intención y no un archivo.
+- **Pista antes de que termine la subida:** al elegir o soltar un archivo, el navegador manda solo sus primeros 4 MiB (`File.slice()`) a `reconocer/`, que dice qué parece (por la cabecera, o solo por la extensión, y lo declara) y **qué herramientas aplican a ese archivo**, con las apagadas y su motivo. Para los formatos con el índice al final (TIFF, KMZ, PDF) avisa de que lo de dentro se confirma al terminar de subir. Si la pista falla no se muestra error: queda la ficha de siempre.
+- La ficha completa (veredictos, destinos) llega por el camino de antes, con el archivo entero.
+
+### Cambiado — la barra superior en tres zonas (F13.9)
+
+- **La explicación del modo** («los archivos no salen de este equipo»…) pasa al pie del lateral, siempre visible; la chapa sigue en la barra. Sin sesión (pantalla de entrada), que no tiene lateral, se queda en la barra.
+- **El buscador de la barra no baja de 160 px** y ya no desaparece en pantallas estrechas: a 375 px pasa a una segunda fila, junto a la cuenta, y mide 248 px (antes 136 por un ancho fijo, y oculto por debajo de 1000 px).
+
 ### Cambiado — iconos sin conflictos, una sola familia y tres colores de familia nuevos (F13.4 a F13.6)
 
 - **Un icono, un significado.** «Todas las herramientas» ya no usa el de QGIS (`icon-todas`), Tino ya no comparte el del mensaje informativo (`icon-tino`), CSV a Markdown deja el de Excel (`icon-texto-csv`), `icon-pdf-a-pdf` pasa a llamarse `icon-imagen-a-pdf` y la flecha de los grupos del lateral, que estaba dibujada suelta en `base.html`, entra al sprite (`icon-chevron`).

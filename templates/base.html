@@ -45,7 +45,8 @@
       ratón por encima.
     {% endcomment %}
     <span class="chapa chapa-{{ chapa.modo }}">{{ chapa.etiqueta }}</span>
-    <span class="barra-explicacion">{{ chapa.explicacion }}</span>
+    {# F13.9: con sesión la explicación vive en el lateral; aquí solo donde no hay lateral. #}
+    {% if not user.is_authenticated %}<span class="barra-explicacion">{{ chapa.explicacion }}</span>{% endif %}
 
     {% if user.is_authenticated %}
       {% comment %}
@@ -165,10 +166,26 @@
           <span>Todas las herramientas</span>
         </a>
 
+        {# Reducido: un icono por grupo, con la cuenta como insignia y su nombre en `title`. #}
+        <ul class="lateral-compactos lateral-solo-compacto-lista">
+          {% for grupo in menu_grupos %}
+            <li>
+              <a class="lateral-enlace-principal lateral-grupo-compacto"
+                 href="{% url 'dashboard:que_puedo_hacer' %}#grupo-{{ grupo.clave }}"
+                 title="{{ grupo.titulo }}: {{ grupo.acciones|length }} herramienta{{ grupo.acciones|length|pluralize }}">
+                <svg class="nav-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#{{ grupo.icono }}"></use></svg>
+                <span>{{ grupo.titulo }}</span>
+                <span class="lateral-insignia" aria-hidden="true">{{ grupo.acciones|length }}</span>
+              </a>
+            </li>
+          {% endfor %}
+        </ul>
+
         <p class="lateral-rotulo">Herramientas</p>
         {% for grupo in menu_grupos %}
           <details class="lateral-grupo" data-recuerda="lateral-{{ grupo.clave }}">
             <summary class="lateral-grupo-titulo">
+              <svg class="nav-icono lateral-grupo-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#{{ grupo.icono }}"></use></svg>
               <span class="lateral-grupo-nombre">{{ grupo.titulo }}</span>
               <span class="lateral-cuenta" aria-hidden="true">{{ grupo.acciones|length }}</span>
               <svg class="lateral-flecha" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-chevron"></use></svg>
@@ -217,6 +234,12 @@
             </li>
           {% endif %}
         </ul>
+
+        {# F13.9: la explicación del modo, siempre visible (no en un `title`). #}
+        <p class="lateral-modo" role="note">
+          <span class="chapa chapa-{{ chapa.modo }}">{{ chapa.etiqueta }}</span>
+          <span class="lateral-modo-texto">{{ chapa.explicacion }}</span>
+        </p>
       </nav>
       {# El asa para cambiar el ancho. Con JavaScript: arrastrar, flechas, Inicio, Fin y doble clic. #}
       <div class="lateral-asa" id="lateral-asa" role="separator" aria-orientation="vertical"
@@ -315,6 +338,7 @@
     pantalla quieta y en silencio.
   {% endcomment %}
   <script src="{% static 'js/respuestas.js' %}"></script>
+  <script src="{% static 'js/crs.js' %}"></script>
   {% block scripts %}{% endblock %}
 </body>
 </html>

@@ -36,6 +36,8 @@ class Grupo:
     #: Un grupo de una sola herramienta es una anomalía que `test_taxonomia.py` señala, salvo que
     #: se declare aquí: GNSS lo es porque hoy hay un solo tipo de dato de receptor que convertir.
     admite_uno: bool = False
+    #: El símbolo del grupo (`static/img/icons.svg`): el que se ve con el lateral reducido.
+    icono: str = "icon-todas"
 
 
 #: Los ocho grupos, **en el orden en que se piensan**: primero lo que se entrega a otro programa,
@@ -46,6 +48,7 @@ GRUPOS: tuple[Grupo, ...] = (
         "Entregar a un programa",
         "Cuando el archivo tiene que abrir en un programa concreto.",
         "dashboard:convertir",
+        icono="icon-destino",
     ),
     Grupo(
         "gnss",
@@ -53,42 +56,49 @@ GRUPOS: tuple[Grupo, ...] = (
         "Lo que graba el receptor en campo, para posprocesarlo.",
         "dashboard:convertir",
         admite_uno=True,
+        icono="icon-destino-satelite",
     ),
     Grupo(
         "organizar",
         "Organizar PDF",
         "Cuando sobran, faltan o están desordenadas las hojas.",
         "documents:inicio",
+        icono="icon-pdf-organizar",
     ),
     Grupo(
         "convertir",
         "Convertir documentos",
         "Cuando el documento hace falta en otro formato.",
         "documents:inicio",
+        icono="icon-pdf-office",
     ),
     Grupo(
         "optimizar",
         "Optimizar y reconocer",
         "Cuando el PDF pesa mucho o no se puede buscar.",
         "documents:inicio",
+        icono="icon-pdf-comprimir",
     ),
     Grupo(
         "revisar",
         "Revisar, firmar y proteger",
         "Cuando el documento va a salir de la oficina.",
         "documents:inicio",
+        icono="icon-pdf-proteger",
     ),
     Grupo(
         "texto",
         "Texto, tablas y Markdown",
         "Cuando el contenido tiene que salir del archivo.",
         "documents:texto",
+        icono="icon-texto-tabla",
     ),
     Grupo(
         "planta",
         "Imagen, video y planta",
         "Catálogos de planta y, más adelante, imágenes, fotos de dron y video.",
         "documents:texto",
+        icono="icon-catalogo",
     ),
 )
 
