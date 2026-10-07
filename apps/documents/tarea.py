@@ -350,6 +350,19 @@ def _telemetria(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
     }
 
 
+def _reparar(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
+    from apps.documents import reparar
+
+    hecho = reparar.reparar(entradas[0]["ruta"], parcial)
+    return {"paginas": hecho.paginas, "estaba_sano": hecho.estaba_sano}
+
+
+def _html_a_pdf(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
+    from apps.documents import html_a_pdf
+
+    return {"paginas": html_a_pdf.convertir(entradas[0]["ruta"], parcial)}
+
+
 def _unir(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
     from apps.documents import composicion, receta
 
@@ -523,6 +536,8 @@ TAREAS = {
     "md_epub": _a_markdown,
     "md_html": _a_markdown,
     "md_a_pdf": _markdown_a_pdf,
+    "html_a_pdf": _html_a_pdf,
+    "reparar": _reparar,
     "comprimir": _comprimir,
     "dividir": _dividir,
     "tamano": _tamano,

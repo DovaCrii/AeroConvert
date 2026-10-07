@@ -5,6 +5,11 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Sin publicar]
 
+### Añadido — reparar un PDF dañado y pasar una página web a PDF (F14.20)
+
+- **«Reparar un PDF dañado»**: recupera las páginas que se puedan leer de un PDF que no abre (una descarga cortada, un adjunto truncado). PDFium reconstruye el índice leyendo el archivo entero y se escribe de nuevo, válido; dice cuántas páginas se recuperaron. A diferencia de las demás pantallas, **no lee la cabecera antes**: justo ese es el archivo que se quiere arreglar. No inventa lo que ya no está.
+- **«Página web a PDF»**: el texto, los títulos, las listas y las tablas de una página guardada (`.html`). **No es un navegador**: no respeta el diseño, no baja imágenes ni hojas de estilo y no ejecuta programas; la pantalla lo dice antes. Pasa por los dos convertidores que ya existían (HTML a Markdown, Markdown a PDF).
+
 ### Añadido — redactar de verdad un PDF (F14.8)
 
 - **«Redactar: tachar de verdad»**: tacha textos (un nombre, un RUT; sin distinguir mayúsculas) y áreas (en milímetros, para una foto o un sello) de modo que **ya no existan en el archivo**. Un rectángulo negro encima deja el texto debajo, donde se copia; aquí las páginas afectadas se convierten en imagen con lo tachado ya puesto y el documento se escribe nuevo, así que del original no pasa nada de esa página (ni texto, ni imágenes de debajo, ni el `Info`).

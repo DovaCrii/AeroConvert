@@ -509,7 +509,7 @@ volver atrás**, igual que `test_escala_visual.py` y `test_iconos.py`. Versión 
 | F14.17 | **Video** con FFmpeg sondeado (D1): comprimir, recortar, cambiar formato, quitar audio y **extraer fotogramas** cada N segundos o metros para fotogrametría | `ffprobe` lee duración, códec y resolución; el número de fotogramas coincide | Claude | ⬜ |
 | F14.18 | **Telemetría de video de dron**: el `.SRT` de DJI a GPX o KML (puente con AeroLink) | `ogrinfo` abre la traza; el número de puntos coincide con las entradas | Claude | ⬜ |
 | F14.19 | **Markdown a PDF con la plantilla de J.E.J.** con WeasyPrint | PDFium renderiza; `pypdf` encuentra el texto del pie en cada página | Claude · **la persona entrega la plantilla** | ⬜ |
-| F14.20 | **HTML a PDF** y **reparar PDF** dañado | PDFium abre el reparado; el número de páginas coincide con lo recuperable | Claude | ⬜ |
+| F14.20 | **HTML a PDF** y **reparar PDF** dañado | PDFium abre el reparado; el número de páginas coincide con lo recuperable | Claude | ✅ 2026-10-07 · «Reparar un PDF dañado» (PDFium reconstruye el índice; `pypdf` estricto no abría el de partida y sí abre el reparado, con sus 3 páginas y su texto) y «Página web a PDF» (HTML → Markdown → PDF: texto, títulos, listas y tablas; **no es un navegador** y la pantalla lo dice) (`test_reparar.py`, `test_html_a_pdf.py`) |
 | F14.21 | **Editar Office en el navegador** (era F12.11) | — | **Descartada por D3 (2026-10-07)**; se reabre si el uso la pide dos veces | ⏸ |
 
 ---
