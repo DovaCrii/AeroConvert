@@ -1,4 +1,4 @@
-"""Las pantallas de las veintidós herramientas de documentos.
+"""Las pantallas de las veinticinco herramientas de documentos.
 
 ## Mirar aquí, hacer en la cola
 
@@ -86,6 +86,7 @@ from .pantalla_paginas import (  # noqa: F401
     firma_visible_vista,
     formularios_vista,
     marca_vista,
+    metadatos_vista,
     numerar_vista,
 )
 from .pantalla_proteger import (  # noqa: F401

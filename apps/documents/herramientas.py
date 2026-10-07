@@ -154,6 +154,18 @@ HERRAMIENTAS = (
         ),
     },
     {
+        "id": "metadatos",
+        "icono": "icon-pdf-metadatos",
+        "sale": "el mismo PDF, con los metadatos que usted decida",
+        "familia": "proteger",
+        "url": "documents:metadatos",
+        "nombre": "Ver y limpiar metadatos",
+        "que_hace": (
+            "Dice quién figura como autor y con qué programa se hizo, y lo cambia o lo borra "
+            "(incluido el XMP) antes de entregarlo."
+        ),
+    },
+    {
         "id": "proteger",
         "icono": "icon-pdf-proteger",
         "sale": "el mismo PDF, con contraseña",

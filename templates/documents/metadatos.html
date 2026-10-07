@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block titulo %}Ver y limpiar metadatos · AeroConvert{% endblock %}
+
+{% block contenido %}
+
+<form method="post" id="forma-documento" enctype="multipart/form-data">
+  {% csrf_token %}
+
+  {% include "documents/_origen.html" with pregunta="¿De qué PDF?" accion="mirar" boton="Ver sus metadatos" %}
+
+  {% if metadatos %}
+    <div class="tarjeta">
+      <div class="eyebrow">Lo que lleva</div>
+      <h2>{{ nombre_origen }}</h2>
+      {% if metadatos.vacio %}
+        <p class="av-mb-0">No lleva metadatos del documento: ni autor, ni programa, ni fechas, ni XMP.</p>
+      {% else %}
+        <dl class="av-mb-3">
+          {% for nombre, etiqueta, valor in filas %}
+            {% if valor %}<dt>{{ etiqueta }}</dt><dd>{{ valor }}</dd>{% endif %}
+          {% endfor %}
+          {% if metadatos.creado %}<dt>Creado</dt><dd>{{ metadatos.creado }}</dd>{% endif %}
+          {% if metadatos.modificado %}<dt>Modificado</dt><dd>{{ metadatos.modificado }}</dd>{% endif %}
+          <dt>XMP</dt><dd>{% if metadatos.tiene_xmp %}Sí: una segunda copia de estos datos{% else %}No lleva{% endif %}</dd>
+        </dl>
+      {% endif %}
+    </div>
+
+    <div class="tarjeta">
+      <div class="cabecera-tarjeta">
+        <div>
+          <div class="eyebrow">Qué hacer</div>
+          <h2>Cambiar o limpiar</h2>
+        </div>
+        <button type="submit" name="accion" value="limpiar" class="boton boton-secundario">Limpiar todo</button>
+      </div>
+      <p class="tenue">
+        <strong>Limpiar todo</strong> borra el autor, los programas, las fechas y el XMP del
+        documento. <strong>Guardar</strong> cambia solo los campos que edite y retira el XMP, que
+        diría lo de antes. Siempre se entrega una copia: el original no se toca.
+      </p>
+      {% for nombre, etiqueta, valor in filas %}
+        <div class="av-mb-3 av-mw-38">
+          <label class="fw-semibold" for="id_campo_{{ nombre }}">{{ etiqueta }}</label>
+          <input type="text" name="campo_{{ nombre }}" id="id_campo_{{ nombre }}" class="form-control"
+                 value="{{ valor }}" autocomplete="off">
+        </div>
+      {% endfor %}
+      <button type="submit" name="accion" value="guardar" class="boton">Guardar los cambios</button>
+      <p class="tenue av-mt-3 av-mb-0 av-fs-sm">
+        Esto es el documento, no su contenido: una fotografía incrustada puede traer sus propios
+        datos (EXIF) que aquí no se tocan.
+      </p>
+    </div>
+  {% endif %}
+</form>
+
+{% endblock %}

@@ -226,6 +226,19 @@ def _a_imagenes(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
         shutil.rmtree(carpeta, ignore_errors=True)
 
 
+def _metadatos(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
+    from apps.documents import metadatos
+
+    limpiar = bool(opciones.get("limpiar"))
+    paginas = metadatos.escribir(
+        entradas[0]["ruta"],
+        parcial,
+        cambios=opciones.get("cambios") or None,
+        limpiar=limpiar,
+    )
+    return {"paginas": paginas, "limpiado": limpiar}
+
+
 def _extraer_imagenes(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
     import shutil
 
@@ -407,6 +420,7 @@ TAREAS = {
     "comprimir": _comprimir,
     "dividir": _dividir,
     "a_imagenes": _a_imagenes,
+    "metadatos": _metadatos,
     "extraer_imagenes": _extraer_imagenes,
     "formularios": _formularios,
     "firma_visible": _firma_visible,

@@ -257,6 +257,14 @@ def _de_los_documentos() -> list[Accion]:
         "dividir": ("separar", "partir", "extraer", "split", "sacar paginas"),
         "imagenes": ("fotos", "escaneo", "jpg", "png", "monografia"),
         "a_imagenes": ("exportar", "lamina", "captura", "jpg", "png"),
+        "metadatos": (
+            "autor del pdf",
+            "quien lo hizo",
+            "propiedades del documento",
+            "datos ocultos",
+            "limpiar antes de enviar",
+            "xmp",
+        ),
         "extraer_imagenes": ("fotos del pdf", "sacar las fotos", "logotipos", "recuperar fotos"),
         "firma_visible": (
             "firmar",
@@ -362,6 +370,7 @@ HERRAMIENTAS_POR_EXTENSION = {
         "marca",
         "proteger",
         "formularios",
+        "metadatos",
         "a_imagenes",
         "extraer_imagenes",
         "a_word",

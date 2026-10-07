@@ -13,6 +13,7 @@ from .. import cola as cola_mod
 from .. import firma_visible as firma_visible_mod
 from .. import formularios as formularios_mod
 from .. import marcas as marcas_mod
+from .. import metadatos as metadatos_mod
 from ..composicion import ComposicionInvalida
 
 # **Reexportado**: el índice, las pruebas y `acciones.py` lo leen de aquí desde siempre. Los
@@ -166,6 +167,82 @@ def firma_visible_vista(request):
             "leyenda": leyenda,
         },
         sufijo="_firmado.pdf",
+    )
+
+
+#: Los campos que se editan, con la palabra con que se los nombra en la pantalla.
+ETIQUETAS_DE_METADATOS = {
+    "titulo": "Título",
+    "autor": "Autor",
+    "asunto": "Asunto",
+    "palabras_clave": "Palabras clave",
+    "creador": "Programa que lo creó",
+    "productor": "Programa que lo convirtió a PDF",
+}
+
+
+@login_required
+def metadatos_vista(request):
+    """Ver, editar y limpiar los metadatos del documento antes de entregarlo.
+
+    Dos pasos como las demás: primero se mira lo que lleva (para saber qué hay que quitar) y
+    después se guarda una copia con lo que se decidió.
+    """
+    contexto = {
+        "seccion": "pdf",
+        "etiqueta_seccion": "PDF",
+        "titulo_pagina": "Ver y limpiar metadatos",
+        "proposito": "Quién figura como autor y con qué programa se hizo, antes de entregarlo.",
+        "ruta_texto": (request.GET.get("ruta") or "").strip(),
+        "etiquetas": ETIQUETAS_DE_METADATOS,
+    }
+
+    if request.method != "POST":
+        return render(request, "documents/metadatos.html", contexto)
+
+    cabecera, origen, error = _mirar_pdf(request)
+    if error:
+        messages.error(request, error)
+        return render(request, "documents/metadatos.html", contexto)
+
+    contexto["ruta_texto"] = contexto["ruta"] = origen.token
+    contexto["nombre_origen"] = origen.nombre
+    contexto["cabecera"] = cabecera
+    try:
+        actuales = metadatos_mod.leer(origen.ruta)
+    except ComposicionInvalida as fallo:
+        messages.error(request, str(fallo))
+        return render(request, "documents/metadatos.html", contexto)
+    contexto["metadatos"] = actuales
+    contexto["filas"] = [
+        (nombre, etiqueta, request.POST.get(f"campo_{nombre}", actuales.campos[nombre]))
+        for nombre, etiqueta in ETIQUETAS_DE_METADATOS.items()
+    ]
+
+    accion = request.POST.get("accion")
+    if accion not in {"guardar", "limpiar"}:
+        return render(request, "documents/metadatos.html", contexto)
+
+    limpiar = accion == "limpiar"
+    cambios = {}
+    if not limpiar:
+        cambios = {
+            nombre: (request.POST.get(f"campo_{nombre}") or "").strip()
+            for nombre in ETIQUETAS_DE_METADATOS
+            # Solo lo que llegó en el formulario: un campo ausente no es un campo vaciado.
+            if f"campo_{nombre}" in request.POST
+            and (request.POST.get(f"campo_{nombre}") or "").strip() != actuales.campos[nombre]
+        }
+        if not cambios:
+            messages.error(request, "No cambió ningún campo. Edite alguno, o elija «Limpiar todo».")
+            return render(request, "documents/metadatos.html", contexto)
+
+    return cola_mod.encolar(
+        request,
+        "metadatos",
+        [origen],
+        {"limpiar": limpiar, "cambios": cambios},
+        sufijo="_limpio.pdf" if limpiar else "_metadatos.pdf",
     )
 
 
