@@ -33,7 +33,7 @@ Estados: ✅ hecho · 🟨 en curso · ⬜ por hacer · ⏸ espera un pedido · 
 | **B0 · Cierre** | #54 organizar y encadenar (F14.1 organizar, F14.10); plan a `main` | ✅ 2026-10-07 | #54, #55 | — |
 | **B1 · Lenguaje y limpieza** | F13.3 usted ✅ · F13.10 estilos en línea ✅ | ✅ 2026-10-07 | #56, #58 | — |
 | **B2 · Taxonomía y nombres** | F13.1 taxonomía ✅ · F13.2 nombres ✅ | ✅ 2026-10-07 | #59, #60 | P1 resuelto |
-| **B3 · Iconos y color** | F13.4 · F13.5 · F13.6 | ⬜ | — | B2 |
+| **B3 · Iconos y color** | F13.4 ✅ · F13.5 ✅ · F13.6 ✅ | ✅ 2026-10-07 | #61 | — |
 | **B4 · Plano con color** | F13.7 | ⬜ | — | B3 |
 | **B5 · Barra, portada y mapa** | F13.9 · F13.8 · F13.11 · F13.12 | ⬜ | — | B4 · P2 (F13.12) |
 | **B6 · Suite PDF** | F14.0 · extraer (F14.1) · F14.2 · F14.3 · F14.4 · F14.5 · F14.6 · F14.7 · F14.8 · F14.9 · F14.11 · F14.20 | ⬜ | — | P3 (F14.0) |

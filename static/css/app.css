@@ -97,6 +97,16 @@
    * al ámbar ni al rojo de los estados. */
   --av-fam-texto: oklch(0.4756 0.1156 47.20);
   --av-fam-texto-soft: oklch(0.9452 0.0254 56.06);
+  /* Tres familias nuevas, en los huecos de matiz que dejan las seis de arriba **y los tres
+   * estados** (rojo 17°, ámbar 73°, verde 169°): sky 232° (GNSS), oliva 112° (planta) y
+   * orquídea 321° (imagen). `test_paleta.py` exige 20° de separación entre todas. El color
+   * nunca va solo: cada baldosa lleva además su dibujo y su texto. */
+  --av-fam-gnss: oklch(0.4850 0.1100 232.00);
+  --av-fam-gnss-soft: oklch(0.9450 0.0200 232.00);
+  --av-fam-planta: oklch(0.4700 0.0950 112.00);
+  --av-fam-planta-soft: oklch(0.9450 0.0300 112.00);
+  --av-fam-imagen: oklch(0.4800 0.1500 321.00);
+  --av-fam-imagen-soft: oklch(0.9450 0.0250 321.00);
 
   --av-radius: 12px;
   /* Para lo pequeño: chips de código y filetes. Estaban `3px`, `4px` y `6px` a mano. */
@@ -260,6 +270,12 @@
   --av-fam-destino-soft: oklch(0.3015 0.0718 266.01);
   --av-fam-texto: oklch(0.8077 0.0922 53.01);
   --av-fam-texto-soft: oklch(0.3209 0.0585 53.51);
+  --av-fam-gnss: oklch(0.8200 0.0900 232.00);
+  --av-fam-gnss-soft: oklch(0.3000 0.0650 232.00);
+  --av-fam-planta: oklch(0.8300 0.1000 112.00);
+  --av-fam-planta-soft: oklch(0.3050 0.0550 112.00);
+  --av-fam-imagen: oklch(0.8100 0.0950 321.00);
+  --av-fam-imagen-soft: oklch(0.3000 0.0850 321.00);
 
   /* **En oscuro la sombra casi no se ve, así que hacen falta las tres cosas a la vez.**
    *
@@ -331,6 +347,12 @@
     --av-fam-destino-soft: oklch(0.3015 0.0718 266.01);
     --av-fam-texto: oklch(0.8077 0.0922 53.01);
     --av-fam-texto-soft: oklch(0.3209 0.0585 53.51);
+    --av-fam-gnss: oklch(0.8200 0.0900 232.00);
+    --av-fam-gnss-soft: oklch(0.3000 0.0650 232.00);
+    --av-fam-planta: oklch(0.8300 0.1000 112.00);
+    --av-fam-planta-soft: oklch(0.3050 0.0550 112.00);
+    --av-fam-imagen: oklch(0.8100 0.0950 321.00);
+    --av-fam-imagen-soft: oklch(0.3000 0.0850 321.00);
 
     /* Los mismos que el bloque de arriba. Este es el que manda **por omisión** —quien tiene
      * el sistema en oscuro y no ha tocado el interruptor— y ya se olvidó una vez: los colores
@@ -2980,6 +3002,21 @@ code {
 .fam-texto {
   --marca-color: var(--av-fam-texto);
   --marca-fondo: var(--av-fam-texto-soft);
+}
+
+.fam-gnss {
+  --marca-color: var(--av-fam-gnss);
+  --marca-fondo: var(--av-fam-gnss-soft);
+}
+
+.fam-planta {
+  --marca-color: var(--av-fam-planta);
+  --marca-fondo: var(--av-fam-planta-soft);
+}
+
+.fam-imagen {
+  --marca-color: var(--av-fam-imagen);
+  --marca-fondo: var(--av-fam-imagen-soft);
 }
 
 .herramienta-icono {

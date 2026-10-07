@@ -217,7 +217,7 @@ def _de_los_perfiles() -> list[Accion]:
             url="dashboard:convertir",
             consulta={"destino": perfil.id},
             icono=ICONOS_DE_PERFIL.get(perfil.id, "icon-destino"),
-            familia="destino",
+            familia="gnss" if taxonomia.grupo_de_perfil(perfil) == "gnss" else "destino",
             palabras=(
                 *PALABRAS_DE_PERFIL.get(
                     perfil.id, ("ortofoto", "nube de puntos", "raster", "vectorial", perfil.id)

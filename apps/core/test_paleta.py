@@ -132,7 +132,19 @@ def sistema_oscuro(css: str) -> dict[str, str]:
 
 #: Las seis familias. Cuatro de las herramientas de PDF (`HERRAMIENTAS` en
 #: `apps/documents/views.py`), más los destinos geoespaciales y el grupo de texto.
-FAMILIAS = ("componer", "transformar", "marcar", "proteger", "destino", "texto")
+FAMILIAS = (
+    "componer",
+    "transformar",
+    "marcar",
+    "proteger",
+    "destino",
+    "texto",
+    # F13.6: las de GNSS, de planta y de imagen, en los huecos de matiz que dejan las demás.
+    "gnss",
+    "planta",
+    "imagen",
+)
+NUEVAS = ("gnss", "planta", "imagen")
 
 
 class TestElColorDeAccion:
@@ -263,6 +275,26 @@ class TestLosColoresDeFamilia:
         assert len(fondos) == len(FAMILIAS)
         colores = {claro[f"--av-fam-{f}"] for f in FAMILIAS}
         assert len(colores) == len(FAMILIAS)
+
+    def test_las_nuevas_se_separan_20_grados_de_todo_lo_que_ya_hay(self, claro):
+        """**El color nunca va solo, pero tampoco puede confundirse.** GNSS, planta e imagen se
+        pusieron en los huecos de matiz que dejan las seis familias y los tres estados; esto
+        impide que una retocada las vuelva a acercar a una de ellas."""
+        from apps.core import oklch
+
+        def matiz(hexa: str) -> float:
+            return oklch.de_hex(hexa)[2]
+
+        def distancia(a: float, b: float) -> float:
+            d = abs(a - b) % 360
+            return min(d, 360 - d)
+
+        otras = {f"fam-{f}": claro[f"--av-fam-{f}"] for f in FAMILIAS if f not in NUEVAS}
+        otras |= {e: claro[f"--av-{e}"] for e in ("ok", "warn", "danger")}
+        for nueva in NUEVAS:
+            propio = matiz(claro[f"--av-fam-{nueva}"])
+            for nombre, hexa in otras.items():
+                assert distancia(propio, matiz(hexa)) >= 20, f"{nueva} vs {nombre}"
 
     def test_y_no_pisan_a_los_estados(self, claro):
         """Verde, ámbar y rojo significan “salió bien”, “cuidado” y “falló” en toda la
