@@ -24,7 +24,7 @@ from django.conf import settings
 from .views import HERRAMIENTAS
 
 #: Los números en letra, que es como se escriben en prosa castellana y como están hoy.
-#: Hasta veinticinco: pasado eso, la frase correcta deja de ser «las N herramientas».
+#: Hasta treinta: pasado eso, la frase correcta deja de ser «las N herramientas».
 EN_LETRA = {
     11: "once",
     12: "doce",
@@ -41,6 +41,11 @@ EN_LETRA = {
     23: "veintitrés",
     24: "veinticuatro",
     25: "veinticinco",
+    26: "veintiséis",
+    27: "veintisiete",
+    28: "veintiocho",
+    29: "veintinueve",
+    30: "treinta",
 }
 
 #: Dónde se publica la cifra. No es una lista de todos los sitios donde aparece un número: es
@@ -57,7 +62,7 @@ def _cuantas() -> int:
 
 
 def test_la_cifra_tiene_palabra():
-    """Si se pasa de veinticinco, esta prueba avisa antes de que la frase quede rara."""
+    """Si se pasa de treinta, esta prueba avisa antes de que la frase quede rara."""
     assert _cuantas() in EN_LETRA, (
         f"Ya son {_cuantas()} herramientas. Añade la palabra a EN_LETRA, o cambia la prosa a "
         "«las herramientas de documentos» sin número — que a partir de cierto punto es mejor."

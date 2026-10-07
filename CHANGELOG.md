@@ -5,6 +5,11 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Sin publicar]
 
+### Añadido — recortar y cambiar el tamaño de un PDF, y compararlo con otra versión (F14.6, F14.7)
+
+- **«Recortar y cambiar el tamaño»**: tres modos. **Al contenido**: cada hoja queda del tamaño de lo que tiene dibujado más un margen (se mide dibujándola con PDFium; una hoja en blanco se deja como está). **A mano**: tantos milímetros de cada lado, de lo que se ve. **A otra hoja** (A0 a A4, Carta, Oficio): el contenido se escala sin deformarse y queda centrado; una lámina apaisada sigue apaisada. Funciona también con páginas giradas. Recortar no es borrar: lo que queda fuera sigue en el archivo, y la pantalla lo dice.
+- **«Comparar dos PDF»**: se pide el antes y el después y se dibujan y restan, así que se compara **lo que se ve**, no el archivo. El informe trae solo las páginas que difieren, con tres columnas (antes, después y las diferencias en rojo); una página que sobra o cambió de tamaño se informa aparte. Si no cambia nada no hay archivo: el desenlace `sin-diferencias` lo explica.
+
 ### Añadido — rellenar formularios PDF y poner una firma visible (F14.3, F14.4)
 
 - **«Rellenar un formulario PDF»**: lista los campos del documento y escribe en los de **texto y casillas**; las listas, opciones y firmas se muestran pero no se editan, y la pantalla lo dice. Con **«Aplanar al terminar»** lo escrito pasa a la página y los campos desaparecen (PDFium aplana y se reescribe sin `AcroForm`): ya no se puede cambiar. Siempre una copia.

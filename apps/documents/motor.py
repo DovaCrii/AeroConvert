@@ -74,6 +74,13 @@ ESPECIFICACIONES: dict[str, Especificacion] = {
         carril=PESADO, timeout_s=1800, emite_progreso=True, salida_opcional=True
     ),
     "dividir": Especificacion(emite_progreso=True),
+    # Recortar al contenido dibuja cada hoja con PDFium: un juego de cien láminas A1 tarda.
+    "tamano": Especificacion(timeout_s=900),
+    # Dibuja las dos hojas de cada par y las resta; sin diferencias no hay archivo, y eso es la
+    # respuesta, no un fallo.
+    "comparar": Especificacion(
+        carril=PESADO, timeout_s=1800, emite_progreso=True, salida_opcional=True
+    ),
     # Dibujar doscientas láminas a 300 ppp no cabe en cinco minutos, y sigue siendo del
     # carril ligero: avanza hoja a hoja y lo dice, así que no bloquea sin que se vea.
     "a_imagenes": Especificacion(timeout_s=900, emite_progreso=True),

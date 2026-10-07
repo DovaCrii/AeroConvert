@@ -25,7 +25,7 @@ Se relanza con `gh run rerun <id>`; no se fusiona con el CI en rojo.
   radios e iconos desde la escala; cierres de la auditoría y B-04 (VRT disfrazado); `Incidente` y
   `resumen_de_uso`; cobertura de la cola.
 - **Dos migraciones nuevas** (`core/0002`, `core/0003`) que `desplegar.sh` aplica sola. Pruebas:
-  ~2.780 verdes sin GDAL ni PDAL. 25 herramientas de documentos.
+  ~2.780 verdes sin GDAL ni PDAL. 27 herramientas de documentos.
 
 ```bash
 cd /opt/aeroconvert && sudo -u aeroconvert git pull && sudo scripts/desplegar.sh

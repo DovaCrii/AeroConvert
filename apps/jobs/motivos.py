@@ -197,6 +197,11 @@ DESENLACES: dict[str, Motivo] = dict(
             "El PDF no lleva ninguna imagen incrustada que valga la pena sacar.",
             "Si lo que quiere es cada página como imagen, use «PDF a imágenes».",
         ),
+        _m(
+            "sin-diferencias",
+            "Los dos PDF se ven iguales: no hay ninguna página que difiera.",
+            "Si esperaba cambios, compruebe que son las dos versiones que quería comparar.",
+        ),
         _m("con-avisos", "Hecho, con avisos que conviene leer antes de usarlo."),
     ]
 )
