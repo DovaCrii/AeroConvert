@@ -6,7 +6,20 @@
 {% block contenido %}
 
 {% comment %}
-  El buscador va arriba y solo. Es lo único que hay que hacer en esta pantalla.
+  **Archivo primero (F13.8).** La acción principal de la portada es soltar un archivo: debajo
+  salen lo que es (pista leída de su cabecera, antes de que termine de subir), su ficha con los
+  veredictos y lo que se puede hacer con él. Quien no trae archivo, sino una intención, tiene
+  justo debajo el buscador y el catálogo. Ver `static/js/reconocer.js`.
+{% endcomment %}
+<div class="portada-soltar">
+  {% include "dashboard/_zona_soltar.html" %}
+  <p id="mirando" class="tenue htmx-indicator av-mt-3 av-mb-0">Mirando el archivo…</p>
+  <div id="reconocido" class="av-mt-3"></div>
+  <div id="ficha" data-enfocar></div>
+</div>
+
+{% comment %}
+  El buscador va debajo del archivo y solo. Es lo único que hay que hacer en esta pantalla.
 
   `hx-trigger` con `delay` porque dispara con cada tecla: sin la espera, escribir «ortofoto»
   serían ocho peticiones de las que siete se tiran. Y `changed` para que moverse por el campo
@@ -24,7 +37,7 @@
   </svg>
   <input type="search" id="q" name="q" value="{{ q }}" class="form-control"
          placeholder="juntar planos, quitar contraseña, pasar a Excel…"
-         autocomplete="off" autofocus>
+         autocomplete="off">
   {% comment %}
     **El atajo se enseña donde se usa, no en una hoja de trucos.**
 
@@ -64,4 +77,9 @@
 <div id="resultados">
   {% include "dashboard/_acciones.html" %}
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'js/convertir.js' %}"></script>
+<script src="{% static 'js/reconocer.js' %}"></script>
 {% endblock %}

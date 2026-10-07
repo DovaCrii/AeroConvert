@@ -5,6 +5,34 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Sin publicar]
 
+### Añadido — buscar el sistema de referencia por nombre, sin saber el EPSG
+
+- En la ficha de un archivo sin sistema declarado, **sobre el campo «Código EPSG»**, hay un buscador: «UTM 19 sur», «SIRGAS Chile», «PSAD56», «wgs84» o el número. La lista sale de la base de PROJ que ya trae `pyproj` (nada nuevo que instalar ni copiar): sistemas vigentes, proyectados y geográficos, con su zona de uso.
+- **No adivina** (regla 3): con la caja vacía no ofrece ninguno, el orden depende solo de lo escrito y nada viene elegido. Pulsar uno lo escribe en el campo EPSG y dice cuál se eligió; el servidor lo valida igual que si se hubiera tecleado, y queda en la bitácora con su nombre.
+- Pruebas: `test_crs_busqueda.py` (cada resultado se abre con `pyproj` con el mismo nombre) y `test_buscar_crs.py`.
+
+### Añadido — la portada empieza por el archivo (F13.8)
+
+- **Arriba, la zona de soltar** (la misma de Convertir, ahora un componente compartido); el buscador y el catálogo quedan debajo para quien trae una intención y no un archivo.
+- **Pista antes de que termine la subida:** al elegir o soltar un archivo, el navegador manda solo sus primeros 4 MiB (`File.slice()`) a `reconocer/`, que dice qué parece (por la cabecera, o solo por la extensión, y lo declara) y **qué herramientas aplican a ese archivo**, con las apagadas y su motivo. Para los formatos con el índice al final (TIFF, KMZ, PDF) avisa de que lo de dentro se confirma al terminar de subir. Si la pista falla no se muestra error: queda la ficha de siempre.
+- La ficha completa (veredictos, destinos) llega por el camino de antes, con el archivo entero.
+
+### Cambiado — la barra superior en tres zonas (F13.9)
+
+- **La explicación del modo** («los archivos no salen de este equipo»…) pasa al pie del lateral, siempre visible; la chapa sigue en la barra. Sin sesión (pantalla de entrada), que no tiene lateral, se queda en la barra.
+- **El buscador de la barra no baja de 160 px** y ya no desaparece en pantallas estrechas: a 375 px pasa a una segunda fila, junto a la cuenta, y mide 248 px (antes 136 por un ancho fijo, y oculto por debajo de 1000 px).
+
+### Añadido — la huella del archivo sobre una retícula de coordenadas (F13.11)
+
+- En la ficha, **«Dónde está»**: un dibujo de la huella sobre meridianos y paralelos con su valor, **sin mapa base** (decisión D5) y sin biblioteca de mapas: es un SVG que hace el servidor, así que no hay nada que vendorizar y nada sale del equipo. Más una tabla con las cuatro esquinas en longitud y latitud, que es lo que lee un lector de pantalla.
+- Sale de la cabecera (origen y escala de un GeoTIFF, mínimos y máximos de un LAS) y **solo con sistema de referencia conocido**: sin él no hay huella, porque unas coordenadas sin sistema no dicen dónde está nada. Una imagen girada tampoco se dibuja.
+- Oráculo: las esquinas coinciden con `gdalinfo -json` (`wgs84Extent`) con error ≤ 1e-7° en EPSG:32719, 5361 (SIRGAS-Chile 2002 / 19S) y 24879 (PSAD56 / 19S).
+
+### Cambiado — el lateral reducido muestra un icono por grupo, con su cuenta
+
+- Reducido, el lateral ya no esconde los ocho grupos: cada uno es **un icono con la cantidad de herramientas como insignia** y su nombre en el `title`; pulsarlo lleva al grupo de la portada, que se abre aunque se hubiera dejado cerrado (`#grupo-…`).
+- Con el lateral ancho, cada grupo lleva ahora su símbolo delante del nombre.
+
 ### Cambiado — la interfaz plana, pero con color (F13.7)
 
 - **Fuera los degradados** (eran 8: el velo del fondo, la barra, el lateral y las baldosas) y **las sombras con difuminado**: las superficies se apoyan en un anillo de 1 px (`--av-elev-0` a `-2` son ahora el mismo) y se distinguen por el cambio de superficie y por el color. `--av-elev-3` queda como **la única sombra**, para lo que flote encima de lo demás (hoy nada).

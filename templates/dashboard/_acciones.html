@@ -208,7 +208,7 @@
     **Buscando, todo abierto y sin recordar nada**: lo que se encontró no puede quedar
     escondido tras un grupo que alguien cerró ayer.
   {% endcomment %}
-  <details class="grupo-herramientas"
+  <details class="grupo-herramientas" id="grupo-{{ grupo.clave }}"
            {% if not q %}data-recuerda="grupo-{{ grupo.clave }}"{% endif %}
            {% if q or forloop.first %}open{% endif %}>
     <summary class="grupo-resumen">

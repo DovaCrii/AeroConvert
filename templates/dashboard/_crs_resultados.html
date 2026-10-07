@@ -1,0 +1,24 @@
+{% comment %}
+  Los sistemas de referencia que cuadran con lo escrito. Elegir uno es declararlo: el botón
+  lleva el código en `data-codigo` y `static/js/crs.js` lo pone en el campo. Sin ninguno
+  preseleccionado y sin orden por «probabilidad» (regla 3).
+{% endcomment %}
+{% if resultados %}
+  <ul class="crs-lista" role="listbox" aria-label="Sistemas de referencia encontrados">
+    {% for r in resultados %}
+      <li role="option" aria-selected="false">
+        <button type="button" class="crs-opcion" data-crs-codigo="{{ r.codigo }}"
+                data-crs-nombre="{{ r.nombre }}">
+          <span class="crs-nombre">{{ r.nombre }}</span>
+          <span class="crs-codigo">{{ r.epsg }} · {{ r.tipo }}</span>
+          {% if r.area %}<span class="crs-area tenue">{{ r.area }}</span>{% endif %}
+        </button>
+      </li>
+    {% endfor %}
+  </ul>
+{% elif escrito %}
+  <p class="tenue av-m-0" role="status">
+    No hay ningún sistema con eso. Pruebe con parte del nombre («SIRGAS», «PSAD56»), la zona
+    («UTM 19 sur») o el número si lo tiene.
+  </p>
+{% endif %}

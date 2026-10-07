@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import unicodedata
 from dataclasses import dataclass, field
+from pathlib import Path
 from urllib.parse import urlencode
 
 from django.urls import reverse
@@ -326,6 +327,54 @@ EJEMPLOS = (
 
 def todas() -> list[Accion]:
     return [*_de_los_perfiles(), *_de_los_documentos()]
+
+
+#: Qué herramientas de documentos aceptan un archivo, según su extensión (F13.8, «archivo
+#: primero»). Es una tabla y no una propiedad de cada herramienta porque la pregunta es la
+#: inversa —«qué hago con esto»— y porque `test_para_el_archivo` vigila que cada id exista.
+#: Los geoespaciales no están aquí: su ficha ya ofrece destinos (`_destinos_para`).
+HERRAMIENTAS_POR_EXTENSION = {
+    ".pdf": (
+        "unir",
+        "organizar",
+        "dividir",
+        "comprimir",
+        "ocr",
+        "numerar",
+        "marca",
+        "proteger",
+        "a_imagenes",
+        "a_word",
+        "md_pdf",
+    ),
+    ".png": ("imagenes",),
+    ".jpg": ("imagenes",),
+    ".jpeg": ("imagenes",),
+    ".doc": ("office", "md_word"),
+    ".docx": ("office", "md_word"),
+    ".xls": ("office", "md_excel"),
+    ".xlsx": ("office", "md_excel", "excel_catalogo"),
+    ".ppt": ("office",),
+    ".pptx": ("office",),
+    ".csv": ("md_csv",),
+    ".epub": ("md_epub",),
+    ".html": ("md_html",),
+    ".htm": ("md_html",),
+    ".md": ("md_a_pdf",),
+    ".mdb": ("catalogo_excel",),
+    ".accdb": ("catalogo_excel",),
+}
+
+
+def para_el_archivo(nombre: str) -> list[Accion]:
+    """Las herramientas de documentos que aplican a **ese** archivo, por su extensión.
+
+    Las apagadas salen también, con su motivo (regla 4 de `AGENTS.md`): una herramienta que
+    aplica pero hoy no puede, no desaparece.
+    """
+    sufijo = Path(nombre).suffix.lower()
+    ids = {f"pdf-{i}" for i in HERRAMIENTAS_POR_EXTENSION.get(sufijo, ())}
+    return [a for a in _de_los_documentos() if a.id in ids]
 
 
 # --- Buscar por par de formatos --------------------------------------------
@@ -647,6 +696,7 @@ def por_categoria(busqueda: str = "") -> list[dict]:
                     "clave": clave,
                     "titulo": titulo,
                     "cuando": cuando,
+                    "icono": grupo.icono,
                     "seccion": reverse(seccion) if seccion else "",
                     "acciones": dentro,
                 }

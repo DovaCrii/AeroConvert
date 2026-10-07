@@ -19,7 +19,11 @@ urlpatterns = [
     # Las dos vías que faltaban: subir desde el equipo de quien mira, y andar la carpeta
     # compartida en vez de teclear su ruta.
     path("subir/", views.subir, name="subir"),
+    # F13.8: la pista que sale de leer solo la cabecera de lo soltado, antes de subirlo entero.
+    path("reconocer/", views.reconocer, name="reconocer"),
     path("explorar/", views.explorar, name="explorar"),
+    # Buscar un sistema de referencia por nombre o zona, para quien no sabe su EPSG.
+    path("buscar-crs/", views.buscar_crs, name="buscar_crs"),
     path("ajustes/", views.ajustes, name="ajustes"),
     # Se llama `encolar` y no `convertir` porque es lo que hace: la conversión la ejecuta
     # el despachador después. Tener las dos con el mismo nombre invitaba a esperar que esta

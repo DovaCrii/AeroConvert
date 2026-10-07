@@ -1,0 +1,59 @@
+{% load static %}
+{% comment %}
+  La pista de un archivo recién soltado (F13.8): sale de leer solo su cabecera, antes de que
+  termine de subir. No es la ficha: la ficha llega después, con el archivo entero.
+{% endcomment %}
+{% if not sin_pista %}
+  <section class="tarjeta reconocido" aria-live="polite" aria-labelledby="reconocido-titulo">
+    <h2 class="reconocido-titulo" id="reconocido-titulo">
+      {{ nombre }}{% if tamano %} <span class="tenue">· {{ tamano|filesizeformat }}</span>{% endif %}
+    </h2>
+    {% if formato %}
+      <p class="av-mb-2">
+        Parece <strong>{{ formato.nombre }}</strong>{% if por == "firma" %}, por su cabecera{% else %}, solo por su extensión: la cabecera no lo confirma{% endif %}.
+      </p>
+      {% if necesita_el_final %}
+        <p class="tenue av-mb-2">
+          Lo que lleva dentro se confirma al terminar de subirlo: parte de esa información puede
+          estar al final del archivo.
+        </p>
+      {% endif %}
+    {% else %}
+      <p class="av-mb-2">
+        No lo reconozco ni por la cabecera ni por la extensión. Lo miraré entero al terminar de subirlo.
+      </p>
+    {% endif %}
+
+    {% if herramientas %}
+      <h3 class="reconocido-sub">Lo que se puede hacer con este archivo</h3>
+      <div class="herramientas">
+        {% for accion in herramientas %}
+          {% if accion.disponible %}
+            <a class="herramienta" href="{{ accion.enlace }}">
+              <span class="herramienta-marca fam-{{ accion.familia }}" aria-hidden="true">
+                <svg class="herramienta-icono"><use href="{% static 'img/icons.svg' %}#{{ accion.icono }}"></use></svg>
+              </span>
+              <span class="herramienta-texto">
+                <strong>{{ accion.nombre }}</strong>
+                <span class="herramienta-sale">Sale: <strong>{{ accion.sale }}</strong></span>
+              </span>
+            </a>
+          {% else %}
+            <div class="herramienta herramienta-apagada">
+              <span class="herramienta-marca" aria-hidden="true">
+                <svg class="herramienta-icono"><use href="{% static 'img/icons.svg' %}#{{ accion.icono }}"></use></svg>
+              </span>
+              <span class="herramienta-texto">
+                <strong>{{ accion.nombre }}</strong>
+                <span class="motivo">
+                  <span aria-hidden="true">⊘</span> Aquí no se puede.
+                  <a href="{% url 'engines:matriz' %}">Ver por qué</a>
+                </span>
+              </span>
+            </div>
+          {% endif %}
+        {% endfor %}
+      </div>
+    {% endif %}
+  </section>
+{% endif %}

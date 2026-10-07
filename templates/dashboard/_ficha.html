@@ -1,4 +1,4 @@
-{% load static %}
+{% load static l10n %}
 {% if error %}
   {% comment %}
     **El mensaje delante y el código plegado.** Antes salía «Motivo: `ruta-no-permitida`» a la
@@ -247,6 +247,22 @@
     {% if error_en == "crs" %}
       <p class="error" role="alert" id="error-crs"><strong>{{ error_al_convertir }}</strong></p>
     {% endif %}
+    {% comment %}
+      **¿No sabe el EPSG? Búsquelo por nombre.** «UTM 19 sur», «SIRGAS Chile», «PSAD56»: la lista
+      sale de la base de PROJ. No hay ninguno elegido de antemano ni orden por «probable»;
+      elegir uno lo escribe en el campo de abajo, que es el que el servidor valida. El campo
+      de búsqueda no pertenece al formulario (`form` a un id que no existe): no se envía.
+    {% endcomment %}
+    <div class="av-mw-38 av-mb-3">
+      <label class="fw-semibold" for="crs-buscar">Búsquelo por nombre o zona</label>
+      <input type="search" id="crs-buscar" name="q" class="form-control" form="sin-formulario"
+             placeholder="UTM 19 sur, SIRGAS Chile, PSAD56…" autocomplete="off"
+             hx-get="{% url 'dashboard:buscar_crs' %}" hx-trigger="input changed delay:250ms, search"
+             hx-target="#crs-resultados" hx-swap="innerHTML"
+             aria-controls="crs-resultados">
+      <div id="crs-resultados" class="crs-resultados av-mt-2" aria-live="polite"></div>
+      <p id="crs-elegido" class="av-mt-2 av-mb-0 fw-semibold" aria-live="polite"></p>
+    </div>
     <div class="av-mw-16">
       <label class="fw-semibold" for="id_crs_declarado">Código EPSG</label>
       <input type="text" name="crs_declarado" id="id_crs_declarado" class="form-control"
@@ -279,6 +295,52 @@
         </p>
       </div>
     {% endif %}
+  </div>
+{% endif %}
+
+{% if mapa %}
+  {% comment %}
+    **Dónde está (F13.11).** La huella sobre una retícula de coordenadas, sin mapa base: un SVG
+    hecho en el servidor, sin biblioteca ni teselas, así que nada sale del equipo. Solo con
+    sistema de referencia conocido. El color no va solo: el texto de abajo da las cuatro
+    esquinas con sus números, que es lo que lee un lector de pantalla.
+  {% endcomment %}
+  <div class="tarjeta" id="huella">
+    <div class="eyebrow">Dónde está</div>
+    {# Sin localizar: en español 104.0 saldría «104,0» y no es una coordenada de SVG. #}
+    {% localize off %}
+    <svg class="mapa-svg" viewBox="0 0 {{ mapa.ancho }} {{ mapa.alto }}" role="img"
+         aria-labelledby="mapa-titulo mapa-desc">
+      <title id="mapa-titulo">Huella del archivo sobre una retícula de coordenadas</title>
+      <desc id="mapa-desc">
+        Sin mapa base. Esquinas, de longitud y latitud:
+        {% for e in huella.esquinas %}{{ e.nombre }} {{ e.lon|floatformat:7 }}, {{ e.lat|floatformat:7 }}{% if not forloop.last %}; {% endif %}{% endfor %}.
+      </desc>
+      <rect class="mapa-caja" x="{{ mapa.caja.x }}" y="{{ mapa.caja.y }}"
+            width="{{ mapa.caja.w }}" height="{{ mapa.caja.h }}"></rect>
+      {% for m in mapa.meridianos %}
+        <line class="mapa-linea" x1="{{ m.x }}" x2="{{ m.x }}" y1="{{ mapa.caja.y }}" y2="{{ mapa.caja.abajo }}"></line>
+        <text class="mapa-texto" x="{{ m.x }}" y="{{ mapa.caja.abajo|add:14 }}" text-anchor="middle">{{ m.texto }}</text>
+      {% endfor %}
+      {% for p in mapa.paralelos %}
+        <line class="mapa-linea" x1="{{ mapa.caja.x }}" x2="{{ mapa.caja.derecha }}" y1="{{ p.y }}" y2="{{ p.y }}"></line>
+        <text class="mapa-texto" x="{{ mapa.caja.x|add:-5 }}" y="{{ p.y|add:3 }}" text-anchor="end">{{ p.texto }}</text>
+      {% endfor %}
+      <polygon class="mapa-huella" points="{{ mapa.poligono }}"></polygon>
+    </svg>
+    {% endlocalize %}
+    <p class="tenue av-mt-2 av-mb-2 av-fs-sm">
+      Retícula de longitud y latitud, sin mapa base: sirve para ver dónde cae y con qué forma, no
+      para medir. Sistema del archivo: <strong>{{ huella.sistema }}</strong>.
+    </p>
+    <table class="table table-sm av-m-0">
+      <thead><tr><th scope="col">Esquina</th><th scope="col">Longitud</th><th scope="col">Latitud</th></tr></thead>
+      <tbody>
+        {% for e in huella.esquinas %}
+          <tr class="cifra"><th scope="row">{{ e.nombre|capfirst }}</th><td>{{ e.lon|floatformat:7 }}°</td><td>{{ e.lat|floatformat:7 }}°</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
   </div>
 {% endif %}
 

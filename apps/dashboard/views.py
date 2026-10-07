@@ -21,6 +21,7 @@ from apps.core import manejador as manejador_mod
 from apps.core import modo as modo_mod
 from apps.core import subidas as subidas_mod
 from apps.dashboard import acciones as acciones_mod
+from apps.dashboard import mapa as mapa_mod
 from apps.dashboard import recientes as recientes_mod
 from apps.dashboard import vista_previa as vista_previa_mod
 from apps.engines import formulario as formulario_mod
@@ -28,6 +29,8 @@ from apps.engines import registry
 from apps.engines.base import ParDeFormatos
 from apps.formats import catalogo, deteccion
 from apps.formats import crs as crs_mod
+from apps.formats import crs_busqueda as crs_busqueda_mod
+from apps.formats import huella as huella_mod
 from apps.jobs import estimacion as estimacion_mod
 from apps.jobs.models import ConversionJob
 from apps.presets.models import ConversionPreset
@@ -269,6 +272,69 @@ def inspeccionar(request):
     )
 
 
+#: Lo que se lee de la cabecera de un archivo soltado: los primeros 4 MiB. Basta para la firma
+#: de casi todo y evita subir 20 GB para decir «es un TIFF».
+CABECERA_MAX_BYTES = 4 * 1024 * 1024
+
+#: Formatos cuyo índice o directorio puede estar **al final** del archivo: de la cabecera sola
+#: no se saca lo que llevan dentro (dimensiones, CRS, páginas). Se dice, y se confirma al
+#: terminar la subida, que es la vía de respaldo (F13.8).
+LEEN_AL_FINAL = frozenset({"geotiff", "bigtiff", "kmz", "pdf"})
+
+
+@login_required
+@require_POST
+def reconocer(request):
+    """Qué es un archivo soltado, **antes** de subirlo entero (F13.8).
+
+    El navegador manda solo los primeros megas (`File.slice()`), así que decirle a quien suelta
+    una ortofoto de 20 GB «es un BigTIFF, y esto se puede hacer» no espera a que suba. Es una
+    pista, no la inspección: la ficha de verdad llega con la subida completa.
+    """
+    cabecera = request.FILES.get("cabecera")
+    nombre = Path((request.POST.get("nombre") or "").strip()).name
+    if cabecera is None or not nombre or cabecera.size > CABECERA_MAX_BYTES:
+        return render(request, "dashboard/_reconocido.html", {"sin_pista": True})
+
+    codigo = deteccion.por_firma(cabecera.read(CABECERA_MAX_BYTES), nombre)
+    por = "firma" if codigo else ""
+    if codigo is None:
+        codigo = deteccion.por_extension(nombre)
+        por = "extension" if codigo else ""
+    formato = catalogo.FORMATOS.get(codigo) if codigo else None
+    try:
+        tamano = int(request.POST.get("tamano") or 0)
+    except ValueError:
+        tamano = 0
+    return render(
+        request,
+        "dashboard/_reconocido.html",
+        {
+            "nombre": nombre,
+            "tamano": tamano if tamano > 0 else None,
+            "formato": formato,
+            "por": por,
+            "necesita_el_final": bool(formato) and formato.codigo in LEEN_AL_FINAL,
+            "herramientas": acciones_mod.para_el_archivo(nombre),
+        },
+    )
+
+
+@login_required
+def buscar_crs(request):
+    """Los sistemas de referencia que cuadran con lo escrito (fragmento para htmx).
+
+    Solo lee la base de PROJ: no declara nada. Declarar es pulsar un resultado, que escribe
+    su código en el campo EPSG, y ese campo lo valida `validar_declarado` como siempre.
+    """
+    escrito = (request.GET.get("q") or "").strip()
+    return render(
+        request,
+        "dashboard/_crs_resultados.html",
+        {"resultados": crs_busqueda_mod.buscar(escrito), "escrito": escrito},
+    )
+
+
 def _destino_preferido(request) -> str:
     """El perfil que venía elegido del catálogo, si sigue existiendo.
 
@@ -300,6 +366,13 @@ def _ficha(request, token_pedido: str, formato_pedido: str = ""):
     )
 
 
+def _mapa_de(inspeccion) -> dict:
+    huella = huella_mod.de_inspeccion(inspeccion)
+    if huella is None:
+        return {}
+    return {"mapa": mapa_mod.dibujo(huella.en_grados), "huella": huella}
+
+
 def _contexto_de_ficha(request, inspeccion, origen, formato_pedido: str = "") -> dict:
     """Lo que pinta la ficha de un archivo ya inspeccionado.
 
@@ -327,6 +400,9 @@ def _contexto_de_ficha(request, inspeccion, origen, formato_pedido: str = "") ->
             vista_previa_mod.dibujo_de_puntos(inspeccion.puntos) if inspeccion.puntos else None
         ),
         "veredictos": perfiles_mod.veredictos(inspeccion),
+        # Dónde cae el archivo (F13.11): solo con sistema de referencia conocido y lo que la
+        # cabecera asegura. Sin mapa base: una retícula de coordenadas y la huella encima.
+        **_mapa_de(inspeccion),
         "perfiles": _destinos_para(inspeccion),
         # **La elección que se hizo en el catálogo, traída hasta aquí.**
         #
