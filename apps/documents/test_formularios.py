@@ -104,7 +104,7 @@ def _tinta_en_el_campo(ruta: Path) -> int:
         documento.close()
     # El campo es x 50–250, y 200–222 en puntos; la imagen cuenta la y desde arriba (alto 300).
     recorte = imagen.crop((50, 300 - 222, 250, 300 - 200))
-    return sum(1 for p in recorte.getdata() if p < 128)
+    return recorte.point(lambda p: 255 if p < 128 else 0).histogram()[255]
 
 
 def _huella(ruta: Path) -> tuple[str, int]:

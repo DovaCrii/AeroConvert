@@ -30,7 +30,7 @@
       <div class="av-mb-3 av-mw-38">
         <label class="fw-semibold" for="id_firma_subida">La imagen de su firma (PNG o JPG)</label>
         <input type="file" id="id_firma_subida" name="firma_subida" class="form-control"
-               accept=".png,.jpg,.jpeg,image/png,image/jpeg">
+               accept=".png,.jpg,.jpeg,image/png,image/jpeg" data-tope-mb="{{ tope_mb }}">
         <p class="tenue av-mt-1 av-mb-0 av-fs-sm">
           Mejor un PNG con fondo transparente. Se sube al servidor y se borra sola en un día.
         </p>
@@ -71,6 +71,9 @@
         <input type="checkbox" name="con_fecha" value="si" {% if con_fecha %}checked{% endif %}>
         <span><strong>Agregar la fecha de hoy</strong></span>
       </label>
+
+      {# Donde aterriza la barra de avance de la subida y el aviso de «no cabe». #}
+      <div class="av-mt-3" data-avance-subida hidden></div>
     </div>
   {% endif %}
 </form>
