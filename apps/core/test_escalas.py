@@ -76,20 +76,23 @@ class TestLaEscalaDeElevacion:
         bloque = css[css.index("--av-elev-1:") : css.index("--av-elev-2:")]
         assert "0 0 0 1px" in bloque
 
-    def test_cada_nivel_lleva_dos_capas(self, css):
-        """Primer se mueve entre el 3 % y el 12 % con dos capas. Una sombra sola y marcada es
-        lo que delata una interfaz hecha a ojo."""
-        for nivel in ("--av-elev-1", "--av-elev-2", "--av-elev-3"):
+    def test_los_tres_primeros_niveles_son_solo_el_anillo(self, css):
+        """F13.7, plano con color: las superficies no flotan. Se distinguen por el anillo de
+        1 px, el cambio de superficie y el color, no por una sombra. (Antes llevaban dos capas
+        de alfa baja, a la manera de Primer; `test_plano.py` vigila que no vuelvan.)"""
+        for nivel in ("--av-elev-0", "--av-elev-1", "--av-elev-2"):
             inicio = css.index(f"{nivel}:")
             bloque = css[inicio : css.index(";", inicio)]
-            # Se cuentan las capas, no los `rgb(`: el anillo usa `var(--av-anillo)` y no
-            # lleva ninguno. Contar colores daba dos y la prueba fallaba por su propia culpa.
-            assert bloque.count(",") >= 2, f"{nivel} no tiene anillo y dos capas"
+            assert "," not in bloque, f"{nivel} lleva más de una capa"
+            assert "0 0 0 1px" in bloque
 
-    def test_usa_spread_negativo(self, css):
-        """Recoge la sombra hacia dentro y evita el halo gris sucio. Es de Polaris."""
-        inicio = css.index("--av-elev-2:")
-        assert re.search(r"-\d+px", css[inicio : css.index(";", inicio)])
+    def test_el_ultimo_nivel_es_la_unica_sombra_y_recoge_hacia_dentro(self, css):
+        """Una sola capa que proyecta, para lo que flota, con spread negativo: recoge la sombra
+        hacia dentro y evita el halo gris sucio. Es de Polaris."""
+        inicio = css.index("--av-elev-3:")
+        bloque = css[inicio : css.index(";", inicio)]
+        assert bloque.count(",") == 1, "el anillo y una sola sombra"
+        assert re.search(r"-\d+px", bloque)
 
     def test_los_tres_bloques_de_tema_la_declaran(self, css):
         """El de `prefers-color-scheme` es el que manda por omisión, y ya se olvidó una vez
