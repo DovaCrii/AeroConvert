@@ -83,6 +83,7 @@ from .pantalla_office import (  # noqa: F401
 )
 from .pantalla_paginas import (  # noqa: F401
     marca_vista,
+    metadatos_vista,
     numerar_vista,
 )
 from .pantalla_proteger import (  # noqa: F401

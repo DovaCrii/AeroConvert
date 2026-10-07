@@ -223,6 +223,19 @@ def _a_imagenes(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
         shutil.rmtree(carpeta, ignore_errors=True)
 
 
+def _metadatos(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
+    from apps.documents import metadatos
+
+    limpiar = bool(opciones.get("limpiar"))
+    paginas = metadatos.escribir(
+        entradas[0]["ruta"],
+        parcial,
+        cambios=opciones.get("cambios") or None,
+        limpiar=limpiar,
+    )
+    return {"paginas": paginas, "limpiado": limpiar}
+
+
 def _unir(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
     from apps.documents import composicion, receta
 
@@ -355,6 +368,7 @@ TAREAS = {
     "comprimir": _comprimir,
     "dividir": _dividir,
     "a_imagenes": _a_imagenes,
+    "metadatos": _metadatos,
     "unir": _unir,
     "organizar": _unir,
     "imagenes": _imagenes,
