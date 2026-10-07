@@ -29,6 +29,8 @@ from urllib.parse import urlencode
 
 from django.urls import reverse
 
+from . import taxonomia
+
 
 def sin_tildes(texto: str) -> str:
     """En minúsculas y sin acentos ni eñes, para comparar.
@@ -87,39 +89,6 @@ class Accion:
             return ""
         destino = reverse(self.url)
         return f"{destino}?{urlencode(self.consulta)}" if self.consulta else destino
-
-
-#: Las categorías, en el orden en que se piensan: primero el trabajo de terreno, luego el de
-#: gabinete, y al final lo que sale hacia fuera.
-#:
-#: El cuarto campo es **la pantalla de la sección**, para que el encabezado del desplegable
-#: sea un enlace y no un rótulo muerto. Vacío cuando la sección no tiene pantalla propia.
-CATEGORIAS = (
-    (
-        "planos",
-        "Ortofotos, mapas y nubes",
-        "Entregar un levantamiento para dibujar, analizar o publicar.",
-        "dashboard:convertir",
-    ),
-    (
-        "gnss",
-        "Datos GNSS a RINEX",
-        "Pasar lo que graba el receptor en campo a un formato de posproceso.",
-        "dashboard:convertir",
-    ),
-    (
-        "documentos",
-        "Trabajar con PDF",
-        "Unir, dividir, comprimir, proteger y preparar un documento para entregarlo.",
-        "documents:inicio",
-    ),
-    (
-        "texto",
-        "Sacar texto y tablas",
-        "Pasar el contenido de un archivo a Markdown, Excel o PDF.",
-        "documents:texto",
-    ),
-)
 
 
 #: El nombre corto de cada formato de salida, para la línea de «Sale:».
@@ -207,7 +176,6 @@ def _de_los_perfiles() -> list[Accion]:
     que pulsar «Llevarlo a QGIS» tiraba justo lo único que la tarjeta había preguntado y
     dejaba a quien la pulsó en la pantalla genérica, eligiendo otra vez.
     """
-    from apps.formats import catalogo as catalogo_mod
     from apps.targets import perfiles as perfiles_mod
 
     return [
@@ -216,7 +184,7 @@ def _de_los_perfiles() -> list[Accion]:
             nombre=NOMBRES_DE_ACCION.get(perfil.id, f"Llevarlo a {perfil.nombre}"),
             que_hace=perfil.descripcion,
             sale=_salidas_de(perfil),
-            categoria="gnss" if catalogo_mod.GNSS in perfil.familias else "planos",
+            categoria=taxonomia.grupo_de_perfil(perfil),
             url="dashboard:convertir",
             consulta={"destino": perfil.id},
             icono=ICONOS_DE_PERFIL.get(perfil.id, "icon-destino"),
@@ -289,10 +257,9 @@ def _de_los_documentos() -> list[Accion]:
             nombre=h["nombre"],
             que_hace=h["que_hace"],
             sale=h["sale"],
-            # `documentos` salvo que la herramienta diga otra cosa. Las de Markdown viven en
-            # el mismo sitio que las de PDF —comparten pantalla, origen y descarga— pero no
-            # contestan la misma pregunta: una entrega un PDF y la otra saca lo de dentro.
-            categoria=h.get("categoria", "documentos"),
+            # El grupo sale de la taxonomía única, no de un campo de la herramienta: así hay un
+            # solo sitio donde decidir dónde vive cada una. Ver `taxonomia.py`.
+            categoria=taxonomia.grupo_de_documento(h["id"]),
             url=h["url"] if h["disponible"] else "",
             consulta=h.get("consulta", {}),
             icono=h["icono"],
@@ -635,7 +602,8 @@ def por_categoria(busqueda: str = "") -> list[dict]:
     encontradas = buscar(busqueda)
 
     grupos = []
-    for clave, titulo, cuando, seccion in CATEGORIAS:
+    for grupo in taxonomia.GRUPOS:
+        clave, titulo, cuando, seccion = grupo.id, grupo.titulo, grupo.cuando, grupo.seccion
         dentro = [a for a in encontradas if a.categoria == clave]
         if dentro:
             grupos.append(

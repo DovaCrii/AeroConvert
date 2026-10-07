@@ -11,6 +11,7 @@ from django.shortcuts import render
 from apps.core import entrada as entrada_mod
 from apps.core import modo as modo_mod
 from apps.core import subidas as subidas_mod
+from apps.dashboard import taxonomia
 from apps.formats import pdf as lectura_pdf
 
 from .. import catalogos as catalogos_mod
@@ -146,39 +147,36 @@ def _contexto(origenes: list, entradas, extra: dict | None = None) -> dict:
     return contexto
 
 
-#: Los cuatro grupos, en el orden en que se piensan: primero mover páginas de sitio, luego
-#: cambiar de formato, luego estampar encima, y al final cerrar con llave.
-#:
-#: Cada uno con **la pregunta que lo trae**, no con un sustantivo. «Componer» es la palabra
-#: correcta y no le dice nada a quien llega con dos PDF que quiere juntar.
-GRUPOS = (
-    ("componer", "Juntar o separar", "Cuando el documento está repartido, o sobra la mitad."),
-    ("transformar", "Cambiar de formato", "Cuando hace falta en otra cosa: PDF, imagen o Word."),
-    ("marcar", "Estampar encima", "Cuando el documento está bien pero le falta algo en cada hoja."),
-    ("proteger", "Poner o quitar contraseña", "Cuando no puede abrirlo cualquiera."),
-    ("texto", "Sacar el contenido", "Cuando el texto o la tabla tienen que salir del archivo."),
-)
-
-
-def _agrupar(herramientas):
-    """Las herramientas por familia, en el orden de `GRUPOS`.
+def _agrupar(herramientas, grupos: tuple[str, ...]):
+    """Las herramientas por grupo de la **taxonomía única**, en su orden (`taxonomia.GRUPOS`).
 
     **Siete tarjetas seguidas se reparten en cuatro y tres y dejan un hueco**, y el hueco se
     lee como si faltara algo. Agrupadas, cada fila tiene el tamaño que le toca y además el
     encabezado contesta antes de que haya que leer los nombres uno a uno.
 
-    Un grupo vacío no se pinta: con Office ausente, «cambiar de formato» pierde dos de sus
+    Un grupo vacío no se pinta: con Office ausente, «convertir documentos» pierde dos de sus
     cuatro y sigue teniendo sentido, pero si algún día se queda sin ninguna, un encabezado
     solo sería peor que nada.
+
+    Antes había aquí una lista propia (`GRUPOS`: componer, transformar, marcar, proteger…) que no
+    coincidía con la de la portada y el lateral. Ahora este índice enseña **un trozo del mismo
+    árbol**: ver `apps/dashboard/taxonomia.py`.
     """
-    por_familia: dict[str, list] = {}
+    por_grupo: dict[str, list] = {}
     for herramienta in herramientas:
-        por_familia.setdefault(herramienta.get("familia", ""), []).append(herramienta)
+        por_grupo.setdefault(taxonomia.grupo_de_documento(herramienta["id"]), []).append(
+            herramienta
+        )
 
     return [
-        {"clave": clave, "titulo": titulo, "cuando": cuando, "herramientas": por_familia[clave]}
-        for clave, titulo, cuando in GRUPOS
-        if por_familia.get(clave)
+        {
+            "clave": grupo.id,
+            "titulo": grupo.titulo,
+            "cuando": grupo.cuando,
+            "herramientas": por_grupo[grupo.id],
+        }
+        for grupo in taxonomia.GRUPOS
+        if grupo.id in grupos and por_grupo.get(grupo.id)
     ]
 
 
@@ -233,7 +231,10 @@ def _indice(request, *, categoria: str, etiqueta: str, titulo: str, proposito: s
     Las apagadas se cuentan **dentro de su categoría**: decirle a quien mira las de texto que
     hay dos apagadas de Office sería contarle un problema que no es el suyo.
     """
-    estado = [h for h in estado_de_herramientas() if h.get("categoria", "documentos") == categoria]
+    grupos = taxonomia.INDICES[categoria]
+    estado = [
+        h for h in estado_de_herramientas() if taxonomia.grupo_de_documento(h["id"]) in grupos
+    ]
     disponibles = [h for h in estado if h["disponible"]]
     apagadas = [h for h in estado if not h["disponible"]]
 
@@ -245,7 +246,7 @@ def _indice(request, *, categoria: str, etiqueta: str, titulo: str, proposito: s
             "etiqueta_seccion": etiqueta,
             "titulo_pagina": titulo,
             "proposito": proposito,
-            "grupos": _agrupar(disponibles),
+            "grupos": _agrupar(disponibles, grupos),
             "disponibles": disponibles,
             # Solo para contarlas y enlazar a `/motores/`, que es donde se explican.
             "apagadas": apagadas,

@@ -35,13 +35,13 @@ def _nombres(grupos):
 class TestElCatalogo:
     def test_estan_las_de_pdf_y_las_geoespaciales(self):
         categorias = {a.categoria for a in acciones_mod.todas()}
-        assert "documentos" in categorias
-        assert "planos" in categorias
+        assert "organizar" in categorias
+        assert "entregar" in categorias
 
     def test_lo_geoespacial_entra_por_destino_y_no_por_par_de_formatos(self):
         """La matriz tiene 189 celdas. Esto contesta «¿qué quiero hacer?», que es una
         pregunta con veinte respuestas, no con ciento ochenta y nueve."""
-        planos = [a for a in acciones_mod.todas() if a.categoria == "planos"]
+        planos = [a for a in acciones_mod.todas() if a.categoria == "entregar"]
         assert 0 < len(planos) <= 12
         assert all(" · " in a.nombre for a in planos), "para qué sirve, y qué programa"
 
@@ -58,7 +58,7 @@ class TestQueLaTarjetaNoTireLaEleccion:
     """
 
     def _planos(self):
-        return [a for a in acciones_mod.todas() if a.categoria == "planos"]
+        return [a for a in acciones_mod.todas() if a.categoria == "entregar"]
 
     def test_cada_destino_lleva_el_suyo_en_el_enlace(self):
         for accion in self._planos():
@@ -71,7 +71,11 @@ class TestQueLaTarjetaNoTireLaEleccion:
 
     def test_una_accion_sin_consulta_no_arrastra_interrogacion(self):
         """Las de PDF no llevan parámetros: un `?` suelto al final es basura en la barra."""
-        pdf = [a for a in acciones_mod.todas() if a.categoria == "documentos" and a.url]
+        pdf = [
+            a
+            for a in acciones_mod.todas()
+            if a.categoria in ("organizar", "convertir", "optimizar", "revisar") and a.url
+        ]
         assert pdf
         assert all("?" not in a.enlace for a in pdf)
 
@@ -85,7 +89,7 @@ class TestQueLasSeisNoSeanLaMismaTarjeta:
     """Icono, color y «Sale:» distinguían cero: los seis compartían los tres."""
 
     def _planos(self):
-        return [a for a in acciones_mod.todas() if a.categoria == "planos"]
+        return [a for a in acciones_mod.todas() if a.categoria == "entregar"]
 
     def test_cada_una_con_su_icono(self):
         iconos = {a.icono for a in self._planos()}
@@ -262,9 +266,11 @@ class TestCadaCategoriaEnSuSitio:
     """
 
     def test_cada_categoria_tiene_su_pantalla(self):
-        secciones = {c[0]: c[3] for c in acciones_mod.CATEGORIAS}
-        assert secciones["documentos"] and secciones["texto"]
-        assert secciones["documentos"] != secciones["texto"]
+        from apps.dashboard import taxonomia
+
+        secciones = {g.id: g.seccion for g in taxonomia.GRUPOS}
+        assert secciones["organizar"] and secciones["texto"]
+        assert secciones["organizar"] != secciones["texto"]
 
     def _contenido(self, sesion, nombre: str) -> str:
         """Solo `<main>`. **La página entera no vale**: el desplegable de la barra lista todas

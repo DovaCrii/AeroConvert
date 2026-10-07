@@ -160,7 +160,7 @@ class TestElAnchoSeCambia:
 class TestLosNombresDicenParaQueSirve:
     def test_los_grupos_ya_no_se_llaman_por_formato(self, sesion):
         lateral = _lateral(sesion.get(reverse("dashboard:que_puedo_hacer")).content.decode())
-        for nombre in ("Ortofotos, mapas y nubes", "Trabajar con PDF", "Sacar texto y tablas"):
+        for nombre in ("Entregar a un programa", "Organizar PDF", "Texto, tablas y Markdown"):
             assert nombre in lateral
         assert "Llevarlo a" not in lateral
 

@@ -188,4 +188,4 @@ class TestSeEncuentra:
         grupos = {
             g["titulo"]: [a.nombre for a in g["acciones"]] for g in acciones_mod.por_categoria()
         }
-        assert "Organizar páginas" in grupos["Trabajar con PDF"]
+        assert "Organizar páginas" in grupos["Organizar PDF"]
