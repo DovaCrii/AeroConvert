@@ -5,6 +5,10 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Sin publicar]
 
+### Documentación — el reparto con Stirling-PDF (F14.0)
+
+- [`docs/DECISION_STIRLING_PDF.md`](docs/DECISION_STIRLING_PDF.md): las herramientas de PDF de uso diario se hacen dentro de AeroConvert; la cola larga se delega en Stirling-PDF **local y sondeado** (`AEROCONVERT_STIRLING_URL`), apagada con motivo y alternativa si falta. Nada sale del equipo y no se importa ni se copia nada suyo.
+
 ### Añadido — buscar el sistema de referencia por nombre, sin saber el EPSG
 
 - En la ficha de un archivo sin sistema declarado, **sobre el campo «Código EPSG»**, hay un buscador: «UTM 19 sur», «SIRGAS Chile», «PSAD56», «wgs84» o el número. La lista sale de la base de PROJ que ya trae `pyproj` (nada nuevo que instalar ni copiar): sistemas vigentes, proyectados y geográficos, con su zona de uso.
