@@ -448,41 +448,97 @@ no configura `concurrency` ni medición de subprocesos, así que es plausible, p
 
 ---
 
-## Fase 12 — Una suite de documentos práctica, en la línea de ONLYOFFICE
+## Fase 12 — Una suite de documentos práctica (sustituida por la Fase 14)
 
-> **Pedido del 2026-10-06.** «Que sea una suite completa como ONLYOFFICE: incorporar más
-> herramientas, y que sea práctico.» Hoy hay once herramientas de PDF y nueve de texto y tablas;
-> lo que falta no es cantidad sino **las que se usan a diario** y poder **encadenarlas** sobre el
-> mismo archivo sin volver a subirlo.
+> **Pedido del 2026-10-06**, ampliado el 2026-10-07: sus once filas pasaron a la **Fase 14**, que
+> las absorbe con su número nuevo (cada una dice «era F12.x»). **F12.1 y F12.10 ya están hechas
+> (#54)** y figuran en F14.1 y F14.10. Esta cabecera queda solo para que quien busque «F12» sepa
+> adónde mirar: **no hay dos fuentes**. Plan completo: `docs/planes/PLAN_2026-10-07.md`.
 
-**Regla de la fase:** cada herramienta nueva pasa por la cola (`tarea.py`), dice qué entrega,
-no toca el original y trae su oráculo: **otro lector abre lo escrito**, nunca el mismo código
-leyéndose a sí mismo.
+---
 
-| # | Entrega | Oráculo (cómo se sabe que está) | La cierra | Estado |
+## Fase 13 — Interfaz: una taxonomía, un idioma, iconos coherentes, plano con color
+
+**Regla de la fase:** no cambia ningún comportamiento. Cada fila deja **una prueba que impide
+volver atrás**, igual que `test_escala_visual.py` y `test_iconos.py`. Versión `0.11.0` al cerrarla.
+
+| # | Entrega | Oráculo | La cierra | Estado |
 | --- | --- | --- | --- | --- |
-| F12.1 | **Organizar páginas** de un PDF: girar, reordenar, eliminar y duplicar, con miniaturas. Hoy se puede con «Unir PDF» pero no se encuentra | pypdf reabre y cuenta; PDFium (otro lector) renderiza y el giro coincide | Claude | ✅ 2026-10-07 · pantalla propia sobre el motor de «Unir» (un solo PDF, miniaturas, girar, subir, bajar, quitar y **repetir**); `test_organizar.py` reabre la salida con otro lector |
-| F12.2 | **Extraer las imágenes** de un PDF y **extraer páginas** a un archivo nuevo | PDFium cuenta las páginas; los bytes de cada imagen se abren con Pillow | Claude | ⬜ |
-| F12.3 | **Metadatos**: ver y editar título y autor, y **limpiarlos** antes de entregar | pypdf lee lo escrito; `pdfinfo` si existe | Claude | ⬜ |
-| F12.4 | **Rellenar un formulario** PDF y aplanarlo | pypdf lee los campos; PDFium renderiza el valor visible | Claude | ⬜ |
-| F12.5 | **Firmar con imagen y fecha** (firma visible, no digital) | PDFium renderiza y la imagen está en la posición pedida | Claude | ⬜ |
-| F12.6 | **Recortar márgenes** y **cambiar el tamaño de página** (A4, A3, carta) | PDFium: el tamaño de cada página coincide con el pedido | Claude | ⬜ |
-| F12.7 | **Comparar dos PDF**: qué páginas cambiaron, con una vista lado a lado | Dos renderizados de PDFium difieren solo donde se dice | Claude | ⬜ |
-| F12.8 | **Redactar de verdad**: tachar texto **quitándolo del archivo**, no tapándolo | `pdftotext` / pypdf **no encuentran** el texto tras redactar. Es la prueba que importa: un rectángulo negro encima no es redactar | Claude | ⬜ |
-| F12.9 | **PDF/A** para archivo de largo plazo | veraPDF (herramienta externa, se sondea; sin ella se dice y no se afirma) | Claude, con veraPDF | ⬜ |
-| F12.10 | **Encadenar**: el resultado de una herramienta se ofrece como entrada de la siguiente («ahora numerarlo», «ahora comprimirlo») sin volver a subir | La prueba de la cola: el trabajo hijo usa la salida verificada del padre, y el original sigue intacto | Claude | ✅ 2026-10-07 · token `resultado:<id>` en la puerta única (solo del dueño y solo `done`) y «Seguir con este archivo» en la ficha; `test_encadenar.py` |
-| F12.11 | **Editar Word, Excel y PowerPoint en el navegador** integrando ONLYOFFICE Document Server como herramienta externa (se sondea, no es dependencia) | El documento guardado se abre con otro lector (LibreOffice o `python-docx`) | **La persona decide** (ver abajo) | ⬜ |
+| F13.1 | **Una sola taxonomía** en `apps/dashboard/taxonomia.py`, con id estable por grupo, consumida por la portada, el lateral, `/documentos/` y Compatibilidad. Se retiran `CATEGORIAS` y `GRUPOS`. Ocho grupos (`docs/planes/PLAN_2026-10-07.md` §3) | `test_taxonomia.py`: toda herramienta en exactamente un grupo; las pantallas renderizan los mismos grupos en el mismo orden; ningún grupo con menos de 2 herramientas salvo `admite_uno=True`. `data-recuerda` por id estable, no por título | Claude | ⬜ |
+| F13.2 | **Convención de nombres** aplicada a todas las herramientas, con tabla de renombres en el PR. Comprobar que `ConversionJob` e `Incidente` guardan el id y no el nombre | `test_nombres.py`: patrón por tipo, ≤ 28 caracteres, sentence case; los sinónimos viejos siguen encontrando la herramienta | Claude · **la persona aprueba la tabla** | ⬜ |
+| F13.3 | **Trato de usted** en plantillas, `que_hace`, mensajes **y `locale/es/…/django.po`** | `test_trato.py`: falla con formas verbales tuteantes con límite de palabra («suelta el», «tu equipo», «eliges», «quieres», «puedes», «sabes»), con lista blanca para «hojas sueltas» y citas | Claude | ⬜ |
+| F13.4 | **Iconos sin conflictos**: un icono por significado; `icon-todas`, `icon-tino`, `icon-texto-csv`, `icon-imagen-a-pdf` (renombre); la flecha del lateral entra al sprite | `test_iconos.py`: ningún id para dos significados (mapa explícito) y ningún SVG suelto en plantillas | Claude | ⬜ |
+| F13.5 | **Familia de iconos coherente**: retícula 24 × 24, trazo único 1,75, extremos redondeados | `test_iconos.py`: todo `stroke-width` vale 1,75 y todo `viewBox` vale `0 0 24 24` | Claude | ⬜ |
+| F13.6 | **Color por familia también en lo geoespacial**: `fam-geo`, `fam-gnss`, `fam-pdf-*`, `fam-imagen`, `fam-video`, `fam-planta`. Color + forma + texto | Contraste WCAG leído del CSS de cada `--av-fam-*` y su `-soft`, en los dos temas | Claude | ⬜ |
+| F13.7 | **Plano con color** (decisión 2026-10-07): fuera degradados, `--av-elev-*` a borde de 1 px más cambio de superficie, `hover` por color sin `transform` ni sombra; una sombra solo para lo que flota. **Las baldosas conservan color de familia fuerte, también en oscuro**; sustituye el brillo de #53 | `test_plano.py`: cero `gradient`; `box-shadow` solo en la lista blanca. Contraste de **texto e icono sobre el relleno de la baldosa** en los dos temas | Claude | ⬜ |
+| F13.8 | **Portada «archivo primero»**: zona de soltar como acción principal, ficha y veredictos debajo, y las herramientas que aplican **a ese archivo**. La cabecera se lee con `File.slice()` de los primeros MB, con vía de respaldo declarada si el formato necesita el final | Paseo a 1440 y 375 px con un BigTIFF: una acción principal y el veredicto «Civil 3D ✗» sin cambiar de pantalla. Prueba de vista (`data-zona-soltar`, un solo botón principal) | Claude | ⬜ |
+| F13.9 | **Barra superior en tres zonas**: marca · buscador · cuenta. La explicación del modo pasa al lateral (sigue visible) | A 375 px no desborda y el buscador mide al menos 160 px | Claude | ⬜ |
+| F13.10 | **Estilos en línea fuera**: de 183 `style="…"` a cero salvo valores calculados documentados. PR aparte de F13.3 | `test_escala_visual.py` cuenta `style="` en `templates/` ≤ lista blanca | Claude | ⬜ |
+| F13.11 | **Vista de mapa en la ficha**: huella del archivo sobre una retícula de coordenadas, sin mapa base (D5); biblioteca vendorizada con SRI. Nada sale del equipo | Esquinas de la huella frente a `gdalinfo` en EPSG:4326 con error ≤ 1e-7° (ortofoto BHP, `@pytest.mark.oraculo`). La CSP no cambia | Claude | ⬜ |
+| F13.12 | **Cerrar F11.6**: se adopta el brazo A y se cierran `codex/prueba-diseno-{b,c}` con nota | Ramas cerradas | La persona confirma | ⬜ |
 
-**Lo que hay que decidir antes de F12.11.** Una suite «como ONLYOFFICE» que **edite** documentos
-no se escribe aquí: se integra el propio ONLYOFFICE. Es AGPL-3 y corre como un servicio aparte (en
-la práctica, un contenedor en p340), así que respeta la regla de licencias —herramienta externa,
-no código copiado— pero **añade un servicio que desplegar, mantener y asegurar**, en una máquina
-que ya publica AeroConvert por internet. Alternativa más pequeña: quedarse en conversión y
-organización de PDF (F12.1 a F12.10) y dejar la edición a quien ya tenga Office.
+---
 
-**Orden propuesto:** F12.1 y F12.10 primero (son lo que más se echa de menos y lo que vuelve
-práctico todo lo demás), luego F12.8 (la única con riesgo real si se hace mal), y el resto según
-lo pida el uso.
+## Fase 14 — Suite documental y creativa libre, en la línea de Adobe
+
+> **Objetivo.** Cubrir con software libre lo que hoy se hace con Acrobat, Acrobat Sign, Adobe Scan,
+> Photoshop o Lightroom (lo básico), Illustrator (lo básico), Media Encoder y Bridge, **sin que el
+> archivo salga del equipo**. Cada herramienta pasa por la cola, dice qué entrega, no toca el
+> original y trae su oráculo con **otro lector**. Programas externos GPL/AGPL: solo sondeados y
+> con su paso de instalación (D1). Versión `0.12.0` con las firmas.
+
+| # | Entrega | Oráculo | La cierra | Estado |
+| --- | --- | --- | --- | --- |
+| F14.0 | **Reparto con Stirling-PDF** (D4): las ~12 de uso diario en casa, Stirling local sondeado para la cola larga | Documento en `docs/` | Claude propone · **la persona aprueba** | ⬜ |
+| F14.1 | **Organizar páginas** (era F12.1) y **extraer páginas e imágenes** (era F12.2) | Organizar: PDFium cuenta y pypdf reabre. Extraer: PDFium cuenta; Pillow abre cada imagen | Claude | 🟨 organizar ✅ 2026-10-07 (#54) · falta extraer |
+| F14.2 | **Metadatos**: ver, editar y limpiar antes de entregar (era F12.3) | `pikepdf` lee lo escrito; no quedan `/Author` ni XMP si se pidió limpiar | Claude | ⬜ |
+| F14.3 | **Formularios**: rellenar y aplanar (era F12.4) | `pypdf` lee los campos; PDFium muestra el valor visible | Claude | ⬜ |
+| F14.4 | **Firma visible** con imagen y fecha (era F12.5) | PDFium: la imagen aparece en la posición pedida (±2 px) | Claude | ⬜ |
+| F14.5 | **Firma digital PAdES** con certificado del usuario, sello de tiempo opcional y **verificación** de PDF firmados recibidos (`pyHanko`, MIT) | `pyHanko` valida; `pdfsig` de Poppler, si existe, coincide. La clave privada **nunca** se escribe en disco ni en los registros (prueba con certificado centinela) | Claude | ⬜ |
+| F14.6 | **Recortar márgenes y cambiar el tamaño de página** (era F12.6) | PDFium: el tamaño de cada página coincide con el pedido | Claude | ⬜ |
+| F14.7 | **Comparar dos PDF** con vista lado a lado (era F12.7) | Dos renderizados difieren solo en las regiones informadas | Claude | ⬜ |
+| F14.8 | **Redactar de verdad** (era F12.8) | Ni `pypdf` ni `pdftotext` encuentran el texto redactado; la imagen bajo el rectángulo tampoco existe | Claude | ⬜ |
+| F14.9 | **PDF/A** con OCRmyPDF y validación con veraPDF sondeado (era F12.9) | veraPDF dice «conforme»; sin veraPDF, ⚠ y la interfaz no afirma conformidad | Claude | ⬜ |
+| F14.10 | **Encadenar herramientas** sin volver a subir (era F12.10) | La prueba de la cola; el original conserva su `sha256` | Claude | ✅ 2026-10-07 (#54) · token `resultado:<id>` y «Seguir con este archivo» |
+| F14.11 | **Visor y anotaciones** con PDF.js vendorizado, guardadas como anotaciones estándar | PDFium ve las anotaciones; la CSP sigue `'self'` | Claude | ⬜ |
+| F14.12 | **Escanear con el teléfono**: fotos a PDF con recorte y corrección de perspectiva, y OCR opcional | La página resultante es rectangular (bordes ±2 %); Tesseract lee una frase de control | Claude | ⬜ |
+| F14.13 | **Imágenes**: convertir (HEIC, WebP, AVIF, TIFF, PNG, JPG), redimensionar, recortar, girar y comprimir **por lote** | Pillow reabre cada salida; dimensiones y formato coinciden | Claude | ⬜ |
+| F14.14 | **Fotos de dron**: ver y limpiar EXIF **conservando el GPS** (o quitándolo a propósito); posiciones a KMZ/GeoJSON; renombrar por fecha o vuelo | `exifread` lee lo escrito; `ogrinfo` abre el KMZ y cuenta tantos puntos como fotos | Claude | ⬜ |
+| F14.15 | **Quitar fondo** de una imagen, como extra opcional (D2) | Máscara alfa no vacía; tiempo medido | Claude | ⬜ |
+| F14.16 | **Vector y láminas**: SVG a PDF o PNG; DXF a lámina PDF o SVG con `ezdxf` | PDFium renderiza; el número de entidades coincide con `ezdxf` | Claude | ⬜ |
+| F14.17 | **Video** con FFmpeg sondeado (D1): comprimir, recortar, cambiar formato, quitar audio y **extraer fotogramas** cada N segundos o metros para fotogrametría | `ffprobe` lee duración, códec y resolución; el número de fotogramas coincide | Claude | ⬜ |
+| F14.18 | **Telemetría de video de dron**: el `.SRT` de DJI a GPX o KML (puente con AeroLink) | `ogrinfo` abre la traza; el número de puntos coincide con las entradas | Claude | ⬜ |
+| F14.19 | **Markdown a PDF con la plantilla de J.E.J.** con WeasyPrint | PDFium renderiza; `pypdf` encuentra el texto del pie en cada página | Claude · **la persona entrega la plantilla** | ⬜ |
+| F14.20 | **HTML a PDF** y **reparar PDF** dañado | PDFium abre el reparado; el número de páginas coincide con lo recuperable | Claude | ⬜ |
+| F14.21 | **Editar Office en el navegador** (era F12.11) | — | **Descartada por D3 (2026-10-07)**; se reabre si el uso la pide dos veces | ⏸ |
+
+---
+
+## Fase 15 — El diferenciador geoespacial
+
+| # | Entrega | Oráculo | La cierra | Estado |
+| --- | --- | --- | --- | --- |
+| F15.1 | **Datums de Chile**: PSAD56, SAD69, WGS84 y SIRGAS-Chile, con grillas PROJ cuando existan y el método usado escrito en el recibo | `cs2cs`/`projinfo` sobre puntos de control publicados; diferencia ≤ la tolerancia declarada | Claude · **la persona aporta los puntos de control** | ⬜ |
+| F15.2 | **Alturas**: elipsoidal ↔ ortométrica con geoide (EGM2008 u otro, sondeado) | `cs2cs` con la misma grilla; diferencia < 1 mm | Claude | ⬜ |
+| F15.3 | **Calibración a un sistema local de faena**: Helmert 2D/3D o afín desde puntos de control, con residuales por punto y RMS en el recibo; nunca se adivina (regla 3) | Cálculo independiente con `numpy` en la prueba: mismos residuales a 0,1 mm | Claude | ⬜ |
+| F15.4 | **Perfiles mineros**: Deswik, Vulcan, Surpac y Datamine, con su veredicto y formato preferido | Un archivo de cada programa abierto por la persona en el programa real, con fecha en `docs/PRUEBAS_CON_ORACULO.md` | Claude · **la persona valida** | ⬜ |
+| F15.5 | **Más perfiles**: Trimble Business Center, Pix4D/Metashape, Leica Cyclone, MicroStation/OpenRoads | Ídem | Claude | ⬜ |
+| F15.6 | **Curvas de nivel** desde un DEM a DXF, DWG (vía ODA), SHP y GeoPackage | `gdal_contour` independiente; mismo número de curvas por cota | Claude | ⬜ |
+| F15.7 | **LandXML de superficie TIN** para Civil 3D (completa F3.5) | Civil 3D abre la superficie (paseo fechado) y `defusedxml` cuenta caras y puntos | Claude · **la persona valida** | ⬜ |
+| F15.8 | **DWG/DGN con ODA instalado** (cierra F3.4) | `ogrinfo` del DXF intermedio; ODA reabre el DWG escrito | **La persona instala** · Claude corre | ⬜ |
+
+---
+
+## Fase 16 — Plataforma: lotes, informe, API
+
+| # | Entrega | Oráculo | La cierra | Estado |
+| --- | --- | --- | --- | --- |
+| F16.1 | **Lotes**: una carpeta entera con la receta de un cliente, como trabajo padre con hijos | Cada hijo verifica con su oráculo; el padre falla si falla uno y lo dice | Claude | ⬜ |
+| F16.2 | **Paquete de entrega**: recetas con nombre («Entrega a BHP») que fijan destinos, CRS y nombres de archivo | La misma receta produce los mismos parámetros en dos corridas | Claude | ⬜ |
+| F16.3 | **Informe de verificación en PDF** que acompaña la entrega: ficha antes y después, CRS, estadísticas, `sha256` y veredictos | PDFium lo renderiza; `pypdf` encuentra cada `sha256` en el texto | Claude | ⬜ |
+| F16.4 | **API de conversión** con token por usuario y permisos | Prueba de 403 por extremo; un cliente `httpx` de prueba convierte un TIFF de punta a punta | Claude | ⬜ |
+| F16.5 | **Integración con AeroBim** (cierra F4.2) por API | AeroBim abre el COG y el COPC entregados (paseo fechado) | Claude | ⬜ |
+| F16.6 | **`RegistroDeSonda`**, `remuestreo` y `nodata` expuestos, y traducciones compiladas (deuda conocida) | Pruebas de cada uno; `test_traducciones.py` verde con `.mo` versionado | Claude | ⬜ |
 
 ---
 
@@ -531,6 +587,15 @@ quedan aquí anotadas con su fecha: una decisión sin registro se vuelve a discu
 | **ECW** | Medio día y una licencia de pago, para 10 conversiones que ya tienen salida abierta | Abierta — no, hasta que alguien lo pida dos veces |
 | **Office en el servidor** | LibreOffice daría Word→PDF en Linux, pero *parecido* no es *idéntico* | Abierta — dejarlas apagadas |
 | **Dónde va la copia de respaldo fuera de la máquina** | El servicio escribe en el mismo NVMe que la base: un fallo del disco se lo lleva todo a la vez | **Abierta, y es lo único de la lista sin arreglo posible después** |
+| **¿El repositorio sigue público?** | `HANDOFF.md` expone rutas, puerto y la carpeta compartida de p340 | **Abierta** · si sigue público, esos datos salen a un archivo fuera del repositorio |
+| **Ejecutor del plan F13–F16** | Quién escribe las filas | **Claude**, un PR por fila, CI verde y fusiona; la persona despliega · 2026-10-07 |
+| **Diseño: plano o con relieve** | La persona pidió «menos plano» el 06-10 y el plan F13.7 quita el relieve | **Plano con color:** sin degradados, sombras ni movimiento; baldosas de familia con color fuerte, también en oscuro · 2026-10-07 |
+| **D1 · programas externos GPL/AGPL** (FFmpeg, Ghostscript, Inkscape) | Sin ellos no hay video | **Sí**, solo sondeados y ejecutados aparte, nunca importados ni copiados; cada uno con su sonda y su paso en `SERVIDOR.md` · 2026-10-07 |
+| **D2 · `rembg` con `onnxruntime`** | ~40 MB, y `markitdown` se rechazó por lo mismo | Solo como extra opcional (`uv sync --extra imagen`), apagado con motivo si falta · 2026-10-07 |
+| **D3 · Editar Office en el navegador** | Un servicio más expuesto a internet | **No por ahora**; se reabre si el uso lo pide dos veces · 2026-10-07 |
+| **D4 · Reparto con Stirling-PDF** | Amplitud frente a un servicio Java de 1–2 GB | Las ~12 de uso diario en casa; Stirling local sondeado para la cola larga · 2026-10-07 |
+| **D5 · Mapa base de la ficha** | Las teselas de internet rompen «nada sale del equipo» | Retícula de coordenadas sin mapa base; teselas propias opcionales · 2026-10-07 |
+| **D6 · «Planta» como grupo propio** | Hoy son 2 herramientas | Dentro de «Imagen, video y planta» hasta que haya 4 · 2026-10-07 |
 
 > **Corrección del 2026-09-21.** Este documento y `SERVIDOR.md` decían «hoy no hay ningún
 > respaldo» — y el repositorio trae `aeroconvert-respaldo.service` y `.timer` (03:15,

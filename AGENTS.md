@@ -133,6 +133,7 @@ Antes de portar código de otro proyecto, la tabla de siempre:
 | MIT · BSD · Apache-2.0 | portar código |
 | LGPL | enlazar como librería, **nunca copiar** (`ifcopenshell` está aquí) |
 | GPL · AGPL | solo referencia conceptual — **LibreDWG es GPL-3 y contagiaría el proyecto entero** |
+| GPL · AGPL **como programa externo** | **Ejecutar aparte y sondear** (FFmpeg, Ghostscript, Inkscape), como hoy Tesseract u ODA: nunca importar ni copiar, y apagado con motivo y alternativa si falta. Cada uno trae su sonda y su paso de instalación en `despliegue/SERVIDOR.md` (decisión D1, 2026-10-07) |
 
 Este repositorio es MIT y debe seguir siéndolo.
 
