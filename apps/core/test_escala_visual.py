@@ -9,9 +9,8 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-CSS = (Path(__file__).resolve().parents[2] / "static" / "css" / "app.css").read_text(
-    encoding="utf-8"
-)
+RAIZ = Path(__file__).resolve().parents[2]
+CSS = (RAIZ / "static" / "css" / "app.css").read_text(encoding="utf-8")
 
 #: Lo que sí puede ir a mano: un tamaño relativo al texto que lo rodea (`em`, para `<code>`), el
 #: título fluido de la portada (`clamp`) y el círculo (`50%`). El radio de la marca es de la marca.
@@ -44,6 +43,33 @@ def test_la_escala_de_letra_es_creciente_y_sin_huecos_de_nombre():
     orden = ["xs", "sm", "base", "md", "lg", "xl", "2xl"]
     assert [n for n in orden if n in valores] == orden
     assert [valores[n] for n in orden] == sorted(valores[n] for n in orden)
+
+
+def test_ninguna_plantilla_lleva_estilo_en_linea_fijo():
+    """F13.10: había 183 `style="..."` escritos a mano en 32 plantillas, fuera de la escala que
+    vigilan estas pruebas. Ahora son clases (Bootstrap o `av-*`). **Solo se admite un valor
+    calculado** (`{{ ... }}`), como el ancho de la barra de avance."""
+    mal = []
+    for ruta in sorted((RAIZ / "templates").rglob("*.html")):
+        texto = ruta.read_text(encoding="utf-8")
+        for numero, linea in enumerate(texto.splitlines(), start=1):
+            for m in re.finditer(r'style="([^"]*)"', linea):
+                if "{{" not in m.group(1):
+                    mal.append(f"{ruta.relative_to(RAIZ).as_posix()}:{numero}: {m.group(1)}")
+    assert not mal, "Estilos en línea fijos:\n" + "\n".join(mal)
+
+
+def test_toda_utilidad_av_que_usa_una_plantilla_esta_en_la_hoja():
+    """Una clase `av-*` que no existe no falla: simplemente no hace nada. Es justo el fallo que
+    no se ve hasta mirar la pantalla."""
+    usadas: set[str] = set()
+    for ruta in (RAIZ / "templates").rglob("*.html"):
+        for m in re.finditer(r'class="([^"]*)"', ruta.read_text(encoding="utf-8")):
+            usadas |= {
+                c for c in m.group(1).split() if re.fullmatch(r"av-(m|p|fs|gap|mw|w)[\w-]*", c)
+            }
+    definidas = set(re.findall(r"^\.(av-[\w-]+) \{", CSS, flags=re.MULTILINE))
+    assert not usadas - definidas, sorted(usadas - definidas)
 
 
 def test_los_radios_van_de_menor_a_mayor():

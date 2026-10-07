@@ -15,37 +15,37 @@
       <div class="eyebrow">Cómo está ahora</div>
 
       {% if cifrado %}
-        <h2 style="font-size:1.1rem;">Pide contraseña</h2>
-        <p class="tenue" style="margin:6px 0 14px;">
+        <h2 class="av-fs-md">Pide contraseña</h2>
+        <p class="tenue av-mt-2 av-mb-4">
           Para componerlo con otros, dividirlo o sacar imágenes hay que quitársela primero,
           y para eso hace falta saberla.
         </p>
 
-        <div style="max-width:22rem;">
-          <label class="eyebrow" for="id_contrasena" style="display:block;">La contraseña</label>
+        <div class="av-mw-22">
+          <label class="eyebrow d-block" for="id_contrasena">La contraseña</label>
           <input type="password" name="contrasena" id="id_contrasena" class="form-control"
                  autocomplete="off" spellcheck="false" value="">
         </div>
 
-        <div style="margin-top:14px;">
+        <div class="av-mt-4">
           <button type="submit" name="accion" value="quitar" class="boton">Quitar la contraseña</button>
         </div>
-        <p class="tenue" style="margin:10px 0 0; font-size:.85rem;">
+        <p class="tenue av-mt-3 av-mb-0 av-fs-sm">
           Sale una copia sin clave. El original se queda como está.
         </p>
 
       {% else %}
-        <h2 style="font-size:1.1rem;">{{ cabecera.resumen }}</h2>
-        <p class="tenue" style="margin:6px 0 14px;">
+        <h2 class="av-fs-md">{{ cabecera.resumen }}</h2>
+        <p class="tenue av-mt-2 av-mb-4">
           Se abre sin nada. Póngale contraseña si va a salir de la oficina.
         </p>
 
-        <div style="max-width:22rem;">
-          <label class="eyebrow" for="id_contrasena" style="display:block;">La contraseña</label>
+        <div class="av-mw-22">
+          <label class="eyebrow d-block" for="id_contrasena">La contraseña</label>
           <input type="password" name="contrasena" id="id_contrasena" class="form-control"
                  autocomplete="new-password" spellcheck="false" value=""
                  minlength="{{ minimo }}">
-          <p class="tenue" style="margin:4px 0 0; font-size:.85rem;">
+          <p class="tenue av-mt-1 av-mb-0 av-fs-sm">
             Al menos {{ minimo }} caracteres. Se cifra con {{ algoritmo }}.
           </p>
         </div>
@@ -53,14 +53,14 @@
         {% comment %}
           El aviso va **antes** del botón, no en el recibo. Después ya no sirve de nada.
         {% endcomment %}
-        <div class="aviso" style="margin:14px 0 0;">
+        <div class="aviso av-mt-4 av-mb-0">
           <strong>No hay forma de recuperarla.</strong>
           Si se pierde la contraseña, se pierde el archivo: eso es justo lo que significa que
           el cifrado funcione. Apúntala donde la vayas a encontrar, y mándala por otro camino
           distinto del documento.
         </div>
 
-        <div style="margin-top:14px;">
+        <div class="av-mt-4">
           <button type="submit" name="accion" value="proteger" class="boton">Poner la contraseña</button>
         </div>
       {% endif %}

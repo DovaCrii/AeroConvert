@@ -3802,3 +3802,175 @@ code {
   color: var(--av-text);
   text-decoration: none;
 }
+
+/* --- Utilidades (F13.10) ---------------------------------------------------
+ *
+ * Lo que antes estaba escrito a mano en 183 atributos `style="..."` de las plantillas. Cada una es
+ * una sola declaración y **va con `!important`, como las de Bootstrap**: el atributo `style` ganaba
+ * a cualquier regla de la hoja y estas tienen que seguir ganando, o el margen que una plantilla
+ * pedía lo pisaría una regla de componente de más especificidad.
+ *
+ * Los espacios y los tamaños de letra salen de la escala (`--av-s-*`, `--av-fs-*`); lo que no tenía
+ * peldaño (10, 14 o 18 px) se redondeó al más cercano. Lo demás, las de Bootstrap (`d-flex`,
+ * `fw-semibold`, `text-center`…), que ya está vendorizado. `test_escala_visual.py` falla si
+ * vuelve a aparecer un `style="..."` fijo en una plantilla. */
+
+.av-alto-control {
+  line-height: var(--av-control-height) !important;
+}
+
+.av-borde-arriba {
+  border-top: 1px solid var(--av-border) !important;
+}
+
+.av-borde-izq-aviso {
+  border-left: 4px solid var(--av-warn) !important;
+}
+
+.av-color-aviso {
+  color: var(--av-warn) !important;
+}
+
+.av-color-error {
+  color: var(--av-danger) !important;
+}
+
+.av-fs-lg {
+  font-size: var(--av-fs-lg) !important;
+}
+
+.av-fs-md {
+  font-size: var(--av-fs-md) !important;
+}
+
+.av-fs-sm {
+  font-size: var(--av-fs-sm) !important;
+}
+
+.av-fs-xl {
+  font-size: var(--av-fs-xl) !important;
+}
+
+.av-fs-xs {
+  font-size: var(--av-fs-xs) !important;
+}
+
+.av-gap-2 {
+  gap: var(--av-s-2) !important;
+}
+
+.av-gap-3 {
+  gap: var(--av-s-3) !important;
+}
+
+.av-m-0 {
+  margin: 0 !important;
+}
+
+.av-mb-0 {
+  margin-bottom: 0 !important;
+}
+
+.av-mb-1 {
+  margin-bottom: var(--av-s-1) !important;
+}
+
+.av-mb-2 {
+  margin-bottom: var(--av-s-2) !important;
+}
+
+.av-mb-3 {
+  margin-bottom: var(--av-s-3) !important;
+}
+
+.av-mb-4 {
+  margin-bottom: var(--av-s-4) !important;
+}
+
+.av-mb-5 {
+  margin-bottom: var(--av-s-5) !important;
+}
+
+.av-ml-2 {
+  margin-left: var(--av-s-2) !important;
+}
+
+.av-ml-6 {
+  margin-left: var(--av-s-6) !important;
+}
+
+.av-mt-0 {
+  margin-top: 0 !important;
+}
+
+.av-mt-1 {
+  margin-top: var(--av-s-1) !important;
+}
+
+.av-mt-2 {
+  margin-top: var(--av-s-2) !important;
+}
+
+.av-mt-3 {
+  margin-top: var(--av-s-3) !important;
+}
+
+.av-mt-4 {
+  margin-top: var(--av-s-4) !important;
+}
+
+.av-mt-5 {
+  margin-top: var(--av-s-5) !important;
+}
+
+.av-mw-16 {
+  max-width: 16rem !important;
+}
+
+.av-mw-22 {
+  max-width: 22rem !important;
+}
+
+.av-mw-26 {
+  max-width: 26rem !important;
+}
+
+.av-mw-38 {
+  max-width: 38rem !important;
+}
+
+.av-mw-42 {
+  max-width: 42rem !important;
+}
+
+.av-mx-auto {
+  margin-inline: auto !important;
+}
+
+.av-p-4 {
+  padding: var(--av-s-4) !important;
+}
+
+.av-pt-3 {
+  padding-top: var(--av-s-3) !important;
+}
+
+.av-puntero {
+  cursor: pointer !important;
+}
+
+.av-rejilla-15 {
+  grid-template-columns: repeat(auto-fill, minmax(min(15rem, 100%), 1fr)) !important;
+}
+
+.av-scroll-x {
+  overflow-x: auto !important;
+}
+
+.av-w-5 {
+  width: 5rem !important;
+}
+
+.av-w-6 {
+  width: 6rem !important;
+}

@@ -5,6 +5,13 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Sin publicar]
 
+### Cambiado — los estilos en línea pasan a clases (F13.10)
+
+- **182 de los 183 `style="..."`** de 32 plantillas pasan a clases: las utilidades de Bootstrap, que ya estaba vendorizado (`d-flex`, `fw-semibold`, `text-center`…), y unas `av-*` nuevas (`av-mt-3`, `av-fs-sm`, `av-mw-22`…) escritas con la escala de `--av-s-*` y `--av-fs-*`. Lo que no tenía peldaño (10, 14 o 18 px) se redondeó al más cercano, así que algún margen cambia 2 px.
+- Las `av-*` llevan `!important`, como las de Bootstrap: el atributo `style` ganaba a cualquier regla de la hoja y tienen que seguir ganando.
+- **Queda un solo `style`**, el ancho calculado de la barra de avance (`{{ trabajo.progress_percent }}%`), que es un valor y no una decisión de estilo.
+- `test_escala_visual.py` falla si vuelve un `style="..."` fijo en una plantilla, y si una plantilla usa una `av-*` que la hoja no define (una clase inexistente no falla: no hace nada). Revisadas a 375 y 1440 px, sin desborde.
+
 ### Añadido — la skill `/avanzar` y el tablero del plan
 
 - **`/avanzar [bloque o fila]`** (`.claude/skills/avanzar/SKILL.md`): recorre el plan F13 a F16 por bloques. Elige la siguiente fila que no esté bloqueada, la hace con su oráculo, corre la suite completa en segundo plano, abre el PR, espera el CI, fusiona y deja el tablero al día. Lo que necesita de la persona lo anota y **sigue con lo que sí puede**. No despliega nunca.

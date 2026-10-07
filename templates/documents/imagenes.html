@@ -10,8 +10,8 @@
 
   <div class="tarjeta tarjeta-acento">
     <div class="eyebrow">Las imágenes</div>
-    <h2 style="font-size:1.1rem;">¿Cuáles y en qué orden?</h2>
-    <p class="tenue" style="margin:6px 0 10px;">
+    <h2 class="av-fs-md">¿Cuáles y en qué orden?</h2>
+    <p class="tenue av-mt-2 av-mb-3">
       Cada imagen es una página, en el orden de la lista. Se admiten {{ extensiones }}.
     </p>
 
@@ -37,7 +37,7 @@
           <label class="visually-hidden" for="id_subir">Elegir imágenes del equipo</label>
           <input type="file" name="archivos" id="id_subir" class="form-control" multiple
                  accept="image/*" data-tope-mb="{{ tope_mb }}">
-          <p class="soltar-ayuda" style="margin:8px 0 0;"><span class="limite-subida">Límite por imagen: <strong>{{ tope_mb }} MB</strong></span></p>
+          <p class="soltar-ayuda av-mt-2 av-mb-0"><span class="limite-subida">Límite por imagen: <strong>{{ tope_mb }} MB</strong></span></p>
         </div>
       </div>
 
@@ -58,7 +58,7 @@
     </div>
 
     <textarea name="archivos_texto" id="id_imagenes" hidden>{{ rutas_texto }}</textarea>
-    <div data-avance-subida hidden style="margin-top:10px;"></div>
+    <div class="av-mt-3" data-avance-subida hidden></div>
 
     <fieldset>
       <legend class="eyebrow">Tamaño de la hoja</legend>
@@ -88,7 +88,7 @@
       </label>
     </fieldset>
 
-    <button type="submit" class="boton" style="margin-top:14px;">Crear el PDF</button>
+    <button type="submit" class="boton av-mt-4">Crear el PDF</button>
   </div>
 </form>
 

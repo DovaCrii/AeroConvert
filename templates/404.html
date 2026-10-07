@@ -12,21 +12,21 @@
 {% block titulo %}No está · AeroConvert{% endblock %}
 
 {% block contenido %}
-<div class="tarjeta" style="max-width:38rem; margin:0 auto;">
+<div class="tarjeta av-mw-38 av-mt-0 av-mb-0 av-mx-auto">
   <div class="eyebrow">404</div>
-  <h1 style="font-size:1.3rem; margin:6px 0 10px;">Aquí no hay nada</h1>
+  <h1 class="av-fs-lg av-mt-2 av-mb-3">Aquí no hay nada</h1>
 
-  <p style="margin:0 0 10px;">
+  <p class="av-mt-0 av-mb-3">
     O la dirección no es la que era, o lo que había ya no está.
   </p>
-  <p class="tenue" style="margin:0 0 14px;">
+  <p class="tenue av-mt-0 av-mb-4">
     Lo más común es lo segundo: la salida de una conversión que ya caducó, o un archivo que
     alguien movió o renombró en la carpeta compartida. <strong>El recibo de la conversión
     sobrevive aunque el archivo no</strong>, así que en el historial sigue estando qué se
     hizo, con qué motor y sobre qué original.
   </p>
 
-  <p style="margin:0;">
+  <p class="av-m-0">
     <a href="{% url 'jobs:lista' %}">Ver el historial</a>
     ·
     <a href="{% url 'dashboard:convertir' %}">Convertir algo</a>

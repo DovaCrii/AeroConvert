@@ -33,8 +33,8 @@
         {% endfor %}
       </fieldset>
 
-      <div style="margin:16px 0 0; max-width:26rem;">
-        <label class="eyebrow" for="id_posicion" style="display:block;">Dónde va</label>
+      <div class="av-mt-4 av-mb-0 av-mw-26">
+        <label class="eyebrow d-block" for="id_posicion">Dónde va</label>
         <select name="posicion" id="id_posicion" class="form-control">
           {% for clave, para_que in posiciones.items %}
             <option value="{{ clave }}" {% if clave == posicion %}selected{% endif %}>
@@ -42,26 +42,26 @@
             </option>
           {% endfor %}
         </select>
-        <p class="tenue" style="margin:4px 0 0; font-size:.85rem;">
+        <p class="tenue av-mt-1 av-mb-0 av-fs-sm">
           El número se coloca contra la hoja <strong>tal y como se ve</strong>, así que en una
           lámina girada sale donde tiene que salir, no de canto en un lateral.
         </p>
       </div>
 
-      <div class="rejilla-dos" style="margin:16px 0 0; max-width:26rem;">
+      <div class="rejilla-dos av-mt-4 av-mb-0 av-mw-26">
         <div>
-          <label class="eyebrow" for="id_desde" style="display:block;">Empezar a numerar en la hoja</label>
+          <label class="eyebrow d-block" for="id_desde">Empezar a numerar en la hoja</label>
           <input type="number" name="desde" id="id_desde" class="form-control"
                  value="{{ desde }}" min="1" max="{{ cabecera.cuantas }}">
-          <p class="tenue" style="margin:4px 0 0; font-size:.85rem;">
+          <p class="tenue av-mt-1 av-mb-0 av-fs-sm">
             Pon 2 y la portada se queda sin número.
           </p>
         </div>
         <div>
-          <label class="eyebrow" for="id_empezar_en" style="display:block;">Y que ahí ponga</label>
+          <label class="eyebrow d-block" for="id_empezar_en">Y que ahí ponga</label>
           <input type="number" name="empezar_en" id="id_empezar_en" class="form-control"
                  value="{{ empezar_en }}" min="1">
-          <p class="tenue" style="margin:4px 0 0; font-size:.85rem;">
+          <p class="tenue av-mt-1 av-mb-0 av-fs-sm">
             Para un anexo que continúa otro documento.
           </p>
         </div>

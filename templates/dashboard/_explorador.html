@@ -12,11 +12,11 @@
 {% endcomment %}
 
 {% if sin_raices %}
-  <p class="tenue" style="margin:0;">
+  <p class="tenue av-m-0">
     No hay ninguna carpeta compartida configurada en este equipo.
   </p>
 {% elif error %}
-  <p class="error" style="margin:0;">{{ error }}</p>
+  <p class="error av-m-0">{{ error }}</p>
 {% else %}
 
   <nav class="migas" aria-label="Dónde está">
@@ -39,8 +39,8 @@
       que es por el Explorador de Windows y no por esta pantalla.
     {% endcomment %}
     <div class="vacio-explorador">
-      <p style="margin:0 0 4px;"><strong>Aquí no hay nada todavía.</strong></p>
-      <p class="tenue" style="margin:0;">
+      <p class="av-mt-0 av-mb-1"><strong>Aquí no hay nada todavía.</strong></p>
+      <p class="tenue av-m-0">
         Los archivos llegan copiándolos a la carpeta compartida desde el Explorador. Es lo que
         conviene para una ortofoto o una nube de puntos: copiar así se reanuda si se corta, y
         subir por el navegador no.

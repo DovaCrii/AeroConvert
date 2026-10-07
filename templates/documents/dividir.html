@@ -35,7 +35,7 @@
             </figure>
           {% endfor %}
           {% if cabecera.cuantas > 12 %}
-            <p class="tenue" style="align-self:center; margin:0 0 0 6px;">
+            <p class="tenue align-self-center av-mt-0 av-mb-0 av-ml-2">
               …y {{ cabecera.cuantas|add:"-12" }} más
             </p>
           {% endif %}
@@ -53,11 +53,11 @@
           </span>
         </label>
 
-        <div style="margin:6px 0 12px 28px; max-width:22rem;">
+        <div class="av-mt-2 av-mb-3 av-ml-6 av-mw-22">
           <label class="visually-hidden" for="id_rangos">Rangos</label>
           <input type="text" name="rangos" id="id_rangos" class="form-control"
                  value="{{ rangos }}" placeholder="1-5, 8, 12-14" autocomplete="off">
-          <p class="tenue" style="margin:4px 0 0; font-size:.85rem;">
+          <p class="tenue av-mt-1 av-mb-0 av-fs-sm">
             Los dos extremos entran: <code>1-5</code> son cinco páginas.
           </p>
         </div>

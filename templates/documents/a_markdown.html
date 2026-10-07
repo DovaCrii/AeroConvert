@@ -17,11 +17,11 @@
   delante del formulario es otra forma de que no se lea.
 {% endcomment %}
 <div class="tarjeta antes-de-empezar">
-  <p style="margin:0;">
+  <p class="av-m-0">
     <strong>Se saca de:</strong>
     {% for extension in origenes.keys %}<code>{{ extension }}</code>{% if not forloop.last %} {% endif %}{% endfor %}
   </p>
-  <p class="tenue" style="margin:8px 0 0;">
+  <p class="tenue av-mt-2 av-mb-0">
     De un <strong>Word</strong> no sobreviven {{ no_sobrevive }}. De un <strong>PDF</strong>
     sale solo el texto que ya tiene dentro: si es un escaneo no tiene ninguno, y se dice en vez
     de entregar un archivo vacío. De un <strong>Excel</strong>, una tabla por hoja.
@@ -40,9 +40,9 @@
     como un error manda a alguien a reintentar con el mismo archivo, que es justo lo que no va
     a funcionar; pintarlo como un éxito sería mentir.
   {% endcomment %}
-  <div class="tarjeta" style="border-left:4px solid var(--av-warn); margin-bottom:14px;">
-    <p style="margin:0;"><strong>No hay nada que sacar.</strong></p>
-    <p class="tenue" style="margin:6px 0 0;">{{ sin_texto }}</p>
+  <div class="tarjeta av-borde-izq-aviso av-mb-4">
+    <p class="av-m-0"><strong>No hay nada que sacar.</strong></p>
+    <p class="tenue av-mt-2 av-mb-0">{{ sin_texto }}</p>
   </div>
 {% endif %}
 
@@ -52,7 +52,7 @@
 {% endcomment %}
 <details class="buscador">
   <summary class="buscador-resumen">Qué sale de cada formato</summary>
-  <ul class="lista-simple" style="margin-top:10px;">
+  <ul class="lista-simple av-mt-3">
     {% for extension, que_es in origenes.items %}
       <li><code>{{ extension }}</code> — {{ que_es }}</li>
     {% endfor %}

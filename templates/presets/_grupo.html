@@ -1,6 +1,6 @@
 <div class="tarjeta">
   <div class="eyebrow">{{ titulo }}</div>
-  <table class="table table-sm align-middle" style="margin:0;">
+  <table class="table table-sm align-middle av-m-0">
     <thead>
       <tr>
         <th>Nombre</th>
@@ -20,21 +20,21 @@
           <td>{{ p.nombre_destino }}</td>
           <td>
             {% for clave, valor in p.options.items %}
-              <code class="tenue" style="font-size:.75rem;">{{ clave }}={{ valor }}</code>
+              <code class="tenue av-fs-xs">{{ clave }}={{ valor }}</code>
             {% empty %}
               <span class="tenue">los del formato</span>
             {% endfor %}
           </td>
           <td class="cifra text-end">{{ p.veces_usado }}</td>
-          <td class="text-end" style="white-space:nowrap;">
-            <form method="post" action="{% url 'presets:copiar' p.slug %}" style="display:inline; margin:0;">
+          <td class="text-end text-nowrap">
+            <form class="d-inline av-m-0" method="post" action="{% url 'presets:copiar' p.slug %}">
               {% csrf_token %}
               <button type="submit" class="boton boton-suave boton-pequeno">
                 Copiar
               </button>
             </form>
             {% if p.editable %}
-              <form method="post" action="{% url 'presets:borrar' p.slug %}" style="display:inline; margin:0;">
+              <form class="d-inline av-m-0" method="post" action="{% url 'presets:borrar' p.slug %}">
                 {% csrf_token %}
                 <button type="submit" class="boton boton-suave boton-pequeno">
                   Borrar

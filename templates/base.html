@@ -107,7 +107,7 @@
           <svg class="nav-icono icono-luna" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-luna"></use></svg>
         </button>
 
-        <form method="post" action="{% url 'logout' %}" style="margin:0;">
+        <form class="av-m-0" method="post" action="{% url 'logout' %}">
           {% csrf_token %}
           <button type="submit" class="boton-icono" aria-label="Salir" title="Salir">
             <svg class="nav-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-salir"></use></svg>

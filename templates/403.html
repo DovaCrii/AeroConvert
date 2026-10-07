@@ -3,9 +3,9 @@
 {% block titulo %}No es suyo · AeroConvert{% endblock %}
 
 {% block contenido %}
-<div class="tarjeta" style="max-width:38rem; margin:0 auto;">
+<div class="tarjeta av-mw-38 av-mt-0 av-mb-0 av-mx-auto">
   <div class="eyebrow">403</div>
-  <h1 style="font-size:1.3rem; margin:6px 0 10px;">Esto no es suyo</h1>
+  <h1 class="av-fs-lg av-mt-2 av-mb-3">Esto no es suyo</h1>
 
   {% comment %}
     **Sin decir si existe o no.** Las fichas de trabajo usan 404 en vez de 403 precisamente
@@ -13,15 +13,15 @@
     panel de administración y en un formulario cuyo testigo caducó, y esas dos cosas son lo
     que explica el texto.
   {% endcomment %}
-  <p style="margin:0 0 10px;">
+  <p class="av-mt-0 av-mb-3">
     Su cuenta no puede hacer esto. Si cree que debería, dígaselo a quien administre el equipo.
   </p>
-  <p class="tenue" style="margin:0 0 14px;">
+  <p class="tenue av-mt-0 av-mb-4">
     También sale si el formulario llevaba mucho rato abierto: el testigo que lo protege
     caduca. Vuelva atrás, recargue la página y repita lo que estaba haciendo.
   </p>
 
   {# Decía «Volver al inicio» y llevaba a «Convertir». El texto era correcto; el enlace, no. #}
-  <p style="margin:0;"><a href="{% url 'dashboard:que_puedo_hacer' %}">Volver al inicio</a></p>
+  <p class="av-m-0"><a href="{% url 'dashboard:que_puedo_hacer' %}">Volver al inicio</a></p>
 </div>
 {% endblock %}
