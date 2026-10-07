@@ -271,6 +271,28 @@
     <path d="M15.8 20.6h4.8v-4.8" />
   </symbol>
 
+  <symbol id="icon-pdf-recortar" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Recortar: las dos escuadras de corte sobre una hoja. -->
+    <rect x="7" y="7" width="10" height="10" rx="1" fill="currentColor" fill-opacity=".16" />
+    <path d="M3 7h4V3" />
+    <path d="M21 17h-4v4" />
+    <path d="M7 17H3" />
+    <path d="M17 7h4" />
+  </symbol>
+
+  <symbol id="icon-pdf-comparar" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Comparar: dos hojas lado a lado, y en la segunda lo que cambio. -->
+    <path d="M2.5 5h8v14h-8z" fill="currentColor" fill-opacity=".16" />
+    <path d="M13.5 5h8v14h-8z" />
+    <path d="M5 9h3" />
+    <path d="M5 12.5h3" />
+    <path d="M16 9h3" />
+    <path d="M16 15.5h3" />
+    <path d="M16 12.5h1.2" />
+  </symbol>
+
   <symbol id="icon-pdf-numerar" viewBox="0 0 24 24" fill="none" stroke="currentColor"
           stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
     <!-- La hoja con el folio marcado abajo, que es justo donde se imprime. -->

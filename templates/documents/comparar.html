@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block titulo %}Comparar dos PDF · AeroConvert{% endblock %}
+
+{% block contenido %}
+
+<form method="post" id="forma-documento" enctype="multipart/form-data">
+  {% csrf_token %}
+
+  {% include "documents/_origen.html" with pregunta="¿Cuál es la versión de antes?" accion="comparar" boton="Comparar" %}
+
+  <div class="tarjeta">
+    <div class="eyebrow">Y la versión de después</div>
+    <h2 class="origen-titulo av-mt-1 av-mb-2">¿Cuál es la nueva?</h2>
+    <p class="tenue av-mt-0 av-mb-3">
+      Se dibujan las dos hojas y se restan: lo que cambia en lo que se <strong>ve</strong>, no en el
+      archivo. Si no cambia nada, se le dice y no se genera nada.
+    </p>
+
+    <div class="soltar soltar-compacto">
+      <label class="visually-hidden" for="id_despues">Elegir la versión de después</label>
+      <input type="file" id="id_despues" name="despues_subida" class="form-control"
+             accept=".pdf" data-tope-mb="{{ tope_mb }}">
+      <p class="soltar-ayuda av-mt-2 av-mb-0"><span class="limite-subida">Límite por archivo: <strong>{{ tope_mb }} MB</strong></span></p>
+    </div>
+
+    <details class="buscador av-mt-3">
+      <summary class="buscador-resumen">…o tómela de la carpeta compartida</summary>
+      <div class="explorador" data-destino="[name='despues']"
+           hx-get="{% url 'dashboard:explorar' %}"
+           hx-trigger="toggle from:closest details once"
+           hx-swap="innerHTML">
+        <p class="tenue av-m-0">Abriendo la carpeta…</p>
+      </div>
+    </details>
+    <input type="hidden" name="despues" value="">
+
+    <div class="av-mt-3" data-avance-subida hidden></div>
+  </div>
+</form>
+
+{% endblock %}

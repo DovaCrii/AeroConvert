@@ -266,6 +266,23 @@ def _de_los_documentos() -> list[Accion]:
             "xmp",
         ),
         "extraer_imagenes": ("fotos del pdf", "sacar las fotos", "logotipos", "recuperar fotos"),
+        "comparar": (
+            "diferencias",
+            "que cambio",
+            "revision a y b",
+            "cotejar",
+            "version nueva",
+            "lado a lado",
+        ),
+        "tamano": (
+            "recortar",
+            "recortar margenes",
+            "quitar el blanco",
+            "cambiar a a4",
+            "pasar a a3",
+            "reducir la hoja",
+            "carta",
+        ),
         "numerar": ("foliar", "paginacion", "numeracion", "numeros de pagina"),
         "marca": ("borrador", "confidencial", "sello", "estampar", "watermark"),
         "proteger": ("contrasena", "clave", "cifrar", "desbloquear", "aes"),
@@ -344,6 +361,8 @@ def todas() -> list[Accion]:
 #: Los geoespaciales no están aquí: su ficha ya ofrece destinos (`_destinos_para`).
 HERRAMIENTAS_POR_EXTENSION = {
     ".pdf": (
+        "tamano",
+        "comparar",
         "unir",
         "organizar",
         "dividir",

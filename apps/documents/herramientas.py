@@ -55,6 +55,30 @@ HERRAMIENTAS = (
         "que_hace": "Saca una parte, o parte uno grande en hojas sueltas.",
     },
     {
+        "id": "tamano",
+        "icono": "icon-pdf-recortar",
+        "sale": "el mismo PDF, con otras hojas",
+        "familia": "componer",
+        "url": "documents:tamano",
+        "nombre": "Recortar y cambiar el tamaño",
+        "que_hace": (
+            "Quita el blanco que sobra de cada hoja, recorta los márgenes a mano o pasa el "
+            "juego a otro papel (A4, A3, Carta…) sin deformarlo."
+        ),
+    },
+    {
+        "id": "comparar",
+        "icono": "icon-pdf-comparar",
+        "sale": "un PDF con las páginas que cambiaron",
+        "familia": "marcar",
+        "url": "documents:comparar",
+        "nombre": "Comparar dos PDF",
+        "que_hace": (
+            "Dice dónde cambió una lámina entre la revisión A y la B, con el antes, el después y "
+            "lo que difiere marcado en rojo."
+        ),
+    },
+    {
         "id": "imagenes",
         "icono": "icon-imagen-a-pdf",
         "sale": "un PDF",
