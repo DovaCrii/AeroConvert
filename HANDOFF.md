@@ -19,7 +19,7 @@ Se relanza con `gh run rerun <id>`; no se fusiona con el CI en rojo.
 ## Dónde está el proyecto
 
 - **Desplegado el 2026-10-05:** hasta el #20 (GNSS con RTKLIB, calidad y versiones de RINEX).
-- **En `main` sin desplegar** (#21 a #56): versión `0.10.0`; el lateral de navegación con modo de
+- **En `main` sin desplegar** (#21 a #63): versión `0.11.0` (cierra F13); el lateral de navegación con modo de
   iconos y ancho a mano; nombres por utilidad; baldosas con color en oscuro; la portada con grupos
   plegables; «Organizar páginas» y «Seguir con este archivo» (#54); la paleta en OKLCH; tipografía,
   radios e iconos desde la escala; cierres de la auditoría y B-04 (VRT disfrazado); `Incidente` y
