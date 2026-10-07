@@ -73,6 +73,18 @@ HERRAMIENTAS = (
         "que_hace": "Una lámina como JPG o PNG, para meterla en un informe o en una diapositiva.",
     },
     {
+        "id": "extraer_imagenes",
+        "icono": "icon-pdf-extraer-imagen",
+        "sale": "las imágenes, en un zip",
+        "familia": "transformar",
+        "url": "documents:extraer_imagenes",
+        "nombre": "Extraer imágenes de un PDF",
+        "que_hace": (
+            "Saca las fotos y los logotipos que lleva incrustados, con la resolución con que "
+            "entraron. Cada una una sola vez."
+        ),
+    },
+    {
         "id": "comprimir",
         "icono": "icon-pdf-comprimir",
         "sale": "el mismo PDF, más ligero",

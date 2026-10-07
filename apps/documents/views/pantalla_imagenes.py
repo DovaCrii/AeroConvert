@@ -88,6 +88,40 @@ def imagenes_vista(request):
 
 
 @login_required
+def extraer_imagenes_vista(request):
+    """Sacar las imágenes incrustadas de un PDF, sin dibujar las páginas.
+
+    Dos pasos como las demás —mirar y después hacer—: ver cuántas páginas tiene ayuda a decidir
+    si vale la pena, y evita mandar a la cola un PDF cifrado.
+    """
+    contexto = {
+        "seccion": "pdf",
+        "etiqueta_seccion": "PDF",
+        "titulo_pagina": "Extraer imágenes de un PDF",
+        "proposito": "Las fotos y los logotipos que lleva dentro, tal como entraron.",
+        "ruta_texto": (request.GET.get("ruta") or "").strip(),
+    }
+
+    if request.method != "POST":
+        return render(request, "documents/extraer_imagenes.html", contexto)
+
+    cabecera, origen, error = _mirar_pdf(request)
+    if error:
+        messages.error(request, error)
+        return render(request, "documents/extraer_imagenes.html", contexto)
+
+    contexto["ruta_texto"] = contexto["ruta"] = origen.token
+    contexto["nombre_origen"] = origen.nombre
+    contexto["cabecera"] = cabecera
+
+    if request.POST.get("accion") != "extraer":
+        return render(request, "documents/extraer_imagenes.html", contexto)
+
+    # Siempre un zip: cuántas imágenes hay solo se sabe al abrirlo, y el nombre se fija ahora.
+    return cola_mod.encolar(request, "extraer_imagenes", [origen], {}, sufijo="_imagenes.zip")
+
+
+@login_required
 def a_imagenes_vista(request):
     """Sacar páginas como JPG o PNG.
 

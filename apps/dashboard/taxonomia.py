@@ -111,6 +111,7 @@ DE_DOCUMENTOS: dict[str, str] = {
     "dividir": "organizar",
     "imagenes": "convertir",
     "a_imagenes": "convertir",
+    "extraer_imagenes": "convertir",
     "office": "convertir",
     "a_word": "convertir",
     "comprimir": "optimizar",
