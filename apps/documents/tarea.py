@@ -383,6 +383,50 @@ def _proteger(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
     return {"paginas": paginas, "accion": accion}
 
 
+def _redactar(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
+    import json
+    import os
+
+    from apps.documents import redactar
+
+    # Los términos llegan por el entorno, **no por las opciones**: son lo que se tapa y no pueden
+    # quedar en la base. Se sacan al leerlos, como la contraseña de «Proteger».
+    crudo = os.environ.pop(VARIABLE_CONTRASENA, "")
+    try:
+        terminos = json.loads(crudo) if crudo else []
+    except ValueError as fallo:
+        raise FalloDeTarea(
+            "documento-invalido", "Los términos a tachar no se pudieron leer."
+        ) from fallo
+    areas = [
+        redactar.Area(
+            int(a["pagina"]), float(a["x0"]), float(a["y0"]), float(a["x1"]), float(a["y1"])
+        )
+        for a in opciones.get("areas") or []
+    ]
+    if not terminos and not areas:
+        raise FalloDeTarea("documento-invalido", "No llegó nada que tachar.")
+    try:
+        hecho = redactar.redactar(
+            entradas[0]["ruta"],
+            parcial,
+            terminos=terminos,
+            areas=areas,
+            ppp=int(opciones.get("ppp", 200)),
+            progreso=progreso,
+        )
+    except redactar.NadaQueRedactar as nada:
+        raise SinArchivo("nada-que-redactar", {"motivo": str(nada)}) from nada
+    finally:
+        terminos = []  # noqa: F841 - que no siga viva en el marco más de lo necesario
+    return {
+        "paginas": hecho.paginas,
+        "paginas_redactadas": list(hecho.paginas_redactadas),
+        "coincidencias": list(hecho.coincidencias),
+        "areas": hecho.areas,
+    }
+
+
 #: La ruta de Tesseract, que sondea el padre. Ver `ocr.reconocer`.
 VARIABLE_TESSERACT = "AEROCONVERT_TESSERACT"
 
@@ -473,6 +517,7 @@ TAREAS = {
     "organizar": _unir,
     "imagenes": _imagenes,
     "proteger": _proteger,
+    "redactar": _redactar,
     "ocr": _ocr,
     "catalogo_excel": _catalogo_a_excel,
     "excel_catalogo": _excel_a_catalogo,

@@ -190,6 +190,18 @@ HERRAMIENTAS = (
         ),
     },
     {
+        "id": "redactar",
+        "icono": "icon-pdf-redactar",
+        "sale": "un PDF con lo tachado de verdad",
+        "familia": "proteger",
+        "url": "documents:redactar",
+        "nombre": "Redactar: tachar de verdad",
+        "que_hace": (
+            "Tacha nombres, RUT o áreas para que ya no existan en el archivo: no es un "
+            "rectángulo negro encima, que deja el texto debajo."
+        ),
+    },
+    {
         "id": "proteger",
         "icono": "icon-pdf-proteger",
         "sale": "el mismo PDF, con contraseña",
