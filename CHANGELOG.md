@@ -5,6 +5,13 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Sin publicar]
 
+### Cambiado — la interfaz plana, pero con color (F13.7)
+
+- **Fuera los degradados** (eran 8: el velo del fondo, la barra, el lateral y las baldosas) y **las sombras con difuminado**: las superficies se apoyan en un anillo de 1 px (`--av-elev-0` a `-2` son ahora el mismo) y se distinguen por el cambio de superficie y por el color. `--av-elev-3` queda como **la única sombra**, para lo que flote encima de lo demás (hoy nada).
+- **Pasar el ratón cambia el color, no mueve nada:** las tarjetas ya no suben un píxel ni la baldosa crece; el aro se marca con el color de la tarjeta.
+- **Las baldosas siguen con color, también en oscuro**, pero de relleno **sólido**: el fondo de su familia con un 16 % de su propio color. Sustituye al resplandor con degradado del cambio anterior. El icono se lee sobre ese relleno mezclado con más de 4,5:1 en las nueve familias y en los dos temas oscuros.
+- `test_plano.py` falla con un degradado, con una sombra con difuminado fuera de lo que flota, o con un `transform` al pasar el ratón.
+
 ### Cambiado — iconos sin conflictos, una sola familia y tres colores de familia nuevos (F13.4 a F13.6)
 
 - **Un icono, un significado.** «Todas las herramientas» ya no usa el de QGIS (`icon-todas`), Tino ya no comparte el del mensaje informativo (`icon-tino`), CSV a Markdown deja el de Excel (`icon-texto-csv`), `icon-pdf-a-pdf` pasa a llamarse `icon-imagen-a-pdf` y la flecha de los grupos del lateral, que estaba dibujada suelta en `base.html`, entra al sprite (`icon-chevron`).
