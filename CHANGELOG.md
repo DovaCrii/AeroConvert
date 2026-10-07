@@ -5,6 +5,11 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Sin publicar]
 
+### Añadido — rellenar formularios PDF y poner una firma visible (F14.3, F14.4)
+
+- **«Rellenar un formulario PDF»**: lista los campos del documento y escribe en los de **texto y casillas**; las listas, opciones y firmas se muestran pero no se editan, y la pantalla lo dice. Con **«Aplanar al terminar»** lo escrito pasa a la página y los campos desaparecen (PDFium aplana y se reescribe sin `AcroForm`): ya no se puede cambiar. Siempre una copia.
+- **«Poner una firma en un PDF»**: estampa una imagen de firma (PNG o JPG), con la fecha de hoy y un texto debajo si se quiere, en la página que se elija, en una de las seis posiciones de la numeración y en tres tamaños; funciona también en páginas giradas. **No es una firma digital** (la pantalla lo dice antes que nada): no prueba quién firmó ni detecta cambios posteriores. La imagen sube con el trabajo y se borra sola al día.
+
 ### Añadido — ver, editar y limpiar los metadatos de un PDF (F14.2)
 
 - **«Ver y limpiar metadatos»**, en «Revisar, firmar y proteger»: dice quién figura como autor, con qué programa se hizo y cuándo —el `Info` del documento y su copia en XMP—, y permite **cambiar campos** o **limpiar todo** antes de entregarlo. Siempre se entrega una copia; el original no se toca.
