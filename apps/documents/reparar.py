@@ -58,20 +58,6 @@ def reparar(origen: str | Path, destino: str | Path) -> Reparacion:
         paginas = len(documento)
         if paginas == 0:
             raise ComposicionInvalida(f"{origen.name} no tiene ninguna página que se pueda leer.")
-        # Cada página se dibuja de verdad: el recuento de PDFium puede ser optimista con una
-        # página cuyo contenido se cortó, y lo que se entrega son las que se leen.
-        legibles = 0
-        for indice in range(paginas):
-            hoja = documento[indice]
-            try:
-                hoja.get_size()
-                legibles += 1
-            except Exception:  # pragma: no cover - una página que PDFium no puede ni medir
-                pass
-            finally:
-                hoja.close()
-        if legibles == 0:
-            raise ComposicionInvalida(f"{origen.name} no tiene ninguna página que se pueda leer.")
         documento.save(str(destino))
     finally:
         documento.close()
