@@ -86,7 +86,7 @@ class TestBuscarSinJavaScript:
     @pytest.mark.parametrize(
         ("nombre_url", "campo", "escrito", "esperado"),
         [
-            ("dashboard:que_puedo_hacer", "q", "contraseña", "Proteger PDF"),
+            ("dashboard:que_puedo_hacer", "q", "contraseña", "Proteger o desbloquear PDF"),
             ("tino:preguntar", "p", "¿qué es un COG?", "Cloud Optimized GeoTIFF"),
         ],
     )

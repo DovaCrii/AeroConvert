@@ -87,7 +87,7 @@ HERRAMIENTAS = (
         "sale": "el mismo PDF, con el texto dentro",
         "familia": "transformar",
         "url": "documents:ocr",
-        "nombre": "Reconocer el texto de un escaneo",
+        "nombre": "Reconocer texto (OCR)",
         "que_hace": "Un PDF escaneado pasa a poder buscarse y copiarse. Se ve igual.",
         # La tercera que depende de algo de fuera, y con el mismo trato que Office y Access:
         # cuando Tesseract no esta, la tarjeta **sigue saliendo**, apagada y con el motivo.
@@ -114,7 +114,7 @@ HERRAMIENTAS = (
         "sale": "el mismo PDF, con la marca",
         "familia": "marcar",
         "url": "documents:marca",
-        "nombre": "Marca de agua",
+        "nombre": "Poner marca de agua",
         "que_hace": "Estampa «BORRADOR» o «CONFIDENCIAL» cruzando cada página.",
     },
     {
@@ -123,7 +123,7 @@ HERRAMIENTAS = (
         "sale": "el mismo PDF, con contraseña",
         "familia": "proteger",
         "url": "documents:proteger",
-        "nombre": "Proteger PDF",
+        "nombre": "Proteger o desbloquear PDF",
         "que_hace": "Le pone contraseña, con AES-256. O se la quita, si se conoce.",
     },
     {
@@ -132,7 +132,7 @@ HERRAMIENTAS = (
         "sale": "un PDF",
         "familia": "transformar",
         "url": "documents:office",
-        "nombre": "Word, Excel o PowerPoint a PDF",
+        "nombre": "Office a PDF",
         "que_hace": "Con el Office del equipo, así que sale idéntico al original.",
         # La unica que depende de algo de fuera. Cuando no esta, la tarjeta **sigue
         # saliendo**, apagada y con el motivo: ocultarla haria parecer que nunca existio.
@@ -234,12 +234,12 @@ HERRAMIENTAS = (
         "sale": "un Excel con una hoja por tabla",
         "familia": "texto",
         "url": "documents:catalogo_a_excel",
-        "nombre": "Catálogo de tubería a Excel",
+        "nombre": "Catálogo Plant 3D a Excel",
         "que_hace": "Saca las nueve tablas del catálogo para poder editarlas cómodo.",
         "exige_access": True,
         "tras_hacerlo": (
             "Una hoja por tabla, con la fila de encabezados fija. Cuando lo tengas editado, "
-            "vuelve con «Excel a catálogo de tubería»."
+            "vuelve con «Excel a catálogo Plant 3D»."
         ),
     },
     {
@@ -248,7 +248,7 @@ HERRAMIENTAS = (
         "sale": "un catálogo listo para Plant 3D",
         "familia": "texto",
         "url": "documents:excel_a_catalogo",
-        "nombre": "Excel a catálogo de tubería",
+        "nombre": "Excel a catálogo Plant 3D",
         "que_hace": "El camino de vuelta. Se parte del catálogo original, que pone el esquema.",
         "exige_access": True,
     },

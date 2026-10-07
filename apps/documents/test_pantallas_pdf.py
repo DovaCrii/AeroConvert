@@ -158,7 +158,7 @@ class TestElIndice:
         """El otro lado del cambio: si se quita de aquí, **tiene que estar allí**. Sin esto,
         «se dice en su sitio» sería «se dejó de decir»."""
         cuerpo = sesion.get(reverse("engines:matriz")).content.decode()
-        assert "Word, Excel o PowerPoint a PDF" in cuerpo
+        assert "Office a PDF" in cuerpo
         assert "No hay Microsoft Office instalado" in cuerpo
 
     def test_dice_por_que_no_se_usa_una_web(self, sesion):

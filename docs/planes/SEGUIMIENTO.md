@@ -13,7 +13,7 @@ Lo que Claude necesita para avanzar y no tiene. **Sin él, la fila espera (⏸) 
 
 | # | Qué se necesita | Para qué fila | Forma | Si no llega |
 | ---: | --- | --- | --- | --- |
-| P1 | **Aprobar la tabla de renombres** que irá en el PR de nombres | F13.2 | Un sí o correcciones sobre la tabla del PR | F13.2 queda ⏸; los bloques siguientes que no dependan de los nombres siguen |
+| P1 | ~~Aprobar la tabla de renombres~~ **Resuelto el 2026-10-07**: programa como título y propósito debajo, y los siete renombres | F13.2 | — | — |
 | P2 | **Confirmar el cierre** de las ramas `codex/prueba-diseno-b` y `-c` | F13.12 | Un sí | Se dejan abiertas, sin coste |
 | P3 | **Aprobar el reparto con Stirling-PDF** (documento de decisión) | F14.0 | Un sí o ajustes | Todo se hace en casa, sin Stirling |
 | P4 | **La plantilla de J.E.J.** (portada, encabezado y pie) | F14.19 | Un archivo fuera del repositorio | F14.19 ⏸ |
@@ -32,7 +32,7 @@ Estados: ✅ hecho · 🟨 en curso · ⬜ por hacer · ⏸ espera un pedido · 
 | --- | --- | --- | --- | --- |
 | **B0 · Cierre** | #54 organizar y encadenar (F14.1 organizar, F14.10); plan a `main` | ✅ 2026-10-07 | #54, #55 | — |
 | **B1 · Lenguaje y limpieza** | F13.3 usted ✅ · F13.10 estilos en línea ✅ | ✅ 2026-10-07 | #56, #58 | — |
-| **B2 · Taxonomía y nombres** | F13.1 taxonomía ✅ · F13.2 nombres ⬜ | 🟨 | F13.1 en #59 | P1 (F13.2) |
+| **B2 · Taxonomía y nombres** | F13.1 taxonomía ✅ · F13.2 nombres ✅ | ✅ 2026-10-07 | #59, #60 | P1 resuelto |
 | **B3 · Iconos y color** | F13.4 · F13.5 · F13.6 | ⬜ | — | B2 |
 | **B4 · Plano con color** | F13.7 | ⬜ | — | B3 |
 | **B5 · Barra, portada y mapa** | F13.9 · F13.8 · F13.11 · F13.12 | ⬜ | — | B4 · P2 (F13.12) |

@@ -3974,3 +3974,22 @@ code {
 .av-w-6 {
   width: 6rem !important;
 }
+
+/* --- El propósito bajo el nombre del programa (F13.2) -----------------------
+ *
+ * «QGIS» y debajo «Para analizar y hacer mapas»: la gente busca por programa, y para qué sirve
+ * sigue a la vista, en la tarjeta de la portada y en el lateral. */
+.herramienta-para,
+.menu-para {
+  display: block;
+  color: var(--av-text-secondary);
+  font-size: var(--av-fs-xs);
+  font-weight: 500;
+  line-height: var(--av-alto-apretado);
+}
+
+.menu-enlace-texto {
+  display: grid;
+  min-width: 0;
+}
+

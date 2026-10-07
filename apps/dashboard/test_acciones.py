@@ -43,7 +43,7 @@ class TestElCatalogo:
         pregunta con veinte respuestas, no con ciento ochenta y nueve."""
         planos = [a for a in acciones_mod.todas() if a.categoria == "entregar"]
         assert 0 < len(planos) <= 12
-        assert all(" · " in a.nombre for a in planos), "para qué sirve, y qué programa"
+        assert all(a.para.startswith("Para ") for a in planos), "el programa y, debajo, para qué"
 
     def test_cada_una_dice_que_sale(self):
         assert all(a.sale for a in acciones_mod.todas())
@@ -130,10 +130,10 @@ class TestElBuscador:
         assert "Unir PDF" in _nombres(acciones_mod.por_categoria("juntar"))
 
     def test_encuentra_la_marca_de_agua_por_lo_que_estampa(self):
-        assert "Marca de agua" in _nombres(acciones_mod.por_categoria("confidencial"))
+        assert "Poner marca de agua" in _nombres(acciones_mod.por_categoria("confidencial"))
 
     def test_encuentra_proteger_por_contrasena(self):
-        assert "Proteger PDF" in _nombres(acciones_mod.por_categoria("clave"))
+        assert "Proteger o desbloquear PDF" in _nombres(acciones_mod.por_categoria("clave"))
 
     def test_varias_palabras_en_cualquier_orden(self):
         """«Todas tienen que aparecer», y da igual el orden y en qué campo estén."""
@@ -170,7 +170,7 @@ class TestElBuscador:
         """Si exigir todas ya devuelve algo, el respaldo no entra: «marca de agua» no puede
         empezar a devolver todo lo que lleve «de»."""
         estricta = _nombres(acciones_mod.por_categoria("marca agua"))
-        assert estricta == ["Marca de agua"]
+        assert estricta == ["Poner marca de agua"]
 
     def test_una_categoria_vacia_no_se_pinta(self):
         """Un encabezado sobre un hueco hace pensar que algo se rompió."""
@@ -405,8 +405,8 @@ class TestLaPantalla:
             {"q": "contrasena"},
             headers={"HX-Request": "true"},
         ).content.decode()
-        assert "Proteger PDF" in cuerpo
-        assert "Marca de agua" not in cuerpo
+        assert "Proteger o desbloquear PDF" in cuerpo
+        assert "Poner marca de agua" not in cuerpo
 
     def test_htmx_devuelve_solo_el_fragmento(self, sesion):
         """Sin la página entera: es lo que se reemplaza con cada tecla."""

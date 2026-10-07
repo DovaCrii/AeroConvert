@@ -128,16 +128,14 @@ class TestSeEncuentra:
         from apps.dashboard import acciones
 
         nombres = [a.nombre for a in acciones.buscar(escrito)]
-        assert "Datos de un receptor GNSS a RINEX" in nombres, escrito
+        assert "T02, T04 y crudos a RINEX" in nombres, escrito
 
     def test_va_en_su_propia_categoria_y_no_entre_los_planos(self):
         from apps.dashboard import acciones
 
         grupos = {g["clave"]: g for g in acciones.por_categoria()}
         assert "gnss" in grupos
-        assert [a.nombre for a in grupos["gnss"]["acciones"]] == [
-            "Datos de un receptor GNSS a RINEX"
-        ]
+        assert [a.nombre for a in grupos["gnss"]["acciones"]] == ["T02, T04 y crudos a RINEX"]
         assert "GNSS" not in " ".join(a.nombre for a in grupos["entregar"]["acciones"])
 
     def test_la_tarjeta_lleva_la_eleccion_puesta(self):

@@ -184,7 +184,10 @@
                       <span class="menu-marca fam-{{ accion.familia }}" aria-hidden="true">
                         <svg class="menu-icono"><use href="{% static 'img/icons.svg' %}#{{ accion.icono }}"></use></svg>
                       </span>
-                      <span>{{ accion.nombre }}</span>
+                      <span class="menu-enlace-texto">
+                        <span>{{ accion.nombre }}</span>
+                        {% if accion.para %}<small class="menu-para">{{ accion.para }}</small>{% endif %}
+                      </span>
                     </a>
                   </li>
                 {% endif %}

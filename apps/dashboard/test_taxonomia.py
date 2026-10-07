@@ -136,7 +136,7 @@ class TestLasPantallasLeenElMismoArbol:
         assert "Excel a Markdown" in cuerpo
         if hay_access:
             assert titulos == ["Texto, tablas y Markdown", "Imagen, video y planta"]
-            assert "Catálogo Plant 3D a Excel" in cuerpo or "Catálogo de tubería a Excel" in cuerpo
+            assert "Catálogo Plant 3D a Excel" in cuerpo
         else:
             assert titulos == [], "un grupo solo no lleva encabezado"
 

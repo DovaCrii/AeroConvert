@@ -97,7 +97,7 @@ def marca_vista(request):
     contexto = {
         "seccion": "pdf",
         "etiqueta_seccion": "PDF",
-        "titulo_pagina": "Marca de agua",
+        "titulo_pagina": "Poner marca de agua",
         "proposito": "Estampa un texto en todas las páginas, sin tapar lo que hay debajo.",
         "ruta_texto": (request.GET.get("ruta") or "").strip(),
         "opacidades": marcas_mod.OPACIDADES,

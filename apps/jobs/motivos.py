@@ -190,7 +190,7 @@ DESENLACES: dict[str, Motivo] = dict(
         _m(
             "sin-texto-que-sacar",
             "El PDF no tiene texto: es un escaneo, una imagen de un texto.",
-            "Pásalo antes por «Reconocer el texto de un escaneo».",
+            "Pásele antes por «Reconocer texto (OCR)».",
         ),
         _m("con-avisos", "Hecho, con avisos que conviene leer antes de usarlo."),
     ]

@@ -568,7 +568,8 @@ def de_pdf(origen: str | Path) -> str:
 
     if lector.is_encrypted:
         raise ComposicionInvalida(
-            f"{origen.name} está protegido con contraseña. Quítesela primero con «Proteger PDF»."
+            f"{origen.name} está protegido con contraseña. "
+            "Quítesela primero con «Proteger o desbloquear PDF»."
         )
 
     partes: list[str] = [f"# {origen.stem}", ""]
@@ -601,9 +602,7 @@ def de_pdf(origen: str | Path) -> str:
         if reconocimiento is None:
             salida = "Para sacarlo hace falta reconocer el texto primero."
         elif reconocimiento:
-            salida = (
-                "Pásalo antes por «Reconocer el texto de un escaneo» y vuelve con el PDF que salga."
-            )
+            salida = "Pásele antes por «Reconocer texto (OCR)» y vuelva con el PDF que salga."
         else:
             salida = f"Para sacarlo hace falta reconocimiento óptico. {reconocimiento.motivo}"
         raise SinTextoQueSacar(
