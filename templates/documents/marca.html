@@ -20,12 +20,12 @@
         <button type="submit" name="accion" value="marcar" class="boton">Marcar</button>
       </div>
 
-      <div style="margin:14px 0 0; max-width:26rem;">
-        <label class="eyebrow" for="id_texto" style="display:block;">Qué tiene que decir</label>
+      <div class="av-mt-4 av-mb-0 av-mw-26">
+        <label class="eyebrow d-block" for="id_texto">Qué tiene que decir</label>
         <input type="text" name="texto" id="id_texto" class="form-control"
                value="{{ texto }}" maxlength="{{ maximo }}" autocomplete="off"
                placeholder="BORRADOR">
-        <p class="tenue" style="margin:6px 0 0; font-size:.85rem;">
+        <p class="tenue av-mt-2 av-mb-0 av-fs-sm">
           Lo habitual:
           {% for sugerencia in sugerencias %}<code>{{ sugerencia }}</code>{% if not forloop.last %} · {% endif %}{% endfor %}
         </p>

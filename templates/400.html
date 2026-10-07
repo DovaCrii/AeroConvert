@@ -3,9 +3,9 @@
 {% block titulo %}Petición rechazada · AeroConvert{% endblock %}
 
 {% block contenido %}
-<div class="tarjeta" style="max-width:38rem; margin:0 auto;">
+<div class="tarjeta av-mw-38 av-mt-0 av-mb-0 av-mx-auto">
   <div class="eyebrow">400</div>
-  <h1 style="font-size:1.3rem; margin:6px 0 10px;">La petición no se pudo aceptar</h1>
+  <h1 class="av-fs-lg av-mt-2 av-mb-3">La petición no se pudo aceptar</h1>
 
   {% comment %}
     **En un despliegue nuevo, el 400 casi siempre es lo mismo**: `ALLOWED_HOSTS` sin el
@@ -15,16 +15,16 @@
     Que lo diga esta página no es exponer nada: quien llega aquí ya conoce el nombre que
     escribió en la barra.
   {% endcomment %}
-  <p style="margin:0 0 10px;">
+  <p class="av-mt-0 av-mb-3">
     Algo en la petición no cuadra con lo que este servidor espera.
   </p>
-  <p class="tenue" style="margin:0 0 14px;">
+  <p class="tenue av-mt-0 av-mb-4">
     Si esto acaba de instalarse, lo más probable es que falte el nombre por el que se está
     llegando en <code>ALLOWED_HOSTS</code>, o el mismo nombre con <code>https://</code>
     delante en <code>CSRF_TRUSTED_ORIGINS</code>. Las dos van en el <code>.env</code>, y
     <code>manage.py check</code> lo dice con el ejemplo puesto.
   </p>
 
-  <p style="margin:0;"><a href="/">Volver al inicio</a></p>
+  <p class="av-m-0"><a href="/">Volver al inicio</a></p>
 </div>
 {% endblock %}

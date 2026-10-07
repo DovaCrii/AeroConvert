@@ -31,18 +31,18 @@
             </figure>
           {% endfor %}
           {% if cabecera.cuantas > 12 %}
-            <p class="tenue" style="align-self:center; margin:0 0 0 6px;">
+            <p class="tenue align-self-center av-mt-0 av-mb-0 av-ml-2">
               …y {{ cabecera.cuantas|add:"-12" }} más
             </p>
           {% endif %}
         </div>
       {% endif %}
 
-      <div style="margin:14px 0 0; max-width:22rem;">
-        <label class="eyebrow" for="id_rangos" style="display:block;">Qué páginas</label>
+      <div class="av-mt-4 av-mb-0 av-mw-22">
+        <label class="eyebrow d-block" for="id_rangos">Qué páginas</label>
         <input type="text" name="rangos" id="id_rangos" class="form-control"
                value="{{ rangos }}" placeholder="1-5, 8, 12-14" autocomplete="off">
-        <p class="tenue" style="margin:4px 0 0; font-size:.85rem;">
+        <p class="tenue av-mt-1 av-mb-0 av-fs-sm">
           Déjalo vacío y salen todas. Los dos extremos entran: <code>1-5</code> son cinco.
           Una página sale suelta; varias, juntas en un zip.
         </p>

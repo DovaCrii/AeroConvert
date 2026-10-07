@@ -10,21 +10,21 @@
     Apagada con su motivo, nunca ausente. Es la misma regla que Office y que ECW: ocultar una
     capacidad que no está hace parecer que nunca existió.
   {% endcomment %}
-  <div class="tarjeta" style="border-left:4px solid var(--av-warn); margin-bottom:14px;">
-    <p style="margin:0;"><strong>Aquí no se puede.</strong> {{ access.motivo }}</p>
-    {% if access.sugerencia %}<p class="tenue" style="margin:6px 0 0;">{{ access.sugerencia }}</p>{% endif %}
+  <div class="tarjeta av-borde-izq-aviso av-mb-4">
+    <p class="av-m-0"><strong>Aquí no se puede.</strong> {{ access.motivo }}</p>
+    {% if access.sugerencia %}<p class="tenue av-mt-2 av-mb-0">{{ access.sugerencia }}</p>{% endif %}
   </div>
 {% else %}
   {% comment %}
     Qué va a pasar, antes de elegir. Estaba al final de la pantalla, o sea después de decidir.
   {% endcomment %}
   <div class="tarjeta antes-de-empezar">
-    <p style="margin:0;">
+    <p class="av-m-0">
       Los catálogos de AutoCAD Plant 3D son bases de Access: <strong>una hoja de Excel por
       tabla</strong> —<code>PIPE</code>, <code>ELBOW</code>, <code>TEE</code>,
       <code>FLANGE</code> y las demás—, con hasta cincuenta columnas cada una.
     </p>
-    <p class="tenue" style="margin:8px 0 0;">
+    <p class="tenue av-mt-2 av-mb-0">
       Se saca todo, <strong>incluidas las tablas vacías</strong>: sus encabezados son la
       plantilla para rellenarlas. El catálogo original no se toca.
     </p>
@@ -39,7 +39,7 @@
 {% if tablas %}
   <div class="tarjeta">
     <div class="eyebrow">Lo que hay dentro</div>
-    <h2 class="origen-titulo" style="margin:2px 0 10px;">{{ tablas|length }} tabla(s)</h2>
+    <h2 class="origen-titulo av-mt-1 av-mb-3">{{ tablas|length }} tabla(s)</h2>
     <div class="herramientas">
       {% for tabla in tablas %}
         <div class="linea">

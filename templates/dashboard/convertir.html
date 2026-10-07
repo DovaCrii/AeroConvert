@@ -153,7 +153,7 @@
         <input type="file" id="archivo" name="archivo" class="form-control"
                data-envia-solo data-tope-mb="{{ tope_mb }}">
         {# El tope, a la vista pero sin gritar: una etiqueta pequeña con la cifra en negrita. #}
-        <p class="soltar-ayuda" style="margin:10px 0 0;">
+        <p class="soltar-ayuda av-mt-3 av-mb-0">
           <span class="limite-subida">Límite por archivo: <strong>{{ tope_mb }} MB</strong></span>
           Si pesa más, déjalo en la carpeta compartida: copiarlo ahí con el Explorador es
           reanudable, y subirlo por el navegador no.
@@ -165,7 +165,7 @@
         hasta que `subida.js` tenga algo que decir: un hueco reservado que nunca se llena es
         una tarjeta con un agujero.
       {% endcomment %}
-      <div data-avance-subida hidden style="margin-top:12px;"></div>
+      <div class="av-mt-3" data-avance-subida hidden></div>
     </form>
   </div>
 
@@ -189,7 +189,7 @@
          hx-get="{% url 'dashboard:explorar' %}"
          hx-trigger="load"
          hx-swap="innerHTML">
-      <p class="tenue" style="margin:0;">Abriendo la carpeta…</p>
+      <p class="tenue av-m-0">Abriendo la carpeta…</p>
     </div>
   </div>
 </div>
@@ -217,7 +217,7 @@
   {% if formato_preferido %}<input type="hidden" name="formato" value="{{ formato_preferido }}">{% endif %}
 </form>
 
-<p id="mirando" class="tenue htmx-indicator" style="margin:12px 0 0;">Mirando el archivo…</p>
+<p id="mirando" class="tenue htmx-indicator av-mt-3 av-mb-0">Mirando el archivo…</p>
 
 {% comment %}
   **`data-enfocar`: cuando llega la ficha, se va a ella.** Aparecía debajo de las dos tarjetas
@@ -249,7 +249,7 @@
       <a href="{% url 'jobs:lista' %}" class="enlace-suave">Ver el historial completo →</a>
     </div>
 
-    <table class="table table-sm align-middle" style="margin:0;">
+    <table class="table table-sm align-middle av-m-0">
       <tbody>
         {% for t in recientes %}
           <tr>

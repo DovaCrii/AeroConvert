@@ -31,7 +31,7 @@ Estados: ✅ hecho · 🟨 en curso · ⬜ por hacer · ⏸ espera un pedido · 
 | Bloque | Filas | Estado | PR | Depende de |
 | --- | --- | --- | --- | --- |
 | **B0 · Cierre** | #54 organizar y encadenar (F14.1 organizar, F14.10); plan a `main` | ✅ 2026-10-07 | #54, #55 | — |
-| **B1 · Lenguaje y limpieza** | F13.3 usted ✅ · F13.10 estilos en línea ⬜ | 🟨 | #56 | — |
+| **B1 · Lenguaje y limpieza** | F13.3 usted ✅ · F13.10 estilos en línea ✅ | ✅ 2026-10-07 | #56, #58 | — |
 | **B2 · Taxonomía y nombres** | F13.1 taxonomía · F13.2 nombres | ⬜ | — | P1 (F13.2) |
 | **B3 · Iconos y color** | F13.4 · F13.5 · F13.6 | ⬜ | — | B2 |
 | **B4 · Plano con color** | F13.7 | ⬜ | — | B3 |

@@ -6,9 +6,9 @@
 {% block contenido %}
 
 {% if not access %}
-  <div class="tarjeta" style="border-left:4px solid var(--av-warn); margin-bottom:14px;">
-    <p style="margin:0;"><strong>Aquí no se puede.</strong> {{ access.motivo }}</p>
-    {% if access.sugerencia %}<p class="tenue" style="margin:6px 0 0;">{{ access.sugerencia }}</p>{% endif %}
+  <div class="tarjeta av-borde-izq-aviso av-mb-4">
+    <p class="av-m-0"><strong>Aquí no se puede.</strong> {{ access.motivo }}</p>
+    {% if access.sugerencia %}<p class="tenue av-mt-2 av-mb-0">{{ access.sugerencia }}</p>{% endif %}
   </div>
 {% else %}
   {% comment %}
@@ -16,12 +16,12 @@
     después de recibir un error sobre una columna, no antes de poder evitarlo.
   {% endcomment %}
   <div class="tarjeta antes-de-empezar">
-    <p style="margin:0;">
+    <p class="av-m-0">
       <strong>Hacen falta los dos archivos:</strong> la hoja editada y el catálogo del que
       salió. El segundo pone el esquema, así que el resultado es una copia suya con las filas
       del Excel dentro — <strong>idéntico</strong>, no parecido.
     </p>
-    <p class="tenue" style="margin:8px 0 0;">
+    <p class="tenue av-mt-2 av-mb-0">
       Antes de escribir nada se comprueba que cada hoja sea una tabla del catálogo, que cada
       columna exista, y que los valores quepan. <strong>Una columna que no exista para el
       trabajo</strong> en vez de descartarse en silencio. Es todo o nada.
@@ -43,8 +43,8 @@
     {% endcomment %}
     <div class="tarjeta">
       <div class="eyebrow">Y el catálogo original</div>
-      <h2 class="origen-titulo" style="margin:2px 0 6px;">¿De cuál salió esa hoja?</h2>
-      <p class="tenue" style="margin:0 0 12px;">
+      <h2 class="origen-titulo av-mt-1 av-mb-2">¿De cuál salió esa hoja?</h2>
+      <p class="tenue av-mt-0 av-mb-3">
         De ahí se toman las tablas, las columnas y sus tipos. El resultado es una copia suya con
         las filas del Excel dentro, así que el esquema queda <strong>idéntico</strong> y no
         parecido.
@@ -54,21 +54,21 @@
         <label class="visually-hidden" for="id_plantilla">Elegir el catálogo original</label>
         <input type="file" id="id_plantilla" name="plantilla_subida" class="form-control"
                accept=".mdb,.accdb" data-tope-mb="{{ tope_mb }}">
-        <p class="soltar-ayuda" style="margin:8px 0 0;"><span class="limite-subida">Límite por archivo: <strong>{{ tope_mb }} MB</strong></span></p>
+        <p class="soltar-ayuda av-mt-2 av-mb-0"><span class="limite-subida">Límite por archivo: <strong>{{ tope_mb }} MB</strong></span></p>
       </div>
 
-      <details class="buscador" style="margin-top:10px;">
+      <details class="buscador av-mt-3">
         <summary class="buscador-resumen">…o cógelo de la carpeta compartida</summary>
         <div class="explorador" data-destino="[name='plantilla']"
              hx-get="{% url 'dashboard:explorar' %}"
              hx-trigger="toggle from:closest details once"
              hx-swap="innerHTML">
-          <p class="tenue" style="margin:0;">Abriendo la carpeta…</p>
+          <p class="tenue av-m-0">Abriendo la carpeta…</p>
         </div>
       </details>
       <input type="hidden" name="plantilla" value="">
 
-      <div data-avance-subida hidden style="margin-top:10px;"></div>
+      <div class="av-mt-3" data-avance-subida hidden></div>
     </div>
   </form>
 {% endif %}

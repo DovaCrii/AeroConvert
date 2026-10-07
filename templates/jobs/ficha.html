@@ -10,13 +10,13 @@
 {% endcomment %}
 <div class="eyebrow">Trabajo</div>
 {% if trabajo.es_de_documentos %}
-  <h1 style="font-size:1.4rem; margin-bottom:2px;">{{ trabajo.nombre_del_destino }}</h1>
-  <p class="tenue" style="margin-bottom:18px;">
+  <h1 class="av-fs-xl av-mb-1">{{ trabajo.nombre_del_destino }}</h1>
+  <p class="tenue av-mb-5">
     {{ trabajo.source_name }}{% with n=trabajo.entradas.count %}{% if n > 1 %} y {{ n|add:"-1" }} más{% endif %}{% endwith %}
   </p>
 {% else %}
-  <h1 style="font-size:1.4rem; margin-bottom:2px;">{{ trabajo.source_name }}</h1>
-  <p class="tenue" style="margin-bottom:18px;">
+  <h1 class="av-fs-xl av-mb-1">{{ trabajo.source_name }}</h1>
+  <p class="tenue av-mb-5">
     hacia {{ trabajo.nombre_del_destino }}
     {% if trabajo.nombre_del_perfil %}· {{ trabajo.nombre_del_perfil }}{% endif %}
   </p>
@@ -24,14 +24,14 @@
 
 {% include "jobs/_progreso.html" %}
 
-<div class="tarjeta" style="margin-top:14px;">
+<div class="tarjeta av-mt-4">
   <div class="eyebrow">Bitácora</div>
-  <table class="table table-sm" style="margin:0;">
+  <table class="table table-sm av-m-0">
     <tbody>
       {% for e in trabajo.eventos.all %}
         <tr>
-          <td class="cifra tenue" style="width:6rem;">{{ e.created_at|date:"H:i:s" }}</td>
-          <td style="width:5rem;">
+          <td class="cifra tenue av-w-6">{{ e.created_at|date:"H:i:s" }}</td>
+          <td class="av-w-5">
             <span class="pildora pildora-{% if e.level == 'error' %}error{% elif e.level == 'warn' %}running{% else %}done{% endif %}">
               {{ e.get_level_display }}
             </span>

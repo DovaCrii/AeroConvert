@@ -7,8 +7,8 @@
 {% if not office.nombres %}
   <div class="tarjeta">
     <div class="eyebrow">Ahora mismo no se puede</div>
-    <h2 style="font-size:1.1rem;">{{ office.motivo }}</h2>
-    <p class="tenue" style="margin:8px 0 0;">
+    <h2 class="av-fs-md">{{ office.motivo }}</h2>
+    <p class="tenue av-mt-2 av-mb-0">
       Lo convierte el propio Word: abre el PDF y reconstruye párrafos, tablas y estilos a
       partir de las posiciones de las letras. Sin Word no hay forma honesta de hacerlo.
     </p>
@@ -27,12 +27,12 @@
   {% endcomment %}
   <div class="tarjeta">
     <div class="eyebrow">Qué va a recibir de verdad</div>
-    <p style="margin:6px 0 0;">
+    <p class="av-mt-2 av-mb-0">
       Un PDF <strong>no guarda párrafos: guarda posiciones de letras</strong>. Word las vuelve
       a juntar en párrafos, tablas y estilos, y lo hace bastante bien — pero lo que sale es un
       documento <em>nuevo</em> que se parece mucho, no el original.
     </p>
-    <p class="tenue" style="margin:8px 0 0;">
+    <p class="tenue av-mt-2 av-mb-0">
       Medido sobre una minuta real de esta oficina, ida y vuelta:
       <strong>se conserva el 97,7 % de las palabras</strong>, y las 6 páginas se convirtieron
       en 8. Sirve para reaprovechar el texto; no para reemplazar al documento de origen.
@@ -53,19 +53,19 @@
       </div>
 
       {% if que_trae.es_un_escaneo %}
-        <div class="aviso" style="margin-top:12px;">
+        <div class="aviso av-mt-3">
           <strong>Esto es un escaneo: no hay texto dentro.</strong>
           Son fotos de un papel, así que Word no tiene letras que reconstruir. Lo que saldría
           es un documento con esas mismas fotos pegadas y ni una palabra editable — pesado e
           inútil. Lo que hace falta es reconocer el texto primero.
         </div>
-        <p class="tenue" style="margin:10px 0 0;">
+        <p class="tenue av-mt-3 av-mb-0">
           <a href="{% url 'documents:ocr' %}">Reconocer el texto de un escaneo</a> deja el texto
           dentro del PDF; con eso, esta pantalla ya tiene letras que reconstruir. Y si lo que
           quiere es la imagen, «PDF a imágenes» se la da directamente y mejor.
         </p>
       {% else %}
-        <p class="tenue" style="margin:10px 0 0;">
+        <p class="tenue av-mt-3 av-mb-0">
           Trae texto de verdad ({{ que_trae.caracteres }} caracteres en las primeras páginas),
           así que la conversión tiene sentido. El <code>.docx</code> sale con el mismo nombre.
         </p>

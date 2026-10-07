@@ -26,7 +26,7 @@
 
   <div class="tarjeta tarjeta-acento">
     <div class="eyebrow">Los archivos</div>
-    <h2 style="font-size:1.1rem;">{% if un_solo_archivo %}¿Qué PDF quiere organizar?{% else %}¿Qué PDF hay que juntar?{% endif %}</h2>
+    <h2 class="av-fs-md">{% if un_solo_archivo %}¿Qué PDF quiere organizar?{% else %}¿Qué PDF hay que juntar?{% endif %}</h2>
 
     {% comment %}
       **Las mismas dos vías que en todas partes, y ninguna pide teclear una ruta.**
@@ -55,7 +55,7 @@
           <label class="visually-hidden" for="id_subir">Elegir PDF del equipo</label>
           <input type="file" name="archivos" id="id_subir" class="form-control"
                  {% if not un_solo_archivo %}multiple{% endif %} accept="application/pdf,.pdf" data-tope-mb="{{ tope_mb }}">
-          <p class="soltar-ayuda" style="margin:8px 0 0;">
+          <p class="soltar-ayuda av-mt-2 av-mb-0">
             <span class="limite-subida">Límite por PDF: <strong>{{ tope_mb }} MB</strong></span>
             Si ya están en la carpeta compartida, mejor por ahí.
           </p>
@@ -87,17 +87,17 @@
     </div>
 
     <textarea name="archivos_texto" id="id_archivos" hidden>{{ rutas_texto }}</textarea>
-    <div data-avance-subida hidden style="margin-top:10px;"></div>
+    <div class="av-mt-3" data-avance-subida hidden></div>
 
     {% if nombres %}
-      <p class="origen-elegido" style="margin-top:12px;">
+      <p class="origen-elegido av-mt-3">
         <svg class="linea-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-archivo"></use></svg>
         <strong>{{ nombres|length }} archivo(s):</strong>
         <span class="tenue">{{ nombres|join:" · " }}</span>
       </p>
     {% endif %}
 
-    <button type="submit" name="accion" value="analizar" class="boton" style="margin-top:12px;">
+    <button type="submit" name="accion" value="analizar" class="boton av-mt-3">
       Ver las páginas
     </button>
   </div>
@@ -116,7 +116,7 @@
         </button>
       </div>
 
-      <p class="tenue" style="margin:0 0 12px;">
+      <p class="tenue av-mt-0 av-mb-3">
         Girar una lámina no vuelve a dibujarla: no se pierde nada y el archivo no engorda.
         Los originales no se tocan.
       </p>

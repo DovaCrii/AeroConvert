@@ -7,14 +7,13 @@ Era la mitad que faltaba de la regla «las opciones las declara el motor».
 {% endcomment %}
 
 {% if campos and campos.hay_campos %}
-  <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(15rem,1fr)); gap:12px;">
+  <div class="d-grid av-rejilla-15 av-gap-3">
     {% for campo in campos.campos %}
       <div>
         {% if campo.es_booleano %}
-          <label style="display:flex; align-items:flex-start; gap:8px; cursor:pointer;">
-            <input type="checkbox" name="{{ campo.nombre }}" value="1"
-                   {% if campo.marcado %}checked{% endif %}
-                   style="margin-top:.3rem;">
+          <label class="d-flex align-items-start av-gap-2 av-puntero">
+            <input class="av-mt-1" type="checkbox" name="{{ campo.nombre }}" value="1"
+                   {% if campo.marcado %}checked{% endif %}>
             <span>
               <strong>{{ campo.etiqueta }}</strong>
               {% if campo.ayuda %}<br><small class="tenue">{{ campo.ayuda }}</small>{% endif %}
@@ -22,7 +21,7 @@ Era la mitad que faltaba de la regla «las opciones las declara el motor».
           </label>
 
         {% elif campo.es_eleccion %}
-          <label for="id_{{ campo.nombre }}" style="font-weight:600;">{{ campo.etiqueta }}</label>
+          <label class="fw-semibold" for="id_{{ campo.nombre }}">{{ campo.etiqueta }}</label>
           <select name="{{ campo.nombre }}" id="id_{{ campo.nombre }}" class="form-select">
             {% for valor, texto in campo.elecciones %}
               <option value="{{ valor }}" {% if valor == campo.valor %}selected{% endif %}>{{ texto }}</option>
@@ -31,7 +30,7 @@ Era la mitad que faltaba de la regla «las opciones las declara el motor».
           {% if campo.ayuda %}<small class="tenue">{{ campo.ayuda }}</small>{% endif %}
 
         {% elif campo.es_numero %}
-          <label for="id_{{ campo.nombre }}" style="font-weight:600;">{{ campo.etiqueta }}</label>
+          <label class="fw-semibold" for="id_{{ campo.nombre }}">{{ campo.etiqueta }}</label>
           <input type="number" name="{{ campo.nombre }}" id="id_{{ campo.nombre }}"
                  class="form-control cifra" value="{{ campo.valor }}"
                  step="{{ campo.paso }}"
@@ -40,7 +39,7 @@ Era la mitad que faltaba de la regla «las opciones las declara el motor».
           {% if campo.ayuda %}<small class="tenue">{{ campo.ayuda }}</small>{% endif %}
 
         {% else %}
-          <label for="id_{{ campo.nombre }}" style="font-weight:600;">{{ campo.etiqueta }}</label>
+          <label class="fw-semibold" for="id_{{ campo.nombre }}">{{ campo.etiqueta }}</label>
           <input type="text" name="{{ campo.nombre }}" id="id_{{ campo.nombre }}"
                  class="form-control" value="{{ campo.valor|default:'' }}">
           {% if campo.ayuda %}<small class="tenue">{{ campo.ayuda }}</small>{% endif %}
@@ -49,7 +48,7 @@ Era la mitad que faltaba de la regla «las opciones las declara el motor».
     {% endfor %}
   </div>
 {% elif formato_experto %}
-  <p class="tenue" style="margin:8px 0 0;">
+  <p class="tenue av-mt-2 av-mb-0">
     Ese formato no tiene ajustes: se escribe como es.
   </p>
 {% endif %}
