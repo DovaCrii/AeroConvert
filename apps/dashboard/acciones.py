@@ -245,8 +245,9 @@ def _de_los_documentos() -> list[Accion]:
             "reordenar",
             "girar",
             "rotar",
+            # Sin «quitar» a secas: «quitar la contraseña de un PDF» es de Proteger, y esta
+            # herramienta empataba con ella y Tino dejaba de contestar (lo cazó `apps/tino`).
             "borrar paginas",
-            "quitar paginas",
             "eliminar paginas",
             "duplicar",
             "repetir",

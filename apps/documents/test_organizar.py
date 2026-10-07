@@ -178,6 +178,12 @@ class TestSeEncuentra:
         nombres = [a.nombre for g in acciones_mod.por_categoria(busqueda) for a in g["acciones"]]
         assert "Organizar páginas" in nombres
 
+    def test_no_le_quita_la_pregunta_a_proteger(self):
+        """«Quitar la contraseña de un PDF» es de Proteger. Organizar hablaba de quitar páginas
+        y empataba con ella: Tino, que solo contesta cuando una gana sola, se quedaba mudo."""
+        ganadora = acciones_mod.mejor("quitar la contraseña de un PDF")
+        assert ganadora is not None and ganadora.id == "pdf-proteger"
+
     def test_esta_en_el_catalogo_de_trabajar_con_pdf(self):
         grupos = {
             g["titulo"]: [a.nombre for a in g["acciones"]] for g in acciones_mod.por_categoria()
