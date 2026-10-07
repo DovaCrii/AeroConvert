@@ -347,6 +347,16 @@
     <path d="M8 18h6" />
   </symbol>
 
+  <symbol id="icon-imagenes-lote" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Convertir imagenes: tres fotos apiladas, la de arriba con su paisaje. -->
+    <rect x="3.2" y="3" width="13.6" height="11" rx="1.6" />
+    <rect x="5.4" y="6" width="13.6" height="11" rx="1.6" />
+    <rect x="7.6" y="9" width="13.2" height="11.2" rx="1.6" fill="currentColor" fill-opacity=".16" />
+    <circle cx="11.4" cy="12.6" r="1.1" />
+    <path d="M7.6 18.2l3.6-3.4 2.8 2.4 2-1.6 4.8 3.6" />
+  </symbol>
+
   <symbol id="icon-pdf-numerar" viewBox="0 0 24 24" fill="none" stroke="currentColor"
           stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
     <!-- La hoja con el folio marcado abajo, que es justo donde se imprime. -->

@@ -103,6 +103,18 @@ HERRAMIENTAS = (
         ),
     },
     {
+        "id": "imagenes_lote",
+        "icono": "icon-imagenes-lote",
+        "sale": "un zip con una imagen por cada una",
+        "familia": "transformar",
+        "url": "documents:imagenes_lote",
+        "nombre": "Convertir imágenes",
+        "que_hace": (
+            "Varias fotos a la vez: cambia el formato (JPG, PNG, WebP, TIFF), las achica, las "
+            "gira o recorta y las comprime, conservando su fecha y su GPS."
+        ),
+    },
+    {
         "id": "imagenes",
         "icono": "icon-imagen-a-pdf",
         "sale": "un PDF",

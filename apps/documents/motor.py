@@ -95,6 +95,7 @@ ESPECIFICACIONES: dict[str, Especificacion] = {
     # Es la misma receta que «unir» con un solo archivo: otra pantalla, el mismo hijo.
     "organizar": Especificacion(),
     "imagenes": Especificacion(),
+    "imagenes_lote": Especificacion(timeout_s=1800, emite_progreso=True),
     # La contraseña llega por `secretos`, nunca por el encargo. Ver `plan()`.
     "proteger": Especificacion(con_secreto=True),
     # Los términos a tachar llegan por el mismo camino que la contraseña: son justo lo que se
@@ -436,6 +437,33 @@ def _paginas_con_pdfium(fuente) -> int:
         documento.close()
 
 
+def _comparar_con_lo_dicho(nombre: str, datos: bytes, pieza: dict) -> Verificacion | None:
+    """Las dimensiones y el formato **que Pillow lee** frente a los que la herramienta declaró.
+
+    Para un lote de imágenes: lo que se escribió se reabre y se mide, no se da por bueno lo que
+    la propia función cuenta. `None` si coincide.
+    """
+    from PIL import Image
+
+    with Image.open(io.BytesIO(datos)) as imagen:
+        medido = (imagen.size[0], imagen.size[1], (imagen.format or "").lower())
+    dicho = (int(pieza["ancho"]), int(pieza["alto"]), str(pieza.get("formato", "")).lower())
+    if dicho[2] and medido != dicho:
+        return Verificacion(
+            False,
+            f"{nombre} debía medir {dicho[0]}×{dicho[1]} en {dicho[2].upper()} y mide "
+            f"{medido[0]}×{medido[1]} en {medido[2].upper()}.",
+            "salida-invalida",
+        )
+    if not dicho[2] and medido[:2] != dicho[:2]:
+        return Verificacion(
+            False,
+            f"{nombre} debía medir {dicho[0]}×{dicho[1]} y mide {medido[0]}×{medido[1]}.",
+            "salida-invalida",
+        )
+    return None
+
+
 def _comprobar_imagen(datos: bytes) -> None:
     """Que la imagen se deje leer entera.
 
@@ -491,6 +519,11 @@ def _verificar_zip(parcial: Path, detalles: dict) -> Verificacion:
                 else:
                     _comprobar_imagen(datos)
                     lectores.add("Pillow")
+                    pieza = esperadas.get(nombre) or {}
+                    if pieza.get("ancho"):
+                        veredicto = _comparar_con_lo_dicho(nombre, datos, pieza)
+                        if veredicto is not None:
+                            return veredicto
             except Exception as fallo:  # noqa: BLE001 - la pieza no se lee, y eso se mide
                 return Verificacion(False, f"{nombre} no se deja abrir: {fallo}", "salida-invalida")
 

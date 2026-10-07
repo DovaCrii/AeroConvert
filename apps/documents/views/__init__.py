@@ -72,6 +72,9 @@ from .pantalla_imagenes import (  # noqa: F401
     extraer_imagenes_vista,
     imagenes_vista,
 )
+from .pantalla_imagenes_lote import (  # noqa: F401
+    imagenes_lote_vista,
+)
 from .pantalla_inicio import (  # noqa: F401
     inicio,
     texto,
