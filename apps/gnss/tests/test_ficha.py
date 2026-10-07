@@ -138,7 +138,7 @@ class TestSeEncuentra:
         assert [a.nombre for a in grupos["gnss"]["acciones"]] == [
             "Datos de un receptor GNSS a RINEX"
         ]
-        assert "GNSS" not in " ".join(a.nombre for a in grupos["planos"]["acciones"])
+        assert "GNSS" not in " ".join(a.nombre for a in grupos["entregar"]["acciones"])
 
     def test_la_tarjeta_lleva_la_eleccion_puesta(self):
         """El defecto que ya tuvo el catálogo: tirar la elección y dejar en la pantalla genérica."""

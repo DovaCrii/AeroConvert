@@ -39,7 +39,6 @@ from __future__ import annotations
 
 from ..herramientas import HERRAMIENTAS  # noqa: F401
 from ._comun import (  # noqa: F401
-    GRUPOS,
     MAXIMO_ARCHIVOS,
     Fila,
     _agrupar,

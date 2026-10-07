@@ -157,7 +157,6 @@ HERRAMIENTAS = (
     # una sola pantalla con la elección en la consulta.
     {
         "id": "md_excel",
-        "categoria": "texto",
         "icono": "icon-texto-tabla",
         "sale": "un .md con una tabla por hoja",
         "familia": "texto",
@@ -168,7 +167,6 @@ HERRAMIENTAS = (
     },
     {
         "id": "md_csv",
-        "categoria": "texto",
         "icono": "icon-texto-tabla",
         "sale": "un .md con la tabla",
         "familia": "texto",
@@ -179,7 +177,6 @@ HERRAMIENTAS = (
     },
     {
         "id": "md_word",
-        "categoria": "texto",
         "icono": "icon-texto-parrafo",
         "sale": "un .md",
         "familia": "texto",
@@ -190,7 +187,6 @@ HERRAMIENTAS = (
     },
     {
         "id": "md_pdf",
-        "categoria": "texto",
         "icono": "icon-texto-pdf",
         "sale": "un .md",
         "familia": "texto",
@@ -201,7 +197,6 @@ HERRAMIENTAS = (
     },
     {
         "id": "md_epub",
-        "categoria": "texto",
         "icono": "icon-texto-libro",
         "sale": "un .md con los capítulos en orden",
         "familia": "texto",
@@ -212,7 +207,6 @@ HERRAMIENTAS = (
     },
     {
         "id": "md_html",
-        "categoria": "texto",
         "icono": "icon-texto-web",
         "sale": "un .md",
         "familia": "texto",
@@ -223,7 +217,6 @@ HERRAMIENTAS = (
     },
     {
         "id": "md_a_pdf",
-        "categoria": "texto",
         "icono": "icon-texto-imprimir",
         "sale": "un PDF",
         "familia": "texto",
@@ -237,7 +230,6 @@ HERRAMIENTAS = (
     # las de arriba: sacar el contenido de un archivo para poder trabajarlo en otro sitio.
     {
         "id": "catalogo_excel",
-        "categoria": "texto",
         "icono": "icon-catalogo",
         "sale": "un Excel con una hoja por tabla",
         "familia": "texto",
@@ -252,7 +244,6 @@ HERRAMIENTAS = (
     },
     {
         "id": "excel_catalogo",
-        "categoria": "texto",
         "icono": "icon-catalogo-volver",
         "sale": "un catálogo listo para Plant 3D",
         "familia": "texto",

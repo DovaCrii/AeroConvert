@@ -5,6 +5,13 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Sin publicar]
 
+### Cambiado — una sola taxonomía de herramientas (F13.1)
+
+- **Ocho grupos, un solo árbol** (`apps/dashboard/taxonomia.py`): Entregar a un programa · Coordenadas y datos GNSS · Organizar PDF · Convertir documentos · Optimizar y reconocer · Revisar, firmar y proteger · Texto, tablas y Markdown · Imagen, video y planta. La portada, el lateral y los dos índices de `/documentos/` lo leen de aquí y **ya no se contradicen**: antes había dos clasificaciones distintas (`CATEGORIAS` y `GRUPOS`) y la misma herramienta vivía en dos grupos según la pantalla.
+- Los **catálogos de Plant 3D** dejan «Sacar texto» y pasan a «Imagen, video y planta»; «Markdown a PDF» se queda en «Texto, tablas y Markdown». Una herramienta nueva **sin grupo hace fallar la prueba**, en vez de caer en uno por omisión.
+- **Lo que cada persona dejó abierto se recuerda por el id del grupo, no por su título**: renombrar un grupo ya no lo borra. Efecto de este cambio, una sola vez: los grupos que alguien dejó abiertos o cerrados con las claves viejas vuelven a su estado de fábrica.
+- `test_taxonomia.py`: toda herramienta en exactamente un grupo, las pantallas leen el mismo orden, y renombrar un grupo no cambia su clave.
+
 ### Cambiado — los estilos en línea pasan a clases (F13.10)
 
 - **182 de los 183 `style="..."`** de 32 plantillas pasan a clases: las utilidades de Bootstrap, que ya estaba vendorizado (`d-flex`, `fw-semibold`, `text-center`…), y unas `av-*` nuevas (`av-mt-3`, `av-fs-sm`, `av-mw-22`…) escritas con la escala de `--av-s-*` y `--av-fs-*`. Lo que no tenía peldaño (10, 14 o 18 px) se redondeó al más cercano, así que algún margen cambia 2 px.

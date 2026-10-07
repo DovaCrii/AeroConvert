@@ -167,7 +167,7 @@
 
         <p class="lateral-rotulo">Herramientas</p>
         {% for grupo in menu_grupos %}
-          <details class="lateral-grupo" data-recuerda="lateral-{{ grupo.titulo|slugify }}">
+          <details class="lateral-grupo" data-recuerda="lateral-{{ grupo.clave }}">
             <summary class="lateral-grupo-titulo">
               <span class="lateral-grupo-nombre">{{ grupo.titulo }}</span>
               <span class="lateral-cuenta" aria-hidden="true">{{ grupo.acciones|length }}</span>
