@@ -24,7 +24,7 @@ from django.conf import settings
 from .views import HERRAMIENTAS
 
 #: Los números en letra, que es como se escriben en prosa castellana y como están hoy.
-#: Hasta treinta: pasado eso, la frase correcta deja de ser «las N herramientas».
+#: Hasta cuarenta: pasado eso, la frase correcta deja de ser «las N herramientas».
 EN_LETRA = {
     11: "once",
     12: "doce",
@@ -46,6 +46,16 @@ EN_LETRA = {
     28: "veintiocho",
     29: "veintinueve",
     30: "treinta",
+    31: "treinta y una",
+    32: "treinta y dos",
+    33: "treinta y tres",
+    34: "treinta y cuatro",
+    35: "treinta y cinco",
+    36: "treinta y seis",
+    37: "treinta y siete",
+    38: "treinta y ocho",
+    39: "treinta y nueve",
+    40: "cuarenta",
 }
 
 #: Dónde se publica la cifra. No es una lista de todos los sitios donde aparece un número: es
@@ -62,7 +72,7 @@ def _cuantas() -> int:
 
 
 def test_la_cifra_tiene_palabra():
-    """Si se pasa de treinta, esta prueba avisa antes de que la frase quede rara."""
+    """Si se pasa de cuarenta, esta prueba avisa antes de que la frase quede rara."""
     assert _cuantas() in EN_LETRA, (
         f"Ya son {_cuantas()} herramientas. Añade la palabra a EN_LETRA, o cambia la prosa a "
         "«las herramientas de documentos» sin número — que a partir de cierto punto es mejor."
@@ -84,7 +94,10 @@ def test_ningun_sitio_publica_una_cifra_vieja(archivo):
         palabra
         for cuantas, palabra in EN_LETRA.items()
         if cuantas != _cuantas()
-        and re.search(rf"\b{palabra}\b[^.\n]{{0,40}}(herramientas|de documentos|de PDF)", texto)
+        # `(?! y\b)`: «treinta» a secas no es lo que dice «treinta y una».
+        and re.search(
+            rf"\b{palabra}\b(?! y\b)[^.\n]{{0,40}}(herramientas|de documentos|de PDF)", texto
+        )
     ]
     assert not viejas, (
         f"{archivo} habla de «{viejas[0]}» herramientas y son {_cuantas()} ({correcta}). "

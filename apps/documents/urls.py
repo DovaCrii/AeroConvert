@@ -27,6 +27,7 @@ urlpatterns = [
     path("firma-visible/", views.firma_visible_vista, name="firma_visible"),
     path("metadatos/", views.metadatos_vista, name="metadatos"),
     path("proteger/", views.proteger_vista, name="proteger"),
+    path("portada/", views.portada_vista, name="portada"),
     path("redactar/", views.redactar_vista, name="redactar"),
     path("office/", views.office_vista, name="office"),
     path("a-word/", views.a_word_vista, name="a_word"),

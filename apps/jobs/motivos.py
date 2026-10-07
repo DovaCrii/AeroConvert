@@ -164,6 +164,12 @@ MOTIVOS: dict[str, Motivo] = dict(
         _m("sin-office", "Esta máquina no tiene Office, que es lo que hace esta conversión."),
         _m("sin-access", "Esta máquina no tiene el motor de Access que abre los catálogos."),
         _m(
+            "sin-plantillas",
+            "Este servidor no tiene las plantillas de portada de la empresa.",
+            "Copie las dos plantillas Word a una carpeta y ponga su ruta en "
+            "AEROCONVERT_PLANTILLAS_JEJ.",
+        ),
+        _m(
             "sin-tesseract",
             "Esta máquina no tiene Tesseract, que es lo que reconoce el texto.",
             "sudo apt install tesseract-ocr tesseract-ocr-spa",

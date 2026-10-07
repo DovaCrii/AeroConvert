@@ -17,6 +17,7 @@ from apps.formats import pdf as lectura_pdf
 from .. import catalogos as catalogos_mod
 from .. import ocr as ocr_mod
 from .. import office as office_mod
+from .. import portadas as portadas_mod
 from .. import receta as receta_mod
 
 # **Reexportado**: el índice, las pruebas y `acciones.py` lo leen de aquí desde siempre. Los
@@ -203,6 +204,8 @@ def estado_de_herramientas() -> list[dict]:
     # Tesseract es un programa aparte, como GDAL: no entra en las dependencias y no se da por
     # hecho. Donde no este, «reconocer el texto» sale apagada y explicando como ponerlo.
     tesseract = ocr_mod.sondar()
+    # Las plantillas de portada de la empresa: archivos fuera del repositorio.
+    plantillas = portadas_mod.sondar()
 
     estado = []
     for herramienta in HERRAMIENTAS:
@@ -215,6 +218,10 @@ def estado_de_herramientas() -> list[dict]:
             fila["disponible"] = bool(access)
             fila["motivo"] = access.motivo
             fila["sugerencia"] = access.sugerencia
+        elif herramienta.get("exige_plantillas"):
+            fila["disponible"] = bool(plantillas)
+            fila["motivo"] = plantillas.motivo
+            fila["sugerencia"] = plantillas.sugerencia
         elif herramienta.get("exige_tesseract"):
             fila["disponible"] = bool(tesseract)
             fila["motivo"] = tesseract.motivo
