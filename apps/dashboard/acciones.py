@@ -277,7 +277,7 @@ def _de_los_documentos() -> list[Accion]:
         "tamano": (
             "recortar",
             "recortar margenes",
-            "quitar el blanco",
+            "sobrante en blanco",
             "cambiar a a4",
             "pasar a a3",
             "reducir la hoja",
