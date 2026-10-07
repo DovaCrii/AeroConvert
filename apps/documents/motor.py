@@ -78,6 +78,8 @@ ESPECIFICACIONES: dict[str, Especificacion] = {
     # carril ligero: avanza hoja a hoja y lo dice, así que no bloquea sin que se vea.
     "a_imagenes": Especificacion(timeout_s=900, emite_progreso=True),
     "unir": Especificacion(),
+    # Es la misma receta que «unir» con un solo archivo: otra pantalla, el mismo hijo.
+    "organizar": Especificacion(),
     "imagenes": Especificacion(),
     # La contraseña llega por `secretos`, nunca por el encargo. Ver `plan()`.
     "proteger": Especificacion(con_secreto=True),

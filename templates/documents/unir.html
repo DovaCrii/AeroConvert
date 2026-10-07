@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block titulo %}Unir PDF · AeroConvert{% endblock %}
+{% block titulo %}{% if modo == 'organizar' %}Organizar páginas{% else %}Unir PDF{% endif %} · AeroConvert{% endblock %}
 
 {% block contenido %}
 
@@ -20,12 +20,13 @@
   multipart —también los de subir, bajar y girar—, y la vista lo aguanta. Sin él, el
   `<input type="file">` no manda nada y el fallo es silencioso.
 {% endcomment %}
-<form method="post" action="{% url 'documents:componer' %}" enctype="multipart/form-data">
+<form method="post" action="{% if url_componer %}{% url url_componer %}{% else %}{% url 'documents:componer' %}{% endif %}"
+      enctype="multipart/form-data">
   {% csrf_token %}
 
   <div class="tarjeta tarjeta-acento">
     <div class="eyebrow">Los archivos</div>
-    <h2 style="font-size:1.1rem;">¿Qué PDF hay que juntar?</h2>
+    <h2 style="font-size:1.1rem;">{% if un_solo_archivo %}¿Qué PDF quiere organizar?{% else %}¿Qué PDF hay que juntar?{% endif %}</h2>
 
     {% comment %}
       **Las mismas dos vías que en todas partes, y ninguna pide teclear una ruta.**
@@ -46,14 +47,14 @@
           </span>
           <div>
             <h3 class="origen-titulo">Desde tu equipo</h3>
-            <p class="origen-nota">Varios a la vez. Se añaden a la lista.</p>
+            <p class="origen-nota">{% if un_solo_archivo %}Uno solo.{% else %}Varios a la vez. Se añaden a la lista.{% endif %}</p>
           </div>
         </div>
 
         <div class="soltar soltar-compacto">
           <label class="visually-hidden" for="id_subir">Elegir PDF del equipo</label>
           <input type="file" name="archivos" id="id_subir" class="form-control"
-                 multiple accept="application/pdf,.pdf" data-tope-mb="{{ tope_mb }}">
+                 {% if not un_solo_archivo %}multiple{% endif %} accept="application/pdf,.pdf" data-tope-mb="{{ tope_mb }}">
           <p class="soltar-ayuda" style="margin:8px 0 0;">
             <span class="limite-subida">Límite por PDF: <strong>{{ tope_mb }} MB</strong></span>
             Si ya están en la carpeta compartida, mejor por ahí.
@@ -68,7 +69,7 @@
           </span>
           <div>
             <h3 class="origen-titulo">De la carpeta compartida</h3>
-            <p class="origen-nota">Pincha cada uno en el orden en que van.</p>
+            <p class="origen-nota">{% if un_solo_archivo %}Pinche el que quiere organizar.{% else %}Pincha cada uno en el orden en que van.{% endif %}</p>
           </div>
         </div>
 
@@ -77,7 +78,11 @@
           documentos, así que pinchar un archivo lo **añade** al final de la lista en vez de
           sustituir lo que ya había. En las demás, que trabajan sobre uno solo, reemplaza.
         {% endcomment %}
-        {% include "dashboard/_buscador.html" with destino="#id_archivos" modo="anadir" %}
+        {% if un_solo_archivo %}
+          {% include "dashboard/_buscador.html" with destino="#id_archivos" modo="reemplazar" %}
+        {% else %}
+          {% include "dashboard/_buscador.html" with destino="#id_archivos" modo="anadir" %}
+        {% endif %}
       </div>
     </div>
 
@@ -107,7 +112,7 @@
           <h2>{{ filas|length }} página(s), en este orden</h2>
         </div>
         <button type="submit" name="accion" value="generar" class="boton">
-          Generar el PDF
+          {% if un_solo_archivo %}Generar el PDF organizado{% else %}Generar el PDF{% endif %}
         </button>
       </div>
 
@@ -158,6 +163,11 @@
                       class="boton-icono">
                 <span aria-hidden="true">⟳</span>
                 <span class="visually-hidden">Girar la página {{ forloop.counter }}</span>
+              </button>
+              <button type="submit" name="accion" value="duplicar:{{ fila.indice }}"
+                      class="boton-icono">
+                <span aria-hidden="true">⧉</span>
+                <span class="visually-hidden">Repetir la página {{ forloop.counter }}</span>
               </button>
               <button type="submit" name="accion" value="quitar:{{ fila.indice }}"
                       class="boton-icono boton-icono-quitar">

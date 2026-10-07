@@ -33,6 +33,10 @@ from . import modo
 #: en POSIX una ruta empieza por `/` o por una letra.
 PREFIJO = "subida:"
 
+#: Lo que marca **el resultado de un trabajo terminado**, para encadenar una herramienta con la
+#: siguiente (F12.10). Es de quien lo pidió, igual que una subida.
+PREFIJO_RESULTADO = "resultado:"
+
 
 class EntradaNoPermitida(modo.RutaNoPermitida):
     """No se puede usar ese origen.
@@ -51,19 +55,33 @@ class Origen:
     #: que quedó en el servidor.
     nombre: str
     subida: object | None = None
+    #: El trabajo del que sale, cuando el archivo es **el resultado de otra herramienta**
+    #: (`resultado:<id>`): lo que permite seguir con él sin descargarlo y volver a subirlo.
+    trabajo: object | None = None
 
     @property
     def token(self) -> str:
         """Lo que se devuelve al formulario para el siguiente paso.
 
-        **Para una subida es su identificador, nunca su ruta en el servidor.** Es la única
-        línea de este módulo donde equivocarse sería una fuga: devolver la ruta real dejaría
-        que el POST siguiente la usara como si fuera una ruta del disco.
+        **Para una subida o un resultado es su identificador, nunca su ruta en el servidor.** Es
+        la única línea de este módulo donde equivocarse sería una fuga: devolver la ruta real
+        dejaría que el POST siguiente la usara como si fuera una ruta del disco.
         """
+        if self.trabajo is not None:
+            return f"{PREFIJO_RESULTADO}{self.trabajo.pk}"
         return self.subida.token if self.subida is not None else str(self.ruta)
 
     @property
     def es_subida(self) -> bool:
+        """`True` si la salida no puede ir «al lado»: se escribe en la carpeta de trabajo.
+
+        Un resultado que quedó junto a su original (carpeta compartida) sí admite el «al lado»;
+        uno que quedó en la carpeta de trabajo, como los de un archivo subido, no.
+        """
+        if self.trabajo is not None:
+            from apps.jobs import retencion
+
+            return retencion.carpeta_de_trabajo() in self.ruta.parents
         return self.subida is not None
 
 
@@ -75,9 +93,34 @@ def resolver(crudo: str, *, usuario) -> Origen:
 
     if texto.startswith(PREFIJO):
         return _de_una_subida(texto[len(PREFIJO) :].strip(), usuario=usuario)
+    if texto.startswith(PREFIJO_RESULTADO):
+        return _de_un_resultado(texto[len(PREFIJO_RESULTADO) :].strip(), usuario=usuario)
 
     ruta = modo.comprobar_ruta(texto)
     return Origen(ruta=ruta, nombre=ruta.name)
+
+
+def _de_un_resultado(identificador: str, *, usuario) -> Origen:
+    """La salida de un trabajo **terminado y de quien pregunta**.
+
+    Solo `done`: una salida a medias es un `.parcial` que aún no se verificó, y encadenar con
+    ella sería partir de algo que nadie comprobó. Mismo mensaje para «no existe», «no es tuyo» y
+    «no ha terminado», por la misma razón que en las subidas.
+    """
+    from apps.jobs.models import HECHO, ConversionJob
+
+    no_esta = EntradaNoPermitida(
+        "Ese resultado ya no está. Vuelva a hacer la herramienta anterior.", "origen-no-legible"
+    )
+    try:
+        trabajo = ConversionJob.objects.get(pk=identificador, owner=usuario, status=HECHO)
+    except (ConversionJob.DoesNotExist, ValidationError, ValueError, TypeError) as fallo:
+        raise no_esta from fallo
+
+    ruta = Path(trabajo.output_path) if trabajo.output_path else None
+    if ruta is None or not ruta.is_file():
+        raise no_esta
+    return Origen(ruta=ruta, nombre=ruta.name, trabajo=trabajo)
 
 
 def _de_una_subida(identificador: str, *, usuario) -> Origen:

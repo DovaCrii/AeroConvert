@@ -72,8 +72,48 @@ def _alternativas(job: ConversionJob) -> tuple[dict, ...]:
     return tuple(salida)
 
 
+#: Las herramientas que parten de un PDF, en el orden en que se suelen encadenar: primero poner
+#: las páginas como van, luego marcarlas, y al final reducir o proteger.
+SEGUIR_CON = ("organizar", "dividir", "numerar", "marca", "ocr", "comprimir", "proteger", "unir")
+
+
+def _seguir_con(job: ConversionJob) -> list[dict]:
+    """Lo que se puede hacer **con el resultado**, sin descargarlo y volver a subirlo (F12.10).
+
+    Solo para un PDF terminado y de quien lo pidió. El enlace lleva `resultado:<id>`, nunca la
+    ruta del servidor, y lo resuelve la misma puerta que las subidas (`apps/core/entrada.py`).
+    La propia herramienta que acaba de correr no se ofrece: repetirla no es seguir.
+    """
+    if job.status != "done" or not (job.output_path or "").lower().endswith(".pdf"):
+        return []
+
+    from urllib.parse import quote
+
+    from django.urls import reverse
+
+    from apps.documents.views import estado_de_herramientas
+
+    por_id = {h["id"]: h for h in estado_de_herramientas()}
+    token = quote(f"resultado:{job.pk}")
+    return [
+        {
+            "nombre": por_id[h]["nombre"],
+            "icono": por_id[h]["icono"],
+            "familia": por_id[h]["familia"],
+            "enlace": f"{reverse(por_id[h]['url'])}?ruta={token}",
+        }
+        for h in SEGUIR_CON
+        if h in por_id and por_id[h]["disponible"] and h != job.herramienta
+    ]
+
+
 def _contexto(job: ConversionJob) -> dict:
-    return {"trabajo": job, "alternativas": _alternativas(job), "asomo": _asomo(job)}
+    return {
+        "trabajo": job,
+        "alternativas": _alternativas(job),
+        "asomo": _asomo(job),
+        "seguir_con": _seguir_con(job),
+    }
 
 
 def _asomo(job: ConversionJob) -> str:

@@ -34,6 +34,18 @@ HERRAMIENTAS = (
         ),
     },
     {
+        "id": "organizar",
+        "url": "documents:organizar",
+        "icono": "icon-pdf-organizar",
+        "sale": "un PDF",
+        "familia": "componer",
+        "nombre": "Organizar páginas",
+        "que_hace": (
+            "Gira, reordena, quita y repite las páginas de un PDF, viendo cada una antes "
+            "de generarlo."
+        ),
+    },
+    {
         "id": "dividir",
         "icono": "icon-pdf-dividir",
         "sale": "uno o varios PDF",
