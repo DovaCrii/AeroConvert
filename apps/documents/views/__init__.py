@@ -1,4 +1,4 @@
-"""Las pantallas de las veintiocho herramientas de documentos.
+"""Las pantallas de las treinta y una herramientas de documentos.
 
 ## Mirar aquí, hacer en la cola
 
@@ -101,6 +101,10 @@ from .pantalla_proteger import (  # noqa: F401
 )
 from .pantalla_redactar import (  # noqa: F401
     redactar_vista,
+)
+from .pantalla_reparar import (  # noqa: F401
+    html_a_pdf_vista,
+    reparar_vista,
 )
 from .pantalla_tamano import (  # noqa: F401
     tamano_vista,
