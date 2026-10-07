@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block titulo %}Rellenar un formulario PDF · AeroConvert{% endblock %}
+
+{% block contenido %}
+
+<form method="post" id="forma-documento" enctype="multipart/form-data">
+  {% csrf_token %}
+
+  {% include "documents/_origen.html" with pregunta="¿Qué formulario hay que rellenar?" accion="mirar" boton="Ver sus campos" %}
+
+  {% if campos %}
+    <div class="tarjeta">
+      <div class="cabecera-tarjeta">
+        <div>
+          <div class="eyebrow">Sus campos</div>
+          <h2>{{ nombre_origen }} · {{ campos|length }} campo{{ campos|length|pluralize }}</h2>
+        </div>
+        <button type="submit" name="accion" value="rellenar" class="boton">Rellenar</button>
+      </div>
+
+      {% for campo in campos %}
+        <div class="av-mb-3 av-mw-38">
+          <input type="hidden" name="visto_{{ campo.nombre }}" value="1">
+          {% if campo.tipo == "casilla" %}
+            <label class="opcion">
+              <input type="checkbox" name="campo_{{ campo.nombre }}" value="si"
+                     {% if campo.esta_marcada %}checked{% endif %}
+                     {% if not campo.editable %}disabled{% endif %}>
+              <span><strong>{{ campo.nombre }}</strong></span>
+            </label>
+          {% elif campo.tipo == "texto" %}
+            <label class="fw-semibold" for="id_campo_{{ forloop.counter }}">{{ campo.nombre }}</label>
+            <input type="text" id="id_campo_{{ forloop.counter }}" name="campo_{{ campo.nombre }}"
+                   class="form-control" value="{{ campo.valor }}" autocomplete="off"
+                   {% if not campo.editable %}readonly{% endif %}>
+          {% else %}
+            <strong>{{ campo.nombre }}</strong>
+            <p class="tenue av-mb-0 av-fs-sm">
+              Es una lista, una opción o una firma: aquí se muestra, pero no se edita.
+            </p>
+          {% endif %}
+        </div>
+      {% endfor %}
+
+      <label class="opcion av-mt-3">
+        <input type="checkbox" name="aplanar" value="si" {% if aplanar %}checked{% endif %}>
+        <span>
+          <strong>Aplanar al terminar</strong>
+          <span class="tenue">
+            Lo escrito pasa a la página y los campos desaparecen: ya no se puede cambiar. Siempre se
+            entrega una copia; el original no se toca.
+          </span>
+        </span>
+      </label>
+    </div>
+  {% endif %}
+</form>
+
+{% endblock %}

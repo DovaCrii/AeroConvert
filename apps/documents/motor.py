@@ -87,6 +87,8 @@ ESPECIFICACIONES: dict[str, Especificacion] = {
     "metadatos": Especificacion(),
     # Avanza página a página y lo dice; un PDF sin imágenes no es un fallo, es la respuesta.
     "extraer_imagenes": Especificacion(timeout_s=900, emite_progreso=True, salida_opcional=True),
+    "formularios": Especificacion(),
+    "firma_visible": Especificacion(),
     "unir": Especificacion(),
     # Es la misma receta que «unir» con un solo archivo: otra pantalla, el mismo hijo.
     "organizar": Especificacion(),

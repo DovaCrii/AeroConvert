@@ -154,6 +154,30 @@ HERRAMIENTAS = (
         "que_hace": "Estampa «BORRADOR» o «CONFIDENCIAL» cruzando cada página.",
     },
     {
+        "id": "formularios",
+        "icono": "icon-pdf-formulario",
+        "sale": "el mismo PDF, con los campos rellenos",
+        "familia": "marcar",
+        "url": "documents:formularios",
+        "nombre": "Rellenar un formulario PDF",
+        "que_hace": (
+            "Escribe en los campos de un formulario y, si se pide, lo aplana para que lo "
+            "escrito ya no se pueda cambiar."
+        ),
+    },
+    {
+        "id": "firma_visible",
+        "icono": "icon-pdf-firma",
+        "sale": "el mismo PDF, con la firma puesta",
+        "familia": "marcar",
+        "url": "documents:firma_visible",
+        "nombre": "Poner una firma en un PDF",
+        "que_hace": (
+            "Estampa una firma escaneada, con su fecha, donde va. No es una firma digital: no "
+            "prueba quién firmó."
+        ),
+    },
+    {
         "id": "metadatos",
         "icono": "icon-pdf-metadatos",
         "sale": "el mismo PDF, con los metadatos que usted decida",

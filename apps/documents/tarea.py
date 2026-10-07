@@ -302,6 +302,35 @@ def _tamano(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
     return {"paginas": hecho.paginas, "modificadas": hecho.modificadas}
 
 
+def _formularios(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
+    from apps.documents import formularios
+
+    puestos = formularios.rellenar(
+        entradas[0]["ruta"],
+        parcial,
+        opciones.get("valores") or {},
+        aplanar=bool(opciones.get("aplanar")),
+    )
+    return {"campos": puestos, "aplanado": bool(opciones.get("aplanar"))}
+
+
+def _firma_visible(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
+    from apps.documents import firma_visible
+
+    if len(entradas) < 2:
+        raise FalloDeTarea("documento-invalido", "Hacen falta el PDF y la imagen de la firma.")
+    puesto = firma_visible.estampar(
+        entradas[0]["ruta"],
+        entradas[1]["ruta"],
+        parcial,
+        pagina=int(opciones.get("pagina", 1)),
+        posicion=opciones.get("posicion", "pie-derecha"),
+        ancho_mm=int(opciones.get("ancho_mm", 45)),
+        leyenda=opciones.get("leyenda", ""),
+    )
+    return {"pagina": puesto.pagina, "ancho_pt": round(puesto.ancho, 1)}
+
+
 def _unir(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
     from apps.documents import composicion, receta
 
@@ -438,6 +467,8 @@ TAREAS = {
     "a_imagenes": _a_imagenes,
     "metadatos": _metadatos,
     "extraer_imagenes": _extraer_imagenes,
+    "formularios": _formularios,
+    "firma_visible": _firma_visible,
     "unir": _unir,
     "organizar": _unir,
     "imagenes": _imagenes,
