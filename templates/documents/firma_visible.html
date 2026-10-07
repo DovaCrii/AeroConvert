@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block titulo %}Poner una firma en un PDF · AeroConvert{% endblock %}
+
+{% block contenido %}
+
+<div class="tarjeta">
+  <div class="eyebrow">Antes de empezar</div>
+  <p class="av-mb-0">
+    Esto <strong>estampa una imagen de su firma</strong>, con la fecha si quiere, donde va. No es
+    una firma digital: no prueba quién firmó ni avisa si alguien cambia el documento después.
+  </p>
+</div>
+
+<form method="post" id="forma-documento" enctype="multipart/form-data">
+  {% csrf_token %}
+
+  {% include "documents/_origen.html" with pregunta="¿Qué PDF hay que firmar?" accion="mirar" boton="Ver el documento" %}
+
+  {% if cabecera %}
+    <div class="tarjeta">
+      <div class="cabecera-tarjeta">
+        <div>
+          <div class="eyebrow">La firma</div>
+          <h2>{{ cabecera.resumen }}</h2>
+        </div>
+        <button type="submit" name="accion" value="firmar" class="boton">Poner la firma</button>
+      </div>
+
+      <div class="av-mb-3 av-mw-38">
+        <label class="fw-semibold" for="id_firma_subida">La imagen de su firma (PNG o JPG)</label>
+        <input type="file" id="id_firma_subida" name="firma_subida" class="form-control"
+               accept=".png,.jpg,.jpeg,image/png,image/jpeg">
+        <p class="tenue av-mt-1 av-mb-0 av-fs-sm">
+          Mejor un PNG con fondo transparente. Se sube al servidor y se borra sola en un día.
+        </p>
+      </div>
+
+      <div class="av-mb-3 av-mw-16">
+        <label class="fw-semibold" for="id_pagina">En qué página</label>
+        <input type="number" id="id_pagina" name="pagina" class="form-control" min="1"
+               max="{{ cabecera.cuantas }}" value="{{ pagina }}">
+        <p class="tenue av-mt-1 av-mb-0 av-fs-sm">Tiene {{ cabecera.cuantas }}. Por omisión, la última.</p>
+      </div>
+
+      <div class="av-mb-3 av-mw-38">
+        <label class="fw-semibold" for="id_posicion">Dónde</label>
+        <select id="id_posicion" name="posicion" class="form-select">
+          {% for valor, texto in posiciones.items %}
+            <option value="{{ valor }}" {% if valor == posicion %}selected{% endif %}>{{ texto }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="av-mb-3 av-mw-16">
+        <label class="fw-semibold" for="id_ancho_mm">Tamaño</label>
+        <select id="id_ancho_mm" name="ancho_mm" class="form-select">
+          {% for valor, texto in anchos.items %}
+            <option value="{{ valor }}" {% if valor == ancho_mm %}selected{% endif %}>{{ texto }} ({{ valor }} mm)</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="av-mb-3 av-mw-38">
+        <label class="fw-semibold" for="id_leyenda">Texto bajo la firma (opcional)</label>
+        <input type="text" id="id_leyenda" name="leyenda" class="form-control" maxlength="80"
+               value="{{ leyenda }}" placeholder="Ana Pérez · Ingeniera civil" autocomplete="off">
+      </div>
+
+      <label class="opcion">
+        <input type="checkbox" name="con_fecha" value="si" {% if con_fecha %}checked{% endif %}>
+        <span><strong>Agregar la fecha de hoy</strong></span>
+      </label>
+    </div>
+  {% endif %}
+</form>
+
+{% endblock %}

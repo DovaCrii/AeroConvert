@@ -258,6 +258,21 @@ def _de_los_documentos() -> list[Accion]:
         "imagenes": ("fotos", "escaneo", "jpg", "png", "monografia"),
         "a_imagenes": ("exportar", "lamina", "captura", "jpg", "png"),
         "extraer_imagenes": ("fotos del pdf", "sacar las fotos", "logotipos", "recuperar fotos"),
+        "firma_visible": (
+            "firmar",
+            "firma escaneada",
+            "poner mi firma",
+            "rubrica",
+            "visto bueno",
+        ),
+        "formularios": (
+            "rellenar",
+            "campos",
+            "acroform",
+            "aplanar",
+            "llenar un formulario",
+            "casillas",
+        ),
         "numerar": ("foliar", "paginacion", "numeracion", "numeros de pagina"),
         "marca": ("borrador", "confidencial", "sello", "estampar", "watermark"),
         "proteger": ("contrasena", "clave", "cifrar", "desbloquear", "aes"),
@@ -336,6 +351,8 @@ def todas() -> list[Accion]:
 #: Los geoespaciales no están aquí: su ficha ya ofrece destinos (`_destinos_para`).
 HERRAMIENTAS_POR_EXTENSION = {
     ".pdf": (
+        "formularios",
+        "firma_visible",
         "unir",
         "organizar",
         "dividir",
@@ -344,6 +361,7 @@ HERRAMIENTAS_POR_EXTENSION = {
         "numerar",
         "marca",
         "proteger",
+        "formularios",
         "a_imagenes",
         "extraer_imagenes",
         "a_word",

@@ -259,6 +259,27 @@
     <path d="M15.8 20.6h4.8v-4.8" />
   </symbol>
 
+  <symbol id="icon-pdf-formulario" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Formulario: la hoja con una casilla marcada y un renglon por rellenar. -->
+    <path d="M5 3h10l4 4v14H5z" fill="currentColor" fill-opacity=".16" />
+    <path d="M15 3v4h4" />
+    <rect x="8" y="9.4" width="3.2" height="3.2" rx=".6" />
+    <path d="M8.5 11l.9.9 1.3-1.6" />
+    <path d="M13 11h3" />
+    <path d="M8 16.5h8" />
+  </symbol>
+
+  <symbol id="icon-pdf-firma" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Firma visible: la hoja con una rubrica sobre el renglon y la pluma que la traza. -->
+    <path d="M5 3h10l4 4v14H5z" fill="currentColor" fill-opacity=".16" />
+    <path d="M15 3v4h4" />
+    <path d="M7.5 12h5" />
+    <path d="M7.5 17.5c1-2 1.8-2.2 2.3-.8.4 1.2 1.2 1.2 2 0 .6-.9 1.2-.9 1.8 0" />
+    <path d="M13.5 17.8h4" />
+  </symbol>
+
   <symbol id="icon-pdf-numerar" viewBox="0 0 24 24" fill="none" stroke="currentColor"
           stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
     <!-- La hoja con el folio marcado abajo, que es justo donde se imprime. -->
