@@ -85,7 +85,10 @@ usado), y **entregarle a la persona la lista para desplegar**. Ella la ejecuta; 
 - `R` es un alias de PowerShell (`Invoke-History`): no se nombra así una función.
 - Un arreglo con PowerShell sobre archivos de prueba dañó tres de ellos: **cambios en código y
   pruebas, con `Edit`** o con un script que compruebe que cada reemplazo casa.
-- El CI no tiene GDAL ni PDAL y la estación sí: variables vacías al correr `pytest`.
+- El CI no tiene GDAL ni PDAL y la estación sí: variables vacías al correr `pytest`. **Tampoco tiene
+  Access** (los catálogos salen apagados) ni Office ni Tesseract: una prueba que mira lo que se ve
+  en pantalla debe **forzar los dos casos** con `monkeypatch`, no suponer que el CI es como la
+  estación (ya costó un PR en rojo, F13.1).
 - Una plantilla servida por `runserver --noreload` no se recarga: reiniciar el servidor.
 - `.claude/rules/` ya recoge las reglas de interfaz, de motores y de plan; léalas antes de tocar
   una pantalla o un motor.

@@ -19,6 +19,7 @@ from django.urls import reverse
 from apps.dashboard import acciones as acciones_mod
 from apps.dashboard import taxonomia
 from apps.documents.herramientas import HERRAMIENTAS
+from apps.documents.views import estado_de_herramientas
 from apps.targets import perfiles as perfiles_mod
 
 pytestmark = pytest.mark.django_db
@@ -100,9 +101,44 @@ class TestLasPantallasLeenElMismoArbol:
             cuerpo = sesion.get(reverse(nombre)).content.decode()
             cuerpo = cuerpo[cuerpo.index("<main") :]
             titulos = _titulos(cuerpo, r'<h2 class="bloque-titulo">([^<]+)</h2>')
-            esperado = [taxonomia.POR_ID[i].titulo for i in taxonomia.INDICES[indice]]
-            # Con un solo grupo el encabezado sobra y no se pinta; con varios, salen todos.
-            assert titulos == esperado or len(esperado) == 1
+            # **Lo que hay disponible en esta máquina, no lo que existe**: sin Access (como en el
+            # CI) los catálogos están apagados, «planta» queda vacío y no se pinta. Y con un solo
+            # grupo el encabezado sobra, así que tampoco sale.
+            con_algo = {
+                taxonomia.grupo_de_documento(h["id"])
+                for h in estado_de_herramientas()
+                if h["disponible"]
+            }
+            esperado = [
+                taxonomia.POR_ID[i].titulo for i in taxonomia.INDICES[indice] if i in con_algo
+            ]
+            assert titulos == (esperado if len(esperado) > 1 else [])
+
+    @pytest.mark.parametrize("hay_access", [True, False])
+    def test_el_indice_de_texto_se_comporta_igual_con_y_sin_access(
+        self, sesion, monkeypatch, hay_access
+    ):
+        """**Esto falló en el CI y no en la estación**: allí hay Access, en el CI no. Sin él los
+        catálogos están apagados, «planta» queda vacío y «texto» se queda solo, sin encabezado.
+        Aquí se fuerzan los dos casos para que la prueba no dependa de la máquina."""
+        from apps.documents import catalogos
+
+        estado = catalogos.Disponible(
+            controlador="Microsoft Access Driver" if hay_access else "",
+            motivo="" if hay_access else "No hay.",
+        )
+        monkeypatch.setattr(catalogos, "sondar", lambda *a, **k: estado)
+
+        cuerpo = sesion.get(reverse("documents:texto")).content.decode()
+        cuerpo = cuerpo[cuerpo.index("<main") :]
+        titulos = _titulos(cuerpo, r'<h2 class="bloque-titulo">([^<]+)</h2>')
+
+        assert "Excel a Markdown" in cuerpo
+        if hay_access:
+            assert titulos == ["Texto, tablas y Markdown", "Imagen, video y planta"]
+            assert "Catálogo Plant 3D a Excel" in cuerpo or "Catálogo de tubería a Excel" in cuerpo
+        else:
+            assert titulos == [], "un grupo solo no lleva encabezado"
 
     def test_buscar_deja_los_grupos_en_el_mismo_orden_del_arbol(self):
         orden = [g.id for g in taxonomia.GRUPOS]
