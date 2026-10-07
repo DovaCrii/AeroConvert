@@ -276,6 +276,24 @@ class TestLosColoresDeFamilia:
         colores = {claro[f"--av-fam-{f}"] for f in FAMILIAS}
         assert len(colores) == len(FAMILIAS)
 
+    @pytest.mark.parametrize("familia", FAMILIAS)
+    @pytest.mark.parametrize("tema", ["oscuro", "sistema_oscuro"])
+    def test_el_icono_se_lee_sobre_la_baldosa_mezclada_de_oscuro(self, request, tema, familia):
+        """**Lo que se ve de verdad en oscuro.** La baldosa ya no es el token `-soft`: lleva un 16 %
+        del color de su familia mezclado encima (F13.7, plano con color). Medir solo el par de
+        tokens daba un número que nadie veía; aquí se mide el relleno que pinta el navegador, con
+        la misma mezcla en sRGB que hace `color-mix(in srgb, …)`."""
+        variables = request.getfixturevalue(tema)
+        color, fondo = variables[f"--av-fam-{familia}"], variables[f"--av-fam-{familia}-soft"]
+
+        def canal(c: str, i: int) -> int:
+            return int(c[1 + 2 * i : 3 + 2 * i], 16)
+
+        mezcla = "#" + "".join(
+            f"{round(0.16 * canal(color, i) + 0.84 * canal(fondo, i)):02x}" for i in range(3)
+        )
+        assert contraste(color, mezcla) >= TEXTO, f"{familia} sobre su baldosa mezclada ({tema})"
+
     def test_las_nuevas_se_separan_20_grados_de_todo_lo_que_ya_hay(self, claro):
         """**El color nunca va solo, pero tampoco puede confundirse.** GNSS, planta e imagen se
         pusieron en los huecos de matiz que dejan las seis familias y los tres estados; esto
