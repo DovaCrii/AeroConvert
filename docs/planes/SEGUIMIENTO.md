@@ -14,8 +14,8 @@ Lo que Claude necesita para avanzar y no tiene. **Sin él, la fila espera (⏸) 
 | # | Qué se necesita | Para qué fila | Forma | Si no llega |
 | ---: | --- | --- | --- | --- |
 | P1 | ~~Aprobar la tabla de renombres~~ **Resuelto el 2026-10-07**: programa como título y propósito debajo, y los siete renombres | F13.2 | — | — |
-| P2 | **Confirmar el cierre** de las ramas `codex/prueba-diseno-b` y `-c` | F13.12 | Un sí | Se dejan abiertas, sin coste |
-| P3 | **Aprobar el reparto con Stirling-PDF** (documento de decisión) | F14.0 | Un sí o ajustes | Todo se hace en casa, sin Stirling |
+| P2 | ~~Confirmar el cierre de las ramas de prueba~~ **Resuelto el 2026-10-07**: `-b` y `-c` no existían; se borró `prueba-diseno-resultado` | F13.12 | — | — |
+| P3 | ~~Aprobar el reparto con Stirling-PDF~~ **Resuelto el 2026-10-07: sí, como se propuso** (~12 de uso diario en casa; Stirling-PDF local sondeado para la cola larga, apagado con motivo si falta) | F14.0 | — | — |
 | P4 | **La plantilla de J.E.J.** (portada, encabezado y pie) | F14.19 | Un archivo fuera del repositorio | F14.19 ⏸ |
 | P5 | **Puntos de control con coordenadas publicadas** (PSAD56, SAD69, SIRGAS-Chile) | F15.1 a F15.3 | CSV fuera del repositorio | F15.1 a F15.3 ⏸ |
 | P6 | **Un archivo real de Deswik, Vulcan, Surpac y Datamine**, abierto en su programa | F15.4 | Archivos + fecha de la prueba manual | F15.4 queda ⚠ sin validar |
@@ -35,8 +35,8 @@ Estados: ✅ hecho · 🟨 en curso · ⬜ por hacer · ⏸ espera un pedido · 
 | **B2 · Taxonomía y nombres** | F13.1 taxonomía ✅ · F13.2 nombres ✅ | ✅ 2026-10-07 | #59, #60 | P1 resuelto |
 | **B3 · Iconos y color** | F13.4 ✅ · F13.5 ✅ · F13.6 ✅ | ✅ 2026-10-07 | #61 | — |
 | **B4 · Plano con color** | F13.7 ✅ | ✅ 2026-10-07 | #62 | — |
-| **B5 · Barra, portada y mapa** | F13.9 ✅ · F13.8 ✅ · F13.11 ✅ · F13.12 ⏸ | 🟨 | #63 | P2 (F13.12) |
-| **B6 · Suite PDF** | F14.0 · extraer (F14.1) · F14.2 · F14.3 · F14.4 · F14.5 · F14.6 · F14.7 · F14.8 · F14.9 · F14.11 · F14.20 | ⬜ | — | P3 (F14.0) |
+| **B5 · Barra, portada y mapa** | F13.9 ✅ · F13.8 ✅ · F13.11 ✅ · F13.12 ✅ | ✅ 2026-10-07 | #63 | — |
+| **B6 · Suite PDF** | F14.0 (P3 resuelto) · extraer (F14.1) · F14.2 · F14.3 · F14.4 · F14.5 · F14.6 · F14.7 · F14.8 · F14.9 · F14.11 · F14.20 | ⬜ | — | — |
 | **B7 · Imagen, dron, video y vector** | F14.12 · F14.13 · F14.14 · F14.15 · F14.16 · F14.17 · F14.18 · F14.19 | ⬜ | — | D1 (FFmpeg) · P4 (F14.19) |
 | **B8 · Geoespacial** | F15.1 a F15.8 | ⬜ | — | P5 · P6 · P7 |
 | **B9 · Plataforma** | F16.1 a F16.6 | ⬜ | — | B7 · B8 para los lotes |
