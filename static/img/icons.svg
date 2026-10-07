@@ -261,6 +261,16 @@
     <path d="M17.2 18.9h.01" />
   </symbol>
 
+  <symbol id="icon-pdf-extraer-imagen" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Extraer imagenes: el paisaje, con una flecha que lo saca de la esquina. -->
+    <rect x="2.4" y="3.8" width="13.4" height="11.2" rx="1.6" fill="currentColor" fill-opacity=".16" />
+    <circle cx="6.4" cy="7.6" r="1.2" />
+    <path d="M2.4 13.2l3.8-3.4 3.2 2.8 1.9-1.6 4.5 3.6" />
+    <path d="M14.6 14.6l6 6" />
+    <path d="M15.8 20.6h4.8v-4.8" />
+  </symbol>
+
   <symbol id="icon-pdf-numerar" viewBox="0 0 24 24" fill="none" stroke="currentColor"
           stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
     <!-- La hoja con el folio marcado abajo, que es justo donde se imprime. -->

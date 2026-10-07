@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block titulo %}Extraer imágenes de un PDF · AeroConvert{% endblock %}
+
+{% block contenido %}
+
+<form method="post" id="forma-documento" enctype="multipart/form-data">
+  {% csrf_token %}
+
+  {% include "documents/_origen.html" with pregunta="¿De qué PDF hay que sacarlas?" accion="mirar" boton="Ver el documento" %}
+
+  {% if cabecera %}
+    <div class="tarjeta">
+      <div class="cabecera-tarjeta">
+        <div>
+          <div class="eyebrow">Lo que hay dentro</div>
+          <h2>{{ cabecera.resumen }}</h2>
+        </div>
+        <button type="submit" name="accion" value="extraer" class="boton">Extraer las imágenes</button>
+      </div>
+      <p class="tenue av-mb-0">
+        Se entregan en un zip, cada imagen una sola vez y con la resolución con que entró en el
+        documento. No se cuentan las diminutas (filetes y viñetas). Si el PDF no lleva ninguna, se
+        le dice. Si lo que quiere es cada página como imagen, use «PDF a imágenes».
+      </p>
+    </div>
+  {% endif %}
+</form>
+
+{% endblock %}
