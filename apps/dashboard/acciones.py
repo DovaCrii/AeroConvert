@@ -240,6 +240,18 @@ def _de_los_documentos() -> list[Accion]:
     #: Por qué alguien las buscaría sin usar su nombre.
     SINONIMOS = {
         "unir": ("juntar", "combinar", "fusionar", "merge", "un solo archivo"),
+        "organizar": (
+            "ordenar",
+            "reordenar",
+            "girar",
+            "rotar",
+            "borrar paginas",
+            "quitar paginas",
+            "eliminar paginas",
+            "duplicar",
+            "repetir",
+            "miniaturas",
+        ),
         "dividir": ("separar", "partir", "extraer", "split", "sacar paginas"),
         "imagenes": ("fotos", "escaneo", "jpg", "png", "monografia"),
         "a_imagenes": ("exportar", "lamina", "captura", "jpg", "png"),

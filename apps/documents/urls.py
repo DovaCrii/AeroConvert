@@ -11,6 +11,8 @@ urlpatterns = [
     # boton que se pulso. Es un formulario, no una API: separarlas obligaria a repetir en
     # cada vista el mismo trabajo de leer la receta.
     path("unir/componer/", views.componer_vista, name="componer"),
+    path("organizar/", views.organizar, name="organizar"),
+    path("organizar/componer/", views.componer_organizar_vista, name="componer_organizar"),
     path("dividir/", views.dividir_vista, name="dividir"),
     path("imagenes/", views.imagenes_vista, name="imagenes"),
     path("a-imagenes/", views.a_imagenes_vista, name="a_imagenes"),

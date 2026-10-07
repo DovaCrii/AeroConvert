@@ -461,7 +461,7 @@ leyéndose a sí mismo.
 
 | # | Entrega | Oráculo (cómo se sabe que está) | La cierra | Estado |
 | --- | --- | --- | --- | --- |
-| F12.1 | **Organizar páginas** de un PDF: girar, reordenar, eliminar y duplicar, con miniaturas. Hoy se puede con «Unir PDF» pero no se encuentra | pypdf reabre y cuenta; PDFium (otro lector) renderiza y el giro coincide | Claude | ⬜ |
+| F12.1 | **Organizar páginas** de un PDF: girar, reordenar, eliminar y duplicar, con miniaturas. Hoy se puede con «Unir PDF» pero no se encuentra | pypdf reabre y cuenta; PDFium (otro lector) renderiza y el giro coincide | Claude | ✅ 2026-10-07 · pantalla propia sobre el motor de «Unir» (un solo PDF, miniaturas, girar, subir, bajar, quitar y **repetir**); `test_organizar.py` reabre la salida con otro lector |
 | F12.2 | **Extraer las imágenes** de un PDF y **extraer páginas** a un archivo nuevo | PDFium cuenta las páginas; los bytes de cada imagen se abren con Pillow | Claude | ⬜ |
 | F12.3 | **Metadatos**: ver y editar título y autor, y **limpiarlos** antes de entregar | pypdf lee lo escrito; `pdfinfo` si existe | Claude | ⬜ |
 | F12.4 | **Rellenar un formulario** PDF y aplanarlo | pypdf lee los campos; PDFium renderiza el valor visible | Claude | ⬜ |
@@ -470,7 +470,7 @@ leyéndose a sí mismo.
 | F12.7 | **Comparar dos PDF**: qué páginas cambiaron, con una vista lado a lado | Dos renderizados de PDFium difieren solo donde se dice | Claude | ⬜ |
 | F12.8 | **Redactar de verdad**: tachar texto **quitándolo del archivo**, no tapándolo | `pdftotext` / pypdf **no encuentran** el texto tras redactar. Es la prueba que importa: un rectángulo negro encima no es redactar | Claude | ⬜ |
 | F12.9 | **PDF/A** para archivo de largo plazo | veraPDF (herramienta externa, se sondea; sin ella se dice y no se afirma) | Claude, con veraPDF | ⬜ |
-| F12.10 | **Encadenar**: el resultado de una herramienta se ofrece como entrada de la siguiente («ahora numerarlo», «ahora comprimirlo») sin volver a subir | La prueba de la cola: el trabajo hijo usa la salida verificada del padre, y el original sigue intacto | Claude | ⬜ |
+| F12.10 | **Encadenar**: el resultado de una herramienta se ofrece como entrada de la siguiente («ahora numerarlo», «ahora comprimirlo») sin volver a subir | La prueba de la cola: el trabajo hijo usa la salida verificada del padre, y el original sigue intacto | Claude | ✅ 2026-10-07 · token `resultado:<id>` en la puerta única (solo del dueño y solo `done`) y «Seguir con este archivo» en la ficha; `test_encadenar.py` |
 | F12.11 | **Editar Word, Excel y PowerPoint en el navegador** integrando ONLYOFFICE Document Server como herramienta externa (se sondea, no es dependencia) | El documento guardado se abre con otro lector (LibreOffice o `python-docx`) | **La persona decide** (ver abajo) | ⬜ |
 
 **Lo que hay que decidir antes de F12.11.** Una suite «como ONLYOFFICE» que **edite** documentos

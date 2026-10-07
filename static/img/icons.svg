@@ -463,4 +463,15 @@
     <path d="M4 11.5 12 4l8 7.5"></path>
     <path d="M10 20v-5.5h4V20"></path>
   </symbol>
+
+  <symbol id="icon-pdf-organizar" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Tres hojas en fila con una flecha que las cambia de sitio: organizar las páginas. -->
+    <rect x="3" y="4" width="5" height="7" rx="1" fill="currentColor" fill-opacity=".16"></rect>
+    <rect x="9.5" y="4" width="5" height="7" rx="1"></rect>
+    <rect x="16" y="4" width="5" height="7" rx="1" fill="currentColor" fill-opacity=".16"></rect>
+    <path d="M5.5 15.5h13"></path>
+    <path d="m15.5 12.8 3 2.7-3 2.7"></path>
+    <path d="M5.5 15.5 8.5 18.2"></path>
+  </symbol>
 </svg>

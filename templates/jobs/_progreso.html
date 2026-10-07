@@ -114,6 +114,29 @@ generar 10.800 peticiones.
       {% endif %}
     </div>
 
+    {% if seguir_con %}
+      {% comment %}
+        **Seguir con este archivo, sin bajarlo y volver a subirlo (F12.10).** Es lo que hace de
+        una lista de herramientas un flujo de trabajo: unir, luego numerar, luego comprimir. El
+        enlace lleva el identificador del resultado, que solo resuelve para quien lo pidió.
+      {% endcomment %}
+      <nav class="seguir-con" aria-label="Seguir con este archivo">
+        <strong class="seguir-con-titulo">Seguir con este archivo</strong>
+        <ul class="seguir-con-lista">
+          {% for paso in seguir_con %}
+            <li>
+              <a class="seguir-con-enlace" href="{{ paso.enlace }}">
+                <span class="menu-marca fam-{{ paso.familia }}" aria-hidden="true">
+                  <svg class="menu-icono"><use href="{% static 'img/icons.svg' %}#{{ paso.icono }}"></use></svg>
+                </span>
+                <span>{{ paso.nombre }}</span>
+              </a>
+            </li>
+          {% endfor %}
+        </ul>
+      </nav>
+    {% endif %}
+
     {% if asomo %}
       {% comment %}
         Un asomo antes de descargar. Evita el viaje de bajar el archivo, abrirlo y descubrir

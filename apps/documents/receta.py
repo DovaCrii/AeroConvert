@@ -102,6 +102,19 @@ def quitar(entradas: list[Entrada], indice: int) -> list[Entrada]:
     return [e for i, e in enumerate(entradas) if i != indice]
 
 
+def duplicar(entradas: list[Entrada], indice: int) -> list[Entrada]:
+    """Pone una copia de esa página justo detrás, con el mismo giro.
+
+    Sirve para repetir una portada o una lámina de firmas. Respeta el tope de páginas: una
+    receta ya llena no crece, en vez de reventar la pantalla.
+    """
+    if not 0 <= indice < len(entradas) or len(entradas) >= MAXIMO_PAGINAS:
+        return entradas
+    nuevas = list(entradas)
+    nuevas.insert(indice + 1, entradas[indice])
+    return nuevas
+
+
 def girar(entradas: list[Entrada], indice: int, grados: int = 90) -> list[Entrada]:
     """Suma grados al giro de esa página, dando la vuelta en 360.
 

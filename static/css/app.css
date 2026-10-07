@@ -3753,3 +3753,52 @@ code {
       0 0 14px -3px color-mix(in srgb, var(--marca-color, var(--av-primary)) 38%, transparent);
   }
 }
+
+/* --- Seguir con el resultado (F12.10) --------------------------------------
+ *
+ * Una fila de pasos bajo el remate: cada uno lleva el archivo recién hecho a la herramienta
+ * siguiente. Son enlaces con icono, palabra y baldosa de su familia (el color no va solo). */
+.seguir-con {
+  margin: var(--av-s-4) 0;
+  padding: var(--av-s-4);
+  border-radius: var(--av-radius);
+  background: var(--av-surface);
+  box-shadow: var(--av-elev-1);
+}
+
+.seguir-con-titulo {
+  display: block;
+  margin-bottom: var(--av-s-3);
+  color: var(--av-text-muted);
+  font-size: var(--av-fs-xs);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.seguir-con-lista {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(13rem, 100%), 1fr));
+  gap: var(--av-s-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.seguir-con-enlace {
+  display: flex;
+  align-items: center;
+  gap: var(--av-s-3);
+  padding: var(--av-s-2) var(--av-s-3);
+  border-radius: var(--av-radius-sm);
+  color: var(--av-text);
+  font-size: var(--av-fs-sm);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.seguir-con-enlace:hover,
+.seguir-con-enlace:focus-visible {
+  background: var(--av-primary-soft);
+  color: var(--av-text);
+  text-decoration: none;
+}

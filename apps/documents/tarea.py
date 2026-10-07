@@ -356,6 +356,7 @@ TAREAS = {
     "dividir": _dividir,
     "a_imagenes": _a_imagenes,
     "unir": _unir,
+    "organizar": _unir,
     "imagenes": _imagenes,
     "proteger": _proteger,
     "ocr": _ocr,

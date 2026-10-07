@@ -1,4 +1,4 @@
-"""Las pantallas de las veinte herramientas de documentos.
+"""Las pantallas de las veintiuna herramientas de documentos.
 
 ## Mirar aquí, hacer en la cola
 
@@ -93,7 +93,9 @@ from .pantalla_proteger import (  # noqa: F401
 from .pantalla_unir import (  # noqa: F401
     _generar,
     _receta_inicial,
+    componer_organizar_vista,
     componer_vista,
     miniatura,
+    organizar,
     unir,
 )
