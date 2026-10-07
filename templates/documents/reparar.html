@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block titulo %}Reparar un PDF dañado · AeroConvert{% endblock %}
+
+{% block contenido %}
+
+<div class="tarjeta">
+  <div class="eyebrow">Qué hace, y qué no</div>
+  <p class="av-mb-2">
+    Un PDF suele romperse por el final —una descarga cortada, un adjunto truncado— y las páginas
+    siguen en el archivo aunque el lector se niegue a abrirlo. Aquí se <strong>reconstruye su
+    índice</strong> leyéndolo entero y se escribe de nuevo, válido.
+  </p>
+  <p class="av-mb-0">
+    Se entregan <strong>las páginas que se puedan leer</strong>: lo que ya no está en el archivo
+    no se inventa, y si hay menos que las que debía tener se le dice. Siempre una copia; el
+    original no se toca.
+  </p>
+</div>
+
+<form method="post" id="forma-documento" enctype="multipart/form-data">
+  {% csrf_token %}
+  {% include "documents/_origen.html" with accion="reparar" boton="Reparar" pregunta="¿Qué PDF no abre?" %}
+</form>
+
+{% endblock %}
