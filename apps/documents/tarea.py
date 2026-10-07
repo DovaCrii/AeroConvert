@@ -153,7 +153,9 @@ def carpeta_de_piezas(parcial: Path) -> Path:
     return parcial.with_name(parcial.name + ".piezas")
 
 
-def _entregar_piezas(escritas: list[Path], parcial: Path, piezas: list[dict]) -> dict:
+def _entregar_piezas(
+    escritas: list[Path], parcial: Path, piezas: list[dict], *, en_zip: bool = False
+) -> dict:
     """Una pieza sale suelta; varias, en un zip. **Todas o ninguna**, como en `partir()`.
 
     El zip no es una comodidad: la descarga, el barrido y la retención suponen un archivo por
@@ -164,7 +166,8 @@ def _entregar_piezas(escritas: list[Path], parcial: Path, piezas: list[dict]) ->
     import os
     import zipfile
 
-    if len(escritas) == 1:
+    # `en_zip`: cuando la pantalla ya fijó el nombre `.zip` antes de saber cuántas habría.
+    if len(escritas) == 1 and not en_zip:
         os.replace(escritas[0], parcial)
         return dict(piezas[0])
 
@@ -219,6 +222,26 @@ def _a_imagenes(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
             progreso=progreso,
         )
         return _entregar_piezas(escritas, parcial, [{"nombre": r.name} for r in escritas])
+    finally:
+        shutil.rmtree(carpeta, ignore_errors=True)
+
+
+def _extraer_imagenes(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
+    import shutil
+
+    from apps.documents import extraer_imagenes
+
+    carpeta = carpeta_de_piezas(parcial)
+    carpeta.mkdir(parents=True, exist_ok=True)
+    try:
+        try:
+            escritas = extraer_imagenes.extraer(entradas[0]["ruta"], carpeta, progreso=progreso)
+        except extraer_imagenes.SinImagenes as nada:
+            raise SinArchivo("sin-imagenes", {"motivo": str(nada)}) from nada
+        # Siempre en zip: el nombre de la entrega se fija antes de saber cuántas imágenes hay.
+        return _entregar_piezas(
+            escritas, parcial, [{"nombre": r.name} for r in escritas], en_zip=True
+        )
     finally:
         shutil.rmtree(carpeta, ignore_errors=True)
 
@@ -355,6 +378,7 @@ TAREAS = {
     "comprimir": _comprimir,
     "dividir": _dividir,
     "a_imagenes": _a_imagenes,
+    "extraer_imagenes": _extraer_imagenes,
     "unir": _unir,
     "organizar": _unir,
     "imagenes": _imagenes,
