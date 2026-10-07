@@ -79,6 +79,18 @@ HERRAMIENTAS = (
         ),
     },
     {
+        "id": "telemetria",
+        "icono": "icon-traza",
+        "sale": "una traza GPX o KML",
+        "familia": "transformar",
+        "url": "documents:telemetria",
+        "nombre": "Traza de un video de dron",
+        "que_hace": (
+            "Pasa el .SRT que graba el dron junto al video (una posición por fotograma) a una "
+            "traza GPX o KML, para verla en QGIS o en Google Earth."
+        ),
+    },
+    {
         "id": "imagenes",
         "icono": "icon-imagen-a-pdf",
         "sale": "un PDF",

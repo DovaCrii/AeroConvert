@@ -331,6 +331,25 @@ def _firma_visible(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
     return {"pagina": puesto.pagina, "ancho_pt": round(puesto.ancho, 1)}
 
 
+def _telemetria(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
+    from apps.documents import telemetria
+
+    desfase = opciones.get("desfase_h")
+    lectura, puntos = telemetria.convertir(
+        entradas[0]["ruta"],
+        parcial,
+        opciones.get("formato", "gpx"),
+        cada_s=int(opciones.get("cada_s", 0)),
+        desfase_h=float(desfase) if desfase not in (None, "") else None,
+    )
+    return {
+        "puntos": puntos,
+        "entradas": lectura.entradas,
+        "sin_posicion": lectura.sin_posicion,
+        "formato": opciones.get("formato", "gpx"),
+    }
+
+
 def _unir(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
     from apps.documents import composicion, receta
 
@@ -513,6 +532,7 @@ TAREAS = {
     "extraer_imagenes": _extraer_imagenes,
     "formularios": _formularios,
     "firma_visible": _firma_visible,
+    "telemetria": _telemetria,
     "unir": _unir,
     "organizar": _unir,
     "imagenes": _imagenes,

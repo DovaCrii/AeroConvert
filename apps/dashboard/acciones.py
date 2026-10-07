@@ -306,6 +306,15 @@ def _de_los_documentos() -> list[Accion]:
             "anonimizar",
             "rut",
         ),
+        "telemetria": (
+            "srt",
+            "gpx",
+            "kml",
+            "vuelo del dron",
+            "recorrido del dron",
+            "dji",
+            "traza",
+        ),
         "numerar": ("foliar", "paginacion", "numeracion", "numeros de pagina"),
         "marca": ("borrador", "confidencial", "sello", "estampar", "watermark"),
         "proteger": ("contrasena", "clave", "cifrar", "desbloquear", "aes"),
@@ -418,6 +427,7 @@ HERRAMIENTAS_POR_EXTENSION = {
     ".html": ("md_html",),
     ".htm": ("md_html",),
     ".md": ("md_a_pdf",),
+    ".srt": ("telemetria",),
     ".mdb": ("catalogo_excel",),
     ".accdb": ("catalogo_excel",),
 }

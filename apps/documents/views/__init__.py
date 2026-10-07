@@ -102,6 +102,9 @@ from .pantalla_redactar import (  # noqa: F401
 from .pantalla_tamano import (  # noqa: F401
     tamano_vista,
 )
+from .pantalla_telemetria import (  # noqa: F401
+    telemetria_vista,
+)
 from .pantalla_unir import (  # noqa: F401
     _generar,
     _receta_inicial,

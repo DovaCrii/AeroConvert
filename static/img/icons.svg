@@ -324,6 +324,14 @@
     <path d="M8 18h6" />
   </symbol>
 
+  <symbol id="icon-traza" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Traza de dron: el recorrido en zigzag, con su inicio y su final marcados. -->
+    <circle cx="5.5" cy="18" r="2.1" fill="currentColor" fill-opacity=".16" />
+    <path d="M7.4 16.8C10 14 8 11.5 11 10.5s3.5 1.5 6-1" />
+    <circle cx="18.5" cy="7" r="2.1" fill="currentColor" />
+  </symbol>
+
   <symbol id="icon-pdf-numerar" viewBox="0 0 24 24" fill="none" stroke="currentColor"
           stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
     <!-- La hoja con el folio marcado abajo, que es justo donde se imprime. -->

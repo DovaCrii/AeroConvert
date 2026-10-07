@@ -14,6 +14,7 @@ urlpatterns = [
     path("organizar/", views.organizar, name="organizar"),
     path("organizar/componer/", views.componer_organizar_vista, name="componer_organizar"),
     path("dividir/", views.dividir_vista, name="dividir"),
+    path("telemetria/", views.telemetria_vista, name="telemetria"),
     path("tamano/", views.tamano_vista, name="tamano"),
     path("comparar/", views.comparar_vista, name="comparar"),
     path("extraer-imagenes/", views.extraer_imagenes_vista, name="extraer_imagenes"),

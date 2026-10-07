@@ -68,6 +68,7 @@ ESPECIFICACIONES: dict[str, Especificacion] = {
     "md_epub": Especificacion(salida_opcional=True),
     "md_html": Especificacion(salida_opcional=True),
     "md_a_pdf": Especificacion(),
+    "telemetria": Especificacion(),
     # Al carril pesado: un juego de doscientas láminas escaneadas tarda minutos, y en el
     # ligero dejaría esperando a un «numerar» de un segundo.
     "comprimir": Especificacion(
@@ -354,6 +355,8 @@ def verificar(parcial: Path, informe: dict, plan: PlanDeEjecucion | None = None)
         return _verificar_ooxml(parcial, detalles, _PARTE_PRINCIPAL[extension])
     if extension == ".mdb":
         return _verificar_mdb(parcial, detalles)
+    if extension in (".gpx", ".kml"):
+        return _verificar_traza(parcial, detalles)
     if extension in _IMAGENES:
         try:
             _comprobar_imagen(parcial.read_bytes())
@@ -410,6 +413,40 @@ def _verificar_ooxml(parcial: Path, detalles: dict, parte: str) -> Verificacion:
             "salida-invalida",
         )
     detalles["verificado_con"] = "zipfile"
+    return Verificacion(True, detalles=detalles)
+
+
+def _verificar_traza(parcial: Path, detalles: dict) -> Verificacion:
+    """Que el XML se lea y que lleve **los puntos que se dijo que llevaba**.
+
+    Con un analizador de XML, que no es el código que lo escribió; la comprobación contra GDAL
+    (`ogrinfo`) es la prueba con oráculo, que no entra en la puerta.
+    """
+    from defusedxml import ElementTree
+
+    try:
+        raiz = ElementTree.parse(str(parcial)).getroot()
+    except Exception as fallo:  # noqa: BLE001 - lo que falle al leerlo es lo que se mide
+        return Verificacion(False, f"La traza no es un XML válido: {fallo}", "salida-invalida")
+
+    if parcial.suffix.lower() == ".gpx":
+        puntos = sum(1 for e in raiz.iter() if e.tag.endswith("trkpt"))
+    else:
+        puntos = 0
+        for e in raiz.iter():
+            if e.tag.endswith("LineString"):
+                coordenadas = next((c for c in e.iter() if c.tag.endswith("coordinates")), None)
+                puntos += len((coordenadas.text or "").split()) if coordenadas is not None else 0
+
+    esperados = detalles.get("puntos")
+    if esperados is not None and puntos != esperados:
+        return Verificacion(
+            False,
+            f"La traza salió con {puntos} puntos y debía llevar {esperados}.",
+            "salida-invalida",
+        )
+    detalles["puntos_leidos"] = puntos
+    detalles["verificado_con"] = "un analizador de XML"
     return Verificacion(True, detalles=detalles)
 
 
