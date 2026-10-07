@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block titulo %}Página web a PDF · AeroConvert{% endblock %}
+
+{% block contenido %}
+
+<div class="tarjeta">
+  <div class="eyebrow">Qué hace, y qué no</div>
+  <p class="av-mb-0">
+    Pasa a PDF <strong>el texto, los títulos, las listas y las tablas</strong> de una página
+    guardada. <strong>No es un navegador</strong>: no respeta el diseño, no baja imágenes ni hojas
+    de estilo y no ejecuta programas de la página. Si lo que necesita es el PDF «igual que la
+    página», imprímala desde el navegador. Siempre una copia; el original no se toca.
+  </p>
+</div>
+
+<form method="post" id="forma-documento" enctype="multipart/form-data">
+  {% csrf_token %}
+  {% include "documents/_origen.html" with accion="convertir" boton="Hacer el PDF" pregunta="¿Qué página guardada?" acepta=".html,.htm,.xhtml" %}
+</form>
+
+{% endblock %}

@@ -298,6 +298,21 @@ def _de_los_documentos() -> list[Accion]:
             "llenar un formulario",
             "casillas",
         ),
+        "reparar": (
+            "pdf danado",
+            "no abre",
+            "archivo corrupto",
+            "recuperar paginas",
+            "descarga cortada",
+            "arreglar el pdf",
+        ),
+        "html_a_pdf": (
+            "pagina web a pdf",
+            "guardar la pagina",
+            "htm",
+            "imprimir una pagina web",
+            "sitio web",
+        ),
         "numerar": ("foliar", "paginacion", "numeracion", "numeros de pagina"),
         "marca": ("borrador", "confidencial", "sello", "estampar", "watermark"),
         "proteger": ("contrasena", "clave", "cifrar", "desbloquear", "aes"),
@@ -376,6 +391,7 @@ def todas() -> list[Accion]:
 #: Los geoespaciales no están aquí: su ficha ya ofrece destinos (`_destinos_para`).
 HERRAMIENTAS_POR_EXTENSION = {
     ".pdf": (
+        "reparar",
         "tamano",
         "comparar",
         "formularios",
@@ -406,8 +422,8 @@ HERRAMIENTAS_POR_EXTENSION = {
     ".pptx": ("office",),
     ".csv": ("md_csv",),
     ".epub": ("md_epub",),
-    ".html": ("md_html",),
-    ".htm": ("md_html",),
+    ".html": ("md_html", "html_a_pdf"),
+    ".htm": ("md_html", "html_a_pdf"),
     ".md": ("md_a_pdf",),
     ".mdb": ("catalogo_excel",),
     ".accdb": ("catalogo_excel",),

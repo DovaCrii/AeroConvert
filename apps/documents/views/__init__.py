@@ -96,6 +96,10 @@ from .pantalla_proteger import (  # noqa: F401
     _problema_de_proteger,
     proteger_vista,
 )
+from .pantalla_reparar import (  # noqa: F401
+    html_a_pdf_vista,
+    reparar_vista,
+)
 from .pantalla_tamano import (  # noqa: F401
     tamano_vista,
 )

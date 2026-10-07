@@ -79,6 +79,30 @@ HERRAMIENTAS = (
         ),
     },
     {
+        "id": "reparar",
+        "icono": "icon-pdf-reparar",
+        "sale": "el mismo PDF, reconstruido",
+        "familia": "transformar",
+        "url": "documents:reparar",
+        "nombre": "Reparar un PDF dañado",
+        "que_hace": (
+            "Recupera las páginas que se puedan leer de un PDF que no abre (una descarga cortada, "
+            "un adjunto truncado) y lo escribe de nuevo, entero y válido."
+        ),
+    },
+    {
+        "id": "html_a_pdf",
+        "icono": "icon-web-a-pdf",
+        "sale": "un PDF con el texto y las tablas",
+        "familia": "transformar",
+        "url": "documents:html_a_pdf",
+        "nombre": "Página web a PDF",
+        "que_hace": (
+            "Una página guardada (.html) a PDF con su texto, títulos y tablas. No es un "
+            "navegador: no respeta el diseño ni ejecuta programas."
+        ),
+    },
+    {
         "id": "imagenes",
         "icono": "icon-imagen-a-pdf",
         "sale": "un PDF",

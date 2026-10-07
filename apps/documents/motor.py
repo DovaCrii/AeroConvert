@@ -68,6 +68,8 @@ ESPECIFICACIONES: dict[str, Especificacion] = {
     "md_epub": Especificacion(salida_opcional=True),
     "md_html": Especificacion(salida_opcional=True),
     "md_a_pdf": Especificacion(),
+    "html_a_pdf": Especificacion(),
+    "reparar": Especificacion(timeout_s=600),
     # Al carril pesado: un juego de doscientas láminas escaneadas tarda minutos, y en el
     # ligero dejaría esperando a un «numerar» de un segundo.
     "comprimir": Especificacion(
