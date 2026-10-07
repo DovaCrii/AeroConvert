@@ -23,7 +23,7 @@ from . import motor as motor_documentos
 from .herramientas import nombre_de
 
 
-def ruta_de_salida(primero, sufijo: str) -> Path:
+def ruta_de_salida(primero, sufijo: str, *, en_trabajo: bool = False) -> Path:
     """Dónde se escribe el resultado. **La salida va donde estaba la entrada.**
 
     Si el primer archivo venía de una carpeta —la compartida o el disco de uno—, el resultado
@@ -32,9 +32,13 @@ def ruta_de_salida(primero, sufijo: str) -> Path:
 
     Si venía de una subida, no hay «al lado» que valga: va a la carpeta de trabajo y se
     entrega por la descarga del trabajo, que comprueba el dueño.
+
+    `en_trabajo` fuerza esto último: para una herramienta cuya entrada **no es del usuario** (la
+    plantilla de una portada, que vive en una carpeta del servidor) el «al lado» dejaría el
+    resultado entre las plantillas.
     """
     nombre = f"{Path(primero.nombre).stem}{sufijo}"
-    if primero.es_subida:
+    if primero.es_subida or en_trabajo:
         from apps.jobs import retencion
 
         return retencion.carpeta_de_trabajo() / nombre
@@ -50,6 +54,7 @@ def encolar(
     sufijo: str,
     secreto: str | None = None,
     papeles: list[str] | None = None,
+    salida_en_trabajo: bool = False,
 ):
     """Crea el trabajo y lleva a su ficha, que ya tiene progreso, recibo y descarga.
 
@@ -70,7 +75,9 @@ def encolar(
         raise ValueError(f"«{herramienta}» todavía no pasa por la cola.")
 
     with transaction.atomic():
-        job = _crear(request, herramienta, origenes, opciones, sufijo, papeles or [])
+        job = _crear(
+            request, herramienta, origenes, opciones, sufijo, papeles or [], salida_en_trabajo
+        )
         if secreto is not None:
             from . import secretos
 
@@ -78,7 +85,15 @@ def encolar(
     return redirect("jobs:ficha", pk=job.pk)
 
 
-def _crear(request, herramienta: str, origenes: list, opciones: dict, sufijo: str, papeles):
+def _crear(
+    request,
+    herramienta: str,
+    origenes: list,
+    opciones: dict,
+    sufijo: str,
+    papeles,
+    salida_en_trabajo: bool = False,
+):
     from apps.jobs.models import ConversionJob, EntradaDeTrabajo
 
     primero = origenes[0]
@@ -92,7 +107,7 @@ def _crear(request, herramienta: str, origenes: list, opciones: dict, sufijo: st
         source_format_code=Path(primero.nombre).suffix.lower().lstrip("."),
         target_format_code=f"doc:{herramienta}",
         options=dict(opciones),
-        output_path=str(ruta_de_salida(primero, sufijo)),
+        output_path=str(ruta_de_salida(primero, sufijo, en_trabajo=salida_en_trabajo)),
     )
 
     for orden, origen in enumerate(origenes):

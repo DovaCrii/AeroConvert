@@ -92,6 +92,9 @@ from .pantalla_paginas import (  # noqa: F401
     metadatos_vista,
     numerar_vista,
 )
+from .pantalla_portada import (  # noqa: F401
+    portada_vista,
+)
 from .pantalla_proteger import (  # noqa: F401
     _problema_de_proteger,
     proteger_vista,
