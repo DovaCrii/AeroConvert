@@ -249,6 +249,18 @@
     <path d="M14.2 14.6l2.4-2.2 2.3 2 1.3-1.1 2 1.7" />
   </symbol>
 
+  <symbol id="icon-pdf-metadatos" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Metadatos: la hoja con la etiqueta que lleva colgada (quien la hizo y cuando). -->
+    <path d="M5 3h8l4 4v14H5z" fill="currentColor" fill-opacity=".16" />
+    <path d="M13 3v4h4" />
+    <path d="M8 11h5" />
+    <path d="M8 14.5h3" />
+    <circle cx="17.2" cy="17.2" r="3.4" fill="currentColor" fill-opacity=".16" />
+    <path d="M17.2 16.1v1.5" />
+    <path d="M17.2 18.9h.01" />
+  </symbol>
+
   <symbol id="icon-pdf-extraer-imagen" viewBox="0 0 24 24" fill="none" stroke="currentColor"
           stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
     <!-- Extraer imagenes: el paisaje, con una flecha que lo saca de la esquina. -->

@@ -5,6 +5,13 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Sin publicar]
 
+### Añadido — ver, editar y limpiar los metadatos de un PDF (F14.2)
+
+- **«Ver y limpiar metadatos»**, en «Revisar, firmar y proteger»: dice quién figura como autor, con qué programa se hizo y cuándo —el `Info` del documento y su copia en XMP—, y permite **cambiar campos** o **limpiar todo** antes de entregarlo. Siempre se entrega una copia; el original no se toca.
+- **Limpiar de verdad:** el documento se escribe nuevo con las páginas del original, porque borrar solo el `/Metadata` de la raíz deja el flujo XMP suelto dentro del archivo, con el nombre del autor en los bytes (lo midió la prueba). Al editar, el XMP se retira para que no contradiga lo nuevo.
+- Lo que no promete: los datos propios de una fotografía incrustada (EXIF) no son del documento y no se tocan; la pantalla lo dice.
+- Para las pruebas entra `pikepdf` (MPL-2.0) **solo como dependencia de desarrollo**, el otro lector con el que se comprueba lo escrito por `pypdf`.
+
 ### Añadido — extraer las imágenes de un PDF (F14.1)
 
 - **«Extraer imágenes de un PDF»**, en «Convertir documentos»: saca las fotos y los logotipos incrustados **con la resolución con que entraron**, sin dibujar las páginas (para eso sigue «PDF a imágenes»). Cada imagen **una sola vez** aunque se repita en cien páginas, sin las diminutas (filetes y viñetas, menos de 32 px), siempre en un zip.
