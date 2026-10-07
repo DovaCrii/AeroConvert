@@ -36,7 +36,7 @@ Estados: ✅ hecho · 🟨 en curso · ⬜ por hacer · ⏸ espera un pedido · 
 | **B3 · Iconos y color** | F13.4 ✅ · F13.5 ✅ · F13.6 ✅ | ✅ 2026-10-07 | #61 | — |
 | **B4 · Plano con color** | F13.7 ✅ | ✅ 2026-10-07 | #62 | — |
 | **B5 · Barra, portada y mapa** | F13.9 ✅ · F13.8 ✅ · F13.11 ✅ · F13.12 ✅ (cierra F13; versión `0.11.0`) | ✅ 2026-10-07 | #63, #64 | — |
-| **B6 · Suite PDF** | F14.0 (P3 resuelto) · extraer (F14.1) · F14.2 · F14.3 · F14.4 · F14.5 · F14.6 · F14.7 · F14.8 · F14.9 · F14.11 · F14.20 | ⬜ | — | — |
+| **B6 · Suite PDF** | F14.0 (P3 resuelto) · F14.1 ✅ · F14.2 · F14.3 · F14.4 · F14.5 · F14.6 · F14.7 · F14.8 · F14.9 · F14.11 · F14.20 | ⬜ | — | — |
 | **B7 · Imagen, dron, video y vector** | F14.12 · F14.13 · F14.14 · F14.15 · F14.16 · F14.17 · F14.18 · F14.19 | ⬜ | — | D1 (FFmpeg) |
 | **B8 · Geoespacial** | F15.1 a F15.8 | ⬜ | — | P5 · P6 · P7 |
 | **B9 · Plataforma** | F16.1 a F16.6 | ⬜ | — | B7 · B8 para los lotes |

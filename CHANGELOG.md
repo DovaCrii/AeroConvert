@@ -5,6 +5,12 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Sin publicar]
 
+### Añadido — extraer las imágenes de un PDF (F14.1)
+
+- **«Extraer imágenes de un PDF»**, en «Convertir documentos»: saca las fotos y los logotipos incrustados **con la resolución con que entraron**, sin dibujar las páginas (para eso sigue «PDF a imágenes»). Cada imagen **una sola vez** aunque se repita en cien páginas, sin las diminutas (filetes y viñetas, menos de 32 px), siempre en un zip.
+- Un PDF sin imágenes no falla: termina «hecho» sin archivo y lo explica (`sin-imagenes`).
+- Extraer páginas ya lo hace «Dividir PDF» con rangos; esta fila cierra F14.1.
+
 ## [0.11.0] — 2026-10-07
 
 Cierra la fase 13: una interfaz con un solo árbol de herramientas, nombres por utilidad, trato de

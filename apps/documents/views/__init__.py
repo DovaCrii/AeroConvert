@@ -1,4 +1,4 @@
-"""Las pantallas de las veintiuna herramientas de documentos.
+"""Las pantallas de las veintidós herramientas de documentos.
 
 ## Mirar aquí, hacer en la cola
 
