@@ -5,6 +5,12 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Sin publicar]
 
+### Añadido — la skill `/avanzar` y el tablero del plan
+
+- **`/avanzar [bloque o fila]`** (`.claude/skills/avanzar/SKILL.md`): recorre el plan F13 a F16 por bloques. Elige la siguiente fila que no esté bloqueada, la hace con su oráculo, corre la suite completa en segundo plano, abre el PR, espera el CI, fusiona y deja el tablero al día. Lo que necesita de la persona lo anota y **sigue con lo que sí puede**. No despliega nunca.
+- **`docs/planes/SEGUIMIENTO.md`**: el tablero, con los bloques B0 a B10, su estado y la tabla «Pedidos a la persona» (P1 a P10): qué se necesita, para qué fila, en qué forma y qué pasa si no llega.
+- La persona despliega **una sola vez, al final** (B10), con la lista exacta que deja `HANDOFF.md`.
+
 ### Cambiado — la interfaz habla de usted (F13.3)
 
 - Unas 60 frases que tuteaban pasan a trato de usted, en plantillas, mensajes de las vistas, mensajes del navegador (`respuestas.js`) y descripciones de las herramientas: «Desde su equipo», «Elija el archivo», «Suelte cualquier archivo», «Seguir donde lo dejó», «¿Qué necesita hacer?», «Su cuenta no puede hacer esto». Donde el texto describe lo que hace la aplicación se dice en tercera persona («Se elige el destino, no el formato»).
