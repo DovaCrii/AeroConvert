@@ -105,6 +105,20 @@ HERRAMIENTAS = (
         "exige_plantillas": True,
     },
     {
+        "id": "pdf_a",
+        "icono": "icon-pdf-archivo",
+        "sale": "el mismo PDF en PDF/A-2b",
+        "familia": "transformar",
+        "url": "documents:pdf_a",
+        "nombre": "PDF a PDF/A para archivar",
+        "que_hace": (
+            "Fuentes incrustadas y color definido, para que se lea igual dentro de veinte años. "
+            "La conformidad solo se afirma si veraPDF la valida."
+        ),
+        # Ghostscript es un programa aparte (D1): sin él, la tarjeta sale apagada y con su paso.
+        "exige_ghostscript": True,
+    },
+    {
         "id": "reparar",
         "icono": "icon-pdf-reparar",
         "sale": "el mismo PDF, reconstruido",
@@ -230,7 +244,7 @@ HERRAMIENTAS = (
         # Lo que se lee en la ficha al terminar. Estaba en el recibo de la pantalla y se vino
         # con la herramienta a la cola: sin él, «listo» invita a fiarse de una búsqueda.
         "tras_hacerlo": (
-            "Repasa el texto antes de fiarte de una búsqueda: lo que no se reconoció bien no "
+            "Repase el texto antes de fiarse de una búsqueda: lo que no se reconoció bien no "
             "aparece."
         ),
     },

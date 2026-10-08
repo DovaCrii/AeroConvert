@@ -164,7 +164,7 @@ MOTIVOS: dict[str, Motivo] = dict(
         _m(
             "demasiadas-paginas",
             "El documento pasa del tope de páginas de esta herramienta.",
-            "Pártelo antes con «Dividir PDF».",
+            "Pártalo antes con «Dividir PDF».",
         ),
         _m("sin-office", "Esta máquina no tiene Office, que es lo que hace esta conversión."),
         _m("sin-access", "Esta máquina no tiene el motor de Access que abre los catálogos."),
@@ -173,6 +173,11 @@ MOTIVOS: dict[str, Motivo] = dict(
             "Este servidor no tiene las plantillas de portada de la empresa.",
             "Copie las dos plantillas Word a una carpeta y ponga su ruta en "
             "AEROCONVERT_PLANTILLAS_JEJ.",
+        ),
+        _m(
+            "sin-ghostscript",
+            "Esta máquina no tiene Ghostscript, que es lo que escribe el PDF/A.",
+            "sudo despliegue/instalar_faltantes.sh (en Windows lo trae QGIS).",
         ),
         _m(
             "sin-tesseract",

@@ -39,7 +39,8 @@ SOLO_DE_TU = (
     "díselo elígelo ábrelo guárdalo quítasela súbelo ponle dímelo "
     # Se colaron en Preajustes y en la pantalla de convertir (2026-10-08): enclíticos de tú y la
     # segunda persona de «haber».
-    "cámbialo cámbiala cópialo cópialos instálalo compruébalo bórralo marcaste escribiste"
+    "cámbialo cámbiala cópialo cópialos instálalo compruébalo bórralo marcaste escribiste "
+    "pártelo fiarte"
 ).split()
 
 #: Imperativos de tú, **solo si abren una frase** o un título. «Pega» y «Mira» en medio de una
@@ -47,7 +48,7 @@ SOLO_DE_TU = (
 IMPERATIVOS = (
     "Elige Mira Pincha Suelta Arrastra Prueba Vuelve Pulsa Haz Dime Revisa Indica Pega "
     "Ponle Abre Sube Escribe Usa Elígelo Ábrelo Pásalo "
-    "Copia Corre Deja Cambia Instala Comprueba Borra Has"
+    "Copia Corre Deja Cambia Instala Comprueba Borra Has Repasa"
 ).split()
 
 #: Módulos cuyas cadenas **no son para una persona**. `apps/tino/fuera.py` es la instrucción que se

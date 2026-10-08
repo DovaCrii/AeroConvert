@@ -1,4 +1,4 @@
-"""Las pantallas de las treinta y ocho herramientas de documentos.
+"""Las pantallas de las treinta y nueve herramientas de documentos.
 
 ## Mirar aquí, hacer en la cola
 
@@ -105,6 +105,9 @@ from .pantalla_paginas import (  # noqa: F401
     marca_vista,
     metadatos_vista,
     numerar_vista,
+)
+from .pantalla_pdfa import (  # noqa: F401
+    pdf_a_vista,
 )
 from .pantalla_portada import (  # noqa: F401
     portada_vista,

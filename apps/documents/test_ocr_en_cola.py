@@ -153,7 +153,7 @@ class TestLaPantalla:
             output_path=str(_pdf(entorno / "escaneo_con_texto.pdf", 1)),
         )
         cuerpo = sesion.get(reverse("jobs:ficha", kwargs={"pk": trabajo.pk})).content.decode()
-        assert "Repasa el texto antes de fiarte" in cuerpo
+        assert "Repase el texto antes de fiarse" in cuerpo
 
 
 class TestElHijo:

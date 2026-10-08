@@ -206,6 +206,10 @@ def estado_de_herramientas() -> list[dict]:
     tesseract = ocr_mod.sondar()
     # Las plantillas de portada de la empresa: archivos fuera del repositorio.
     plantillas = portadas_mod.sondar()
+    # Ghostscript, para el PDF/A: programa aparte, sondeado (D1).
+    from .. import pdfa as pdfa_mod
+
+    ghostscript = pdfa_mod.sondar()
 
     estado = []
     for herramienta in HERRAMIENTAS:
@@ -219,6 +223,10 @@ def estado_de_herramientas() -> list[dict]:
             if not office and herramienta.get("id") == "office" and office_mod.sondar_libreoffice():
                 fila["disponible"] = True
                 fila["variante"] = "con LibreOffice: el PDF puede variar"
+        elif herramienta.get("exige_ghostscript"):
+            fila["disponible"] = bool(ghostscript)
+            fila["motivo"] = ghostscript.motivo
+            fila["sugerencia"] = ghostscript.sugerencia
         elif herramienta.get("exige_access"):
             fila["disponible"] = bool(access)
             fila["motivo"] = access.motivo

@@ -5,6 +5,12 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Sin publicar]
 
+### Añadido — «PDF a PDF/A para archivar» (F14.9)
+
+- Herramienta 39. **Ghostscript** (programa externo sondeado: el del `PATH`, `AEROCONVERT_GHOSTSCRIPT` o el que trae QGIS junto a GDAL) escribe PDF/A-2b con un perfil sRGB creado en memoria; **pikepdf, que no escribió el archivo, lo comprueba**: identificación PDF/A-2B, intención de salida con su perfil y **todas las fuentes incrustadas**. Si falla algo, no se entrega.
+- **La conformidad solo se afirma si veraPDF la valida** (`AEROCONVERT_VERAPDF`, opcional). Sin él, la pantalla lo avisa antes y el recibo dice «sin validar».
+- Ghostscript corre con `-dSAFER` y solo puede leer su carpeta de trabajo (el documento es de fuera y PostScript es un lenguaje). El original no se toca y la carpeta de trabajo se borra siempre. Motivo nuevo `sin-ghostscript`, con su paso en «Cómo dejar listo el equipo»; `instalar_faltantes.sh` ya lo instala.
+- **Trato de usted:** cuatro textos más que tuteaban («Pártelo», «Repasa… fiarte»); el detector ahora los conoce.
 ### Añadido — API de conversión con token por persona (F16.4)
 
 - `POST/GET /api/v1/trabajos/`, `GET /api/v1/trabajos/<id>/` y `…/descarga/`: encolar, consultar y descargar desde un guion, con **las mismas reglas que la pantalla** (carpetas permitidas, formato detectado, opciones validadas por el motor, CRS no adivinado y nada encima del que trae el archivo). Ver `docs/API.md`.

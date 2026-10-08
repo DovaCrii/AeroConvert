@@ -154,7 +154,7 @@ def markdown_a_pdf(origen: str | Path, *, destino: Path | None = None) -> Path:
     if len(lineas) > TOPE_LINEAS:
         raise ComposicionInvalida(
             f"{origen.name} tiene {len(lineas)} líneas y el tope son {TOPE_LINEAS}. "
-            "Eso ya no es un documento: pártelo antes."
+            "Eso ya no es un documento: pártalo antes."
         )
     if not texto.strip():
         raise ComposicionInvalida(f"{origen.name} está vacío.")

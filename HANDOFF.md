@@ -16,7 +16,7 @@ la infraestructura: `gh run rerun <id>`.
 ## Dónde está el proyecto
 
 - **Desplegado (2026-10-05):** hasta el #20. **En `main` sin desplegar: #21 a #87.**
-- Versión `0.11.0` (cierra F13). 38 herramientas de documentos en nueve grupos (el noveno, «Vuelos
+- Versión `0.11.0` (cierra F13). 39 herramientas de documentos en nueve grupos (el noveno, «Vuelos
   de dron»). ~4.260 pruebas verdes sin GDAL ni PDAL.
 - Lo último: vuelos de dron con PPK y el visor (#81 a #85), curvas de nivel (#86), paquetes de entrega
   y lotes (#87).

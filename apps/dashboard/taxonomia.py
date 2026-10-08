@@ -128,6 +128,7 @@ DE_DOCUMENTOS: dict[str, str] = {
     "a_word": "convertir",
     "comprimir": "optimizar",
     "ocr": "optimizar",
+    "pdf_a": "optimizar",
     "reparar": "optimizar",
     "html_a_pdf": "texto",
     "numerar": "revisar",

@@ -691,4 +691,11 @@
     <path d="M6 9l6 6 6-6"></path>
   </symbol>
 
+  <symbol id="icon-pdf-archivo" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Una caja de archivo: el PDF/A es el que se guarda para dentro de veinte años. -->
+    <rect x="3" y="4" width="18" height="5" rx="1"/>
+    <path d="M5 9v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9"/>
+    <path d="M10 13h4"/>
+  </symbol>
 </svg>

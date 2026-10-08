@@ -114,6 +114,8 @@ ESPECIFICACIONES: dict[str, Especificacion] = {
     # Al pesado: quinientas páginas son unos cuarenta minutos. El plazo crece con ellas; ver
     # `ocr.plazo_s`, que es quien sabe cuánto tarda una.
     "ocr": Especificacion(carril=PESADO, emite_progreso=True, exige="tesseract"),
+    # Ghostscript reescribe el PDF entero: un juego grande tarda, y va al carril pesado.
+    "pdf_a": Especificacion(carril=PESADO, timeout_s=900, exige="ghostscript"),
     # Office ya se ejecuta en un proceso aparte —pwsh hablando COM—, así que el hijo es ese
     # y no `tarea.py`. Ver `plan()`. Cinco minutos: un informe de doscientas páginas con
     # imágenes tarda de verdad, y más que eso es Word esperando una respuesta que no llegará.
@@ -201,13 +203,14 @@ def disponibilidad(herramienta: str, opciones: dict | None = None) -> Disponibil
     if not espec.exige:
         return Disponibilidad.si(f"documentos:{herramienta}")
 
-    from . import catalogos, ocr, office, portadas
+    from . import catalogos, ocr, office, pdfa, portadas
 
     sondas = {
         "plantillas": (portadas.sondar, "sin-plantillas"),
         "office": (office.sondar, "sin-office"),
         "access": (catalogos.sondar, "sin-access"),
         "tesseract": (ocr.sondar, "sin-tesseract"),
+        "ghostscript": (pdfa.sondar, "sin-ghostscript"),
     }
     if herramienta == "office" and (opciones or {}).get("con_libreoffice"):
         if office.sondar_libreoffice():
@@ -280,6 +283,15 @@ def plan(job) -> PlanDeEjecucion:
         # sonda guarda en la caché de Django. Así que se le da la ruta hecha.
         entorno[VARIABLE_TESSERACT] = ocr.sondar().programa
         plazo_s = ocr.plazo_s(_paginas_del_trabajo(job, entradas))
+    if espec.exige == "ghostscript":
+        from . import pdfa
+        from .tarea import VARIABLE_GHOSTSCRIPT, VARIABLE_VERAPDF
+
+        # Como Tesseract: el hijo no puede sondear (la sonda guarda en la caché de Django).
+        entorno[VARIABLE_GHOSTSCRIPT] = pdfa.sondar().programa
+        verapdf = pdfa.sondar_verapdf()
+        if verapdf:
+            entorno[VARIABLE_VERAPDF] = verapdf
     if espec.exige == "access":
         from . import catalogos
         from .tarea import VARIABLE_ACCESS
@@ -389,6 +401,17 @@ def verificar(parcial: Path, informe: dict, plan: PlanDeEjecucion | None = None)
 
         contrasena = (plan.env if plan else {}).get(secretos.VARIABLE, "")
         return _verificar_protegido(parcial, detalles, contrasena)
+    if extension == ".pdf" and detalles.get("accion") == "pdf_a":
+        # PDFium abre y cuenta; **pikepdf** (que no escribió el archivo) mira lo de PDF/A.
+        veredicto = _verificar_pdf(parcial, detalles)
+        if not veredicto.correcta:
+            return veredicto
+        from . import pdfa
+
+        problemas = pdfa.comprobar(parcial)["problemas"]
+        if problemas:
+            return Verificacion(False, "No es PDF/A-2b: " + "; ".join(problemas), "salida-invalida")
+        return veredicto
     if extension == ".pdf":
         veredicto = _verificar_pdf(parcial, detalles)
         if veredicto.correcta and detalles.get("accion") == "quitar":
