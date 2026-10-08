@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block titulo %}Convertir imágenes · AeroConvert{% endblock %}
+
+{% block contenido %}
+
+<form method="post" enctype="multipart/form-data">
+  {% csrf_token %}
+
+  <div class="tarjeta tarjeta-acento">
+    <div class="eyebrow">Las imágenes</div>
+    <h2 class="av-fs-md">¿Cuáles?</h2>
+    <p class="tenue av-mt-2 av-mb-3">
+      Este servidor lee: {{ leidas }}. Se entrega un zip con <strong>una imagen por cada una que
+      entró</strong>, conservando su fecha y su GPS. Si una no se abre, no sale el lote a medias.
+      Las originales no se tocan.
+    </p>
+
+    <div class="origenes origenes-pdf">
+      <div class="origen">
+        <div class="origen-cabeza">
+          <span class="origen-marca fam-transformar" aria-hidden="true">
+            <svg class="origen-icono"><use href="{% static 'img/icons.svg' %}#icon-equipo"></use></svg>
+          </span>
+          <div>
+            <h3 class="origen-titulo">Desde su equipo</h3>
+            <p class="origen-nota">Varias a la vez.</p>
+          </div>
+        </div>
+        <div class="soltar soltar-compacto">
+          <label class="visually-hidden" for="id_subir">Elegir imágenes del equipo</label>
+          <input type="file" name="archivos" id="id_subir" class="form-control" multiple
+                 accept="image/*,.heic,.heif" data-tope-mb="{{ tope_mb }}">
+          <p class="soltar-ayuda av-mt-2 av-mb-0"><span class="limite-subida">Límite por imagen: <strong>{{ tope_mb }} MB</strong></span></p>
+        </div>
+      </div>
+
+      <div class="origen">
+        <div class="origen-cabeza">
+          <span class="origen-marca fam-proteger" aria-hidden="true">
+            <svg class="origen-icono"><use href="{% static 'img/icons.svg' %}#icon-carpeta"></use></svg>
+          </span>
+          <div>
+            <h3 class="origen-titulo">De la carpeta compartida</h3>
+            <p class="origen-nota">Pinche cada una.</p>
+          </div>
+        </div>
+        {% include "dashboard/_buscador.html" with destino="#id_imagenes" modo="anadir" %}
+      </div>
+    </div>
+
+    <textarea name="archivos_texto" id="id_imagenes" hidden>{{ rutas_texto }}</textarea>
+    <div class="av-mt-3" data-avance-subida hidden></div>
+  </div>
+
+  <div class="tarjeta">
+    <div class="eyebrow">Qué hacer con ellas</div>
+
+    <div class="av-mb-3 av-mw-38">
+      <label class="fw-semibold" for="id_formato">Formato de salida</label>
+      <select id="id_formato" name="formato" class="form-select">
+        {% for valor, texto in salidas.items %}
+          <option value="{{ valor }}" {% if valor == formato %}selected{% endif %}>{{ texto }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="av-mb-3 av-mw-38">
+      <label class="fw-semibold" for="id_lado_max">Tamaño (lado mayor)</label>
+      <select id="id_lado_max" name="lado_max" class="form-select">
+        {% for valor, texto in lados.items %}
+          <option value="{{ valor }}" {% if valor == lado_max %}selected{% endif %}>{{ texto }}</option>
+        {% endfor %}
+      </select>
+      <p class="tenue av-mt-1 av-mb-0 av-fs-sm">Nunca agranda: una foto más chica que eso se queda como está.</p>
+    </div>
+
+    <div class="av-mb-3 av-mw-38">
+      <label class="fw-semibold" for="id_giro">Giro</label>
+      <select id="id_giro" name="giro" class="form-select">
+        {% for valor, texto in giros.items %}
+          <option value="{{ valor }}" {% if valor == giro %}selected{% endif %}>{{ texto }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="av-mb-3 av-mw-22">
+      <label class="fw-semibold" for="id_recorte">Recortar al centro a</label>
+      <select id="id_recorte" name="recorte" class="form-select">
+        {% for valor, texto in recortes.items %}
+          <option value="{{ valor }}" {% if valor == recorte %}selected{% endif %}>{{ texto }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="av-mb-3 av-mw-22">
+      <label class="fw-semibold" for="id_calidad">Calidad (JPG y WebP)</label>
+      <select id="id_calidad" name="calidad" class="form-select">
+        {% for valor, texto in calidades.items %}
+          <option value="{{ valor }}" {% if valor == calidad %}selected{% endif %}>{{ texto }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <button type="submit" class="boton">Convertir</button>
+  </div>
+</form>
+
+{% endblock %}

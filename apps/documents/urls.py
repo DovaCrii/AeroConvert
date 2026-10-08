@@ -21,6 +21,7 @@ urlpatterns = [
     path("comparar/", views.comparar_vista, name="comparar"),
     path("extraer-imagenes/", views.extraer_imagenes_vista, name="extraer_imagenes"),
     path("imagenes/", views.imagenes_vista, name="imagenes"),
+    path("imagenes-lote/", views.imagenes_lote_vista, name="imagenes_lote"),
     path("a-imagenes/", views.a_imagenes_vista, name="a_imagenes"),
     path("numerar/", views.numerar_vista, name="numerar"),
     path("marca/", views.marca_vista, name="marca"),

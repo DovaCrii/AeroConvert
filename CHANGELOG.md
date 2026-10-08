@@ -5,6 +5,11 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Sin publicar]
 
+### Añadido — convertir imágenes por lote y la traza de un video de dron (F14.13, F14.18)
+
+- **«Convertir imágenes»**: varias fotos a la vez a **JPG, PNG, WebP o TIFF**, con tamaño (lado mayor, sin agrandar nunca), giro (según la orientación de la foto, por omisión, o fijo), recorte centrado a 1:1, 4:3, 3:2 o 16:9 y calidad. Se entrega **un zip con una imagen por cada una que entró**, conservando fecha, perfil de color y **GPS** (en TIFF, sin comprimir: libtiff rechaza toda compresión con EXIF, medido). **HEIC** solo si el servidor trae `pillow-heif`, y si no, se dice por foto antes de encolar; el lote es todo o nada. La verificación del trabajo reabre cada imagen con Pillow y compara formato y medidas con lo que se dijo.
+- **«Traza de un video de dron»**: el `.SRT` que graba un DJI junto al video (una posición por fotograma, en el formato nuevo `[latitude: …]` y en el antiguo `GPS(lon,lat,alt)`) a **GPX** (QGIS) o **KML** (Google Earth), con todos los puntos o uno por segundo o cada cinco. Un fotograma sin posición (`0, 0`) se descarta y se cuenta. **La hora solo se escribe si se dice cuántas horas se aparta la cámara de UTC**: el SRT la trae sin zona y ponerla como UTC correría la traza respecto de sus fotos.
+
 ### Añadido — la portada de J.E.J. desde sus plantillas Word (F14.19)
 
 - **«Portada de J.E.J.»**: rellena las dos plantillas de la empresa —«Portada Documentos» (código `JEJ-…`, título del procedimiento y autor) y «Portada Ofertas y Planes Licitaciones» (servicio y plan)— y entrega un `.docx` con el logotipo y el diseño intactos. El PDF es un clic más: «Seguir con este archivo» → «Office a PDF».
