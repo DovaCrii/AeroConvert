@@ -36,10 +36,14 @@ PANTALLAS = Path(settings.BASE_DIR) / "templates" / "documents"
 
 #: Las que llevan formulario de archivo. `_origen.html` es el trozo compartido y se mira aparte;
 #: `descargar` y `miniatura` no tienen pantalla.
+#: Las pantallas que **no reciben un archivo del usuario**: el índice, y la portada de la empresa,
+#: cuya única entrada es una plantilla del servidor.
+SIN_ARCHIVO = frozenset({"inicio.html", "portada.html"})
+
 CON_ARCHIVO = sorted(
     p.name
     for p in PANTALLAS.glob("*.html")
-    if not p.name.startswith("_") and p.name != "inicio.html"
+    if not p.name.startswith("_") and p.name not in SIN_ARCHIVO
 )
 
 

@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block titulo %}Portada de J.E.J. · AeroConvert{% endblock %}
+
+{% block contenido %}
+
+{% if not disponible %}
+  <div class="tarjeta">
+    <div class="eyebrow">Aquí no se puede</div>
+    <p class="av-mb-2"><strong>{{ disponible.motivo }}</strong></p>
+    <p class="tenue av-mb-0">{{ disponible.sugerencia }}</p>
+  </div>
+{% else %}
+  <div class="tarjeta">
+    <div class="eyebrow">Qué portada</div>
+    <div class="d-flex flex-wrap av-gap-2">
+      {% for id, t in tipos.items %}
+        <a class="enlace-suave{% if t.id == tipo.id %} fw-semibold{% endif %}"
+           href="?tipo={{ t.id }}" {% if t.id == tipo.id %}aria-current="true"{% endif %}>{{ t.nombre }}</a>
+      {% endfor %}
+    </div>
+  </div>
+
+  <form method="post" class="tarjeta">
+    {% csrf_token %}
+    <input type="hidden" name="tipo" value="{{ tipo.id }}">
+    <div class="cabecera-tarjeta">
+      <div>
+        <div class="eyebrow">Los datos</div>
+        <h2>{{ tipo.nombre }}</h2>
+      </div>
+      <button type="submit" class="boton">Hacer la portada</button>
+    </div>
+
+    {% for id, etiqueta, ejemplo, valor in campos %}
+      <div class="av-mb-3 av-mw-38">
+        <label class="fw-semibold" for="id_{{ id }}">{{ etiqueta }}</label>
+        <input type="text" id="id_{{ id }}" name="{{ id }}" class="form-control" maxlength="120"
+               value="{{ valor }}" placeholder="{{ ejemplo }}" autocomplete="off">
+      </div>
+    {% endfor %}
+
+    <p class="tenue av-mb-0 av-fs-sm">
+      Se entrega un documento de Word con la plantilla de la empresa. Para el PDF, al terminar,
+      «Seguir con este archivo» → «Office a PDF» (necesita Word en el servidor). La plantilla no se
+      toca.
+    </p>
+  </form>
+{% endif %}
+
+{% endblock %}

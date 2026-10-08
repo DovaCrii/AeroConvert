@@ -135,6 +135,7 @@ DE_DOCUMENTOS: dict[str, str] = {
     "md_html": "texto",
     "md_a_pdf": "texto",
     "telemetria": "planta",
+    "portada": "texto",
     "catalogo_excel": "planta",
     "excel_catalogo": "planta",
 }

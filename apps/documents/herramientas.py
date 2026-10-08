@@ -91,6 +91,20 @@ HERRAMIENTAS = (
         ),
     },
     {
+        "id": "portada",
+        "icono": "icon-portada",
+        "sale": "un Word con la portada puesta",
+        "familia": "marcar",
+        "url": "documents:portada",
+        "nombre": "Hacer la portada de JEJ",
+        "que_hace": (
+            "Rellena la portada de la empresa (de un procedimiento, o de una oferta o plan de "
+            "licitación) con el código, el título y el autor. Después, a PDF con «Office a PDF»."
+        ),
+        # Las plantillas llevan el logotipo y no viven en el repositorio: sin ellas, apagada.
+        "exige_plantillas": True,
+    },
+    {
         "id": "reparar",
         "icono": "icon-pdf-reparar",
         "sale": "el mismo PDF, reconstruido",

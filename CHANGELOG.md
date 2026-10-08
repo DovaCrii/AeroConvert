@@ -5,6 +5,13 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Sin publicar]
 
+### Añadido — la portada de J.E.J. desde sus plantillas Word (F14.19)
+
+- **«Portada de J.E.J.»**: rellena las dos plantillas de la empresa —«Portada Documentos» (código `JEJ-…`, título del procedimiento y autor) y «Portada Ofertas y Planes Licitaciones» (servicio y plan)— y entrega un `.docx` con el logotipo y el diseño intactos. El PDF es un clic más: «Seguir con este archivo» → «Office a PDF».
+- **Las plantillas no están en el repositorio** (llevan el logotipo): viven en la carpeta que dice `AEROCONVERT_PLANTILLAS_JEJ`. Sin ella, o sin alguno de los dos archivos, la herramienta sale apagada con su motivo (`sin-plantillas`); no se sustituye por una portada inventada.
+- Se rellena por la **posición** de los marcadores (`XXXX`) en cuerpo, encabezado y pie, y se cambia también `dc:creator`, a lo que está enlazado el pie. Si la plantilla cambió y un campo no tiene dónde ir, **falla diciendo cuál** en vez de entregar una portada con `XXXXXX`; y la verificación del trabajo lo vuelve a comprobar leyendo el zip.
+- Un Word terminado ahora ofrece seguir a PDF, como ya hacía un PDF con las demás herramientas.
+
 ### Añadido — reparar un PDF dañado y pasar una página web a PDF (F14.20)
 
 - **«Reparar un PDF dañado»**: recupera las páginas que se puedan leer de un PDF que no abre (una descarga cortada, un adjunto truncado). PDFium reconstruye el índice leyendo el archivo entero y se escribe de nuevo, válido; dice cuántas páginas se recuperaron. A diferencia de las demás pantallas, **no lee la cabecera antes**: justo ese es el archivo que se quiere arreglar. No inventa lo que ya no está.

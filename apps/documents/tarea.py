@@ -350,6 +350,17 @@ def _telemetria(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
     }
 
 
+def _portada(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
+    from apps.documents import portadas
+
+    # La entrada es la propia plantilla: así el corredor comprueba que no se toca, y el hijo no
+    # necesita Django para saber dónde está (la carpeta es la de ese archivo).
+    plantilla = Path(entradas[0]["ruta"])
+    tipo = opciones.get("tipo", "")
+    portadas.rellenar(tipo, opciones.get("valores") or {}, parcial, base=plantilla.parent)
+    return {"portada": tipo, "campos": sorted(opciones.get("valores") or {})}
+
+
 def _reparar(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
     from apps.documents import reparar
 
@@ -548,6 +559,7 @@ TAREAS = {
     "formularios": _formularios,
     "firma_visible": _firma_visible,
     "telemetria": _telemetria,
+    "portada": _portada,
     "unir": _unir,
     "organizar": _unir,
     "imagenes": _imagenes,

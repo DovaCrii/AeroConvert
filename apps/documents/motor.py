@@ -69,6 +69,7 @@ ESPECIFICACIONES: dict[str, Especificacion] = {
     "md_html": Especificacion(salida_opcional=True),
     "md_a_pdf": Especificacion(),
     "telemetria": Especificacion(),
+    "portada": Especificacion(exige="plantillas"),
     "html_a_pdf": Especificacion(),
     "reparar": Especificacion(timeout_s=600),
     # Al carril pesado: un juego de doscientas láminas escaneadas tarda minutos, y en el
@@ -188,9 +189,10 @@ def disponibilidad(herramienta: str) -> Disponibilidad:
     if not espec.exige:
         return Disponibilidad.si(f"documentos:{herramienta}")
 
-    from . import catalogos, ocr, office
+    from . import catalogos, ocr, office, portadas
 
     sondas = {
+        "plantillas": (portadas.sondar, "sin-plantillas"),
         "office": (office.sondar, "sin-office"),
         "access": (catalogos.sondar, "sin-access"),
         "tesseract": (ocr.sondar, "sin-tesseract"),
@@ -414,6 +416,16 @@ def _verificar_ooxml(parcial: Path, detalles: dict, parte: str) -> Verificacion:
             f"El catálogo tiene {len(tablas)} tablas y el Excel salió con {hojas} hojas.",
             "salida-invalida",
         )
+    if detalles.get("portada"):
+        # Una portada con un `XXXXXX` sin cambiar sale impresa en una oferta: se lee el texto de
+        # cada parte con un lector que no escribió el documento (el zip y una expresión).
+        sobrantes = _marcadores_sin_cambiar(parcial)
+        if sobrantes:
+            return Verificacion(
+                False,
+                f"La portada salió con marcadores de relleno sin cambiar ({sobrantes}).",
+                "salida-invalida",
+            )
     detalles["verificado_con"] = "zipfile"
     return Verificacion(True, detalles=detalles)
 
@@ -450,6 +462,20 @@ def _verificar_traza(parcial: Path, detalles: dict) -> Verificacion:
     detalles["puntos_leidos"] = puntos
     detalles["verificado_con"] = "un analizador de XML"
     return Verificacion(True, detalles=detalles)
+
+
+def _marcadores_sin_cambiar(ruta: Path) -> int:
+    import re
+
+    cuantos = 0
+    with zipfile.ZipFile(ruta) as paquete:
+        for nombre in paquete.namelist():
+            if re.fullmatch(r"word/(document|header\d*|footer\d*)\.xml", nombre):
+                xml = paquete.read(nombre).decode("utf-8", errors="replace")
+                for texto in re.findall(r"<w:t(?:\s[^>]*)?>([^<]*)</w:t>", xml):
+                    if re.fullmatch(r"\s*(PLAN DE\s+)?X{3,}x?\s*", texto):
+                        cuantos += 1
+    return cuantos
 
 
 def _verificar_mdb(parcial: Path, detalles: dict) -> Verificacion:

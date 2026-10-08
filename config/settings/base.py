@@ -50,6 +50,10 @@ RAICES_PERMITIDAS = config("AEROCONVERT_RAICES_PERMITIDAS", default="")
 # nginx, `apps/core/manejador.py` mientras llega, y `ArchivoSubido.clean()`.
 TOPE_MB = config("AEROCONVERT_TOPE_MB", default=2048, cast=int)
 
+# La carpeta con las plantillas Word de portada de J.E.J. **Fuera del repositorio**: llevan el
+# logotipo de la empresa. Vacía, la herramienta «Portada» sale apagada y dice cómo ponerla.
+PLANTILLAS_JEJ = config("AEROCONVERT_PLANTILLAS_JEJ", default="")
+
 # Cuanto puede tener subido **una persona** a la vez, sin usar o en un trabajo en curso. El tope de
 # arriba es por archivo; sin esto, veinte de 2 GB seguidos llenaban el disco (A-05 de la auditoria).
 # 8192 = cuatro archivos del maximo. En 0 se apaga.

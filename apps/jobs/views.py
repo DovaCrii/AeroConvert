@@ -76,6 +76,9 @@ def _alternativas(job: ConversionJob) -> tuple[dict, ...]:
 #: las páginas como van, luego marcarlas, y al final reducir o proteger.
 SEGUIR_CON = ("organizar", "dividir", "numerar", "marca", "ocr", "comprimir", "proteger", "unir")
 
+#: Lo que se ofrece con un `.docx` recién hecho: a PDF, que es lo que falta para entregarlo.
+SEGUIR_CON_DE_WORD = ("office",)
+
 
 def _seguir_con(job: ConversionJob) -> list[dict]:
     """Lo que se puede hacer **con el resultado**, sin descargarlo y volver a subirlo (F12.10).
@@ -84,8 +87,11 @@ def _seguir_con(job: ConversionJob) -> list[dict]:
     ruta del servidor, y lo resuelve la misma puerta que las subidas (`apps/core/entrada.py`).
     La propia herramienta que acaba de correr no se ofrece: repetirla no es seguir.
     """
-    if job.status != "done" or not (job.output_path or "").lower().endswith(".pdf"):
+    salida = (job.output_path or "").lower()
+    if job.status != "done" or not salida.endswith((".pdf", ".docx")):
         return []
+    # Un Word terminado (la portada, por ejemplo) solo sigue a PDF: hay una herramienta, y es Word.
+    elegidas = SEGUIR_CON if salida.endswith(".pdf") else SEGUIR_CON_DE_WORD
 
     from urllib.parse import quote
 
@@ -102,7 +108,7 @@ def _seguir_con(job: ConversionJob) -> list[dict]:
             "familia": por_id[h]["familia"],
             "enlace": f"{reverse(por_id[h]['url'])}?ruta={token}",
         }
-        for h in SEGUIR_CON
+        for h in elegidas
         if h in por_id and por_id[h]["disponible"] and h != job.herramienta
     ]
 
