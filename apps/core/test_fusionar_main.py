@@ -120,6 +120,63 @@ class TestResolverTexto:
         assert fusionar.resolver_texto("a.py", "x = 1\n") == "x = 1\n"
 
 
+class TestLaEstructuraSuma:
+    """Lo que pasó el 2026-10-08: tres resultados que se leían bien y no sumaban."""
+
+    def test_dos_llamadas_no_se_funden_en_una(self):
+        texto = (
+            "MOTIVOS = dict([\n"
+            "    _m(\n"
+            "<<<<<<< HEAD\n"
+            '        "sin-ffmpeg",\n'
+            '        "No hay FFmpeg.",\n'
+            "=======\n"
+            '        "sin-ghostscript",\n'
+            '        "No hay Ghostscript.",\n'
+            ">>>>>>> origin/main\n"
+            "    ),\n"
+            "])\n"
+        )
+        resultado = fusionar.resolver_texto("motivos.py", texto)
+        arbol = ast.parse(resultado)
+        llamadas = [
+            n
+            for n in ast.walk(arbol)
+            if isinstance(n, ast.Call) and getattr(n.func, "id", "") == "_m"
+        ]
+        assert len(llamadas) == 2 and all(len(c.args) == 2 for c in llamadas)
+
+    def test_el_changelog_entero_dos_veces_se_rechaza(self):
+        texto = (
+            "# Registro\n\n"
+            "<<<<<<< HEAD\n"
+            "## [Sin publicar]\n\n### Añadido — A\n\n## [0.1.0]\n\n### Añadido — viejo\n"
+            "=======\n"
+            "## [Sin publicar]\n\n### Añadido — B\n\n## [0.1.0]\n\n### Añadido — viejo\n"
+            ">>>>>>> origin/main\n"
+        )
+        with pytest.raises(ValueError):
+            fusionar.resolver_texto("CHANGELOG.md", texto)
+
+    def test_una_tupla_que_no_estaba_en_ningun_lado_no_suma(self):
+        mio = "def f():\n    return {1: 2}\n"
+        suyo = "def f():\n    return {1: 2}\n\n\ndef g():\n    return {3: 4}\n"
+        malo = "def f():\n    return ({1: 2},)\n\n\ndef g():\n    return {3: 4}\n"
+        assert not fusionar._suma("t.py", malo, mio, suyo, mio)
+        assert fusionar._suma("t.py", suyo, mio, suyo, mio)
+
+    def test_lo_que_suma_bien_pasa(self):
+        assert fusionar.estructura("a.py", "x = f(1)\ny = {1: 2}\n") == {
+            "Call": 1,
+            "Dict": 1,
+            "Tuple": 0,
+            "List": 0,
+            "FunctionDef": 0,
+            "ClassDef": 0,
+            "Return": 0,
+        }
+
+
 class TestValidar:
     def test_una_clave_repetida_en_un_diccionario_no_es_valida(self):
         assert fusionar.valido("a.py", '{"id": 1, "x": 2}\n')

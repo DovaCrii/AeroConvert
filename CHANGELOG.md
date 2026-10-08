@@ -5,6 +5,11 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Sin publicar]
 
+### Corregido — `fusionar_main.py` ya no funde ni inventa piezas al juntar dos ramas
+
+- Esta noche dejó tres resultados que se leían bien y estaban rotos: dos `_m(...)` del catálogo de motivos fundidas en una llamada de seis argumentos, un `return {...}` convertido en `return ({...},)` y el `CHANGELOG.md` entero dos veces. Ahora rechaza un resultado con una llamada de más argumentos que en ningún lado, una tupla de un solo elemento salida de la nada o un encabezado de versión repetido, y cuando el hueco cae dentro de algo que comparten los dos lados prueba primero a cerrarlo y volver a abrirlo. Con pruebas de los tres casos.
+- Prueba nueva `apps/core/test_changelog.py`: cada versión aparece una sola vez y en orden.
+
 ### Añadido — «Trabajar un video de dron» (F14.17)
 
 - Herramienta nueva en «Vuelos de dron», con **FFmpeg** sondeado (D1; `AEROCONVERT_FFMPEG` o el `PATH`, con `ffprobe` al lado). Sin él, apagada con `sin-ffmpeg` y su paso.
