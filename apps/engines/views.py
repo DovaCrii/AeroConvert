@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
 
-from . import registry
+from . import historial, registry
 from .base import CeldaVacia
 
 
@@ -21,6 +21,10 @@ def matriz(request):
     Una capacidad ausente tiene que verse distinta de una inexistente: la primera se arregla
     instalando algo, la segunda no se arregla.
     """
+    # Mirar la pantalla anota lo que cambió desde la última vez (solo lo que cambió): así el
+    # historial de abajo sabe «desde cuándo» sin depender de un temporizador. El comando
+    # `registrar_sondas` hace lo mismo para quien nadie abre esta pantalla.
+    historial.registrar()
     celdas = registry.matriz_de_capacidades()
 
     origenes = sorted({o for o, _ in celdas})
@@ -86,6 +90,9 @@ def matriz(request):
             "conversiones_posibles": conversiones_posibles,
             "conversiones_totales": len(celdas),
             "motivos": sorted(por_motivo.values(), key=lambda m: -m["cuantas"]),
+            "historial": [
+                {"fila": f, "descripcion": historial.describir(f)} for f in historial.recientes()
+            ],
             "seccion": "compatibilidad",
             "etiqueta_seccion": "Compatibilidad",
             "titulo_pagina": "Qué se puede convertir en este equipo",

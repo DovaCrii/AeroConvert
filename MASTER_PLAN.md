@@ -539,7 +539,7 @@ volver atrás**, igual que `test_escala_visual.py` y `test_iconos.py`. Versión 
 | F16.3 | **Informe de verificación en PDF** que acompaña la entrega: ficha antes y después, CRS, estadísticas, `sha256` y veredictos | PDFium lo renderiza; `pypdf` encuentra cada `sha256` en el texto | Claude | ⬜ |
 | F16.4 | **API de conversión** con token por usuario y permisos | Prueba de 403 por extremo; un cliente `httpx` de prueba convierte un TIFF de punta a punta | Claude | ⬜ |
 | F16.5 | **Integración con AeroBim** (cierra F4.2) por API | AeroBim abre el COG y el COPC entregados (paseo fechado) | Claude | ⬜ |
-| F16.6 | **`RegistroDeSonda`**, `remuestreo` y `nodata` expuestos, y traducciones compiladas (deuda conocida) | Pruebas de cada uno; `test_traducciones.py` verde con `.mo` versionado | Claude | ⬜ |
+| F16.6 | **`RegistroDeSonda`**, `remuestreo` y `nodata` expuestos, y traducciones compiladas (deuda conocida) | Pruebas de cada uno; `test_traducciones.py` verde con `.mo` versionado | Claude | ✅ 2026-10-08 |
 
 ## Fase 17 — Poner en marcha lo que hoy sale apagado
 
@@ -571,10 +571,10 @@ instalar en la VM es de la persona (P7, P10, P12, P13); lo demás, de Claude.
 
 | Qué | Por qué está | Estado |
 | --- | --- | --- |
-| Sin `RegistroDeSonda` | La matriz se calcula en vivo; falta el historial de «el día que GDAL desapareció» | **Abierta** — comprobado: el identificador no aparece en ningún `.py` |
+| Sin `RegistroDeSonda` | La matriz se calcula en vivo; falta el historial de «el día que GDAL desapareció» | **Saldada 2026-10-08** — `engines.RegistroDeSonda` guarda una fila por cambio (no por mirada); lo ve `/compatibilidad/` y lo llena el comando `registrar_sondas` |
 | ~~El modo experto solo elige formato~~ | — | **Saldada** — `engines/formulario.py:113` construye los campos desde `motor.opciones(par)` y `_ajustes.html` los pinta. El ráster declara compresión, banda alfa, pirámides, tesela y calidad; el vectorial, CRS de destino y solo-geometría |
-| Sin remuestreo ni nodata en la interfaz | El plan los acepta; falta exponerlos | **Abierta, y peor de lo que decía.** `raster/motores.py:234` **lee** `opciones["remuestreo"]` y nadie lo declara: es un parámetro que se puede leer y no se puede poner, o sea código muerto con aspecto de función. `nodata` no aparece en ningún `.py` |
-| Sin traducciones compiladas | Los nombres de formato salen en inglés, que es su `msgid` | **Abierta** — no hay `.mo` compilados |
+| ~~Sin remuestreo ni nodata en la interfaz~~ | — | **Saldada 2026-10-08** — el modo experto declara `remuestreo` (cúbica, bilineal, Lanczos, promedio, vecino más cercano) y `nodata` (solo donde el archivo lo guarda). Medido con GDAL 3.12: `gdalinfo` lee el `noDataValue` y el histograma de un tablero de 0 y 255 tiene 2 valores con vecino más cercano y más con bilineal. **De paso se arregló un error de fondo:** la reproyección pasaba `-progress` a `gdalwarp`, que GDAL rechaza; nunca había corrido contra GDAL de verdad |
+| ~~Sin traducciones compiladas~~ | — | **Saldada** — `locale/es/LC_MESSAGES/django.mo` está versionado y `test_traducciones.py` lo vigila |
 | ~~El LAS no reporta su CRS~~ | — | **Saldada** — `formats/las.py:169` lee las VLR y saca EPSG y WKT, con el bit de `global_encoding` que decide cuál manda |
 | Soltar un archivo solo da su nombre | El navegador no entrega la ruta completa, por seguridad. Quedan las dos vías: subir o explorar la compartida | no se paga |
 | El correo no es único en la base | `auth.User` no lo declara así, y cambiarlo obliga a migrar el modelo con la base ya en producción. El alta lo impide y el backend se niega a elegir entre dos | cuando toque tocar el modelo por otra cosa |

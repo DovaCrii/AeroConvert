@@ -103,6 +103,22 @@ LECTOR_ESTRICTO = {"asc": "AAIGrid"}
 
 DESTINOS_CON_PIRAMIDES = frozenset({"geotiff", "bigtiff", "img"})
 
+#: Cómo se calculan los píxeles nuevos al reproyectar. **La lista es la única entrada posible**:
+#: el formulario la valida y `plan()` la vuelve a comprobar, porque el valor acaba en un argumento
+#: de `gdalwarp`. Antes `plan()` leía `opciones["remuestreo"]` y nadie lo declaraba: se podía leer
+#: y no se podía poner.
+REMUESTREOS = (
+    ("cubic", "Cúbica — fotos y ortofotos (la de siempre)"),
+    ("bilinear", "Bilineal — más suave y más rápida"),
+    ("lanczos", "Lanczos — la más nítida"),
+    ("average", "Promedio — al achicar mucho"),
+    ("near", "Vecino más cercano — conserva los valores (clasificados, categorías)"),
+)
+
+#: Los destinos que **guardan** un valor «sin dato». PNG y WebP no lo llevan: ofrecérselo ahí
+#: sería prometer algo que el archivo de salida no puede contener.
+DESTINOS_CON_NODATA = frozenset({"geotiff", "bigtiff", "cog", "img", "asc"})
+
 
 def _bin(nombre: str) -> str:
     """Donde esta la herramienta de GDAL. Configuracion primero, PATH despues."""
@@ -173,6 +189,38 @@ class MotorGdalRaster(Motor):
         # Las piramides solo se ofrecen donde de verdad caben dentro del archivo. Ofrecerlas
         # en un JP2 seria ofrecer un `.ovr` de 360 MB al lado, que es justo lo contrario de
         # lo que se pide.
+        comunes = (
+            *comunes,
+            OpcionDeMotor(
+                "remuestreo",
+                "Remuestreo",
+                "eleccion",
+                por_defecto="cubic",
+                elecciones=REMUESTREOS,
+                ayuda=(
+                    "Solo se usa si cambia el sistema de coordenadas. Con valores que son "
+                    "categorías (un clasificado), use «vecino más cercano»: cualquier otro "
+                    "inventa valores que no existían."
+                ),
+            ),
+        )
+        if par.destino in DESTINOS_CON_NODATA:
+            comunes = (
+                *comunes,
+                OpcionDeMotor(
+                    "nodata",
+                    "Valor sin dato",
+                    "decimal",
+                    por_defecto=None,
+                    minimo=-1e38,
+                    maximo=1e38,
+                    ayuda=(
+                        "El valor de los píxeles que no son dato (por ejemplo -9999 o 0). Vacío: "
+                        "se deja el que ya trae el archivo. Los píxeles no cambian de valor: "
+                        "solo se declara cuál es el vacío."
+                    ),
+                ),
+            )
         if par.destino in DESTINOS_CON_PIRAMIDES:
             comunes = (
                 *comunes,
@@ -234,12 +282,19 @@ class MotorGdalRaster(Motor):
         if reproyecta:
             autoridad = trabajo.target_crs_authority or "EPSG"
             argv += ["-t_srs", f"{autoridad}:{trabajo.target_crs_code}"]
-            remuestreo = opciones.get("remuestreo", "cubic")
-            argv += ["-r", str(remuestreo)]
+            remuestreo = str(opciones.get("remuestreo") or "cubic")
+            if remuestreo not in dict(REMUESTREOS):
+                raise ValueError(f"«{remuestreo}» no es un remuestreo de los que se ofrecen.")
+            argv += ["-r", remuestreo]
             argv += ["-overwrite"]
         else:
             for banda in self._bandas(trabajo, opciones):
                 argv += ["-b", str(banda)]
+
+        sin_dato = opciones.get("nodata")
+        if sin_dato not in (None, "") and trabajo.target_format_code in DESTINOS_CON_NODATA:
+            # En `gdalwarp` el destino lleva su propio valor; en `gdal_translate` solo se declara.
+            argv += ["-dstnodata" if reproyecta else "-a_nodata", repr(float(sin_dato))]
 
         argv += ["-of", controlador]
         for clave, valor in self._opciones_de_creacion(trabajo, opciones).items():
@@ -253,9 +308,9 @@ class MotorGdalRaster(Motor):
         # `AEROCONVERT_SILENCIO_MAXIMO_S`, un motor perfectamente sano se daria por
         # atascado y se mataria a si mismo.
         #
-        # `gdal_translate` emite el avance por omision. `gdalwarp` necesita pedirselo.
-        if reproyecta:
-            argv += ["-progress"]
+        # Los dos emiten el avance **por omision**; solo `-q` lo apaga. Aqui hubo un `-progress`
+        # para `gdalwarp` que GDAL rechaza («Unknown argument»): la reproyeccion no funciono nunca
+        # contra GDAL de verdad, porque la unica prueba afirmaba que el argumento estuviera.
 
         # **B-04:** sin `-if`, GDAL abre el archivo con el controlador que le dicte el contenido,
         # y un VRT disfrazado de `.asc` leería otros archivos del disco. Con `-if` solo prueba

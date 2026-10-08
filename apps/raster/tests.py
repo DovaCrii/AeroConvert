@@ -118,10 +118,13 @@ class TestElMotorTieneQueHablar:
         plan = MotorGdalRaster().plan(_trabajo(usuario, tmp_path))
         assert "-q" not in plan.argv
 
-    def test_gdalwarp_pide_el_avance_explicitamente(self, usuario, tmp_path):
-        """`gdal_translate` lo emite solo; `gdalwarp` hay que pedirselo."""
+    def test_gdalwarp_no_lleva_argumentos_que_gdal_rechaza(self, usuario, tmp_path):
+        """`-progress` no existe: los dos programas emiten el avance solos. Esto se afirmaba al
+        reves, y una prueba que afirma la presencia de un argumento no prueba que GDAL lo acepte;
+        lo prueba la que convierte de verdad (`test_reproyectar_...`, con `gdalwarp` real)."""
         job = _trabajo(usuario, tmp_path, target_crs_authority="EPSG", target_crs_code="32718")
-        assert "-progress" in MotorGdalRaster().plan(job).argv
+        argv = MotorGdalRaster().plan(job).argv
+        assert "-progress" not in argv and "-q" not in argv
 
     def test_el_plan_trae_analizador_de_progreso(self, usuario, tmp_path):
         """Emitir avance no sirve de nada si nadie lo lee."""
@@ -330,6 +333,89 @@ class TestOpcionesDeclaradas:
                 assert opcion.por_defecto in valores, opcion.nombre
 
 
+class TestRemuestreoYNodata:
+    """F16.6: lo que `plan()` ya leía y nadie podía poner, y el valor «sin dato»."""
+
+    def _plan(self, usuario, tmp_path, **extra):
+        return MotorGdalRaster().plan(_trabajo(usuario, tmp_path, **extra))
+
+    def test_el_remuestreo_se_declara_para_que_el_formulario_lo_pueda_poner(self):
+        nombres = [o.nombre for o in MotorGdalRaster().opciones(ParDeFormatos("geotiff", "cog"))]
+        assert "remuestreo" in nombres
+
+    def test_el_remuestreo_llega_al_argumento_solo_si_se_reproyecta(self, usuario, tmp_path):
+        con = self._plan(
+            usuario,
+            tmp_path,
+            target_crs_authority="EPSG",
+            target_crs_code="32718",
+            options={"remuestreo": "near"},
+        )
+        i = con.argv.index("-r")
+        assert con.argv[i + 1] == "near" and "gdalwarp" in con.argv[0]
+        sin = self._plan(usuario, tmp_path, options={"remuestreo": "near"})
+        assert "-r" not in sin.argv, "sin reproyectar no hay nada que remuestrear"
+
+    def test_por_omision_sigue_siendo_cubica(self, usuario, tmp_path):
+        plan = self._plan(usuario, tmp_path, target_crs_authority="EPSG", target_crs_code="32718")
+        assert plan.argv[plan.argv.index("-r") + 1] == "cubic"
+
+    def test_un_remuestreo_que_no_se_ofrece_no_llega_al_comando(self, usuario, tmp_path):
+        with pytest.raises(ValueError, match="no es un remuestreo"):
+            self._plan(
+                usuario,
+                tmp_path,
+                target_crs_authority="EPSG",
+                target_crs_code="32718",
+                options={"remuestreo": "cubic -co EVIL=1"},
+            )
+
+    def test_nodata_solo_se_ofrece_donde_el_archivo_lo_guarda(self):
+        motor = MotorGdalRaster()
+        con = {"geotiff", "bigtiff", "cog", "img", "asc"}
+        for destino in ("geotiff", "bigtiff", "cog", "img", "asc", "png", "webp", "jp2"):
+            nombres = [o.nombre for o in motor.opciones(ParDeFormatos("geotiff", destino))]
+            assert ("nodata" in nombres) == (destino in con), destino
+
+    def test_nodata_sin_reproyectar_es_a_nodata(self, usuario, tmp_path):
+        plan = self._plan(usuario, tmp_path, options={"nodata": -9999})
+        assert plan.argv[plan.argv.index("-a_nodata") + 1] == "-9999.0"
+        assert "-dstnodata" not in plan.argv
+
+    def test_nodata_al_reproyectar_es_dstnodata(self, usuario, tmp_path):
+        plan = self._plan(
+            usuario,
+            tmp_path,
+            target_crs_authority="EPSG",
+            target_crs_code="32718",
+            options={"nodata": 0},
+        )
+        assert plan.argv[plan.argv.index("-dstnodata") + 1] == "0.0"
+        assert "-a_nodata" not in plan.argv
+
+    def test_el_cero_es_un_valor_y_el_vacio_no_hace_nada(self, usuario, tmp_path):
+        assert "-a_nodata" in self._plan(usuario, tmp_path, options={"nodata": 0}).argv
+        for vacio in (None, ""):
+            assert "-a_nodata" not in self._plan(usuario, tmp_path, options={"nodata": vacio}).argv
+
+    def test_el_formulario_valida_ambas(self):
+        from apps.engines import formulario
+
+        par = ParDeFormatos("geotiff", "cog")
+        motor = MotorGdalRaster()
+        assert formulario.leer(motor, par, {"remuestreo": "near", "nodata": "-9999,5"}) == {
+            "solo_rgb": False,
+            "remuestreo": "near",
+            "nodata": -9999.5,
+        }
+        with pytest.raises(formulario.OpcionInvalida):
+            formulario.leer(motor, par, {"remuestreo": "magico"})
+        with pytest.raises(formulario.OpcionInvalida):
+            formulario.leer(motor, par, {"nodata": "mucho"})
+        with pytest.raises(formulario.OpcionInvalida):
+            formulario.leer(motor, par, {"nodata": "1e300"})
+
+
 class TestAnalizadorDeProgreso:
     def test_lee_el_formato_de_gdal(self):
         assert analizar_progreso("0...10...20...30") == pytest.approx(0.30)
@@ -362,8 +448,9 @@ class TestContraGdalDeVerdad:
         registry.limpiar()
         registry.registrar(MotorGdalRaster())
 
-        origen = tmp_path / "orto.tif"
-        origen.write_bytes(geotiff_minimo(ancho=256, alto=256, bandas=1, epsg=32719))
+        # `geotiff_minimo` declara las teselas pero no las escribe: GDAL 3.12 lo rechaza con
+        # «Cannot read 8192 bytes». Esta prueba llevaba tiempo sin correr (está fuera del gate).
+        origen = self._tablero(tmp_path)
         job = _trabajo(
             usuario,
             tmp_path,
@@ -377,4 +464,100 @@ class TestContraGdalDeVerdad:
 
         assert resultado.estado == "done", job.reason_detail
         assert job.verification["epsg"] == "32719"
-        assert job.verification["ancho_px"] == 256
+        assert job.verification["ancho_px"] == 64
+
+    # --- F16.6: remuestreo y nodata, leídos por `gdalinfo`, que no escribió el archivo ----------
+
+    def _tablero(self, tmp_path) -> Path:
+        """Un GeoTIFF de 64 × 64 en cuadros de 2 px, solo 0 y 255, georreferenciado."""
+        import subprocess
+
+        from PIL import Image
+
+        from apps.raster.motores import _bin
+
+        imagen = Image.new("L", (64, 64))
+        imagen.putdata(
+            [255 if ((x // 2) + (y // 2)) % 2 else 0 for y in range(64) for x in range(64)]
+        )
+        png = tmp_path / "tablero.png"
+        imagen.save(png)
+        destino = tmp_path / "tablero.tif"
+        subprocess.run(  # noqa: S603 - argumentos fijos; los programas son los de GDAL
+            [
+                _bin("gdal_translate"), "-q", "-a_srs", "EPSG:32719",
+                "-a_ullr", "495000", "7318900", "495064", "7318836", str(png), str(destino),
+            ],
+            check=True, capture_output=True, timeout=120,
+        )  # fmt: skip
+        return destino
+
+    def _convertir(self, usuario, tmp_path, origen, **extra):
+        from apps.engines import registry
+        from apps.jobs import runner
+
+        registry.limpiar()
+        registry.registrar(MotorGdalRaster())
+        job = _trabajo(
+            usuario,
+            tmp_path,
+            source_path=str(origen),
+            source_size_bytes=origen.stat().st_size,
+            target_format_code="geotiff",
+            output_path=str(tmp_path / "salida.tif"),
+            **extra,
+        )
+        resultado = runner.ejecutar(job)
+        job.refresh_from_db()
+        assert resultado.estado == "done", job.reason_detail
+        return Path(job.output_path)
+
+    def _gdalinfo(self, ruta: Path, *extra: str) -> dict:
+        import json
+        import subprocess
+
+        from apps.raster.motores import _bin
+
+        salida = subprocess.run(  # noqa: S603 - argumentos fijos
+            [_bin("gdalinfo"), "-json", *extra, str(ruta)],
+            check=True, capture_output=True, text=True, timeout=120,
+        )  # fmt: skip
+        return json.loads(salida.stdout)
+
+    def test_nodata_queda_declarado_en_el_archivo(self, usuario, tmp_path):
+        salida = self._convertir(
+            usuario,
+            tmp_path,
+            self._tablero(tmp_path),
+            options={"nodata": 0, "piramides": ""},
+        )
+        banda = self._gdalinfo(salida)["bands"][0]
+        assert banda["noDataValue"] == 0
+
+    def test_sin_nodata_el_archivo_no_declara_ninguno(self, usuario, tmp_path):
+        salida = self._convertir(
+            usuario, tmp_path, self._tablero(tmp_path), options={"piramides": ""}
+        )
+        assert "noDataValue" not in self._gdalinfo(salida)["bands"][0]
+
+    def _valores_distintos(self, ruta: Path) -> int:
+        banda = self._gdalinfo(ruta, "-hist")["bands"][0]
+        return sum(1 for cuenta in banda["histogram"]["buckets"] if cuenta)
+
+    def test_vecino_mas_cercano_no_inventa_valores_y_bilineal_si(self, usuario, tmp_path):
+        tablero = self._tablero(tmp_path)
+        valores = {}
+        for remuestreo in ("near", "bilinear"):
+            carpeta = tmp_path / remuestreo
+            carpeta.mkdir()
+            salida = self._convertir(
+                usuario,
+                carpeta,
+                tablero,
+                target_crs_authority="EPSG",
+                target_crs_code="32718",
+                options={"remuestreo": remuestreo, "piramides": ""},
+            )
+            valores[remuestreo] = self._valores_distintos(salida)
+        assert valores["near"] == 2, "solo 0 y 255: el vecino más cercano conserva los valores"
+        assert valores["bilinear"] > 2, "el bilineal mezcla y crea grises que no existían"

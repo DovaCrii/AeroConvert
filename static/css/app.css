@@ -3528,6 +3528,23 @@ code {
   gap: var(--av-s-1);
 }
 
+/* --- Lo que cambió en las sondas (F16.6) ----------------------------------- */
+.historial-sondas {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: var(--av-s-2);
+  font-size: var(--av-fs-sm);
+}
+
+.historial-sondas li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--av-s-3);
+}
+
 /* --- La tira de miniaturas de un documento -------------------------------- */
 /*
  * Se desplaza en horizontal en vez de envolverse: son un vistazo para saber qué página es
