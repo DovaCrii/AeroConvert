@@ -5,6 +5,10 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Sin publicar]
 
+### Añadido — limpiar fotos de dron (F14.14)
+
+- **«Limpiar fotos de dron»**: las fotos de un vuelo (JPG, hasta quinientas) a **un zip con una foto por cada una**. La posición se **conserva** (la foto pasa byte por byte) o se **quita a propósito**: el bloque GPS del EXIF se pone a cero en su sitio y se retira el XMP, que en los DJI repite latitud, longitud y altura. **No se recodifica**: los datos de imagen salen idénticos byte por byte, y no se reescribe el EXIF porque las notas del fabricante guardan desplazamientos que un reescrito rompería (esas notas no se tocan, y la pantalla lo dice). Aparte, saca **dónde se tomó cada foto** a un **KMZ** o un **GeoJSON** (aunque se les quite la posición), y renombra por **fecha y hora** o por **orden de toma**; una foto sin fecha impide renombrar por fecha, con su nombre, en vez de inventar uno. Las fotos sin posición no entran al archivo y se cuentan. El verificador del trabajo relee con Pillow cada foto «sin posición» y cuenta las marcas del KMZ o GeoJSON. Oráculos: `exifread` (nueva dependencia de desarrollo, BSD) y `ogrinfo`.
+
 ### Interno — agentes, skills y un hook para no repetir los fallos de esta tanda
 
 - **Puerta rápida con `bandit`** (`verificar.py rapido`) y un **hook `PreToolUse`** que la corre antes de cada `git push` y lo bloquea si falla (`scripts/claude/antes_de_push.py`): el CI había cazado dos veces lo que el gate local habría visto en segundos.

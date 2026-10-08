@@ -132,6 +132,7 @@ dev = [
     # Solo para las pruebas: es **el otro lector** (qpdf) con el que se comprueba lo que escribe
     # pypdf —metadatos, XMP, anotaciones—. Licencia MPL-2.0; no se importa en la aplicación.
     "pikepdf>=9,<11",
+    "exifread>=3.5.1",
 ]
 
 [tool.uv]

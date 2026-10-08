@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block titulo %}Limpiar fotos de dron · AeroConvert{% endblock %}
+
+{% block contenido %}
+
+<form method="post" enctype="multipart/form-data">
+  {% csrf_token %}
+
+  <div class="tarjeta tarjeta-acento">
+    <div class="eyebrow">Las fotos</div>
+    <h2 class="av-fs-md">¿Cuáles?</h2>
+    <p class="tenue av-mt-2 av-mb-3">
+      Fotos en JPG de un vuelo. Se entrega un zip con <strong>una foto por cada una que entró</strong>
+      y, si lo pide, el archivo con sus posiciones. Los píxeles no se vuelven a comprimir y las
+      originales no se tocan.
+    </p>
+
+    <div class="origenes origenes-pdf">
+      <div class="origen">
+        <div class="origen-cabeza">
+          <span class="origen-marca fam-transformar" aria-hidden="true">
+            <svg class="origen-icono"><use href="{% static 'img/icons.svg' %}#icon-equipo"></use></svg>
+          </span>
+          <div>
+            <h3 class="origen-titulo">Desde su equipo</h3>
+            <p class="origen-nota">Todas las del vuelo a la vez.</p>
+          </div>
+        </div>
+        <div class="soltar soltar-compacto">
+          <label class="visually-hidden" for="id_subir">Elegir fotos del equipo</label>
+          <input type="file" name="archivos" id="id_subir" class="form-control" multiple
+                 accept="image/jpeg,.jpg,.jpeg" data-tope-mb="{{ tope_mb }}">
+          <p class="soltar-ayuda av-mt-2 av-mb-0"><span class="limite-subida">Límite por foto: <strong>{{ tope_mb }} MB</strong></span></p>
+        </div>
+      </div>
+
+      <div class="origen">
+        <div class="origen-cabeza">
+          <span class="origen-marca fam-proteger" aria-hidden="true">
+            <svg class="origen-icono"><use href="{% static 'img/icons.svg' %}#icon-carpeta"></use></svg>
+          </span>
+          <div>
+            <h3 class="origen-titulo">De la carpeta compartida</h3>
+            <p class="origen-nota">Pinche cada una.</p>
+          </div>
+        </div>
+        {% include "dashboard/_buscador.html" with destino="#id_fotos" modo="anadir" %}
+      </div>
+    </div>
+
+    <textarea name="archivos_texto" id="id_fotos" hidden>{{ rutas_texto }}</textarea>
+    <div class="av-mt-3" data-avance-subida hidden></div>
+  </div>
+
+  <div class="tarjeta">
+    <div class="eyebrow">Qué hacer con ellas</div>
+
+    <div class="av-mb-3 av-mw-38">
+      <label class="fw-semibold" for="id_gps">Posición de cada foto</label>
+      <select id="id_gps" name="gps" class="form-select">
+        {% for valor, texto in gps_opciones.items %}
+          <option value="{{ valor }}" {% if valor == gps %}selected{% endif %}>{{ texto }}</option>
+        {% endfor %}
+      </select>
+      <p class="tenue av-mt-1 av-mb-0 av-fs-sm">
+        Quitarla borra el bloque GPS del EXIF y el XMP del fabricante, que la repite. No toca las
+        notas privadas del fabricante.
+      </p>
+    </div>
+
+    <div class="av-mb-3 av-mw-38">
+      <label class="fw-semibold" for="id_posiciones">Archivo con las posiciones</label>
+      <select id="id_posiciones" name="posiciones" class="form-select">
+        {% for valor, texto in posiciones_opciones.items %}
+          <option value="{{ valor }}" {% if valor == posiciones %}selected{% endif %}>{{ texto }}</option>
+        {% endfor %}
+      </select>
+      <p class="tenue av-mt-1 av-mb-0 av-fs-sm">Se saca de las fotos tal como llegaron, aunque les quite la posición.</p>
+    </div>
+
+    <div class="av-mb-3 av-mw-38">
+      <label class="fw-semibold" for="id_nombres">Nombres</label>
+      <select id="id_nombres" name="nombres" class="form-select">
+        {% for valor, texto in nombres_opciones.items %}
+          <option value="{{ valor }}" {% if valor == nombres %}selected{% endif %}>{{ texto }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <button type="submit" class="boton">Limpiar</button>
+  </div>
+</form>
+
+{% endblock %}

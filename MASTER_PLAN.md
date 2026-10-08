@@ -503,7 +503,7 @@ volver atrás**, igual que `test_escala_visual.py` y `test_iconos.py`. Versión 
 | F14.11 | **Visor y anotaciones** con PDF.js vendorizado, guardadas como anotaciones estándar | PDFium ve las anotaciones; la CSP sigue `'self'` | Claude | ⬜ |
 | F14.12 | **Escanear con el teléfono**: fotos a PDF con recorte y corrección de perspectiva, y OCR opcional | La página resultante es rectangular (bordes ±2 %); Tesseract lee una frase de control | Claude | ⬜ |
 | F14.13 | **Imágenes**: convertir (HEIC, WebP, AVIF, TIFF, PNG, JPG), redimensionar, recortar, girar y comprimir **por lote** | Pillow reabre cada salida; dimensiones y formato coinciden | Claude | ✅ 2026-10-08 · «Convertir imágenes»: por lote a JPG, PNG, WebP o TIFF, con tamaño, giro (por EXIF o fijo), recorte centrado y calidad; conserva fecha y GPS (en TIFF sin comprimir, medido); HEIC solo si está `pillow-heif` y se dice; Pillow reabre cada salida y formato y medidas coinciden con lo calculado (`test_imagenes_lote.py`) |
-| F14.14 | **Fotos de dron**: ver y limpiar EXIF **conservando el GPS** (o quitándolo a propósito); posiciones a KMZ/GeoJSON; renombrar por fecha o vuelo | `exifread` lee lo escrito; `ogrinfo` abre el KMZ y cuenta tantos puntos como fotos | Claude | ⬜ |
+| F14.14 | **Fotos de dron**: ver y limpiar EXIF **conservando el GPS** (o quitándolo a propósito); posiciones a KMZ/GeoJSON; renombrar por fecha o vuelo | `exifread` lee lo escrito; `ogrinfo` abre el KMZ y cuenta tantos puntos como fotos | Claude | ✅ 2026-10-08 |
 | F14.15 | **Quitar fondo** de una imagen, como extra opcional (D2) | Máscara alfa no vacía; tiempo medido | Claude | ⬜ |
 | F14.16 | **Vector y láminas**: SVG a PDF o PNG; DXF a lámina PDF o SVG con `ezdxf` | PDFium renderiza; el número de entidades coincide con `ezdxf` | Claude | ⬜ |
 | F14.17 | **Video** con FFmpeg sondeado (D1): comprimir, recortar, cambiar formato, quitar audio y **extraer fotogramas** cada N segundos o metros para fotogrametría | `ffprobe` lee duración, códec y resolución; el número de fotogramas coincide | Claude | ⬜ |
@@ -539,6 +539,18 @@ volver atrás**, igual que `test_escala_visual.py` y `test_iconos.py`. Versión 
 | F16.4 | **API de conversión** con token por usuario y permisos | Prueba de 403 por extremo; un cliente `httpx` de prueba convierte un TIFF de punta a punta | Claude | ⬜ |
 | F16.5 | **Integración con AeroBim** (cierra F4.2) por API | AeroBim abre el COG y el COPC entregados (paseo fechado) | Claude | ⬜ |
 | F16.6 | **`RegistroDeSonda`**, `remuestreo` y `nodata` expuestos, y traducciones compiladas (deuda conocida) | Pruebas de cada uno; `test_traducciones.py` verde con `.mo` versionado | Claude | ⬜ |
+
+## Fase 17 — Poner en marcha lo que hoy sale apagado
+
+Detalle y pasos en `docs/PUESTA_EN_MARCHA_DE_LO_APAGADO.md`. Lo que exige licencia, clave o
+instalar en la VM es de la persona (P7, P10, P12, P13); lo demás, de Claude.
+
+| # | Entrega | Oráculo | La cierra | Estado |
+| --- | --- | --- | --- | --- |
+| F17.1 | **Office a PDF con LibreOffice**, opción rotulada «puede variar», sondeada y ejecutada aparte (D1) | PDFium cuenta páginas y halla el texto conocido de un documento de partida | Claude | ⬜ |
+| F17.2 | **Leer catálogos `.accdb`/`.mdb` sin Access** con `mdbtools` | Las nueve tablas con su número de filas, contadas por `pyodbc` en la estación con Access | Claude | ⬜ |
+| F17.3 | **Pantalla «cómo dejar listo el equipo»**: el paso exacto por cada apagado y la sonda en vivo | Prueba de vista: cada motivo del catálogo trae su paso | Claude | ⬜ |
+| F17.4 | **`despliegue/instalar_faltantes.sh`**: instala por `apt` lo que no pide licencia (FFmpeg, Ghostscript, Inkscape, mdbtools, LibreOffice, `xvfb`) | `shellcheck` en el CI | Claude | ⬜ |
 
 ---
 

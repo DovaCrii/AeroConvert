@@ -22,6 +22,9 @@ Lo que Claude necesita para avanzar y no tiene. **Sin él, la fila espera (⏸) 
 | P7 | **Instalar ODA en `p340`** | F15.8 (y F3.4) | Instalación + `AEROCONVERT_ODA` en el `.env` | F15.8 ⏸ |
 | P8 | **Decidir si el repositorio sigue público** | HANDOFF (rutas y puerto de `p340`) | Un sí o no | Se dejan como están |
 | P9 | **Copia de respaldo fuera de la máquina** | — | Dónde va | Lo único sin arreglo posible después de un fallo |
+| P11 | **Permiso para descargar PDF.js** y vendorizarlo con SRI | F14.11 | Un sí | F14.11 ⏸ |
+| P12 | **GDAL con ECW** en el equipo que ejecuta (lectura) | Pantalla de compatibilidad | Instalación | ECW sigue apagado; sirven COG y JP2 |
+| P13 | **Clave OEM de ECW** (escritura) | Pantalla de compatibilidad | `AEROCONVERT_ECW_ENCODE_KEY` y `…_COMPANY` en el `.env`, nunca en el repo | Sin escritura ECW |
 | P10 | **Terminar F10.5** (Trimble bajo Wine) | F10.5 | Pasos de `HANDOFF.md` | Sigue abierta |
 
 ## Bloques
@@ -37,9 +40,10 @@ Estados: ✅ hecho · 🟨 en curso · ⬜ por hacer · ⏸ espera un pedido · 
 | **B4 · Plano con color** | F13.7 ✅ | ✅ 2026-10-07 | #62 | — |
 | **B5 · Barra, portada y mapa** | F13.9 ✅ · F13.8 ✅ · F13.11 ✅ · F13.12 ✅ (cierra F13; versión `0.11.0`) | ✅ 2026-10-07 | #63, #64 | — |
 | **B6 · Suite PDF** | F14.0 ✅ · F14.1 ✅ · F14.2 ✅ · F14.3 ✅ · F14.4 ✅ · F14.5 · F14.6 ✅ · F14.7 ✅ · F14.8 ✅ · F14.9 · F14.11 · F14.20 ✅ | 🟨 | #65, #66, #67, #68, #69, #70, #71 | — |
-| **B7 · Imagen, dron, video y vector** | F14.12 · F14.13 ✅ · F14.14 · F14.15 · F14.16 · F14.17 · F14.18 ✅ · F14.19 ✅ | ⬜ | — | D1 (FFmpeg) |
+| **B7 · Imagen, dron, video y vector** | F14.12 · F14.13 ✅ · F14.14 ✅ · F14.15 · F14.16 · F14.17 · F14.18 ✅ · F14.19 ✅ | ⬜ | — | D1 (FFmpeg) |
 | **B8 · Geoespacial** | F15.1 a F15.8 | ⬜ | — | P5 · P6 · P7 |
 | **B9 · Plataforma** | F16.1 a F16.6 | ⬜ | — | B7 · B8 para los lotes |
+| **B11 · Poner en marcha lo apagado** | F17.1 a F17.4 (`docs/PUESTA_EN_MARCHA_DE_LO_APAGADO.md`) | ⬜ | — | P7 · P10 · P11 · P12 · P13 para lo que es de la persona |
 | **B10 · Cierre y despliegue** | Versión (`0.11.0` al cerrar F13, `0.12.0` con las firmas), `HANDOFF.md` con los pasos de la VM, lista para desplegar | ⬜ | — | Todo lo anterior |
 
 **Orden de trabajo:** B1 → B2 → B3 → B4 → B5 (esto cierra F13 y la versión `0.11.0`); B6 con
