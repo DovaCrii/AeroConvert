@@ -5,6 +5,12 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Sin publicar]
 
+### Añadido — Leer catálogos de Access sin Access, con `mdbtools` (F17.2)
+
+- «Catálogo Plant 3D a Excel» deja de estar apagada en el servidor: donde no está el motor de Access de Microsoft, lee con **`mdbtools`** (programa externo sondeado, `AEROCONVERT_MDBTOOLS` o el `PATH`; lo instala `instalar_faltantes.sh`). Los nombres de las columnas salen de `mdb-export` y los valores con su tipo de `mdb-json`; si esa versión no lo trae, van como texto. Las tablas `MSys…` no salen, los nombres pasan por el mismo filtro que con ACE, y si `mdbtools` cuenta unas filas y devuelve otras, se para.
+- **Escribir un catálogo sigue pidiendo Windows** con el motor de Access: «Excel a catálogo Plant 3D» no cambia. El índice dice «con mdbtools» cuando se lee así.
+- **Trato:** «Cuando lo tengas editado, vuelve…» pasa a «Cuando lo tenga editado, vuelva…».
+
 ### Añadido — «PDF a PDF/A para archivar» (F14.9)
 
 - Herramienta 39. **Ghostscript** (programa externo sondeado: el del `PATH`, `AEROCONVERT_GHOSTSCRIPT` o el que trae QGIS junto a GDAL) escribe PDF/A-2b con un perfil sRGB creado en memoria; **pikepdf, que no escribió el archivo, lo comprueba**: identificación PDF/A-2B, intención de salida con su perfil y **todas las fuentes incrustadas**. Si falla algo, no se entrega.
