@@ -5,6 +5,12 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Sin publicar]
 
+### Añadido — API de conversión con token por persona (F16.4)
+
+- `POST/GET /api/v1/trabajos/`, `GET /api/v1/trabajos/<id>/` y `…/descarga/`: encolar, consultar y descargar desde un guion, con **las mismas reglas que la pantalla** (carpetas permitidas, formato detectado, opciones validadas por el motor, CRS no adivinado y nada encima del que trae el archivo). Ver `docs/API.md`.
+- **Token por persona guardado solo como huella** (SHA-256; el token se ve una vez, con `manage.py emitir_token_api`, que también revoca). Además del token hace falta el permiso **`jobs.usar_api`**. 401 sin token o con uno que no vale, revocado o de una cuenta desactivada; 403 sin el permiso; 404 lo ajeno. La descarga sigue las reglas de la pantalla: 409 si no está hecha, 410 si se fue o la reemplazaron, y la retención efímera la consume igual. Las capacidades, con token, también piden el permiso. Cada token rechazado deja su prefijo y la IP en el registro `aeroconvert.api`. Coordenadas locales (`crs_local`) solo en nubes, como en la pantalla.
+- **Migraciones: `core.0004` (tokens) y `jobs.0005` (el permiso).** Oráculo: un cliente HTTP de verdad (`requests`) contra el servidor de la prueba encola un GeoTIFF, el despachador lo convierte con GDAL y `gdalinfo` confirma que lo descargado es un COG de 64 × 64.
+
 ### Añadido — «Office a PDF» con LibreOffice cuando no hay Office (F17.1)
 
 - En el servidor no hay Office. Si hay LibreOffice, la pantalla **lo ofrece, no lo pone en su lugar**: hay que marcar «Acepto que el PDF puede variar respecto del original» (fuentes, tablas, saltos de página). Sin esa marca no se encola nada, y el motor tampoco sustituye por su cuenta. «PDF a Word» sigue siendo solo de Word.
