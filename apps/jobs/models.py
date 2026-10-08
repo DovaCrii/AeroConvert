@@ -183,6 +183,8 @@ class ConversionJob(BaseModel):
         permissions = [
             ("cancelar_conversionjob", "Puede cancelar un trabajo de conversion"),
             ("reencolar_conversionjob", "Puede reencolar un trabajo"),
+            # La API de conversión (F16.4): el token no basta, hace falta además este permiso.
+            ("usar_api", "Puede convertir por la API"),
         ]
 
     def __str__(self) -> str:
