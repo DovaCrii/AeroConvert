@@ -347,6 +347,8 @@ CSRF_COOKIE_NAME = "aeroconvert_csrf"
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
+        # El token primero: un cliente de la API no tiene sesión ni CSRF.
+        "apps.core.api_auth.TokenDeLaApi",
         "rest_framework.authentication.SessionAuthentication",
     ],
     "DEFAULT_PERMISSION_CLASSES": [

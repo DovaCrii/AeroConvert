@@ -156,3 +156,43 @@ class Incidente(BaseModel):
 
     def __str__(self) -> str:
         return f"{self.get_tipo_display()} en {self.ruta}"
+
+
+class TokenDeApi(BaseModel):
+    """Un token de la API (F16.4). **Solo se guarda su huella**; ver `apps/core/api_auth.py`.
+
+    El token entero se muestra una vez, al emitirlo. Revocarlo no lo borra: queda la traza de que
+    existió, quién lo tuvo y cuándo se usó por última vez.
+    """
+
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="tokens_de_api"
+    )
+    nombre = models.CharField(max_length=80)
+    prefijo = models.CharField(max_length=8, unique=True)
+    huella = models.CharField(max_length=64)
+    ultimo_uso = models.DateTimeField(null=True, blank=True)
+    revocado = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self) -> str:
+        return f"{self.nombre} ({self.prefijo}…)"
+
+    @classmethod
+    def emitir(cls, usuario, nombre: str) -> tuple["TokenDeApi", str]:
+        """Crea uno y devuelve (registro, token). El token no se puede volver a ver."""
+        import secrets
+
+        from .api_auth import PREFIJO_DEL_TOKEN, huella
+
+        while True:
+            prefijo = secrets.token_hex(4)
+            if not cls.objects.filter(prefijo=prefijo).exists():
+                break
+        token = f"{PREFIJO_DEL_TOKEN}{prefijo}_{secrets.token_urlsafe(32)}"
+        registro = cls.objects.create(
+            owner=usuario, nombre=nombre[:80], prefijo=prefijo, huella=huella(token)
+        )
+        return registro, token
