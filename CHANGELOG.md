@@ -5,6 +5,13 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Sin publicar]
 
+### Añadido — «PDF a PDF/A para archivar» (F14.9)
+
+- Herramienta 39. **Ghostscript** (programa externo sondeado: el del `PATH`, `AEROCONVERT_GHOSTSCRIPT` o el que trae QGIS junto a GDAL) escribe PDF/A-2b con un perfil sRGB creado en memoria; **pikepdf, que no escribió el archivo, lo comprueba**: identificación PDF/A-2B, intención de salida con su perfil y **todas las fuentes incrustadas**. Si falla algo, no se entrega.
+- **La conformidad solo se afirma si veraPDF la valida** (`AEROCONVERT_VERAPDF`, opcional). Sin él, la pantalla lo avisa antes y el recibo dice «sin validar».
+- Ghostscript corre con `-dSAFER` y solo puede leer su carpeta de trabajo (el documento es de fuera y PostScript es un lenguaje). El original no se toca y la carpeta de trabajo se borra siempre. Motivo nuevo `sin-ghostscript`, con su paso en «Cómo dejar listo el equipo»; `instalar_faltantes.sh` ya lo instala.
+- **Trato de usted:** cuatro textos más que tuteaban («Pártelo», «Repasa… fiarte»); el detector ahora los conoce.
+
 ### Añadido — «Office a PDF» con LibreOffice cuando no hay Office (F17.1)
 
 - En el servidor no hay Office. Si hay LibreOffice, la pantalla **lo ofrece, no lo pone en su lugar**: hay que marcar «Acepto que el PDF puede variar respecto del original» (fuentes, tablas, saltos de página). Sin esa marca no se encola nada, y el motor tampoco sustituye por su cuenta. «PDF a Word» sigue siendo solo de Word.

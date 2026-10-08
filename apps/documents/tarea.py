@@ -799,6 +799,46 @@ def _ocr(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
     return {"paginas": len(PdfReader(origen).pages)}
 
 
+#: Ghostscript y veraPDF, sondeados por el padre (el hijo no tiene Django para sondear).
+VARIABLE_GHOSTSCRIPT = "AEROCONVERT_GHOSTSCRIPT_HIJO"
+VARIABLE_VERAPDF = "AEROCONVERT_VERAPDF_HIJO"
+
+
+def _pdf_a(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
+    import os
+
+    from apps.documents import pdfa
+
+    programa = os.environ.get(VARIABLE_GHOSTSCRIPT, "")
+    if not programa:
+        raise FalloDeTarea("sin-ghostscript", "No llegó la ruta de Ghostscript desde el corredor.")
+    progreso(0.1, "Escribiendo el PDF/A con Ghostscript")
+    comprobado = pdfa.convertir(
+        Path(entradas[0]["ruta"]),
+        parcial,
+        programa,
+        verapdf=os.environ.get(VARIABLE_VERAPDF, ""),
+    )
+    progreso(1.0, "Comprobado con otro lector")
+    return {
+        "accion": "pdf_a",
+        "paginas": comprobado["paginas"],
+        "pdfa": comprobado["pdfa"],
+        # `None` = no se pudo validar con veraPDF, y entonces **no se afirma** la conformidad.
+        "conforme": comprobado["conforme"],
+        "validado_con": "veraPDF" if comprobado["conforme"] is not None else "",
+        "avisos": (
+            []
+            if comprobado["conforme"]
+            else [
+                "PDF/A-2b escrito y comprobado por fuera (identificación, perfil de color y "
+                "fuentes incrustadas), pero sin veraPDF en esta máquina la conformidad completa "
+                "no se valida."
+            ]
+        ),
+    }
+
+
 #: El nombre del controlador ODBC de Access, que sondea el padre. Ver `catalogos._controlador`.
 VARIABLE_ACCESS = "AEROCONVERT_CONTROLADOR_ACCESS"
 
@@ -873,6 +913,7 @@ TAREAS = {
     "proteger": _proteger,
     "redactar": _redactar,
     "ocr": _ocr,
+    "pdf_a": _pdf_a,
     "catalogo_excel": _catalogo_a_excel,
     "excel_catalogo": _excel_a_catalogo,
 }
