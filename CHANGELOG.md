@@ -6,6 +6,11 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 ## [Sin publicar]
 
 
+### Cambiado — transiciones de estado y entrada suave (F13.13)
+
+- **Botones, campos, baldosas y enlaces del lateral** cambian de color, fondo, borde y opacidad en 160 ms al pasar, enfocar o desactivarse; **nada se desplaza, no hay sombras ni degradados** (F13.7 sigue en pie). Cada página y lo que htmx pinta (resultados, ficha, lo reconocido) **aparece** en 220 ms por opacidad. Con `prefers-reduced-motion` todo es instantáneo. Cinco pruebas nuevas en `test_plano.py`: ninguna transición `all`, nada de `transform` al pasar o enfocar, solo propiedades de estado, la animación solo cambia la opacidad y no deja un contexto de apilado (`backwards`), y el bloque de movimiento reducido. Visto en el navegador, en claro a 375 px y en oscuro a 1280 px, sin desborde.
+
+
 ### Añadido — plano DXF a lámina PDF o SVG (F14.16, primera parte)
 
 - **«Plano DXF a PDF»**: dibuja un DXF (líneas, polilíneas con arcos, círculos, arcos, elipses, splines, textos y puntos; bloques y cotas expandidos) en una lámina de **A4 a A0**, apaisada o vertical según el plano, **centrada y con margen fijo de 10 mm**, con el color de sus capas (el blanco sale negro). **La escala solo se dice si el plano declara sus unidades** (`$INSUNITS`): si no, sale ajustado al papel y no se inventa un «1:500». Las capas apagadas no se dibujan y **lo que no se puede dibujar** (sombreados, imágenes…) **se cuenta por tipo**. Un DWG se rechaza con su camino (pasarlo antes a DXF). Se lee con `ezdxf` (MIT, dependencia nueva) y se dibuja con `reportlab`. Oráculo: PDFium lee la lámina y comprueba que el dibujo toca el margen en el eje que manda y queda centrado en el otro. Queda pendiente el SVG a PDF o PNG, que exige Inkscape.
