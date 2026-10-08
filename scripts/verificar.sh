@@ -41,7 +41,7 @@ paso "bandit"                    uv run bandit -q -c pyproject.toml -r apps conf
 paso "pip-audit"                 uv run pip-audit
 
 if command -v shellcheck >/dev/null 2>&1; then
-    paso "shellcheck" shellcheck scripts/*.sh
+    paso "shellcheck" shellcheck scripts/*.sh despliegue/*.sh
 else
     echo "==> shellcheck (no esta instalado, se salta)"
 fi

@@ -5,6 +5,12 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Sin publicar]
 
+### Añadido — `despliegue/instalar_faltantes.sh` (F17.4)
+
+- Instala por `apt` lo que AeroConvert sondea y **no pide licencia ni registro**: Tesseract (español e inglés), **RTKLIB** (`rnx2rtkp` para el PPK de los vuelos), `xvfb`, FFmpeg, Ghostscript, Inkscape, `mdbtools` y LibreOffice sin interfaz. Con `--ver` dice qué haría sin tocar nada. Un paquete que la versión de Ubuntu no tenga se dice y se sigue con el resto; al final comprueba que cada programa quedó en el `PATH`.
+- Lo que pide licencia o registro (ODA, el convertidor de Trimble, la clave de ECW) no está: es de la persona.
+- `shellcheck` revisa ahora también `despliegue/*.sh` en el CI, en `verify.ps1` y en `verificar.sh`.
+
 
 ### Corregido — Brechas encontradas al revisar lo pendiente (2026-10-08)
 

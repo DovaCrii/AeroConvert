@@ -65,7 +65,7 @@ Invoke-Step "pip-audit" @("run", "pip-audit")
 # `shellcheck` se dice y se salta, igual que en `verificar.sh`; el CI siempre lo corre.
 if (Get-Command shellcheck -ErrorAction SilentlyContinue) {
     Write-Host "==> shellcheck" -ForegroundColor Cyan
-    & shellcheck (Get-ChildItem scripts -Filter *.sh | ForEach-Object FullName)
+    & shellcheck (Get-ChildItem scripts, despliegue -Filter *.sh | ForEach-Object FullName)
     if ($LASTEXITCODE -ne 0) { throw "verify.ps1: fallo el paso (shellcheck), codigo $LASTEXITCODE" }
 } else {
     Write-Host "==> shellcheck (no esta instalado, se salta)" -ForegroundColor Yellow

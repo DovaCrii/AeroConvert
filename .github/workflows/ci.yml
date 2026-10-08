@@ -97,4 +97,4 @@ jobs:
 
       # Los scripts `.sh` los corre el servidor. Viene instalado en `ubuntu-latest`.
       - name: shellcheck
-        run: shellcheck scripts/*.sh
+        run: shellcheck scripts/*.sh despliegue/*.sh
