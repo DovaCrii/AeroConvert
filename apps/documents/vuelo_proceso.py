@@ -103,6 +103,10 @@ def elegir_sistema(
                 f"Las coordenadas están en {coinciden[0].nombre}, un sistema antiguo: pasarlas a "
                 "latitud y longitud necesita una transformación de datum que no se adivina."
             )
+        # Los que coinciden dan lo mismo: el orden por error sería ruido de submilímetro. Se usa el
+        # de la tabla (WGS 84, SIRGAS-Chile, SIRGAS 2000), que es estable.
+        orden = list(vuelo_trimble.CANDIDATOS)
+        usables.sort(key=lambda c: orden.index(c.epsg))
         mejor = usables[0]
         otros = tuple(c.nombre for c in usables[1:])
         return SistemaElegido(
@@ -180,7 +184,7 @@ def procesar(
     nombre_de_disparos: str,
     referencia: bytes | None = None,
     nombres_en_carpeta: list[str] | None = None,
-    escala_de_tiempo: str = "GPST",
+    escala_de_tiempo: str,
     sistema: str = "medir",
     aplicar_desfase: bool = True,
     progreso: Callable[[float, str], None] | None = None,
@@ -204,10 +208,20 @@ def procesar(
 
     avance(0.30, "Midiendo el sistema de coordenadas")
     elegido, candidatos = elegir_sistema(sistema, ref)
+    avisos_de_escala: list[str] = []
+    if ref is None:
+        # La escala de tiempo no se puede comprobar sin las posiciones de Trimble: con una
+        # trayectoria en UTC leída como GPST las fotos quedan 18 s corridas (cientos de metros) y
+        # el resultado parece correcto. Se dice en el informe y en el aviso del trabajo.
+        avisos_de_escala.append(
+            f"Sin las posiciones de Trimble no hay con qué comprobar que la hora de la "
+            f"trayectoria sea {escala_de_tiempo}: se leyó como usted la indicó. Si no es esa, "
+            "las fotos quedan corridas."
+        )
 
     # Los nombres: los de Trimble si los hay; si no, los de la carpeta. Solo con tantos como
     # disparos, y se dice cuál de las dos fuentes se usó.
-    avisos: list[str] = []
+    avisos: list[str] = list(avisos_de_escala)
     nombres: list[str] | None = None
     de_donde = ""
     if ref is not None:
@@ -291,7 +305,8 @@ def procesar(
             else None
         ),
         "desfase_aplicado": sum(1 for f in fotos if f.desfase_aplicado),
-        "avisos": len(avisos),
+        # La lista, no la cuenta: el corredor la recorre para dejar cada aviso en la bitácora.
+        "avisos": list(avisos),
     }
     avance(1.0, "Listo")
     return salida
@@ -380,7 +395,9 @@ def _datos_del_visor(elegido, puntos, fotos, ref, a_proyectado, ref_altura, nomb
     elegidos = puntos[::paso]
     if elegidos[-1] is not puntos[-1]:
         elegidos.append(puntos[-1])
-    en_carpeta = {n.lower() for n in (nombres_en_carpeta or [])}
+    # nombre (en minúsculas) -> el nombre **real** en la carpeta: en Linux `dji.jpg` y `DJI.JPG` no
+    # son el mismo archivo, y la miniatura se pide por el nombre que de verdad existe.
+    en_carpeta = {n.lower(): n for n in (nombres_en_carpeta or [])}
 
     lista = []
     for i, f in enumerate(fotos):
@@ -403,6 +420,13 @@ def _datos_del_visor(elegido, puntos, fotos, ref, a_proyectado, ref_altura, nomb
                 "calidad": calidad,
                 "t_gps_s": round(f.disparo.t_gps_s, 3),
                 "miniatura": f.nombre.lower() in en_carpeta,
+                # Solo si el archivo existe en la carpeta: un nombre hostil del CSV (`../x.jpg`) no
+                # está ahí, así que nunca llega a ser una ruta.
+                **(
+                    {"archivo": en_carpeta[f.nombre.lower()]}
+                    if f.nombre.lower() in en_carpeta
+                    else {}
+                ),
             }
         )
     return {
@@ -416,6 +440,7 @@ def _datos_del_visor(elegido, puntos, fotos, ref, a_proyectado, ref_altura, nomb
         },
         "altura": ref_altura,
         "origen": {"este": este0, "norte": norte0},
+        "trayectoria_total": len(puntos),
         "trayectoria": [[round(p.este - este0, 2), round(p.norte - norte0, 2)] for p in elegidos],
         "fotos": lista,
     }

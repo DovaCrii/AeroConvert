@@ -134,9 +134,12 @@ class TestLasPantallasLeenElMismoArbol:
         titulos = _titulos(cuerpo, r'<h2 class="bloque-titulo">([^<]+)</h2>')
 
         assert "Excel a Markdown" in cuerpo
-        # «Planta» ya no depende de Access: la traza de un dron (F14.18) vive ahí y no necesita
-        # ningún programa, así que con o sin él hay dos grupos y los dos llevan encabezado.
-        assert titulos == ["Texto, tablas y Markdown", "Imagen, video y planta"]
+        # «Planta» vuelve a depender de Access: la traza de un dron y las fotos del vuelo se fueron
+        # a su propio grupo («Vuelos de dron»), y en «planta» quedaron solo los catálogos. Sin
+        # Access «texto» se queda solo y, con un solo grupo, no lleva encabezado.
+        assert titulos == (
+            ["Texto, tablas y Markdown", "Imagen, video y planta"] if hay_access else []
+        )
         assert ("Catálogo Plant 3D a Excel" in cuerpo) is hay_access
 
     def test_buscar_deja_los_grupos_en_el_mismo_orden_del_arbol(self):

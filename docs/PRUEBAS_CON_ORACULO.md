@@ -615,6 +615,17 @@ posiciones quedarían a metros).
 36,3: la ondulación del geoide más el error de las posiciones en tiempo real, que es de ±2 a 3 m). No
 hay aquí un modelo de geoide con que convertir, así que la salida dice de qué altura se trata.
 
+**El proceso entero (`vuelo_proceso.procesar`, lo que hace la pantalla)**, con ese vuelo: **2 505
+fotos y 7 519 puntos de trayectoria en 1,0 s**, sistema medido WGS 84 / UTM 19S (los tres del marco
+ITRF coinciden), contraste con las posiciones de Trimble de **0,65 mm como máximo**, las 2 505
+miniaturas disponibles. Y en el visor, la foto 5 sale con Este 414 884,611, Norte 7 418 785,755 y
+altura 1 123,319: **la misma línea del CSV de Trimble**. Se encontraron mirándolo en el navegador
+tres errores que ninguna prueba había visto (un redondeo que subía un metro el Este y el Norte
+mostrados, un nombre de clase que chocaba con otro y un visor que no dibujaba si el navegador
+detenía `requestAnimationFrame`), y uno que el vuelo destapó en el explorador de la carpeta
+compartida (cortaba a 300 entradas **antes** de filtrar, y en una carpeta con 2 505 fotos nunca
+mostraba los CSV).
+
 **Lo que no se midió:** la corrida de RTKLIB. Ese vuelo trae el RINEX del dron (`*_PPKOBS.obs`,
 RINEX 3.05, 35 MB) y el crudo de la base (`13933630.T04`), pero no hay RTKLIB en esta estación ni
 se conoce la coordenada de la base (pedidos P16 y P15).

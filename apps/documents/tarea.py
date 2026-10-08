@@ -428,6 +428,58 @@ def _dxf_lamina(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
     return informe
 
 
+def _vuelo_dron(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
+    import zipfile
+
+    from apps.documents import vuelo_proceso
+
+    por_papel = {e.get("papel"): e["ruta"] for e in entradas}
+    if not opciones.get("escala_de_tiempo"):
+        raise FalloDeTarea(
+            "documento-invalido", "Falta la escala de tiempo de la trayectoria: no se supone."
+        )
+    if not por_papel.get("trayectoria") or not por_papel.get("disparos"):
+        raise FalloDeTarea(
+            "documento-invalido", "Hacen falta la trayectoria y los disparos de la cámara."
+        )
+    nombres = None
+    carpeta = (opciones.get("carpeta_de_fotos") or "").strip()
+    if carpeta:
+        nombres = vuelo_proceso.nombres_de_fotos(Path(carpeta))
+        print(f"Carpeta de fotos: {len(nombres)} imágenes", flush=True)
+    referencia = por_papel.get("referencia")
+
+    hecho = vuelo_proceso.procesar(
+        trayectoria=Path(por_papel["trayectoria"]).read_bytes(),
+        disparos=Path(por_papel["disparos"]).read_bytes(),
+        nombre_de_disparos=Path(por_papel["disparos"]).name,
+        referencia=Path(referencia).read_bytes() if referencia else None,
+        nombres_en_carpeta=nombres,
+        escala_de_tiempo=opciones["escala_de_tiempo"],
+        sistema=str(opciones.get("sistema", "medir")),
+        aplicar_desfase=bool(opciones.get("aplicar_desfase", True)),
+        progreso=progreso,
+    )
+    with zipfile.ZipFile(parcial, "w", zipfile.ZIP_DEFLATED) as paquete:
+        for nombre, datos in hecho.archivos.items():
+            paquete.writestr(nombre, datos)
+    fotos = hecho.resumen["fotos"]
+    return {
+        **hecho.resumen,
+        "piezas": [
+            {"nombre": "fotos.csv", "filas": fotos},
+            {"nombre": "fotos.geojson", "puntos": hecho.resumen["con_posicion"]},
+            *(
+                [{"nombre": "fotos.kml", "puntos": hecho.resumen["con_posicion"]}]
+                if "fotos.kml" in hecho.archivos
+                else []
+            ),
+            {"nombre": "calidad.md"},
+            {"nombre": "vuelo.json", "fotos": fotos},
+        ],
+    }
+
+
 def _fotos_dron(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
     import shutil
 
@@ -711,6 +763,7 @@ TAREAS = {
     "portada": _portada,
     "imagenes_lote": _imagenes_lote,
     "fotos_dron": _fotos_dron,
+    "vuelo_dron": _vuelo_dron,
     "dxf_lamina": _dxf_lamina,
     "unir": _unir,
     "organizar": _unir,

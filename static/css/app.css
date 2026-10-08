@@ -3748,6 +3748,392 @@ code {
   r: 5;
 }
 
+/* --- Corregir un vuelo de dron: los pasos y el visor (F18.4) --------------------------------
+ * La disposición de Emlid Studio, que es la que ya conoce quien procesa vuelos: a la izquierda los
+ * pasos en orden, a la derecha qué va a pasar; y, al terminar, el mapa con el recorrido y la foto
+ * elegida. Plano con color: bordes y superficies, sin sombras ni degradados.
+ */
+.vuelo-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--av-s-5);
+  align-items: start;
+}
+
+@media (min-width: 992px) {
+  .vuelo-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(16rem, 22rem);
+  }
+
+  .vuelo-guia {
+    position: sticky;
+    top: var(--av-s-4);
+  }
+}
+
+.vuelo-pasos,
+.vuelo-guia {
+  display: grid;
+  gap: var(--av-s-3);
+}
+
+.vuelo-paso {
+  padding: var(--av-s-4);
+  border: 1px solid var(--av-border);
+  border-radius: var(--av-radius);
+  background: var(--av-surface);
+}
+
+.vuelo-paso-cabeza {
+  display: flex;
+  align-items: center;
+  gap: var(--av-s-3);
+  margin-bottom: var(--av-s-2);
+}
+
+.vuelo-paso-numero {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  border-radius: 50%;
+  background: var(--av-primary-soft);
+  color: var(--av-primary);
+  font-weight: 700;
+  font-size: var(--av-fs-sm);
+}
+
+.vuelo-paso-titulo {
+  margin: 0;
+  font-size: var(--av-fs-md);
+}
+
+.vuelo-paso-estado {
+  margin: 0;
+}
+
+.vuelo-paso-ayuda {
+  margin: 0 0 var(--av-s-2);
+  font-size: var(--av-fs-sm);
+}
+
+.vuelo-paso-elegido {
+  margin: 0 0 var(--av-s-2);
+  font-size: var(--av-fs-sm);
+  font-weight: 600;
+  color: var(--av-ok);
+  overflow-wrap: anywhere;
+}
+
+.vuelo-accion {
+  padding-top: var(--av-s-2);
+}
+
+.vuelo-etapas,
+.vuelo-sale {
+  margin: 0 0 var(--av-s-3);
+  padding-left: 1.2rem;
+  display: grid;
+  gap: var(--av-s-2);
+  font-size: var(--av-fs-sm);
+}
+
+/* El visor. */
+.visor {
+  display: grid;
+  gap: var(--av-s-3);
+}
+
+.visor-barra {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--av-s-3);
+}
+
+.visor-datos,
+.visor-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--av-s-2);
+}
+
+.visor-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--av-s-2);
+  padding: var(--av-s-1) var(--av-s-3);
+  border: 1px solid var(--av-border);
+  border-radius: var(--av-radius-sm);
+  background: var(--av-surface);
+  font-size: var(--av-fs-sm);
+}
+
+.visor-chip-sistema {
+  border-color: var(--av-info);
+}
+
+.visor-chip-rotulo {
+  font-size: var(--av-fs-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--av-text-muted);
+}
+
+.visor-chip-texto {
+  max-width: 18rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.visor-sistema-como {
+  margin: 0;
+  font-size: var(--av-fs-sm);
+}
+
+.visor-cuerpo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--av-s-3);
+}
+
+@media (min-width: 992px) {
+  .visor-cuerpo {
+    grid-template-columns: minmax(0, 1fr) 22rem;
+    height: calc(100vh - 15rem);
+    min-height: 30rem;
+  }
+}
+
+.visor-mapa {
+  position: relative;
+  min-height: 22rem;
+  border: 1px solid var(--av-border);
+  border-radius: var(--av-radius);
+  background: var(--av-surface-alt);
+  overflow: hidden;
+}
+
+.visor-mapa canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+
+.visor-mapa canvas:focus-visible {
+  outline: 2px solid var(--av-primary);
+  outline-offset: -2px;
+}
+
+.visor-cargando {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  color: var(--av-text-secondary);
+}
+
+.visor-cargando[hidden] {
+  display: none;
+}
+
+.visor-leyenda {
+  position: absolute;
+  right: var(--av-s-2);
+  bottom: var(--av-s-2);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--av-s-2) var(--av-s-3);
+  max-width: calc(100% - 2 * var(--av-s-2));
+  padding: var(--av-s-2) var(--av-s-3);
+  border: 1px solid var(--av-border);
+  border-radius: var(--av-radius-sm);
+  background: var(--av-surface);
+  font-size: var(--av-fs-xs);
+}
+
+.visor-leyenda-item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--av-s-1);
+}
+
+.visor-pie {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: var(--av-fs-xs);
+}
+
+.visor-punto {
+  display: inline-block;
+  flex: none;
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 50%;
+  background: var(--av-text-muted);
+}
+
+/* Cada calidad con su forma (círculo, triángulo, cuadrado, rombo) además de su color: igual que
+ * las marcas del mapa dibujadas en `vuelo.js`. */
+.visor-punto-buena {
+  background: var(--av-ok);
+}
+
+.visor-punto-flotante {
+  background: var(--av-warn);
+  border-radius: 0;
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+}
+
+.visor-punto-simple {
+  background: var(--av-danger);
+  border-radius: 0;
+}
+
+.visor-punto-sin {
+  background: var(--av-text-muted);
+  border-radius: 0;
+  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+}
+
+.visor-punto-ninguna {
+  background: transparent;
+  border: 2px dashed var(--av-text-muted);
+}
+
+.visor-lateral {
+  display: flex;
+  flex-direction: column;
+  gap: var(--av-s-3);
+  min-height: 0;
+}
+
+.visor-foto,
+.visor-lista {
+  padding: var(--av-s-3);
+  border: 1px solid var(--av-border);
+  border-radius: var(--av-radius);
+  background: var(--av-surface);
+}
+
+.visor-lista {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 12rem;
+}
+
+.visor-foto-titulo,
+.visor-lista-titulo {
+  margin: 0 0 var(--av-s-2);
+  font-size: var(--av-fs-md);
+  overflow-wrap: anywhere;
+}
+
+.visor-foto-marco {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 4 / 3;
+  border: 1px solid var(--av-border);
+  border-radius: var(--av-radius-sm);
+  background: var(--av-surface-alt);
+  overflow: hidden;
+}
+
+.visor-foto-marco img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.visor-foto-vacia {
+  margin: 0;
+  padding: var(--av-s-3);
+  text-align: center;
+  font-size: var(--av-fs-sm);
+}
+
+.visor-ficha {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--av-s-1) var(--av-s-3);
+  margin: var(--av-s-3) 0 0;
+  font-size: var(--av-fs-sm);
+}
+
+.visor-ficha dt {
+  color: var(--av-text-muted);
+}
+
+.visor-ficha dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.visor-foto-nav {
+  display: flex;
+  gap: var(--av-s-2);
+  margin-top: var(--av-s-3);
+}
+
+.visor-filtros {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--av-s-2);
+  margin-bottom: var(--av-s-2);
+}
+
+.visor-filas {
+  flex: 1;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow: auto;
+  max-height: 20rem;
+}
+
+.visor-fila {
+  display: flex;
+  align-items: center;
+  gap: var(--av-s-2);
+  width: 100%;
+  padding: var(--av-s-1) var(--av-s-2);
+  border: 0;
+  border-left: 3px solid transparent;
+  background: transparent;
+  color: var(--av-text);
+  text-align: left;
+  font-size: var(--av-fs-sm);
+}
+
+.visor-fila:hover {
+  background: var(--av-primary-soft);
+}
+
+.visor-fila-activa {
+  border-left-color: var(--av-primary);
+  background: var(--av-primary-soft);
+  font-weight: 600;
+}
+
+.visor-fila-nombre {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.visor-mas {
+  margin: var(--av-s-2) 0 0;
+  font-size: var(--av-fs-xs);
+}
+
 /* --- Transiciones de estado y entrada suave (F13.13) ---------------------------------------
  * El estilo oscuro se siente vivo por cómo cambian las cosas, no porque se muevan: al pasar,
  * enfocar o desactivar, el **color, el fondo, el borde y la opacidad** cambian en 160 ms. Nada

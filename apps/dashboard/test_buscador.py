@@ -200,6 +200,32 @@ class TestExplorarConFiltroYCarpeta:
         assert "Usar esta carpeta" not in cuerpo
 
 
+class TestElTopeCuentaLoQueSeLista:
+    def test_los_que_van_despues_de_cientos_de_otros_archivos_si_salen(self, client, ana, entrada):
+        """La carpeta de un vuelo: 2 505 fotos y, después en el orden, los CSV de Trimble."""
+        carpeta = entrada / "vuelo"
+        carpeta.mkdir()
+        for i in range(400):
+            (carpeta / f"DJI_{i:04d}.JPG").write_bytes(b"x")
+        (carpeta / "PPK - export_extended.csv").write_text("ID,Este\n", encoding="utf-8")
+        client.force_login(ana)
+        cuerpo = client.get(
+            reverse("dashboard:explorar"), {"en": str(carpeta), "ext": ".csv"}
+        ).content.decode()
+        assert "PPK - export_extended.csv" in cuerpo and "DJI_0001.JPG" not in cuerpo
+
+    def test_el_tope_sigue_poniendo_limite_a_lo_que_se_lista(self, client, ana, entrada):
+        carpeta = entrada / "muchas"
+        carpeta.mkdir()
+        for i in range(350):
+            (carpeta / f"a_{i:04d}.jpg").write_bytes(b"x")
+        client.force_login(ana)
+        cuerpo = client.get(
+            reverse("dashboard:explorar"), {"en": str(carpeta), "ext": ".jpg"}
+        ).content.decode()
+        assert cuerpo.count("linea-archivo") == 300
+
+
 class TestConvertirLoSubido:
     def test_se_puede_encolar_con_el_identificador(self, client, ana, con_gdal):
         """El recorrido entero: subir, y que el trabajo salga con el nombre que la persona

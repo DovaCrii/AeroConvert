@@ -1,4 +1,4 @@
-"""Las pantallas de las treinta y siete herramientas de documentos.
+"""Las pantallas de las treinta y ocho herramientas de documentos.
 
 ## Mirar aquí, hacer en la cola
 
@@ -88,6 +88,7 @@ from .pantalla_imagenes_lote import (  # noqa: F401
 from .pantalla_inicio import (  # noqa: F401
     inicio,
     texto,
+    vuelos,
 )
 from .pantalla_markdown import (  # noqa: F401
     EXTENSIONES_DE_MARKDOWN,
@@ -133,4 +134,10 @@ from .pantalla_unir import (  # noqa: F401
     miniatura,
     organizar,
     unir,
+)
+from .pantalla_vuelo import (  # noqa: F401
+    vuelo_datos,
+    vuelo_dron_vista,
+    vuelo_miniatura,
+    vuelo_ver,
 )

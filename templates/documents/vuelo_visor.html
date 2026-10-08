@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block titulo %}El vuelo en el mapa · AeroConvert{% endblock %}
+
+{% block contenido %}
+
+{% comment %}
+  **El visor del vuelo.** Lo mismo que enseña Emlid Studio al terminar un vuelo: el recorrido, un
+  punto por foto y la foto misma al pincharlo. Sin mapa base ni teselas: una retícula de
+  coordenadas en el sistema **medido**, que se dice arriba. Todo se dibuja en el navegador con lo
+  que hay en `vuelo.json`; nada sale del equipo.
+{% endcomment %}
+<div class="visor" id="visor"
+     data-datos="{% url 'documents:vuelo_datos' job.pk %}"
+     data-miniatura="{% url 'documents:vuelo_miniatura' job.pk 1 %}"
+     data-miniaturas="{% if con_miniaturas %}si{% else %}no{% endif %}">
+
+  <header class="visor-barra">
+    <div class="visor-datos">
+      <span class="visor-chip visor-chip-sistema" title="{{ sistema.como }}">
+        <span class="visor-chip-rotulo">Sistema</span>
+        <strong>{{ sistema.nombre }}</strong>
+        <span class="cifra tenue">EPSG:{{ sistema.epsg }}</span>
+      </span>
+      <span class="visor-chip">
+        <span class="visor-chip-rotulo">Fotos</span>
+        <strong class="cifra">{{ fotos }}</strong>
+      </span>
+      <span class="visor-chip" title="{{ altura }}">
+        <span class="visor-chip-rotulo">Altura</span>
+        <span class="visor-chip-texto">{{ altura }}</span>
+      </span>
+    </div>
+    <div class="visor-acciones">
+      <button type="button" class="boton boton-suave boton-pequeno" id="visor-ajustar">Ajustar</button>
+      <button type="button" class="boton boton-suave boton-pequeno" id="visor-menos" aria-label="Alejar">−</button>
+      <button type="button" class="boton boton-suave boton-pequeno" id="visor-mas" aria-label="Acercar">+</button>
+      <a class="boton boton-pequeno" href="{% url 'jobs:descargar' job.pk %}">Descargar el zip</a>
+    </div>
+  </header>
+
+  <p class="visor-sistema-como tenue" id="visor-como">{{ sistema.como|capfirst }}.{% if sistema.equivalentes %} Dan lo mismo: {{ sistema.equivalentes|join:", " }}.{% endif %}</p>
+
+  <div class="visor-cuerpo">
+    <div class="visor-mapa" id="visor-mapa">
+      <canvas id="visor-lienzo" tabindex="0"
+              aria-label="Mapa del vuelo: el recorrido y un punto por foto. Con el teclado, las flechas cambian de foto y más y menos acercan."></canvas>
+      <p class="visor-cargando" id="visor-cargando" role="status">Cargando el vuelo…</p>
+      <div class="visor-leyenda" aria-label="Qué significa cada color">
+        <span class="visor-leyenda-item"><i class="visor-punto visor-punto-buena" aria-hidden="true"></i> PPK o fija</span>
+        <span class="visor-leyenda-item"><i class="visor-punto visor-punto-flotante" aria-hidden="true"></i> flotante</span>
+        <span class="visor-leyenda-item"><i class="visor-punto visor-punto-simple" aria-hidden="true"></i> simple</span>
+        <span class="visor-leyenda-item"><i class="visor-punto visor-punto-sin" aria-hidden="true"></i> sin calidad</span>
+        <span class="visor-leyenda-item"><i class="visor-punto visor-punto-ninguna" aria-hidden="true"></i> sin posición</span>
+        <p class="visor-pie cifra tenue" id="visor-pie" aria-live="polite"></p>
+      </div>
+    </div>
+
+    <aside class="visor-lateral">
+      <section class="visor-foto" aria-labelledby="visor-foto-titulo" aria-live="polite">
+        <h2 class="visor-foto-titulo" id="visor-foto-titulo">Elija una foto</h2>
+        <div class="visor-foto-marco">
+          <img id="visor-imagen" alt="" hidden>
+          <p class="visor-foto-vacia tenue" id="visor-foto-vacia">Pinche un punto del mapa o una foto de la lista.</p>
+        </div>
+        <dl class="visor-ficha" id="visor-ficha" hidden></dl>
+        <div class="visor-foto-nav" id="visor-nav" hidden>
+          <button type="button" class="boton boton-suave boton-pequeno" id="visor-anterior">Anterior</button>
+          <button type="button" class="boton boton-suave boton-pequeno" id="visor-siguiente">Siguiente</button>
+        </div>
+      </section>
+
+      <section class="visor-lista" aria-labelledby="visor-lista-titulo">
+        <h2 class="visor-lista-titulo" id="visor-lista-titulo">Las fotos</h2>
+        <div class="visor-filtros">
+          <label class="visually-hidden" for="visor-buscar">Buscar una foto por nombre</label>
+          <input type="search" id="visor-buscar" class="form-control" placeholder="Buscar por nombre…" autocomplete="off">
+          <label class="visually-hidden" for="visor-calidad">Filtrar por calidad</label>
+          <select id="visor-calidad" class="form-select">
+            <option value="">Todas</option>
+            <option value="buena">PPK o fijas</option>
+            <option value="flotante">Flotantes</option>
+            <option value="simple">Simples</option>
+            <option value="sin">Sin calidad informada</option>
+            <option value="ninguna">Sin posición</option>
+          </select>
+        </div>
+        <ul class="visor-filas" id="visor-filas"></ul>
+        <p class="visor-mas tenue" id="visor-mas-filas" hidden></p>
+      </section>
+    </aside>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'js/vuelo.js' %}"></script>
+{% endblock %}

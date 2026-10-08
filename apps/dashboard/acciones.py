@@ -359,6 +359,14 @@ def _de_los_documentos() -> list[Accion]:
             "imprimir un plano",
             "plano dxf",
         ),
+        "vuelo_dron": (
+            "ppk del dron",
+            "uas sync",
+            "corregir un vuelo",
+            "geoetiquetar fotos",
+            "posicion corregida de las fotos",
+            "trayectoria de trimble",
+        ),
         "fotos_dron": (
             "fotos del dron",
             "quitar gps",
@@ -496,6 +504,7 @@ HERRAMIENTAS_POR_EXTENSION = {
     ".htm": ("md_html", "html_a_pdf"),
     ".md": ("md_a_pdf",),
     ".srt": ("telemetria",),
+    ".mrk": ("vuelo_dron",),
     ".dxf": ("dxf_lamina",),
     ".mdb": ("catalogo_excel",),
     ".accdb": ("catalogo_excel",),

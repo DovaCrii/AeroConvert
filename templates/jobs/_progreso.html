@@ -108,7 +108,13 @@ generar 10.800 peticiones.
           Se comprobó contra el original, y el original no se tocó.
         </span>
       </div>
-      {% if trabajo.output_path %}
+      {% if trabajo.herramienta == "vuelo_dron" and trabajo.output_path %}
+        {# Lo que se hace con un vuelo corregido es mirarlo: la acción principal es el mapa. #}
+        <a class="boton remate-boton"
+           href="{% url 'documents:vuelo_ver' trabajo.pk %}">Ver el vuelo en el mapa</a>
+        <a class="boton boton-suave remate-boton"
+           href="{% url 'jobs:descargar' trabajo.pk %}">Descargar el zip</a>
+      {% elif trabajo.output_path %}
         <a class="boton remate-boton"
            href="{% url 'jobs:descargar' trabajo.pk %}">Descargar</a>
       {% endif %}

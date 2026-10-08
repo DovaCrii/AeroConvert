@@ -94,6 +94,7 @@ def _hacer(**kw):
         "disparos": _mrk(),
         "nombre_de_disparos": "vuelo_Timestamp.MRK",
         "referencia": _fotos_de_trimble(),
+        "escala_de_tiempo": "GPST",
     }
     base.update(kw)
     return vuelo_proceso.procesar(**base)

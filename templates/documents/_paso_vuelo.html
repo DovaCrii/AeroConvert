@@ -1,0 +1,46 @@
+{% load static %}
+{% comment %}
+  Un paso de «Corregir un vuelo de dron»: elegir **un archivo** (o una carpeta).
+
+  Las dos vías de siempre, y **ninguna pide teclear una ruta**: subirlo desde el equipo o pincharlo
+  en la carpeta compartida. Lo elegido se muestra con su nombre debajo (`elegido.js`), porque un
+  campo oculto no dice nada y quien eligió no sabe si lo hizo bien.
+
+  Variables: `numero`, `titulo`, `ayuda`, `campo` (el campo oculto de la carpeta compartida),
+  `subida` (el campo del archivo del equipo), `acepta`, `ext` (lo que lista el explorador),
+  `texto` (lo ya elegido), `obligatorio`, `carpeta` (si se elige una carpeta).
+{% endcomment %}
+<section class="vuelo-paso" aria-labelledby="paso-{{ campo }}">
+  <header class="vuelo-paso-cabeza">
+    <span class="vuelo-paso-numero" aria-hidden="true">{{ numero }}</span>
+    <div>
+      <h2 class="vuelo-paso-titulo" id="paso-{{ campo }}">{{ titulo }}</h2>
+      <p class="vuelo-paso-estado">
+        {% if obligatorio %}<span class="pildora pildora-running">hace falta</span>{% else %}<span class="pildora pildora-cancelled">opcional</span>{% endif %}
+      </p>
+    </div>
+  </header>
+  <p class="tenue vuelo-paso-ayuda">{{ ayuda }}</p>
+
+  <input type="hidden" name="{{ campo }}" id="id_{{ campo }}" value="{{ texto }}"
+         data-muestra-en="#elegido-{{ campo }}">
+  <p class="vuelo-paso-elegido" id="elegido-{{ campo }}"{% if not texto %} hidden{% endif %}>{% if texto %}Elegido: {{ texto }}{% endif %}</p>
+
+  {% if not carpeta %}
+    <div class="soltar soltar-compacto">
+      <label class="visually-hidden" for="id_{{ subida }}">Elegir {{ titulo|lower }} del equipo</label>
+      <input type="file" name="{{ subida }}" id="id_{{ subida }}" class="form-control"
+             accept="{{ acepta }}" data-tope-mb="{{ tope_mb }}" data-muestra-en="#elegido-{{ campo }}">
+    </div>
+  {% endif %}
+
+  <details class="buscador av-mt-2">
+    <summary class="buscador-resumen">{% if carpeta %}Elegir la carpeta de la carpeta compartida{% else %}…o de la carpeta compartida{% endif %}</summary>
+    <div class="explorador" data-destino="#id_{{ campo }}"
+         hx-get="{% url 'dashboard:explorar' %}?ext={{ ext|urlencode }}{% if carpeta %}&carpeta=1{% endif %}"
+         hx-trigger="toggle from:closest details once"
+         hx-swap="innerHTML">
+      <p class="tenue av-m-0">Abriendo la carpeta…</p>
+    </div>
+  </details>
+</section>

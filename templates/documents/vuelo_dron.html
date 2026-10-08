@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block titulo %}Corregir un vuelo de dron · AeroConvert{% endblock %}
+
+{% block contenido %}
+
+{% comment %}
+  **La disposición que trae Emlid Studio**, que es la que ya conoce quien procesa vuelos: a la
+  izquierda los pasos en orden, a la derecha qué va a pasar con ellos. Aquí no hay mapa todavía
+  porque no hay datos: el recorrido aparece al terminar, en el visor.
+{% endcomment %}
+<form method="post" id="forma-documento" enctype="multipart/form-data" autocomplete="off"
+      class="vuelo-layout">
+  {% csrf_token %}
+
+  <div class="vuelo-pasos">
+    {% include "documents/_paso_vuelo.html" with numero="1" titulo="La trayectoria" ayuda="El CSV que exportó Trimble Business Center con el recorrido del dron, un punto cada 0,2 s. Sin cabecera." campo="trayectoria" subida="trayectoria_subida" acepta=".csv,.txt" ext=".csv,.txt" texto=trayectoria_texto obligatorio=True %}
+
+    {% include "documents/_paso_vuelo.html" with numero="2" titulo="Los disparos de la cámara" ayuda="El archivo .MRK que graba el dron en la tarjeta (termina en «Timestamp.MRK»). Trae el instante de cada foto y el desfase entre la antena y la cámara." campo="disparos" subida="disparos_subida" acepta=".mrk,.txt,.csv" ext=".mrk,.txt,.csv" texto=disparos_texto obligatorio=True %}
+
+    {% include "documents/_paso_vuelo.html" with numero="3" titulo="Las posiciones de Trimble" ayuda="El CSV ampliado de las fotos («… export_extended»). Con él se mide en qué sistema de coordenadas están Este y Norte, se ponen los nombres de las fotos y se contrasta el resultado con lo que calculó Trimble." campo="referencia" subida="referencia_subida" acepta=".csv" ext=".csv" texto=referencia_texto obligatorio=False %}
+
+    {% include "documents/_paso_vuelo.html" with numero="4" titulo="La carpeta de fotos" ayuda="La carpeta con los JPG del vuelo. Sirve para ver cada foto en el mapa y, si no hay posiciones de Trimble, para ponerles nombre." campo="carpeta_de_fotos" subida="" acepta="" ext=".jpg,.jpeg" texto=carpeta_texto obligatorio=False carpeta=True %}
+
+    <section class="vuelo-paso" aria-labelledby="paso-ajustes">
+      <header class="vuelo-paso-cabeza">
+        <span class="vuelo-paso-numero" aria-hidden="true">5</span>
+        <div><h2 class="vuelo-paso-titulo" id="paso-ajustes">Cómo procesarlo</h2></div>
+      </header>
+
+      <div class="av-mb-3 av-mw-38">
+        <label class="fw-semibold" for="id_sistema">Sistema de coordenadas</label>
+        <select id="id_sistema" name="sistema" class="form-select">
+          <option value="medir" {% if sistema == "medir" %}selected{% endif %}>Medirlo con las posiciones de Trimble (recomendado)</option>
+          {% for epsg, nombre in sistemas.items %}
+            <option value="{{ epsg }}" {% if sistema == epsg %}selected{% endif %}>Declarar {{ nombre }}</option>
+          {% endfor %}
+        </select>
+        <p class="tenue av-mt-1 av-mb-0 av-fs-sm">
+          Trimble exporta Este y Norte sin decir en qué sistema están. Medirlo lo prueba contra la
+          latitud y longitud que trae el mismo archivo; si declara uno, se comprueba igual.
+        </p>
+      </div>
+
+      <div class="av-mb-3 av-mw-38">
+        <label class="fw-semibold" for="id_escala_de_tiempo">Hora de la trayectoria</label>
+        <select id="id_escala_de_tiempo" name="escala_de_tiempo" class="form-select">
+          {% for valor, texto in escalas.items %}
+            <option value="{{ valor }}" {% if valor == escala %}selected{% endif %}>{{ texto }}</option>
+          {% endfor %}
+        </select>
+        <p class="tenue av-mt-1 av-mb-0 av-fs-sm">
+          En el vuelo con que se probó, Trimble la exportó en GPST. Con otra escala las posiciones
+          quedan a metros. <strong>Con las posiciones de Trimble (paso 3) se comprueba</strong>: si no
+          coinciden, el informe avisa. Sin ellas no hay con qué comprobarla, y también se avisa.
+        </p>
+      </div>
+
+      <div class="form-check">
+        <input class="form-check-input" type="checkbox" name="aplicar_desfase" id="id_aplicar_desfase"
+               {% if aplicar_desfase %}checked{% endif %}>
+        <label class="form-check-label" for="id_aplicar_desfase">
+          Poner la posición de la <strong>cámara</strong>, no la de la antena
+        </label>
+        <p class="tenue av-mt-1 av-mb-0 av-fs-sm">
+          Aplica el desfase del .MRK (norte y este suman; la vertical resta). Es lo que hace Trimble.
+        </p>
+      </div>
+    </section>
+
+    <div class="vuelo-accion">
+      <div class="av-mb-3" data-avance-subida hidden></div>
+      <button type="submit" class="boton">Procesar el vuelo</button>
+      <p class="tenue av-mt-2 av-mb-0 av-fs-sm">
+        Se sigue el avance en la ficha del trabajo. Los originales no se tocan.
+      </p>
+    </div>
+  </div>
+
+  <aside class="vuelo-guia" aria-label="Qué va a pasar">
+    <div class="tarjeta">
+      <div class="eyebrow">Qué va a pasar</div>
+      <ol class="vuelo-etapas">
+        <li><strong>Lee</strong> la trayectoria y los disparos de la cámara.</li>
+        <li><strong>Mide el sistema</strong> de coordenadas contra la latitud y longitud de Trimble.</li>
+        <li><strong>Sincroniza</strong>: la posición de cada foto, interpolada en la trayectoria.</li>
+        <li><strong>Contrasta</strong> con las posiciones que calculó Trimble, foto por foto.</li>
+        <li><strong>Entrega</strong> el CSV, el GeoJSON, el KML y el informe.</li>
+      </ol>
+    </div>
+
+    <div class="tarjeta">
+      <div class="eyebrow">Lo que sale</div>
+      <ul class="vuelo-sale">
+        <li><strong>fotos.csv</strong> para Pix4D, Metashape o QGIS.</li>
+        <li><strong>fotos.geojson</strong> y <strong>fotos.kml</strong> para verlas en un mapa.</li>
+        <li><strong>calidad.md</strong>: cómo salió y a cuántos milímetros coincide.</li>
+        <li><strong>El visor</strong>: el recorrido, los puntos de cada foto y las fotos mismas.</li>
+      </ul>
+      <p class="tenue av-mb-0 av-fs-sm">
+        Lo que Trimble no informa (la calidad de cada punto) queda sin dato y se dice así: no se
+        inventa. La altura es la de Trimble y no se llama elipsoidal.
+      </p>
+    </div>
+  </aside>
+</form>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'js/elegido.js' %}"></script>
+{% endblock %}

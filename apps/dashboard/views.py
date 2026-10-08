@@ -587,7 +587,12 @@ def _listar(carpeta: Path, extensiones: frozenset[str] = frozenset()):
     except OSError:
         return [], []
 
-    for entrada in entradas[:TOPE_DE_ENTRADAS]:
+    # **El tope cuenta lo que se lista, no lo que hay.** Se cortaba a las primeras 300 entradas de
+    # la carpeta *antes* de filtrar: en la carpeta de un vuelo, con 2 505 fotos, los CSV que van
+    # después en el orden alfabético no salían nunca.
+    for entrada in entradas:
+        if len(carpetas) + len(archivos) >= TOPE_DE_ENTRADAS:
+            break
         try:
             if entrada.is_dir():
                 carpetas.append({"nombre": entrada.name, "ruta": str(entrada)})
