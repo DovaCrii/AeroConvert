@@ -190,6 +190,64 @@ class TestDisparos:
             vuelo_sync.sincronizar(_recta(), d, nombres=["a.jpg"])
 
 
+class TestDesfaseDeLaAntena:
+    """La cámara no está en la antena: el `.MRK` dice cuánto. La distancia y el rumbo del
+    movimiento se miden con `pyproj.Geod`, que no es la fórmula de `_mover()`."""
+
+    def _geod(self):
+        from pyproj import Geod
+
+        return Geod(ellps="WGS84")
+
+    def _foto(self, n, e, v, **kw):
+        tray = _recta()
+        d = vuelo_sync.Disparo(1, T0 + 2.0, n, e, v)
+        sin = vuelo_sync.sincronizar(tray, [d], aplicar_desfase=False)[0]
+        con = vuelo_sync.sincronizar(tray, [d], **kw)[0]
+        return sin, con
+
+    @pytest.mark.parametrize("lat", [-23.3386, -33.45, -53.0, 8.0])
+    def test_un_metro_al_norte_es_un_metro_al_norte(self, lat):
+        tray = vuelo_pos.Trayectoria()
+        tray.epocas = [_epoca(T0, lat, -70.0, 500.0), _epoca(T0 + 1, lat, -70.0, 500.0)]
+        d = vuelo_sync.Disparo(1, T0 + 0.5, 1000.0, 0.0, 0.0)
+        antena = vuelo_sync.sincronizar(tray, [d], aplicar_desfase=False)[0]
+        camara = vuelo_sync.sincronizar(tray, [d])[0]
+        rumbo, _atras, metros = self._geod().inv(antena.lon, antena.lat, camara.lon, camara.lat)
+        assert metros == pytest.approx(1.0, abs=1e-4) and abs(rumbo) < 1e-3
+
+    @pytest.mark.parametrize("lat", [-23.3386, -33.45, -53.0])
+    def test_un_metro_al_este_es_un_metro_al_este(self, lat):
+        tray = vuelo_pos.Trayectoria()
+        tray.epocas = [_epoca(T0, lat, -70.0, 500.0), _epoca(T0 + 1, lat, -70.0, 500.0)]
+        d = vuelo_sync.Disparo(1, T0 + 0.5, 0.0, 1000.0, 0.0)
+        antena = vuelo_sync.sincronizar(tray, [d], aplicar_desfase=False)[0]
+        camara = vuelo_sync.sincronizar(tray, [d])[0]
+        rumbo, _atras, metros = self._geod().inv(antena.lon, antena.lat, camara.lon, camara.lat)
+        assert metros == pytest.approx(1.0, abs=1e-4) and rumbo == pytest.approx(90.0, abs=1e-3)
+
+    def test_v_es_positivo_hacia_abajo_y_se_resta_de_la_altura(self):
+        sin, con = self._foto(0.0, 0.0, 85.8)
+        assert con.alt_m == pytest.approx(sin.alt_m - 0.0858, abs=1e-9)
+        assert con.lat == sin.lat and con.lon == sin.lon
+
+    def test_con_el_desfase_apagado_la_posicion_es_la_de_la_antena(self):
+        sin, con = self._foto(27.0, 3.0, 92.0, aplicar_desfase=False)
+        assert con.lat == sin.lat and not con.desfase_aplicado
+
+    def test_un_disparo_sin_desfase_sale_con_la_antena_y_lo_dice(self):
+        foto = vuelo_sync.sincronizar(_recta(), [_disp(2.0)])[0]
+        assert not foto.desfase_aplicado and foto.con_posicion
+
+    def test_si_falta_uno_de_los_tres_no_se_aplica_ninguno(self):
+        d = vuelo_sync.Disparo(1, T0 + 2.0, 27.0, None, 92.0)
+        assert not vuelo_sync.sincronizar(_recta(), [d])[0].desfase_aplicado
+
+    def test_el_desfase_no_mueve_la_calidad_ni_la_incertidumbre(self):
+        sin, con = self._foto(27.0, 3.0, 92.0)
+        assert (con.q, con.sdn_m, con.sde_m, con.sdu_m) == (sin.q, sin.sdn_m, sin.sde_m, sin.sdu_m)
+
+
 class TestEntregables:
     def _fotos(self):
         tray = _recta(n=100)
@@ -202,15 +260,17 @@ class TestEntregables:
         assert float(filas[0]["lat"]) == pytest.approx(-33.45 + 1e-5 * 2.0, abs=1e-9)
         assert filas[0]["calidad"] == "fija"
         assert filas[2]["lat"] == "" and "después del último" in filas[2]["motivo"]
-        assert "alt_elipsoidal_m" in filas[0]
+        assert "altura_m" in filas[0] and filas[0]["referencia_de_altura"] == "elipsoidal"
 
-    def test_el_desfase_de_la_antena_va_tal_cual_y_no_se_suma(self):
+    def test_el_csv_dice_si_el_desfase_se_aplico_y_trae_los_milimetros(self):
         tray = _recta()
-        d = vuelo_sync.Disparo(1, T0 + 2.0, -24.0, -8.0, 30.0)
-        f = vuelo_sync.sincronizar(tray, [d])[0]
-        fila = next(csv.DictReader(io.StringIO(vuelo_sync.a_csv([f]))))
-        assert (fila["desfase_antena_n_mm"], fila["desfase_antena_e_mm"]) == ("-24.0", "-8.0")
-        assert f.lat == pytest.approx(-33.45 + 1e-5 * 2.0, abs=1e-12), "la posición no se movió"
+        con = vuelo_sync.Disparo(1, T0 + 2.0, -24.0, -8.0, 30.0)
+        sin = vuelo_sync.Disparo(2, T0 + 3.0)
+        fotos = vuelo_sync.sincronizar(tray, [con, sin])
+        a, b = csv.DictReader(io.StringIO(vuelo_sync.a_csv(fotos)))
+        assert (a["desfase_antena_n_mm"], a["desfase_antena_e_mm"]) == ("-24.0", "-8.0")
+        assert a["desfase_aplicado"] == "si" and b["desfase_aplicado"] == "no"
+        assert b["desfase_antena_n_mm"] == ""
 
     def test_el_geojson_lleva_solo_las_que_tienen_posicion_y_dice_el_sistema(self):
         datos = json.loads(vuelo_sync.a_geojson(self._fotos(), "SIRGAS-Chile"))

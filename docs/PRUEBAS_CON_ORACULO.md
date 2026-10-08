@@ -574,6 +574,51 @@ y `templates/500.html`, que no carga el CSS. No se tocan: no son paleta.
 
 ---
 
+## Corrida del 2026-10-08 — un vuelo real contra Trimble Business Center (F18.2, F18.6)
+
+**Datos** (fuera del repositorio): vuelo de un **DJI Matrice 3E**, 2025-12-29, 2 505 fotos, en
+Baquedano. El `.MRK` del dron (2 505 disparos), la trayectoria que sacó Trimble Business Center
+(7 519 puntos a 5 Hz, sin huecos, de 15:38:13 a 16:03:16 GPST) y las posiciones PPK de las 2 505
+fotos que sacó su UAS sync. Pasan con `AEROCONVERT_VUELO_DE_PRUEBA=<carpeta>` y
+`pytest -m oraculo apps/documents/test_vuelo_real.py`.
+
+**Qué se compara:** la posición de cada foto que calcula `vuelo_sync` (interpolar la trayectoria
+en el instante del disparo y aplicar el desfase de la antena) contra la que entregó Trimble.
+
+| Componente | Desviación | Peor caso |
+| --- | ---: | ---: |
+| Norte | 0,30 mm | 0,73 mm |
+| Este | 0,33 mm | 0,90 mm |
+| Altura | 0,28 mm | 0,50 mm |
+
+Es el **redondeo a tres decimales** del CSV de Trimble: no queda diferencia que explicar.
+
+**El signo del desfase se midió, no se supuso.** Probando las cuatro combinaciones contra Trimble:
+
+| Norte, Este, V | Desviación N, E, U (mm) |
+| --- | --- |
+| sin aplicar | 28,9 · 11,1 · 3,3, con la altura **85,8 mm** corrida |
+| **N +, E +, V −** | **0,30 · 0,33 · 0,28** |
+| N +, E +, V + | 0,30 · 0,33 · 6,50, con la altura **171,6 mm** corrida |
+| N −, E −, V − | 57,8 · 22,0 · 0,28 |
+
+Es decir: norte y este se **suman**, y `V` es positivo **hacia abajo**: la cámara cuelga por debajo
+de la antena.
+
+**El sistema de las coordenadas de Trimble** (Este y Norte, sin decir en qué sistema) se midió
+contra la latitud y longitud que trae el mismo archivo: **WGS 84, SIRGAS-Chile 2002 y SIRGAS 2000,
+UTM zona 19S, coinciden a 0,4 mm de media y 0,8 mm de máximo** (no se distinguen entre sí); PSAD56
+queda a **418 m** y SAD69 a **73 m**. La hora de la trayectoria es **GPST** (con otra escala las
+posiciones quedarían a metros).
+
+**La altura de Trimble no es la elipsoidal del `.MRK`:** difieren **35,3 m de media** (de 34,5 a
+36,3: la ondulación del geoide más el error de las posiciones en tiempo real, que es de ±2 a 3 m). No
+hay aquí un modelo de geoide con que convertir, así que la salida dice de qué altura se trata.
+
+**Lo que no se midió:** la corrida de RTKLIB. Ese vuelo trae el RINEX del dron (`*_PPKOBS.obs`,
+RINEX 3.05, 35 MB) y el crudo de la base (`13933630.T04`), pero no hay RTKLIB en esta estación ni
+se conoce la coordenada de la base (pedidos P16 y P15).
+
 ## Lo que sigue sin oráculo, y se dice
 
 **ECW no se puede verificar aquí.** El GDAL de QGIS 4.0.2 **no trae el controlador ECW**, ni

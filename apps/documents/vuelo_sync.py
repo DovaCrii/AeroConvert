@@ -15,10 +15,14 @@ semana y segundo GPS). La trayectoria corregida por PPK (`vuelo_pos.py`) trae un
   el error máximo es la flecha del arco entre los dos puntos, `r·(1 − cos(Δθ/2))`: con 40 m de
   radio, 12 m/s y 5 Hz son unos 18 mm. Las pruebas lo miden contra esa cota. Las fotos de un
   vuelo de levantamiento se toman en líneas rectas, donde el error es cero.
-- **El desfase de la antena** (los `N`, `E`, `V` en milímetros del `.MRK`) **se entrega tal cual
-  en el CSV y no se aplica** a la posición: el signo y el marco en que cada fabricante lo define
-  se confirman con su documento antes de sumarlo, y adivinarlo movería todas las fotos unos
-  centímetros en silencio.
+- **El desfase de la antena se aplica**: el `.MRK` trae, por foto, cuánto está la cámara respecto
+  de la antena en `N`, `E` y `V` (milímetros). **Norte y este se suman; `V` es positivo hacia
+  abajo y se resta de la altura.** El signo no se supuso: se midió con un vuelo real de un
+  Matrice 3E (2 505 fotos, 2025-12-29) contra las posiciones que entregó Trimble Business Center
+  (su UAS sync): con estos signos la diferencia es de **0,3 mm de desviación y 0,9 mm en el peor
+  caso**, que es el redondeo de su CSV; con cualquier otra combinación es de 6 a 170 mm. El
+  desfase se puede apagar (`aplicar_desfase=False`), y una foto sin desfase en su disparo
+  (una lista de tiempos, por ejemplo) sale con la posición de la antena **y el CSV lo dice**.
 - **La altura es elipsoidal**, la que da el PPK. Se dice en el nombre de la columna.
 
 ## Lo que no hace
@@ -33,6 +37,7 @@ from __future__ import annotations
 import csv
 import io
 import json
+import math
 import re
 from dataclasses import dataclass
 from datetime import datetime
@@ -74,6 +79,7 @@ class FotoSincronizada:
     sdu_m: float | None
     q: int | None
     motivo: str  # vacío si hay posición
+    desfase_aplicado: bool = False  # la posición es la de la cámara y no la de la antena
 
     @property
     def con_posicion(self) -> bool:
@@ -166,6 +172,13 @@ def emparejar(disparos: list[Disparo], nombres: list[str]) -> list[str]:
 # --- La sincronía ---------------------------------------------------------------------------
 
 
+def _mayor(x: float, y: float) -> float:
+    """El mayor de dos incertidumbres; si alguna no se informó (NaN), la foto tampoco la tiene."""
+    if math.isnan(x) or math.isnan(y):
+        return math.nan
+    return max(x, y)
+
+
 def _peor(a: int, b: int) -> int:
     def rango(q: int) -> int:
         return ORDEN_DE_CALIDAD.index(q) if q in ORDEN_DE_CALIDAD else len(ORDEN_DE_CALIDAD)
@@ -173,8 +186,29 @@ def _peor(a: int, b: int) -> int:
     return a if rango(a) >= rango(b) else b
 
 
+# WGS84 (y GRS80, que difiere en décimas de milímetro): para pasar metros a grados.
+_A = 6_378_137.0
+_E2 = 0.006_694_379_990_141_3
+
+
+def _mover(lat: float, alt_m: float, norte_m: float, este_m: float) -> tuple[float, float]:
+    """Cuántos grados de latitud y de longitud son `norte_m` y `este_m` en ese punto."""
+    fi = math.radians(lat)
+    s2 = math.sin(fi) ** 2
+    radio_n = _A / math.sqrt(1 - _E2 * s2)  # el del primer vertical
+    radio_m = _A * (1 - _E2) / (1 - _E2 * s2) ** 1.5  # el del meridiano
+    return (
+        math.degrees(norte_m / (radio_m + alt_m)),
+        math.degrees(este_m / ((radio_n + alt_m) * math.cos(fi))),
+    )
+
+
 def sincronizar(
-    trayectoria: Trayectoria, disparos: list[Disparo], nombres: list[str] | None = None
+    trayectoria: Trayectoria,
+    disparos: list[Disparo],
+    nombres: list[str] | None = None,
+    *,
+    aplicar_desfase: bool = True,
 ) -> list[FotoSincronizada]:
     """La posición de cada disparo. Las que no se pueden dar salen sin posición y con motivo."""
     if nombres is not None:
@@ -231,19 +265,34 @@ def sincronizar(
         def mezcla(x: float, y: float, f=f) -> float:
             return x + (y - x) * f
 
+        lat, lon, alt = mezcla(a.lat, b.lat), mezcla(a.lon, b.lon), mezcla(a.alt_m, b.alt_m)
+        aplicado = False
+        if (
+            aplicar_desfase
+            and disparo.desfase_n_mm is not None
+            and disparo.desfase_e_mm is not None
+            and disparo.desfase_v_mm is not None
+        ):
+            dlat, dlon = _mover(lat, alt, disparo.desfase_n_mm / 1000, disparo.desfase_e_mm / 1000)
+            # `V` es positivo hacia abajo: la cámara cuelga por debajo de la antena.
+            lat, lon, alt = lat + dlat, lon + dlon, alt - disparo.desfase_v_mm / 1000
+            aplicado = True
+
         resultado.append(
             FotoSincronizada(
                 disparo=disparo,
                 nombre=nombre,
-                lat=mezcla(a.lat, b.lat),
-                lon=mezcla(a.lon, b.lon),
-                alt_m=mezcla(a.alt_m, b.alt_m),
+                lat=lat,
+                lon=lon,
+                alt_m=alt,
                 # La incertidumbre de la foto es la mayor de las dos vecinas: no se promedia.
-                sdn_m=max(a.sdn_m, b.sdn_m),
-                sde_m=max(a.sde_m, b.sde_m),
-                sdu_m=max(a.sdu_m, b.sdu_m),
+                # Si una trayectoria no la informa (la de Trimble) queda sin dato, no en cero.
+                sdn_m=_mayor(a.sdn_m, b.sdn_m),
+                sde_m=_mayor(a.sde_m, b.sde_m),
+                sdu_m=_mayor(a.sdu_m, b.sdu_m),
                 q=_peor(a.q, b.q),
                 motivo="",
+                desfase_aplicado=aplicado,
             )
         )
     return resultado
@@ -251,14 +300,23 @@ def sincronizar(
 
 # --- Lo que se entrega -----------------------------------------------------------------------
 
-CALIDADES = {1: "fija", 2: "flotante", 3: "SBAS", 4: "DGPS", 5: "simple", 6: "PPP"}
+CALIDADES = {
+    0: "no informada",
+    1: "fija",
+    2: "flotante",
+    3: "SBAS",
+    4: "DGPS",
+    5: "simple",
+    6: "PPP",
+}
 
 COLUMNAS_CSV = (
     "foto",
     "disparo",
     "lat",
     "lon",
-    "alt_elipsoidal_m",
+    "altura_m",
+    "referencia_de_altura",
     "sdn_m",
     "sde_m",
     "sdu_m",
@@ -267,15 +325,21 @@ COLUMNAS_CSV = (
     "desfase_antena_n_mm",
     "desfase_antena_e_mm",
     "desfase_antena_v_mm",
+    "desfase_aplicado",
     "motivo",
 )
 
 
 def _numero(valor, decimales: int) -> str:
-    return "" if valor is None else f"{valor:.{decimales}f}"
+    return "" if valor is None or math.isnan(valor) else f"{valor:.{decimales}f}"
 
 
-def a_csv(fotos: list[FotoSincronizada]) -> str:
+def _o_nada(valor):
+    """Para JSON: un NaN no es JSON válido."""
+    return None if valor is None or math.isnan(valor) else valor
+
+
+def a_csv(fotos: list[FotoSincronizada], referencia_de_altura: str = "elipsoidal") -> str:
     """El CSV para Pix4D, Metashape o QGIS. Las fotos sin posición van, con su motivo."""
     salida = io.StringIO()
     escritor = csv.writer(salida, lineterminator="\n")
@@ -289,6 +353,7 @@ def a_csv(fotos: list[FotoSincronizada]) -> str:
                 _numero(f.lat, 9),
                 _numero(f.lon, 9),
                 _numero(f.alt_m, 4),
+                referencia_de_altura,
                 _numero(f.sdn_m, 4),
                 _numero(f.sde_m, 4),
                 _numero(f.sdu_m, 4),
@@ -297,6 +362,7 @@ def a_csv(fotos: list[FotoSincronizada]) -> str:
                 _numero(d.desfase_n_mm, 1),
                 _numero(d.desfase_e_mm, 1),
                 _numero(d.desfase_v_mm, 1),
+                "si" if f.desfase_aplicado else "no",
                 f.motivo,
             ]
         )
@@ -312,9 +378,9 @@ def a_geojson(fotos: list[FotoSincronizada], sistema: str) -> str:
                 "foto": f.nombre,
                 "disparo": f.disparo.numero,
                 "calidad": CALIDADES.get(f.q, ""),
-                "sdn_m": f.sdn_m,
-                "sde_m": f.sde_m,
-                "sdu_m": f.sdu_m,
+                "sdn_m": _o_nada(f.sdn_m),
+                "sde_m": _o_nada(f.sde_m),
+                "sdu_m": _o_nada(f.sdu_m),
             },
         }
         for f in fotos

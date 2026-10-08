@@ -38,6 +38,7 @@ INICIO_GPS = datetime(1980, 1, 6)
 
 #: Los códigos de calidad de RTKLIB y cómo se llaman aquí.
 CALIDADES = {
+    0: "no informada",
     1: "fija",
     2: "flotante",
     3: "SBAS",
@@ -88,6 +89,9 @@ class Trayectoria:
     epocas: list[Epoca] = field(default_factory=list)
     ilegibles: list[int] = field(default_factory=list)  # números de línea que no se entendieron
     escala_de_tiempo: str = "GPST"
+    #: A qué se refiere la altura. La de RTKLIB es elipsoidal; la de un archivo de otro programa
+    #: se dice como viene, y no se llama elipsoidal si no se sabe.
+    referencia_de_altura: str = "elipsoidal"
 
     @property
     def n(self) -> int:
