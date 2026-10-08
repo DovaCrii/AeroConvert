@@ -183,7 +183,7 @@ class PlanDeEjecucion:
     timeout_s: int = 3600
     #: Recibe una linea de la salida y devuelve la fraccion completada, o `None` si esa
     #: linea no habla de progreso.
-    analizador_de_progreso: Callable[[str], float | None] | None = None
+    analizador_de_progreso: Callable[[str], float | tuple[float, str] | None] | None = None
     #: `False` cuando la herramienta **no dice nada mientras trabaja**. PDAL es asi: no
     #: emite avance por ninguna via usable desde un subproceso.
     #:

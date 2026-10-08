@@ -210,12 +210,15 @@ def disponibilidad(herramienta: str) -> Disponibilidad:
     return Disponibilidad.si(f"documentos:{herramienta}")
 
 
-_PROGRESO = re.compile(r"^PROGRESO\s+([0-9.]+)\s*$")
+_PROGRESO = re.compile(r"^PROGRESO\s+([0-9.]+)(?:\s+(.+?))?\s*$")
 
 
-def _analizar_progreso(linea: str) -> float | None:
+def _analizar_progreso(linea: str) -> float | tuple[float, str] | None:
     encontrado = _PROGRESO.match(linea.strip())
-    return float(encontrado.group(1)) if encontrado else None
+    if not encontrado:
+        return None
+    fraccion = float(encontrado.group(1))
+    return (fraccion, encontrado.group(2)) if encontrado.group(2) else fraccion
 
 
 def plan(job) -> PlanDeEjecucion:

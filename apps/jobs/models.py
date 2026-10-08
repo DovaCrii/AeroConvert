@@ -136,6 +136,9 @@ class ConversionJob(BaseModel):
 
     progress_percent = models.PositiveSmallIntegerField(default=0)
     progress_stage = models.CharField(max_length=24, choices=ETAPAS, blank=True)
+    #: Qué está haciendo ahora, en una frase («Sincronizando las fotos»). La etapa dice dónde de
+    #: las cuatro; esto dice qué. Lo escribe una herramienta que sabe decirlo; si no, queda vacío.
+    progress_label = models.CharField(max_length=140, blank=True)
     progress_updated_at = models.DateTimeField(null=True, blank=True)
     #: Sin esto, un obrero muerto deja el trabajo en `ejecutando` para siempre.
     heartbeat_at = models.DateTimeField(null=True, blank=True)
@@ -316,7 +319,7 @@ class ConversionJob(BaseModel):
 
     # --- Transiciones -------------------------------------------------------
 
-    def marcar_progreso(self, etapa: str, fraccion: float) -> None:
+    def marcar_progreso(self, etapa: str, fraccion: float, etiqueta: str | None = None) -> None:
         """Actualiza la barra. `fraccion` es 0..1 **dentro de la etapa**, no del total.
 
         Se guardan solo los campos que cambian: esta fila se escribe cada pocos segundos
@@ -334,15 +337,19 @@ class ConversionJob(BaseModel):
         self.progress_percent = int(round(total * 100))
         self.progress_updated_at = ahora
         self.heartbeat_at = ahora
-        self.save(
-            update_fields=[
-                "progress_stage",
-                "progress_percent",
-                "progress_updated_at",
-                "heartbeat_at",
-                "updated_at",
-            ]
-        )
+        campos = [
+            "progress_stage",
+            "progress_percent",
+            "progress_updated_at",
+            "heartbeat_at",
+            "updated_at",
+        ]
+        # `None` deja la etiqueta como estaba: la mayoría de los motores no dicen nada y no deben
+        # borrar lo que otro dijo; una cadena vacía sí la borra.
+        if etiqueta is not None:
+            self.progress_label = etiqueta[:140]
+            campos.append("progress_label")
+        self.save(update_fields=campos)
 
     def registrar(self, mensaje: str, *, nivel: str = "info", etapa: str = "", **carga) -> JobEvent:
         return JobEvent.anexar(self, mensaje, nivel=nivel, etapa=etapa, **carga)
@@ -421,7 +428,18 @@ class EntradaDeTrabajo(BaseModel):
     #: base de Access que pone el esquema.
     HOJA = "hoja"
     PLANTILLA = "plantilla"
-    PAPELES = [("", _("Input")), (HOJA, _("Sheet")), (PLANTILLA, _("Template"))]
+    #: Para el vuelo de dron: tres archivos que no son intercambiables.
+    TRAYECTORIA = "trayectoria"
+    DISPAROS = "disparos"
+    REFERENCIA = "referencia"
+    PAPELES = [
+        ("", _("Input")),
+        (HOJA, _("Sheet")),
+        (PLANTILLA, _("Template")),
+        (TRAYECTORIA, _("Trajectory")),
+        (DISPAROS, _("Camera events")),
+        (REFERENCIA, _("Reference positions")),
+    ]
 
     job = models.ForeignKey(ConversionJob, on_delete=models.CASCADE, related_name="entradas")
     orden = models.PositiveSmallIntegerField()

@@ -947,9 +947,12 @@ def _lanzar(job: ConversionJob, plan: PlanDeEjecucion, parcial: Path) -> None:
             if len(cola_de_salida) > 200:
                 del cola_de_salida[:-200]
             if plan.analizador_de_progreso:
-                fraccion = plan.analizador_de_progreso(linea)
-                if fraccion is not None:
-                    job.marcar_progreso(CONVERSION, fraccion)
+                avance = plan.analizador_de_progreso(linea)
+                if avance is not None:
+                    # Un número, como siempre; o `(fracción, etiqueta)` si la herramienta dice
+                    # qué está haciendo.
+                    fraccion, etiqueta = avance if isinstance(avance, tuple) else (avance, None)
+                    job.marcar_progreso(CONVERSION, fraccion, etiqueta)
 
         ahora = time.monotonic()
 

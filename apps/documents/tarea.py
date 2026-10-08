@@ -69,9 +69,13 @@ class SinArchivo(Exception):
         self.detalles = detalles or {}
 
 
-def progreso(fraccion: float) -> None:
-    """Una línea que entiende `analizador_de_progreso`. **Con `flush`**, o no llega a tiempo."""
-    print(f"PROGRESO {max(0.0, min(1.0, fraccion)):.3f}", flush=True)
+def progreso(fraccion: float, etiqueta: str = "") -> None:
+    """Una línea que entiende `analizador_de_progreso`. **Con `flush`**, o no llega a tiempo.
+
+    `etiqueta` es lo que se está haciendo, en una frase, y sale bajo la barra.
+    """
+    texto = f" {' '.join(etiqueta.split())}" if etiqueta.strip() else ""
+    print(f"PROGRESO {max(0.0, min(1.0, fraccion)):.3f}{texto}", flush=True)
 
 
 # --- Las tareas --------------------------------------------------------------
