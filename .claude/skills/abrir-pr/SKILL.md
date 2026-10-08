@@ -15,7 +15,8 @@ nunca `push --force`.
 1. `git status` y `git fetch`. Si la rama divergió, **detente y pregunta**; no fuerces.
 2. Si estás en `main`, crea `codex/$ARGUMENTS` antes de confirmar nada. **Comprueba con
    `git branch --show-current` que no sigues en `main` antes de hacer commit.**
-3. `/verificar todo` en verde. Si algo no se pudo correr (GDAL, Office, Tesseract, ODA), dilo en el PR.
+3. `/verificar todo` en verde (o, con la suite aparte, `verificar.py rapido` —incluye bandit— más
+   pytest completo). Si algo no se pudo correr (GDAL, Office, Tesseract, ODA), dilo en el PR.
 4. **El PR va contra `main`, no apilado** sobre otra rama: al fusionar el de abajo, el de arriba no
    llega a `main` (ya pasó con F9.0–F9.2).
 5. Commits en español, imperativo y con ámbito. No mezcles fases en un commit.
@@ -30,4 +31,7 @@ nunca `push --force`.
    por la infraestructura de GitHub (`The job was not acquired by Runner`), relánzalo con
    `gh run rerun`; no lo des por verde ni por roto. Si la persona dijo de una entrega concreta
    «no la fusiones», se respeta.
+   Si `gh pr merge` responde `HTTP 500` o «Something went wrong», es de GitHub: reintenta a los
+   60 s (hasta cuatro veces) antes de dar nada por roto. Si `--watch` dice «no checks reported»,
+   espera 30 s y repite. Con la rama en conflicto: `scripts/claude/fusionar_main.py`.
 9. Después, dile a la persona el comando de despliegue de `HANDOFF.md`: ella lo ejecuta en la VM.

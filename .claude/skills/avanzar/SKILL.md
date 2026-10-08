@@ -32,16 +32,28 @@ fusiones con el CI verde. **La persona solo despliega en la VM `p340`, y lo hace
 5. **Si toca una pantalla:** verla en el navegador en claro y oscuro, a 1440 y a 375 px, sin
    desborde horizontal (`scrollWidth == innerWidth`). Servidor con `DB_PATH` y
    `AEROCONVERT_RAICES_PERMITIDAS` apuntando a la carpeta temporal de la sesión.
-6. **Antes de subir: la suite completa**, no solo lo tocado (`$env:AEROCONVERT_GDAL_BIN="";
-   $env:AEROCONVERT_PDAL_BIN=""; uv run pytest -q --no-cov`), **en segundo plano**, y esperar el aviso
-   de que terminó. **Nada de `sleep` largos.** Más `ruff format --check .` y `ruff check .`. Añadir
-   una herramienta ya dejó un PR en rojo porque un sinónimo le quitó la pregunta a otra y Tino dejó de
-   contestar: por eso la suite entera.
+6. **Antes de subir: la puerta rápida y la suite completa.**
+   - `uv run python scripts/claude/verificar.py rapido` (check, migraciones, ruff, formato y
+     **bandit**: el CI lo cazó dos veces después de un `push` que lo habría visto en segundos). Un
+     hook (`antes_de_push.py`) la corre sola ante cada `git push` y lo bloquea si falla.
+   - La suite entera, no solo lo tocado (`$env:AEROCONVERT_GDAL_BIN=""; $env:AEROCONVERT_PDAL_BIN="";
+     uv run pytest -q --no-cov`), **en segundo plano**, esperando el aviso de que terminó. **Nada de
+     `sleep` largos.** Añadir una herramienta ya dejó un PR en rojo porque un sinónimo le quitó la
+     pregunta a otra y Tino dejó de contestar: por eso la suite entera. Para añadir una herramienta,
+     `/nueva-herramienta` trae la lista de piezas.
+   - **No cambies de rama ni hagas `git stash` mientras corre**: invalida la corrida.
+   - Si la fila toca un motor, una firma, datos sensibles o permisos, pásele el diff al agente
+     `revisor-de-reglas` antes de subir.
 7. **Documentar al cerrar la fila:** fila ✅ con fecha en `MASTER_PLAN.md`, entrada en
    `CHANGELOG.md`, la fila del bloque en `SEGUIMIENTO.md`, y `HANDOFF.md` solo si cambia algo que
    deba saber quien retome (≤100 líneas).
 8. **PR, revisión y fusión:** seguir `/abrir-pr`. El cuerpo va en un archivo (`--body-file`). Esperar
-   con `gh pr checks <n> --watch`; fusionar con `gh pr merge <n> --merge` **solo con el CI verde**.
+   con `gh pr checks <n> --watch` (o delegarlo en el agente `fusionador-de-pr` y seguir con la fila
+   siguiente); fusionar con `gh pr merge <n> --merge` **solo con el CI verde**. **Con la rama
+   hermana abierta** (dos PR que añaden herramientas), antes de subir:
+   `uv run python scripts/claude/fusionar_main.py`: fusiona `main`, resuelve sola «los dos
+   añadieron» **validando** el resultado y deja con sus marcas `MASTER_PLAN.md`, `SEGUIMIENTO.md` y
+   `HANDOFF.md`, donde decide una persona. Después ruff y la suite, como siempre.
    Si falla, leer `gh run view <id> --log-failed`, arreglar y volver a subir; si es la
    infraestructura de GitHub (`not acquired by Runner`), `gh run rerun`. **Nunca** `push --force`,
    nunca fusionar en rojo, nunca bajar `fail_under`.
@@ -96,6 +108,14 @@ usado), y **entregarle a la persona la lista para desplegar**. Ella la ejecuta; 
   en pantalla debe **forzar los dos casos** con `monkeypatch`, no suponer que el CI es como la
   estación (ya costó un PR en rojo, F13.1).
 - Una plantilla servida por `runserver --noreload` no se recarga: reiniciar el servidor.
+- **GitHub a veces falla al fusionar** (`HTTP 500`, «Something went wrong»): es suyo y se arregla
+  solo; reintentar a los 60 s. `gh pr checks --watch` dice «no checks reported» si se llama antes de
+  que el CI se registre: esperar 30 s y repetir.
+- Un PR que **añade herramientas** choca con el siguiente en los mismos ocho archivos (registro,
+  taxonomía, sinónimos, cola, rutas, sprite, cifras): fusionar `main` con `fusionar_main.py` y subir
+  de uno en uno, no en paralelo.
+- `ruff` y `bandit` miran cosas distintas: `try/except/pass` (B110) y `xml.sax.saxutils` (B406) los
+  caza solo `bandit`.
 - `.claude/rules/` ya recoge las reglas de interfaz, de motores y de plan; léalas antes de tocar
   una pantalla o un motor.
 
