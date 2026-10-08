@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block titulo %}Plano DXF a PDF · AeroConvert{% endblock %}
+
+{% block contenido %}
+
+<div class="tarjeta">
+  <div class="eyebrow">Qué hace</div>
+  <p class="av-mb-0">
+    Dibuja un plano <strong>DXF</strong> en una lámina, <strong>centrada y con margen</strong>, con el
+    color de sus capas. Los bloques y las cotas se expanden; las capas apagadas no se dibujan. La
+    <strong>escala</strong> solo se dice si el plano declara sus unidades: si no, sale ajustado al
+    papel y no se inventa un «1:500». Lo que no se puede dibujar (sombreados, imágenes) se
+    <strong>cuenta</strong> al terminar. Siempre una copia; el original no se toca.
+  </p>
+</div>
+
+<form method="post" id="forma-documento" enctype="multipart/form-data">
+  {% csrf_token %}
+
+  {% include "documents/_origen.html" with accion="convertir" boton="Dibujar la lámina" pregunta="¿Qué plano DXF?" acepta=".dxf" %}
+
+  <div class="tarjeta">
+    <div class="eyebrow">Cómo</div>
+
+    <div class="av-mb-3 av-mw-22">
+      <label class="fw-semibold" for="id_papel">Papel</label>
+      <select id="id_papel" name="papel" class="form-select">
+        {% for valor, texto in papeles.items %}
+          <option value="{{ valor }}" {% if valor == papel %}selected{% endif %}>{{ texto }}</option>
+        {% endfor %}
+      </select>
+      <p class="tenue av-mt-1 av-mb-0 av-fs-sm">Apaisado o vertical, según la forma del plano.</p>
+    </div>
+
+    <div class="av-mb-0 av-mw-38">
+      <label class="fw-semibold" for="id_formato">Formato</label>
+      <select id="id_formato" name="formato" class="form-select">
+        {% for valor, texto in formatos.items %}
+          <option value="{{ valor }}" {% if valor == formato %}selected{% endif %}>{{ texto }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+</form>
+
+{% endblock %}

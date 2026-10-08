@@ -43,3 +43,34 @@ se actualiza en el despliegue final. La implementación vive en `templates/dashb
 `test_plano` (0 degradados), `test_trato`, `test_estilo`, `test_iconos`, `test_taxonomia`,
 `test_lateral_compacto`, `test_portada_archivo` y el contraste WCAG de cada familia en los dos
 temas. Una pantalla nueva se mira en claro y oscuro, a 1440 y a 375 px, sin desborde horizontal.
+
+## Referencia visual mirada (no adoptada todavía): ArtCraft
+
+Se miró su sitio y sus capturas el 2026-10-08 (solo como referencia de diseño; el código no se
+usa, ver `DECISION_ARTCRAFT.md`). Lo que se ve y lo que sirve:
+
+- **Oscuro neutro y plano, un solo acento azul, un solo botón blanco de acción** («Launch app»).
+  AeroConvert ya va por ahí (plano con color, una acción principal por pantalla).
+- **Barra flotante de herramientas sobre el lienzo** (Mover · Girar · Escalar, con icono y texto) y
+  **un panel de acción abajo** con las opciones en fichas pequeñas y un único botón principal.
+  Candidato para las pantallas de herramientas: las opciones en una fila de fichas junto al botón
+  principal, en vez de tarjetas largas de formulario.
+- **Etiquetas de navegación en mayúsculas con tipografía monoespaciada**, muy pequeñas: da
+  carácter técnico. Candidato para los rótulos del lateral («Herramientas») si se quiere.
+- Lo que **no** conviene copiar: el mosaico animado de miniaturas y el degradado de la portada
+  (F13.7 prohíbe degradados y movimiento al pasar).
+
+**Lo que la persona dijo que le gusta (2026-10-08):** el diseño, la página, **las transiciones y el
+estilo oscuro**. Dirección acordada, compatible con F13.7 (plano, sin degradados, sin sombras, sin
+movimiento al pasar el cursor):
+
+- **Oscuro primero:** tema oscuro neutro (casi negro, gris frío) como el que se ve por omisión, con
+  un solo acento y un solo botón principal por pantalla. El claro sigue existiendo.
+- **Transiciones sí, pero de estado, no de movimiento:** 150 a 200 ms en color, borde, fondo y
+  opacidad; entrada suave de la página y de los paneles (aparecer, no desplazarse). **Sin**
+  `transform` al pasar, **sin** sombras y **sin** degradados.
+- **Respeta `prefers-reduced-motion`:** con esa preferencia, todo es instantáneo.
+- **Opciones en fichas junto al botón principal** y rótulos técnicos en mayúscula pequeña.
+
+Entra como **F13.13** (`MASTER_PLAN.md`), con prueba: transiciones declaradas solo sobre
+propiedades de estado, ninguna `transform` en `:hover`, y bloque `prefers-reduced-motion`.

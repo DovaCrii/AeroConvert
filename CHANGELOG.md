@@ -5,6 +5,12 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Sin publicar]
 
+
+### Añadido — plano DXF a lámina PDF o SVG (F14.16, primera parte)
+
+- **«Plano DXF a PDF»**: dibuja un DXF (líneas, polilíneas con arcos, círculos, arcos, elipses, splines, textos y puntos; bloques y cotas expandidos) en una lámina de **A4 a A0**, apaisada o vertical según el plano, **centrada y con margen fijo de 10 mm**, con el color de sus capas (el blanco sale negro). **La escala solo se dice si el plano declara sus unidades** (`$INSUNITS`): si no, sale ajustado al papel y no se inventa un «1:500». Las capas apagadas no se dibujan y **lo que no se puede dibujar** (sombreados, imágenes…) **se cuenta por tipo**. Un DWG se rechaza con su camino (pasarlo antes a DXF). Se lee con `ezdxf` (MIT, dependencia nueva) y se dibuja con `reportlab`. Oráculo: PDFium lee la lámina y comprueba que el dibujo toca el margen en el eje que manda y queda centrado en el otro. Queda pendiente el SVG a PDF o PNG, que exige Inkscape.
+- Decisión: `docs/DECISION_ARTCRAFT.md` (ArtCraft no se adopta: licencia *fair source* y producto de IA generativa en la nube).
+
 ### Añadido — limpiar fotos de dron (F14.14)
 
 - **«Limpiar fotos de dron»**: las fotos de un vuelo (JPG, hasta quinientas) a **un zip con una foto por cada una**. La posición se **conserva** (la foto pasa byte por byte) o se **quita a propósito**: el bloque GPS del EXIF se pone a cero en su sitio y se retira el XMP, que en los DJI repite latitud, longitud y altura. **No se recodifica**: los datos de imagen salen idénticos byte por byte, y no se reescribe el EXIF porque las notas del fabricante guardan desplazamientos que un reescrito rompería (esas notas no se tocan, y la pantalla lo dice). Aparte, saca **dónde se tomó cada foto** a un **KMZ** o un **GeoJSON** (aunque se les quite la posición), y renombra por **fecha y hora** o por **orden de toma**; una foto sin fecha impide renombrar por fecha, con su nombre, en vez de inventar uno. Las fotos sin posición no entran al archivo y se cuentan. El verificador del trabajo relee con Pillow cada foto «sin posición» y cuenta las marcas del KMZ o GeoJSON. Oráculos: `exifread` (nueva dependencia de desarrollo, BSD) y `ogrinfo`.

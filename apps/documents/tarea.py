@@ -402,6 +402,28 @@ def _imagenes_lote(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
         shutil.rmtree(carpeta, ignore_errors=True)
 
 
+def _dxf_lamina(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
+    from apps.documents import dxf_lamina
+
+    hecha = dxf_lamina.convertir(
+        entradas[0]["ruta"],
+        parcial,
+        papel=opciones.get("papel", "a3"),
+        formato=opciones.get("formato", "pdf"),
+    )
+    informe = {
+        "entidades": hecha.entidades,
+        "trazos": hecha.trazos,
+        "omitidas": hecha.omitidas,
+        "capas_apagadas": hecha.capas_apagadas,
+        "papel": hecha.papel,
+        "escala": hecha.escala,
+    }
+    if opciones.get("formato", "pdf") == "pdf":
+        informe["paginas"] = 1
+    return informe
+
+
 def _fotos_dron(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
     import shutil
 
@@ -625,6 +647,7 @@ TAREAS = {
     "portada": _portada,
     "imagenes_lote": _imagenes_lote,
     "fotos_dron": _fotos_dron,
+    "dxf_lamina": _dxf_lamina,
     "unir": _unir,
     "organizar": _unir,
     "imagenes": _imagenes,
