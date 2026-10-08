@@ -134,6 +134,8 @@ LIBREOFFICE = config("AEROCONVERT_LIBREOFFICE", default="")
 # Leer catálogos de Access sin Access (F17.2): la carpeta de mdbtools. Vacío: el PATH.
 MDBTOOLS = config("AEROCONVERT_MDBTOOLS", default="")
 
+# Video (F14.17): la ruta de ffmpeg; ffprobe tiene que estar al lado. Vacío: el PATH.
+FFMPEG = config("AEROCONVERT_FFMPEG", default="")
 # PDF/A (F14.9): Ghostscript escribe y veraPDF, si está, valida. Vacíos: se buscan en el PATH.
 GHOSTSCRIPT = config("AEROCONVERT_GHOSTSCRIPT", default="")
 VERAPDF = config("AEROCONVERT_VERAPDF", default="")

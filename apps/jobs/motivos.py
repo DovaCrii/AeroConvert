@@ -175,6 +175,11 @@ MOTIVOS: dict[str, Motivo] = dict(
             "AEROCONVERT_PLANTILLAS_JEJ.",
         ),
         _m(
+            "sin-ffmpeg",
+            "Esta máquina no tiene FFmpeg (o le falta ffprobe), que es lo que trabaja el video.",
+            "sudo despliegue/instalar_faltantes.sh",
+        ),
+        _m(
             "sin-ghostscript",
             "Esta máquina no tiene Ghostscript, que es lo que escribe el PDF/A.",
             "sudo despliegue/instalar_faltantes.sh (en Windows lo trae QGIS).",

@@ -105,6 +105,20 @@ HERRAMIENTAS = (
         "exige_plantillas": True,
     },
     {
+        "id": "video",
+        "icono": "icon-video-dron",
+        "sale": "fotogramas en un zip, o el video trabajado",
+        "familia": "transformar",
+        "url": "documents:video",
+        "nombre": "Trabajar un video de dron",
+        "que_hace": (
+            "Fotogramas cada tantos segundos o metros para fotogrametría, con la posición del "
+            "SRT; o comprimirlo, recortarlo o quitarle el audio."
+        ),
+        # FFmpeg es un programa aparte (D1): sin él, la tarjeta sale apagada con su paso.
+        "exige_ffmpeg": True,
+    },
+    {
         "id": "pdf_a",
         "icono": "icon-pdf-archivo",
         "sale": "el mismo PDF en PDF/A-2b",

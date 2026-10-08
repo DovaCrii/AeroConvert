@@ -1,4 +1,4 @@
-"""Las pantallas de las treinta y nueve herramientas de documentos.
+"""Las pantallas de las cuarenta herramientas de documentos.
 
 ## Mirar aquí, hacer en la cola
 
@@ -137,6 +137,9 @@ from .pantalla_unir import (  # noqa: F401
     miniatura,
     organizar,
     unir,
+)
+from .pantalla_video import (  # noqa: F401
+    video_vista,
 )
 from .pantalla_vuelo import (  # noqa: F401
     vuelo_datos,

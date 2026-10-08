@@ -122,6 +122,12 @@ PASOS: dict[str, Paso] = {
         "en AEROCONVERT_PLANTILLAS_JEJ.",
         "Lo mismo, con una carpeta de la estación.",
     ),
+    "sin-ffmpeg": Paso(
+        GUION,
+        f"{INSTALAR_FALTANTES} (instala ffmpeg, que trae ffprobe).",
+        "Descargue FFmpeg (los binarios de gyan.dev) y ponga AEROCONVERT_FFMPEG en el .env; "
+        "ffprobe tiene que estar en la misma carpeta.",
+    ),
     "sin-ghostscript": Paso(
         GUION,
         f"{INSTALAR_FALTANTES} (instala ghostscript; veraPDF, para validar la conformidad, va "
@@ -143,6 +149,7 @@ _EXIGE_A_CODIGO = {
     "exige_access_lectura": "sin-access",
     "exige_plantillas": "sin-plantillas",
     "exige_tesseract": "sin-tesseract",
+    "exige_ffmpeg": "sin-ffmpeg",
     "exige_ghostscript": "sin-ghostscript",
 }
 
