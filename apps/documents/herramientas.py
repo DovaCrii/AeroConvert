@@ -471,10 +471,11 @@ HERRAMIENTAS = (
         "url": "documents:catalogo_a_excel",
         "nombre": "Catálogo Plant 3D a Excel",
         "que_hace": "Saca las nueve tablas del catálogo para poder editarlas cómodo.",
-        "exige_access": True,
+        # Leer: con el motor de Access o, en Linux, con mdbtools (F17.2).
+        "exige_access_lectura": True,
         "tras_hacerlo": (
-            "Una hoja por tabla, con la fila de encabezados fija. Cuando lo tengas editado, "
-            "vuelve con «Excel a catálogo Plant 3D»."
+            "Una hoja por tabla, con la fila de encabezados fija. Cuando lo tenga editado, "
+            "vuelva con «Excel a catálogo Plant 3D»."
         ),
     },
     {

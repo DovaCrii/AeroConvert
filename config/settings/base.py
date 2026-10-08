@@ -131,6 +131,9 @@ TSA_URL = config("AEROCONVERT_TSA_URL", default="")
 # LibreOffice para «Office a PDF» sin Office (F17.1). Vacío: `soffice` en el PATH.
 LIBREOFFICE = config("AEROCONVERT_LIBREOFFICE", default="")
 
+# Leer catálogos de Access sin Access (F17.2): la carpeta de mdbtools. Vacío: el PATH.
+MDBTOOLS = config("AEROCONVERT_MDBTOOLS", default="")
+
 # Video (F14.17): la ruta de ffmpeg; ffprobe tiene que estar al lado. Vacío: el PATH.
 FFMPEG = config("AEROCONVERT_FFMPEG", default="")
 # PDF/A (F14.9): Ghostscript escribe y veraPDF, si está, valida. Vacíos: se buscan en el PATH.

@@ -123,7 +123,7 @@ ESPECIFICACIONES: dict[str, Especificacion] = {
     # imágenes tarda de verdad, y más que eso es Word esperando una respuesta que no llegará.
     "office": Especificacion(timeout_s=300, exige="office"),
     "a_word": Especificacion(timeout_s=300, exige="office"),
-    "catalogo_excel": Especificacion(timeout_s=900, exige="access"),
+    "catalogo_excel": Especificacion(timeout_s=900, exige="access_lectura"),
     "excel_catalogo": Especificacion(timeout_s=900, exige="access"),
 }
 
@@ -211,6 +211,7 @@ def disponibilidad(herramienta: str, opciones: dict | None = None) -> Disponibil
         "plantillas": (portadas.sondar, "sin-plantillas"),
         "office": (office.sondar, "sin-office"),
         "access": (catalogos.sondar, "sin-access"),
+        "access_lectura": (catalogos.sondar_lectura, "sin-access"),
         "tesseract": (ocr.sondar, "sin-tesseract"),
         "ffmpeg": (video.sondar, "sin-ffmpeg"),
         "ghostscript": (pdfa.sondar, "sin-ghostscript"),
@@ -302,11 +303,12 @@ def plan(job) -> PlanDeEjecucion:
         verapdf = pdfa.sondar_verapdf()
         if verapdf:
             entorno[VARIABLE_VERAPDF] = verapdf
-    if espec.exige == "access":
+    if espec.exige in ("access", "access_lectura"):
         from . import catalogos
         from .tarea import VARIABLE_ACCESS
 
-        entorno[VARIABLE_ACCESS] = catalogos.sondar().controlador
+        sonda = catalogos.sondar if espec.exige == "access" else catalogos.sondar_lectura
+        entorno[VARIABLE_ACCESS] = sonda().controlador
 
     if espec.exige == "office":
         return _plan_de_office(job, espec, entradas[0], destino, parcial, entorno)

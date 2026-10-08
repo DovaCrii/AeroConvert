@@ -40,7 +40,7 @@ SOLO_DE_TU = (
     # Se colaron en Preajustes y en la pantalla de convertir (2026-10-08): enclíticos de tú y la
     # segunda persona de «haber».
     "cámbialo cámbiala cópialo cópialos instálalo compruébalo bórralo marcaste escribiste "
-    "pártelo fiarte"
+    "pártelo fiarte tengas"
 ).split()
 
 #: Imperativos de tú, **solo si abren una frase** o un título. «Pega» y «Mira» en medio de una

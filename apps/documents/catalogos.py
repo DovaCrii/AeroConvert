@@ -27,6 +27,11 @@ igual que Word y Excel a PDF. La regla de la casa: se sondea, no se declara.
 Medido en la estación de trabajo el 2026-09-15: el controlador `Microsoft Access Driver
 (*.mdb, *.accdb)` de 64 bits crea bases Jet 4, crea tablas e inserta filas. **No hace falta
 licencia de Access**: ACE es un redistribuible gratuito.
+
+## Y para **leer** en Linux: `mdbtools` (F17.2)
+
+Sin ACE, la exportación a Excel puede leer con `mdbtools` (ver `catalogos_mdbtools.py`). La
+escritura sigue siendo solo de ACE: `sondar()` es la de escribir y `sondar_lectura()` la de leer.
 """
 
 from __future__ import annotations
@@ -141,6 +146,37 @@ def _mirar() -> Disponible:
     )
 
 
+#: El «controlador» cuando se lee con mdbtools: el prefijo y la carpeta de sus programas.
+PREFIJO_MDBTOOLS = "mdbtools:"
+
+
+def sondar_lectura(*, recordar: bool = True) -> Disponible:
+    """Si esta máquina sabe **leer** un catálogo: ACE, o si no, `mdbtools`."""
+    ace = sondar(recordar=recordar)
+    if ace:
+        return ace
+    from django.conf import settings
+
+    from . import catalogos_mdbtools
+
+    carpeta = catalogos_mdbtools.encontrar((getattr(settings, "MDBTOOLS", "") or "").strip())
+    if carpeta:
+        return Disponible(controlador=f"{PREFIJO_MDBTOOLS}{carpeta}")
+    return Disponible(
+        motivo="No hay motor de Access ni mdbtools para leer el catálogo.",
+        sugerencia=(
+            "En el servidor: sudo despliegue/instalar_faltantes.sh (instala mdbtools, que lee). "
+            "Escribir un catálogo sigue pidiendo Windows con el motor de Access."
+        ),
+    )
+
+
+def _con_mdbtools() -> str:
+    """La carpeta de mdbtools si es con lo que se lee aquí; cadena vacía si es con ACE."""
+    controlador = _controlador()
+    return controlador[len(PREFIJO_MDBTOOLS) :] if controlador.startswith(PREFIJO_MDBTOOLS) else ""
+
+
 def _controlador() -> str:
     """El controlador de Access: el que manda el corredor, o el que diga la sonda.
 
@@ -152,7 +188,8 @@ def _controlador() -> str:
 
     from .tarea import VARIABLE_ACCESS
 
-    return os.environ.get(VARIABLE_ACCESS) or sondar().controlador
+    # En el padre, sin variable: ACE si está; si no, mdbtools (solo sirve para leer).
+    return os.environ.get(VARIABLE_ACCESS) or sondar().controlador or sondar_lectura().controlador
 
 
 def _cadena(ruta: Path, *, crear: bool = False) -> str:
@@ -170,11 +207,14 @@ def esquema(origen: str | Path) -> list[Tabla]:
     **Se saltan las tablas del sistema.** Access guarda las suyas con el prefijo `MSys`, y
     exportarlas entregaría cuatro hojas de tripas del motor entre las nueve que interesan.
     """
-    import pyodbc
-
     origen = Path(origen)
     if not origen.exists():
         raise ComposicionInvalida(f"No está {origen.name}.")
+    carpeta = _con_mdbtools()
+    if carpeta:
+        return _esquema_con_mdbtools(carpeta, origen)
+
+    import pyodbc
 
     try:
         conexion = pyodbc.connect(_cadena(origen), autocommit=True)
@@ -217,6 +257,9 @@ def a_excel(origen: str | Path, *, destino: Path | None = None) -> Path:
     origen = Path(origen)
     tablas = esquema(origen)
     destino = Path(destino) if destino else origen.with_suffix(".xlsx")
+    carpeta = _con_mdbtools()
+    if carpeta:
+        return _a_excel_con_mdbtools(carpeta, origen, tablas, destino)
 
     import pyodbc
 
@@ -244,6 +287,59 @@ def a_excel(origen: str | Path, *, destino: Path | None = None) -> Path:
     finally:
         conexion.close()
 
+    parcial = destino.with_name(destino.name + ".parcial")
+    libro.save(parcial)
+    parcial.replace(destino)
+    return destino
+
+
+def _esquema_con_mdbtools(carpeta: str, origen: Path) -> list[Tabla]:
+    from . import catalogos_mdbtools
+
+    tablas = []
+    for nombre in catalogos_mdbtools.tablas(carpeta, origen):
+        _seguro(nombre, "tabla")
+        columnas, filas = catalogos_mdbtools.columnas_y_filas(carpeta, origen, nombre)
+        tablas.append(
+            Tabla(
+                nombre=nombre,
+                # mdbtools no dice el tipo ODBC: se marca como desconocido, no se inventa.
+                columnas=tuple(Columna(nombre=_seguro(c, "columna"), tipo="?") for c in columnas),
+                filas=len(filas),
+            )
+        )
+    if not tablas:
+        raise ComposicionInvalida(f"{origen.name} no tiene ninguna tabla que exportar.")
+    return tablas
+
+
+def _a_excel_con_mdbtools(carpeta: str, origen: Path, tablas: list[Tabla], destino: Path) -> Path:
+    import openpyxl
+
+    from . import catalogos_mdbtools
+
+    libro = openpyxl.Workbook()
+    libro.remove(libro.active)
+    usados: set[str] = set()
+    for tabla in tablas:
+        if tabla.filas > TOPE_FILAS:
+            raise ComposicionInvalida(
+                f"La tabla {tabla.nombre} pasa de {TOPE_FILAS} filas. Eso ya no es un catálogo "
+                "de tubería."
+            )
+        hoja = libro.create_sheet(_nombre_de_hoja(tabla.nombre, usados))
+        nombres = [c.nombre for c in tabla.columnas]
+        hoja.append(nombres)
+        hoja.freeze_panes = "A2"
+        filas = catalogos_mdbtools.filas_con_tipos(carpeta, origen, tabla.nombre, nombres)
+        if filas is None:  # sin mdb-json: el CSV, con los valores como texto
+            _, filas = catalogos_mdbtools.columnas_y_filas(carpeta, origen, tabla.nombre)
+        if len(filas) != tabla.filas:
+            raise ComposicionInvalida(
+                f"{tabla.nombre}: mdbtools contó {tabla.filas} filas y devolvió {len(filas)}."
+            )
+        for fila in filas:
+            hoja.append([_a_celda(v) for v in fila])
     parcial = destino.with_name(destino.name + ".parcial")
     libro.save(parcial)
     parcial.replace(destino)
