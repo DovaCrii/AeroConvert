@@ -209,7 +209,9 @@ def plan_operacion(
             raise ComposicionInvalida("Para recortar hace falta un inicio menor que el fin.")
         # Recodificado, no `-c copy`: copiar corta en el fotograma clave más cercano y el tramo
         # sale segundos más largo o más corto que el pedido.
-        return [*base, "-ss", f"{inicio_s:.3f}", "-to", f"{fin_s:.3f}", "-i", str(video),
+        # `-ss` antes de `-i` (búsqueda rápida) y **`-t` con la duración**: con `-to` como opción de
+        # entrada, según la versión de FFmpeg cuenta desde el principio o desde el punto buscado.
+        return [*base, "-ss", f"{inicio_s:.3f}", "-i", str(video), "-t", f"{fin_s - inicio_s:.3f}",
                 "-c:v", "libx264", "-crf", "20", "-preset", "medium", "-c:a", "aac",
                 "-movflags", "+faststart", str(destino)]  # fmt: skip
     if operacion == "sin_audio":

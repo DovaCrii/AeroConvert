@@ -65,8 +65,8 @@ if "-frames:v" in args:
     from PIL import Image
     Image.new("RGB", (64, 48), (10, 120, 200)).save(salida, "JPEG")
     sys.exit(0)
-if "-ss" in args and "-to" in args:
-    ficha["duracion"] = float(args[args.index("-to") + 1]) - float(args[args.index("-ss") + 1])
+if "-t" in args:
+    ficha["duracion"] = float(args[args.index("-t") + 1])
 if "-an" in args:
     ficha["audio"] = False
 if "libx264" in args:
@@ -145,7 +145,8 @@ class TestLasOrdenes:
     def test_recortar_recodifica_y_no_copia(self, tmp_path):
         argv = video.plan_operacion("ffmpeg", "recortar", tmp_path / "a.mp4", tmp_path / "b.mp4",
                                     inicio_s=2, fin_s=7)  # fmt: skip
-        assert argv[argv.index("-ss") + 1] == "2.000" and argv[argv.index("-to") + 1] == "7.000"
+        assert argv[argv.index("-ss") + 1] == "2.000" and argv[argv.index("-t") + 1] == "5.000"
+        assert "-to" not in argv and argv.index("-ss") < argv.index("-i") < argv.index("-t")
         assert "libx264" in argv and "copy" not in argv
 
     def test_sin_audio_copia_la_imagen_y_quita_el_sonido(self, tmp_path):
@@ -282,6 +283,64 @@ class TestLaPantalla:
         despachador.procesar_una_vez()
         trabajo = ConversionJob.objects.get()
         assert trabajo.status == "error" and "dura 10.0 s" in trabajo.reason_detail
+
+
+class TestLosCaminosDeFallo:
+    """Regla 5 en los fallos: el video y su SRT intactos, y sin restos junto a la salida."""
+
+    def _sin_restos(self, carpeta: Path):
+        return [
+            p.name for p in carpeta.iterdir() if ".parcial" in p.name or p.name.endswith(".piezas")
+        ]
+
+    def test_un_recorte_imposible(self, entrado, tmp_path):
+        from apps.jobs import despachador
+
+        carpeta = tmp_path / "v"
+        carpeta.mkdir()
+        origen = _video(carpeta / "corto.mp4", duracion=10)
+        antes = _huellas(carpeta)
+        entrado.post(
+            reverse("documents:video"),
+            {"ruta": str(origen), "operacion": "recortar", "inicio_s": "2", "fin_s": "40"},
+        )
+        despachador.procesar_una_vez()
+        assert _huellas(carpeta) == antes and self._sin_restos(carpeta) == []
+
+    def test_ffmpeg_que_falla_a_mitad_de_los_fotogramas(self, entrado, tmp_path, monkeypatch):
+        from apps.jobs import despachador
+        from apps.jobs.models import ConversionJob
+
+        carpeta = tmp_path / "v"
+        carpeta.mkdir()
+        origen = _video(carpeta / "DJI_0002.MP4")
+        _srt(carpeta / "DJI_0002.SRT")
+        roto = _lanzador(tmp_path / "bin", "ffmpeg_roto", "import sys; sys.exit(1)")
+        ffprobe = video.sondar().ffprobe
+        monkeypatch.setattr(
+            video, "sondar", lambda **k: video.Disponible(ffmpeg=roto, ffprobe=ffprobe)
+        )
+        antes = _huellas(carpeta)
+        entrado.post(
+            reverse("documents:video"),
+            {"ruta": str(origen), "operacion": "fotogramas", "criterio": "segundos", "cada_s": "5"},
+        )
+        despachador.procesar_una_vez()
+        assert ConversionJob.objects.get().status == "error"
+        assert _huellas(carpeta) == antes and self._sin_restos(carpeta) == []
+
+    def test_el_zip_con_un_fotograma_sin_la_posicion_prometida_se_rechaza(self, tmp_path):
+        from PIL import Image
+
+        parcial = tmp_path / "f.zip"
+        memoria = io.BytesIO()
+        Image.new("RGB", (8, 8)).save(memoria, "JPEG")
+        with zipfile.ZipFile(parcial, "w") as z:
+            z.writestr("fotograma_00001.jpg", memoria.getvalue())
+        veredicto = motor._verificar_zip(
+            parcial, {"piezas": [{"nombre": "fotograma_00001.jpg", "lat": -33.4, "lon": -70.6}]}
+        )
+        assert not veredicto.correcta and "posición" in veredicto.motivo
 
 
 class TestLaVerificacion:

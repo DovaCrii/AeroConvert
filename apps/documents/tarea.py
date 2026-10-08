@@ -863,19 +863,33 @@ def _video(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
             paquete.writestr("fotogramas.csv", tabla)
     finally:
         shutil.rmtree(carpeta, ignore_errors=True)
-    con_posicion = sum(1 for linea in tabla.splitlines()[1:] if linea.split(",")[2])
-    return (
-        {
-            "operacion": "fotogramas",
-            "fotogramas": len(archivos),
-            "con_posicion": con_posicion,
-            "duracion_original_s": round(ficha.duracion_s, 2),
-            "piezas": [
-                *({"nombre": a.name} for a in archivos),
-                {"nombre": "fotogramas.csv", "filas": len(archivos)},
-            ],
-        },
-    )
+    filas = [linea.split(",") for linea in tabla.splitlines()[1:]]
+    con_posicion = sum(1 for fila in filas if fila[2])
+    # Cada JPG con posición la lleva en su pieza: el corredor la vuelve a leer con **Pillow** (otro
+    # lector que el que la escribió) y rechaza el zip si no coincide.
+    por_nombre = {fila[0]: fila for fila in filas}
+    piezas = []
+    for archivo in archivos:
+        fila = por_nombre.get(archivo.name)
+        pieza = {"nombre": archivo.name}
+        if fila and fila[2]:
+            pieza.update(lat=float(fila[2]), lon=float(fila[3]))
+        piezas.append(pieza)
+    return {
+        "operacion": "fotogramas",
+        "fotogramas": len(archivos),
+        "con_posicion": con_posicion,
+        "duracion_original_s": round(ficha.duracion_s, 2),
+        "piezas": [*piezas, {"nombre": "fotogramas.csv", "filas": len(archivos)}],
+        "avisos": (
+            [
+                "Las posiciones salen del .SRT suponiendo que su instante 0 es el del video "
+                "(así lo graba DJI). La altura no va en el EXIF: su referencia no está declarada."
+            ]
+            if puntos
+            else []
+        ),
+    }
 
 
 #: Ghostscript y veraPDF, sondeados por el padre (el hijo no tiene Django para sondear).
