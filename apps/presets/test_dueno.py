@@ -102,7 +102,7 @@ class TestElBorrado:
         respuesta = client.post(reverse("presets:borrar", args=[de_fabrica.slug]), follow=True)
         assert respuesta.status_code == 200
         assert ConversionPreset.objects.filter(pk=de_fabrica.pk).exists()
-        assert "cópialos" in respuesta.content.decode()
+        assert "cópielos" in respuesta.content.decode()
 
 
 class TestLaCopia:

@@ -48,7 +48,7 @@
     if (estado === 0) {
       return {
         titulo: "No se pudo hablar con el servidor.",
-        detalle: "Comprueba la conexión y vuelve a intentarlo.",
+        detalle: "Compruebe la conexión y vuelva a intentarlo.",
       };
     }
     if (estado === 413) {

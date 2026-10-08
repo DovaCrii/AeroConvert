@@ -27,6 +27,13 @@ cuadra), si **cubre el archivo entero** (o si se añadió algo después), quién
 lista de emisores de confianza** (`AEROCONVERT_RAICES_DE_CONFIANZA`, un PEM): sin ella, un
 certificado autofirmado y uno del Estado se ven igual de «no comprobados», y se dice así; no se
 da por buena una cadena que no se pudo mirar.
+
+## El sello de tiempo (opcional)
+
+Sin sello, la hora de la firma es **la que dice el firmante**. Con `AEROCONVERT_TSA_URL` (una
+autoridad de sello de tiempo, RFC 3161) la firma lleva además la hora certificada por un tercero
+(PAdES B-T). **Si la autoridad está configurada y no responde, no se firma**: entregar una firma sin
+sello cuando se pidió con sello sería entregar otra cosa sin decirlo.
 """
 
 from __future__ import annotations
@@ -39,6 +46,7 @@ from pathlib import Path
 from .composicion import ComposicionInvalida
 
 VARIABLE_RAICES = "AEROCONVERT_RAICES_DE_CONFIANZA"
+VARIABLE_TSA = "AEROCONVERT_TSA_URL"
 
 #: Un `.p12` pesa unos pocos KB; esto corta lo que claramente no lo es.
 TAMANO_MAXIMO_P12 = 256 * 1024
@@ -58,6 +66,7 @@ class Firmada:
     campo: str
     firmante: str
     previas: int  # firmas que ya traía el PDF y siguen intactas
+    sellada: bool = False  # con sello de tiempo de una autoridad
 
 
 @dataclass(frozen=True)
@@ -73,6 +82,7 @@ class Firma:
     problema: str = ""
     valida_desde: str = ""
     valida_hasta: str = ""
+    sello: str = ""  # la hora certificada por la autoridad de sello de tiempo, si la trae
 
 
 @dataclass
@@ -139,11 +149,17 @@ def firmar(
     *,
     motivo: str = "",
     lugar: str = "",
+    sellador=None,
 ) -> Firmada:
-    """Firma `origen` y deja el resultado en `destino`. El original no se toca."""
+    """Firma `origen` y deja el resultado en `destino`. El original no se toca.
+
+    `sellador` es la autoridad de sello de tiempo; sin pasarla, se usa la de `AEROCONVERT_TSA_URL`
+    si está configurada.
+    """
     from pyhanko.pdf_utils.incremental_writer import IncrementalPdfFileWriter
     from pyhanko.pdf_utils.misc import PdfError
     from pyhanko.sign import fields, signers
+    from pyhanko.sign.timestamps.common_utils import TimestampRequestError
 
     origen, destino = Path(origen), Path(destino)
     certificado = leer_certificado(p12, clave)  # primero lo barato: contraseña y vigencia
@@ -166,15 +182,46 @@ def firmar(
                 reason=motivo or None,
                 location=lugar or None,
             )
+            sellador = sellador if sellador is not None else _sellador_configurado()
             with open(destino, "wb") as salida:
-                signers.sign_pdf(escritor, metadatos, signer=firmante, output=salida)
+                signers.sign_pdf(
+                    escritor, metadatos, signer=firmante, timestamper=sellador, output=salida
+                )
     except ComposicionInvalida:
         destino.unlink(missing_ok=True)
         raise
+    except (ConnectionError, TimeoutError, TimestampRequestError) as fallo:
+        # Antes que `OSError`: un `ConnectionError` también lo es, y diría «no se pudo firmar el
+        # PDF» cuando lo que falló fue la autoridad de sello.
+        destino.unlink(missing_ok=True)
+        raise ComposicionInvalida(
+            "La autoridad de sello de tiempo no respondió como debía; no se firma sin el sello "
+            f"que está configurado ({type(fallo).__name__})."
+        ) from fallo
     except (PdfError, ValueError, OSError) as fallo:
         destino.unlink(missing_ok=True)
         raise ComposicionInvalida(f"No se pudo firmar {origen.name}: {fallo}") from fallo
-    return Firmada(campo, certificado.firmante, previas)
+    except Exception as fallo:  # noqa: BLE001 - la autoridad de sello no respondió o respondió mal
+        destino.unlink(missing_ok=True)
+        if sellador is None:
+            raise
+        raise ComposicionInvalida(
+            "La autoridad de sello de tiempo no respondió como debía; no se firma sin el sello "
+            f"que está configurado ({type(fallo).__name__})."
+        ) from fallo
+    return Firmada(campo, certificado.firmante, previas, sellada=sellador is not None)
+
+
+def _sellador_configurado():
+    """La autoridad de `AEROCONVERT_TSA_URL`, o `None` si no hay ninguna configurada."""
+    url = os.environ.get(VARIABLE_TSA, "").strip()
+    if not url:
+        return None
+    if not url.lower().startswith(("https://", "http://")):
+        raise ComposicionInvalida(f"{VARIABLE_TSA} no es una dirección http(s).")
+    from pyhanko.sign.timestamps import HTTPTimeStamper
+
+    return HTTPTimeStamper(url, timeout=20)
 
 
 # --- Verificación de las firmas de un PDF recibido -------------------------------------------
@@ -262,6 +309,7 @@ def verificar(origen: str | Path) -> Informe:
                         vigente_al_firmar=vigente if dt else None,
                         valida_desde=_fecha(desde),
                         valida_hasta=_fecha(hasta),
+                        sello=_hora_del_sello(estado),
                     )
                 )
     except PdfError as fallo:
@@ -269,6 +317,14 @@ def verificar(origen: str | Path) -> Informe:
     except OSError as fallo:
         raise ComposicionInvalida(f"{origen.name} no se pudo abrir: {fallo}") from fallo
     return informe
+
+
+def _hora_del_sello(estado) -> str:
+    """La hora certificada por la autoridad, si la firma trae sello y el sello está íntegro."""
+    sello = getattr(estado, "timestamp_validity", None)
+    if sello is None or not getattr(sello, "intact", False):
+        return ""
+    return _fecha(getattr(sello, "timestamp", None))
 
 
 def _nombre_asn1(nombre) -> str:
@@ -318,6 +374,11 @@ def a_markdown(informe: Informe, nombre_pdf: str) -> str:
             )
         if f.emisor:
             lineas.append(f"- Emisor del certificado: {f.emisor}")
+        if f.sello:
+            lineas.append(
+                f"- **Sello de tiempo:** {f.sello} (hora certificada por una autoridad de sello; "
+                "no se comprobó si esa autoridad es de confianza)."
+            )
         if f.fecha_dicha:
             lineas.append(
                 f"- Fecha según el firmante: {f.fecha_dicha} (no es una hora certificada)."

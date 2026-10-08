@@ -6,6 +6,18 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 ## [Sin publicar]
 
 
+### Corregido — Brechas encontradas al revisar lo pendiente (2026-10-08)
+
+- **La configuración del `.env` no llegaba a los procesos hijos en el servidor.** `python-decouple` lee el `.env` sin copiarlo a `os.environ`, y los servicios de `p340` no tienen `EnvironmentFile`. Dos funciones lo leían en el hijo con `os.environ` y quedaban **apagadas aunque estuvieran configuradas**: la lista de emisores de confianza al verificar firmas (`AEROCONVERT_RAICES_DE_CONFIANZA`) y la ruta de ODA al importar DWG (`AEROCONVERT_ODA_CONVERTER`). Ahora el padre las lee de la configuración y se las pasa al hijo; una prueba por cada una.
+- **Trato de usted:** nueve textos que tuteaban (Preajustes —«Tuyos», «Copia uno y cámbialo»—, la pantalla de convertir, los motivos de ODA, GDAL, Trimble y de un RINEX cortado, la marca de agua y el aviso de conexión). El detector no los veía: no miraba el texto que una plantilla le pasa a un `include`, ni enclíticos como «cámbialo» o «instálalo». Ahora sí, y con pruebas de que no marca la tercera persona («Copia la base de datos»).
+- **Variables sin documentar:** `AEROCONVERT_LOG_LEVEL` se leía y no estaba en `.env.example`. Una prueba compara cada `config("AEROCONVERT_…")` de `config/settings` con `.env.example`.
+- `HANDOFF.md` y el tablero (`SEGUIMIENTO.md`) llevaban un día desfasados (decían #56): al día con #87, la lista exacta de lo que trae el despliegue (seis migraciones y las variables nuevas) y el estado de cada bloque.
+
+### Añadido — Sello de tiempo en las firmas digitales (P14)
+
+- Con `AEROCONVERT_TSA_URL` (una autoridad RFC 3161), la firma digital lleva además la hora certificada por un tercero (PAdES B-T). **Si la autoridad está configurada y no responde, no se firma**: una firma sin el sello pedido sería otra cosa. La verificación dice la hora del sello y que no se comprobó si esa autoridad es de confianza. Oráculo: el CMS se lee del `/Contents` con `asn1crypto` y `hashlib` comprueba que el sello certifica justo esa firma.
+
+
 ### Añadido — Paquetes de entrega y lotes (F16.1 y F16.2)
 
 - **Paquetes de entrega** («Entrega a BHP»): una receta con nombre que junta varios preajustes, un patrón para el nombre de los archivos de salida (`{origen}`, `{destino}`, `{perfil}`, `{fecha}`, `{n}`) y, si se quiere, un sistema al que llevarlo todo. La misma receta da los mismos parámetros en dos corridas. Los nombres salen limpios (sin separadores, sin `..`, sin nombres reservados de Windows) y dos pasos nunca se pisan. Son de quien los hizo: el de otro es un 404.

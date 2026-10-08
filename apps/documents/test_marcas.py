@@ -262,7 +262,7 @@ class TestLoQueSeNiegaAHacer:
 
     def test_una_marca_sin_texto(self, tmp_path):
         memoria = _pdf(tmp_path, "memoria.pdf", 1)
-        with pytest.raises(ComposicionInvalida, match="No escribiste"):
+        with pytest.raises(ComposicionInvalida, match="Falta el texto"):
             marcas.marca_de_agua(memoria, tmp_path / "x.pdf", "   ")
 
     def test_una_marca_kilometrica(self, tmp_path):

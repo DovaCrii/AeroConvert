@@ -710,6 +710,7 @@ def _firmar(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
         "campo": hecha.campo,
         "firmante": hecha.firmante,
         "firmas_previas": hecha.previas,
+        "sello_de_tiempo": hecha.sellada,
     }
 
 
