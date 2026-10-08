@@ -26,7 +26,8 @@ def catalogo_a_excel(request):
     columnas desde cero. El camino real es sacar el catálogo que ya se tiene, cambiar lo que
     haga falta, y volver a meterlo con la otra.
     """
-    access = catalogos_mod.sondar()
+    # Para **leer** vale ACE o, en Linux, mdbtools (F17.2).
+    access = catalogos_mod.sondar_lectura()
     contexto = {
         "seccion": "pdf",
         "etiqueta_seccion": "Catálogos de tubería",

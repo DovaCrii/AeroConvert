@@ -146,6 +146,7 @@ PASOS: dict[str, Paso] = {
 _EXIGE_A_CODIGO = {
     "exige_office": "sin-office",
     "exige_access": "sin-access",
+    "exige_access_lectura": "sin-access",
     "exige_plantillas": "sin-plantillas",
     "exige_tesseract": "sin-tesseract",
     "exige_ffmpeg": "sin-ffmpeg",

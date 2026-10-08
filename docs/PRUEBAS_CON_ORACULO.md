@@ -722,3 +722,14 @@ La prueba arma un `.docx` con la frase «Frase de control 4711 para el oráculo�
 LibreOffice instalado y **PDFium** (otro lector) cuenta las páginas y busca la frase. Anotar aquí la
 fecha, la versión de LibreOffice y el tiempo.
 
+## Pendiente de correr en `p340`: catálogos con `mdbtools` (F17.2)
+
+En la estación hay ACE y no hay `mdbtools`; en el servidor, al revés. El procedimiento cruza las dos:
+
+1. En la **estación**, con ACE: `catalogos.esquema("HDPE_PE100_PN16.mdb")` y anotar aquí el número de
+   filas de cada una de las nueve tablas (el total medido el 2026-09-15 fue 481).
+2. En **`p340`**, tras `sudo despliegue/instalar_faltantes.sh`, copiar el mismo `.mdb` (fuera del
+   repositorio) y exportarlo con «Catálogo Plant 3D a Excel». El recibo dice las tablas y sus filas:
+   tienen que coincidir una por una con las de ACE.
+3. Abrir el Excel y comprobar que una columna numérica (`NOMINAL_DIAMETER`) sale como número.
+

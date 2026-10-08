@@ -235,6 +235,13 @@ def estado_de_herramientas() -> list[dict]:
             fila["disponible"] = bool(ghostscript)
             fila["motivo"] = ghostscript.motivo
             fila["sugerencia"] = ghostscript.sugerencia
+        elif herramienta.get("exige_access_lectura"):
+            lectura = catalogos_mod.sondar_lectura()
+            fila["disponible"] = bool(lectura)
+            fila["motivo"] = lectura.motivo
+            fila["sugerencia"] = lectura.sugerencia
+            if lectura.controlador.startswith(catalogos_mod.PREFIJO_MDBTOOLS):
+                fila["variante"] = "con mdbtools: los tipos de columna no se conocen"
         elif herramienta.get("exige_access"):
             fila["disponible"] = bool(access)
             fila["motivo"] = access.motivo
