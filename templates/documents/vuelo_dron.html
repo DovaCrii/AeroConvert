@@ -67,6 +67,20 @@
           Aplica el desfase del .MRK (norte y este suman; la vertical resta). Es lo que hace Trimble.
         </p>
       </div>
+
+      <div class="form-check av-mt-3">
+        <input class="form-check-input" type="checkbox" name="escribir_en_fotos"
+               id="id_escribir_en_fotos" {% if escribir_en_fotos %}checked{% endif %}>
+        <label class="form-check-label" for="id_escribir_en_fotos">
+          Escribir la posición corregida en <strong>copias</strong> de las fotos
+        </label>
+        <p class="tenue av-mt-1 av-mb-0 av-fs-sm">
+          Necesita la carpeta de fotos. Las copias van en la carpeta <code>fotos_corregidas</code>
+          del zip, con la imagen idéntica byte por byte: solo cambia la posición del EXIF (y la que
+          repite el XMP de DJI). Las originales no se tocan. La altura se escribe tal como viene;
+          su referencia la dice el informe. Tope: 8&nbsp;GB de fotos.
+        </p>
+      </div>
     </section>
 
     <div class="vuelo-accion">

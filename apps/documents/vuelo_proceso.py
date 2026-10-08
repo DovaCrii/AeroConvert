@@ -53,6 +53,9 @@ class Entregables:
     archivos: dict[str, bytes] = field(default_factory=dict)
     resumen: dict = field(default_factory=dict)
     avisos: list[str] = field(default_factory=list)
+    fotos: list = field(default_factory=list)  # las `FotoSincronizada`, para F18.5
+    geografico: str = ""  # el marco de la latitud y la longitud
+    referencia_de_altura: str = ""
 
 
 @dataclass(frozen=True)
@@ -271,7 +274,12 @@ def procesar(
 
     avance(0.80, "Escribiendo los entregables")
     resumen_sync = vuelo_sync.resumen(fotos)
-    salida = Entregables(avisos=avisos)
+    salida = Entregables(
+        avisos=avisos,
+        fotos=fotos,
+        geografico=elegido.geografico,
+        referencia_de_altura=tray.referencia_de_altura,
+    )
     ref_altura = tray.referencia_de_altura
     salida.archivos["fotos.csv"] = vuelo_sync.a_csv(fotos, ref_altura).encode("utf-8")
     salida.archivos["fotos.geojson"] = vuelo_sync.a_geojson(fotos, elegido.geografico).encode(
