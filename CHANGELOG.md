@@ -6,6 +6,13 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 ## [Sin publicar]
 
 
+### Añadido y corregido — remuestreo, valor sin dato e historial de sondas (F16.6)
+
+- **Remuestreo y valor sin dato en el modo experto del ráster.** `remuestreo` (cúbica por omisión, bilineal, Lanczos, promedio, vecino más cercano; validado dos veces porque acaba en un argumento de `gdalwarp`) y `nodata` (solo donde el archivo lo guarda: GeoTIFF, BigTIFF, COG, IMG y ASC; en PNG o WebP no se ofrece, porque no puede contenerlo). Con `gdal_translate` declara el vacío (`-a_nodata`) y con `gdalwarp` lo escribe (`-dstnodata`); **los píxeles no cambian de valor**. Antes el motor leía `opciones["remuestreo"]` y nadie podía ponerlo.
+- **Corregido: la reproyección no funcionaba con GDAL de verdad.** El plan le pasaba `-progress` a `gdalwarp`, que GDAL rechaza (`Unknown argument`); los dos programas emiten el avance solos. La única prueba afirmaba que el argumento estuviera, así que daba verde. Ahora hay pruebas con GDAL real (fuera del gate): `gdalinfo` lee el `noDataValue`, y el histograma de un tablero de 0 y 255 reproyectado tiene 2 valores con vecino más cercano y más con bilineal. También se arregló la prueba con GDAL que convertía a COG, que usaba un TIFF sin teselas.
+- **Historial de sondas** (`RegistroDeSonda`, migración `engines.0001`): una fila por **cambio** de disponibilidad, motivo o versión de cada motor, no una por mirada. Se llena al abrir «Qué se puede convertir en este equipo», que lo muestra («Lo que cambió en este equipo»), y con el comando `registrar_sondas` para un temporizador. Así se puede saber desde cuándo dejó de funcionar algo.
+
+
 ### Añadido — firma digital y verificación de firmas (F14.5)
 
 - **«Firmar con certificado»**: firma un PDF (PAdES, SHA-256) con el `.p12` de la persona, con motivo y lugar opcionales. **Incremental**: lo que traía el PDF queda byte por byte al principio y una firma anterior sigue valiendo. **El certificado y su contraseña no se guardan**: llegan al obrero como un solo secreto cifrado y de un solo uso (el mismo camino que «Proteger»), nunca en `options`, la base, el argv ni la bitácora; el campo no vuelve al formulario y la contraseña mala o el certificado vencido se dicen **antes de encolar**. Un PDF cifrado no se firma.

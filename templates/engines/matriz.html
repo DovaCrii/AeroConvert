@@ -133,6 +133,31 @@
   </div>
 </section>
 
+{% if historial %}
+<section class="bloque">
+  <h2 class="bloque-titulo">Lo que cambió en este equipo</h2>
+  <p class="bloque-nota">
+    Cada vez que un motor se enciende, se apaga o cambia de versión queda una línea. Sirve para
+    saber desde cuándo dejó de funcionar algo.
+  </p>
+  <div class="tarjeta av-p-4">
+    <ul class="historial-sondas">
+      {% for h in historial %}
+        <li>
+          <span class="cifra tenue">{{ h.fila.visto_en|date:"d/m/Y H:i" }}</span>
+          <strong>{{ h.fila.motor }}</strong>
+          {% if h.fila.disponible %}
+            <span class="pildora pildora-done">{{ h.descripcion }}</span>
+          {% else %}
+            <span class="pildora pildora-cancelled">{{ h.descripcion }}</span>
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  </div>
+</section>
+{% endif %}
+
 <section class="bloque">
   <h2 class="bloque-titulo">Matriz de capacidades</h2>
   <p class="bloque-nota">
