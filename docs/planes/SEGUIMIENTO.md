@@ -26,6 +26,8 @@ Lo que Claude necesita para avanzar y no tiene. **Sin él, la fila espera (⏸) 
 | P12 | **GDAL con ECW** en el equipo que ejecuta (lectura) | Pantalla de compatibilidad | Instalación | ECW sigue apagado; sirven COG y JP2 |
 | P13 | **Clave OEM de ECW** (escritura) | Pantalla de compatibilidad | `AEROCONVERT_ECW_ENCODE_KEY` y `…_COMPANY` en el `.env`, nunca en el repo | Sin escritura ECW |
 | P14 | **URL de una autoridad de sello de tiempo (TSA)** y, si hay, sus credenciales | F14.5 (sello de tiempo opcional) | Una URL en el `.env` | Las firmas salen sin sello de tiempo: valen, pero la fecha es la que dice el firmante |
+| P15 | **Un vuelo de verdad con PPK**: RINEX del dron y de la base, el `.MRK` (o la lista de disparos) y unas fotos, fuera del repositorio, más la **coordenada conocida de la base y su sistema** | F18.3 y F18.4 | Archivos en OneDrive + la coordenada | F18.3 queda ⚠: se prueba todo menos la corrida real de RTKLIB |
+| P16 | **Permiso para bajar RTKLIB** (BSD-2) a esta estación y poder correr `rnx2rtkp` aquí | F18.3 | Un sí | La corrida real solo se mide en `p340` |
 | P10 | **Terminar F10.5** (Trimble bajo Wine) | F10.5 | Pasos de `HANDOFF.md` | Sigue abierta |
 
 ## Bloques
@@ -45,6 +47,7 @@ Estados: ✅ hecho · 🟨 en curso · ⬜ por hacer · ⏸ espera un pedido · 
 | **B8 · Geoespacial** | F15.1 a F15.8 | ⬜ | — | P5 · P6 · P7 |
 | **B9 · Plataforma** | F16.1 a F16.5 · F16.6 ✅ | ⬜ | — | B7 · B8 para los lotes |
 | **B11 · Poner en marcha lo apagado** | F17.1 a F17.4 (`docs/PUESTA_EN_MARCHA_DE_LO_APAGADO.md`) | ⬜ | — | P7 · P10 · P11 · P12 · P13 para lo que es de la persona |
+| **B12 · Vuelos de dron: PPK y sincronía** | F18.1 ✅ · F18.2 ✅ · F18.3 · F18.4 · F18.5 (`docs/VUELOS_DE_DRON_Y_PPK.md`) | 🟨 | — | P15 para la corrida real |
 | **B10 · Cierre y despliegue** | Versión (`0.11.0` al cerrar F13, `0.12.0` con las firmas), `HANDOFF.md` con los pasos de la VM, lista para desplegar | ⬜ | — | Todo lo anterior |
 
 **Orden de trabajo:** B1 → B2 → B3 → B4 → B5 (esto cierra F13 y la versión `0.11.0`); B6 con
