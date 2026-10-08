@@ -6,4 +6,5 @@ app_name = "engines"
 
 urlpatterns = [
     path("", views.matriz, name="matriz"),
+    path("equipo/", views.equipo, name="equipo"),
 ]
