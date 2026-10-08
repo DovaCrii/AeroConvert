@@ -551,7 +551,7 @@ instalar en la VM es de la persona (P7, P10, P12, P13); lo demás, de Claude.
 | F17.1 | **Office a PDF con LibreOffice**, opción rotulada «puede variar», sondeada y ejecutada aparte (D1) | PDFium cuenta páginas y halla el texto conocido de un documento de partida | Claude | ⚠ 2026-10-08 hecho y probado con un `soffice` de mentira (original y su carpeta intactos, perfil propio, limpieza); el oráculo con LibreOffice real (`test_libreoffice_de_verdad_convierte_un_docx`) corre en `p340` tras `instalar_faltantes.sh` |
 | F17.2 | **Leer catálogos `.accdb`/`.mdb` sin Access** con `mdbtools` | Las nueve tablas con su número de filas, contadas por `pyodbc` en la estación con Access | Claude | ⬜ |
 | F17.3 | **Pantalla «cómo dejar listo el equipo»**: el paso exacto por cada apagado y la sonda en vivo | Prueba de vista: cada motivo del catálogo trae su paso | Claude | ⬜ |
-| F17.4 | **`despliegue/instalar_faltantes.sh`**: instala por `apt` lo que no pide licencia (FFmpeg, Ghostscript, Inkscape, mdbtools, LibreOffice, `xvfb`) | `shellcheck` en el CI | Claude | ⬜ |
+| F17.4 | **`despliegue/instalar_faltantes.sh`**: instala por `apt` lo que no pide licencia (FFmpeg, Ghostscript, Inkscape, mdbtools, LibreOffice, `xvfb`) | `shellcheck` en el CI | Claude | ✅ 2026-10-08 (los doce paquetes existen en Ubuntu 24.04, comprobado con `--ver` en WSL; `shellcheck` en los tres gates; incluye `rtklib`, que cierra P16 en el servidor) |
 
 ## Fase 18 — Vuelos de dron: PPK y sincronía de fotos
 
