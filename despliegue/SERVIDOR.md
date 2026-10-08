@@ -381,3 +381,15 @@ reales:
   puntos**, medido. Mil millones de puntos piden unos 100 GB, que no es «una VM más grande»:
   no es ninguna VM. AeroConvert lo comprueba **antes** de empezar y lo rechaza con su motivo,
   en vez de dejar que el núcleo mate el proceso.
+
+## Programas externos sin licencia: un solo guion (F17.4)
+
+```bash
+cd /opt/aeroconvert && sudo despliegue/instalar_faltantes.sh --ver   # qué haría
+cd /opt/aeroconvert && sudo despliegue/instalar_faltantes.sh         # instala
+sudo systemctl restart aeroconvert aeroconvert-obrero
+```
+
+Instala Tesseract, RTKLIB (`rnx2rtkp`; con él no hace falta `AEROCONVERT_RTKLIB_RNX2RTKP`), `xvfb`,
+FFmpeg, Ghostscript, Inkscape, `mdbtools` y LibreOffice sin interfaz. Después, `/compatibilidad/`
+dice lo que se encendió. ODA, Trimble y ECW siguen siendo pasos suyos (piden licencia o registro).
