@@ -141,6 +141,18 @@ HERRAMIENTAS = (
         ),
     },
     {
+        "id": "fotos_dron",
+        "icono": "icon-foto-dron",
+        "sale": "un zip con una foto por cada una",
+        "familia": "transformar",
+        "url": "documents:fotos_dron",
+        "nombre": "Limpiar fotos de dron",
+        "que_hace": (
+            "Quita (o conserva) la posición de las fotos de un vuelo, saca dónde se tomó cada "
+            "una a un KMZ o un GeoJSON y las renombra por fecha o por orden de toma."
+        ),
+    },
+    {
         "id": "imagenes",
         "icono": "icon-imagen-a-pdf",
         "sale": "un PDF",

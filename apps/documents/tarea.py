@@ -402,6 +402,41 @@ def _imagenes_lote(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
         shutil.rmtree(carpeta, ignore_errors=True)
 
 
+def _fotos_dron(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
+    import shutil
+
+    from apps.documents import fotos_dron
+
+    carpeta = carpeta_de_piezas(parcial)
+    carpeta.mkdir(parents=True, exist_ok=True)
+    try:
+        hecho = fotos_dron.procesar(
+            [Path(e["ruta"]) for e in entradas],
+            carpeta,
+            gps=opciones.get("gps", "conservar"),
+            nombres=opciones.get("nombres", "igual"),
+            posiciones=opciones.get("posiciones", ""),
+            progreso=progreso,
+        )
+        quitar = opciones.get("gps") == "quitar"
+        piezas = [
+            {"nombre": f.salida, "con_posicion": f.tiene_posicion, "sin_gps": quitar}
+            for f in hecho.fotos
+        ]
+        archivos = [carpeta / f.salida for f in hecho.fotos]
+        if hecho.posiciones:
+            archivos.append(carpeta / hecho.posiciones)
+            piezas.append(
+                {"nombre": hecho.posiciones, "puntos": len(hecho.fotos) - hecho.sin_posicion}
+            )
+        resultado = _entregar_piezas(archivos, parcial, piezas, en_zip=True)
+        resultado["sin_posicion"] = hecho.sin_posicion
+        resultado["posiciones"] = hecho.posiciones
+        return resultado
+    finally:
+        shutil.rmtree(carpeta, ignore_errors=True)
+
+
 def _unir(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
     from apps.documents import composicion, receta
 
@@ -589,6 +624,7 @@ TAREAS = {
     "telemetria": _telemetria,
     "portada": _portada,
     "imagenes_lote": _imagenes_lote,
+    "fotos_dron": _fotos_dron,
     "unir": _unir,
     "organizar": _unir,
     "imagenes": _imagenes,

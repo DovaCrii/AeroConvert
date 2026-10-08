@@ -338,6 +338,14 @@ def _de_los_documentos() -> list[Accion]:
             "jej",
             "membrete",
         ),
+        "fotos_dron": (
+            "fotos del dron",
+            "quitar gps",
+            "quitar la posicion de las fotos",
+            "exif de fotos",
+            "posiciones de las fotos",
+            "fotos a kmz",
+        ),
         "imagenes_lote": (
             "heic a jpg",
             "webp a jpg",

@@ -98,6 +98,7 @@ ESPECIFICACIONES: dict[str, Especificacion] = {
     "organizar": Especificacion(),
     "imagenes": Especificacion(),
     "imagenes_lote": Especificacion(timeout_s=1800, emite_progreso=True),
+    "fotos_dron": Especificacion(timeout_s=1800, emite_progreso=True),
     # La contraseña llega por `secretos`, nunca por el encargo. Ver `plan()`.
     "proteger": Especificacion(con_secreto=True),
     # Los términos a tachar llegan por el mismo camino que la contraseña: son justo lo que se
@@ -541,6 +542,33 @@ def _comprobar_imagen(datos: bytes) -> None:
         imagen.verify()
 
 
+def _conserva_gps(datos: bytes) -> bool:
+    """Si Pillow (que no escribió esos bytes) todavía lee una posición, o queda el XMP del dron."""
+    from PIL import Image
+
+    with Image.open(io.BytesIO(datos)) as imagen:
+        gps = imagen.getexif().get_ifd(0x8825)
+    return bool(gps) or b"GpsLatitude" in datos
+
+
+def _problema_en_posiciones(nombre: str, datos: bytes, pieza: dict) -> str:
+    """El archivo de posiciones abre y trae tantas como se dijo. Vacío si está bien."""
+    import json
+    import re
+
+    esperadas = pieza.get("puntos")
+    if nombre.lower().endswith(".geojson"):
+        rasgos = json.loads(datos.decode("utf-8")).get("features", [])
+        cuantas = len(rasgos)
+    else:
+        with zipfile.ZipFile(io.BytesIO(datos)) as kmz:
+            kml = kmz.read("doc.kml").decode("utf-8")
+        cuantas = len(re.findall(r"<Placemark>", kml))
+    if not cuantas or (esperadas is not None and int(esperadas) != cuantas):
+        return f"{nombre} debía traer {esperadas} posición(es) y trae {cuantas}."
+    return ""
+
+
 def _verificar_zip(parcial: Path, detalles: dict) -> Verificacion:
     """Cada pieza, abierta por separado. Un zip íntegro con un PDF roto dentro sigue roto."""
     try:
@@ -579,10 +607,21 @@ def _verificar_zip(parcial: Path, detalles: dict) -> Verificacion:
                             f"{nombre} debía tener {pedidas} página(s) y tiene {paginas}.",
                             "salida-invalida",
                         )
+                elif nombre.lower().endswith((".geojson", ".kmz")):
+                    problema = _problema_en_posiciones(nombre, datos, esperadas.get(nombre) or {})
+                    if problema:
+                        return Verificacion(False, problema, "salida-invalida")
+                    lectores.add("JSON y KML")
                 else:
                     _comprobar_imagen(datos)
                     lectores.add("Pillow")
                     pieza = esperadas.get(nombre) or {}
+                    if pieza.get("sin_gps") and _conserva_gps(datos):
+                        return Verificacion(
+                            False,
+                            f"{nombre} debía salir sin posición y todavía la trae.",
+                            "salida-invalida",
+                        )
                     if pieza.get("ancho"):
                         veredicto = _comparar_con_lo_dicho(nombre, datos, pieza)
                         if veredicto is not None:
