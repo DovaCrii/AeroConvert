@@ -214,6 +214,11 @@ def estado_de_herramientas() -> list[dict]:
             fila["disponible"] = bool(office)
             fila["motivo"] = office.motivo
             fila["sugerencia"] = office.sugerencia
+            # Sin Office, «Office a PDF» se puede con LibreOffice, **dicho**: el PDF puede variar
+            # y la pantalla pide aceptarlo (F17.1). «PDF a Word» sigue siendo solo de Word.
+            if not office and herramienta.get("id") == "office" and office_mod.sondar_libreoffice():
+                fila["disponible"] = True
+                fila["variante"] = "con LibreOffice: el PDF puede variar"
         elif herramienta.get("exige_access"):
             fila["disponible"] = bool(access)
             fila["motivo"] = access.motivo

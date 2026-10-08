@@ -4,7 +4,7 @@
 
 {% block contenido %}
 
-{% if not office %}
+{% if not office and not libreoffice %}
   {% comment %}
     Sin Office no se oculta la pantalla: se explica. Y se dice **por qué es a propósito** que
     dependa de él, porque si no parece una limitación tonta.
@@ -13,7 +13,30 @@
     <div class="eyebrow">Ahora mismo no se puede</div>
     <h2 class="av-fs-md">{{ office.motivo }}</h2>
     <p class="tenue av-mt-2 av-mb-0">{{ office.sugerencia }}</p>
+    <p class="tenue av-mt-2 av-mb-0">
+      En un servidor Linux hay una alternativa: LibreOffice, con un PDF que puede variar respecto del
+      original. Se instala con <code>sudo despliegue/instalar_faltantes.sh</code>.
+    </p>
   </div>
+{% elif not office %}
+<form id="forma-documento" method="post" enctype="multipart/form-data">
+  {% csrf_token %}
+  <div class="tarjeta" role="note">
+    <div class="eyebrow">Sin Office: con LibreOffice</div>
+    <p class="aviso av-mb-2">
+      Este equipo no tiene Microsoft Office. LibreOffice puede pasarlo a PDF, pero
+      <strong>con sus propias fuentes y su propio motor de páginas</strong>: las tablas pueden
+      descuadrarse y los saltos de página correrse. Para un entregable que lleva firma, conviértalo
+      en una estación con Office.
+    </p>
+    <label class="opcion">
+      <input type="checkbox" name="con_libreoffice" value="si" required>
+      <span><strong>Acepto que el PDF puede variar respecto del original</strong></span>
+    </label>
+  </div>
+
+  {% include "documents/_origen.html" with pregunta="¿Cuál hay que pasar a PDF?" accion="convertir" boton="Pasar a PDF con LibreOffice" acepta=".doc,.docx,.odt,.rtf,.xls,.xlsx,.ods,.ppt,.pptx,.odp" %}
+</form>
 {% else %}
 
 {% comment %}

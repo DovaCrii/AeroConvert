@@ -703,3 +703,22 @@ una segunda lectura de GDAL: la curva de cota `L` tiene que ser una circunferenc
 - Un intervalo de 5 000 m (mayor que el desnivel) **no deja un entregable vacío**: el trabajo falla.
 - **No medido:** DWG (espera a ODA, F15.8); un DEM real de la faena; rendimiento con un modelo de varios
   gigabytes.
+
+## Pendiente de correr en `p340`: «Office a PDF» con LibreOffice (F17.1)
+
+En la estación no hay LibreOffice, así que lo comprobado aquí es el pegamento, con un `soffice` de
+mentira que hace lo mismo que el de verdad (escribe `<outdir>/<nombre>.pdf` y deja un `.~lock` junto
+al documento que abre): el original y su carpeta quedan intactos, el PDF llega al parcial, la carpeta
+de trabajo se borra siempre, el recibo dice «con LibreOffice».
+
+**Procedimiento en `p340`**, tras `sudo despliegue/instalar_faltantes.sh`:
+
+```bash
+cd /opt/aeroconvert && sudo -u aeroconvert .venv/bin/python -m pytest -q -m oraculo \
+    apps/documents/test_libreoffice.py
+```
+
+La prueba arma un `.docx` con la frase «Frase de control 4711 para el oráculo», lo convierte con el
+LibreOffice instalado y **PDFium** (otro lector) cuenta las páginas y busca la frase. Anotar aquí la
+fecha, la versión de LibreOffice y el tiempo.
+

@@ -26,19 +26,26 @@ def office_vista(request):
     sin abrirlo, y abrirlo ya es la conversión.
     """
     office = office_mod.sondar()
+    # Sin Office, LibreOffice se **ofrece**, no se pone en su lugar: hay que aceptarlo (F17.1).
+    libre = "" if office else office_mod.sondar_libreoffice()
     contexto = {
         "seccion": "pdf",
         "etiqueta_seccion": "PDF",
         "titulo_pagina": "Office a PDF",
         "proposito": (
             "Lo convierte el Office del equipo, así que el PDF sale idéntico al original."
+            if office
+            else "Aquí no hay Office. Con LibreOffice se puede, sabiendo que el PDF puede variar."
+            if libre
+            else "Lo convierte el Office del equipo, y aquí no hay."
         ),
         "office": office,
+        "libreoffice": bool(libre),
         "ruta_texto": (request.GET.get("ruta") or "").strip(),
         "ajustar_ancho": True,
     }
 
-    if request.method != "POST" or not office:
+    if request.method != "POST" or not (office or libre):
         return render(request, "documents/office.html", contexto)
 
     contexto["ajustar_ancho"] = request.POST.get("ajustar_ancho") == "si"
@@ -58,17 +65,22 @@ def office_vista(request):
     except ComposicionInvalida as fallo:
         messages.error(request, str(fallo))
         return render(request, "documents/office.html", contexto)
-    if not office.tiene(programa):
+    if libre:
+        if request.POST.get("con_libreoffice") != "si":
+            messages.error(
+                request,
+                "Aquí no hay Office. Para convertir con LibreOffice, marque que acepta que el PDF "
+                "puede variar respecto del original.",
+            )
+            return render(request, "documents/office.html", contexto)
+        opciones = {"con_libreoffice": True}
+    elif not office.tiene(programa):
         messages.error(request, f"{office_mod.NOMBRES[programa]} no está instalado en este equipo.")
         return render(request, "documents/office.html", contexto)
+    else:
+        opciones = {"ajustar_ancho": contexto["ajustar_ancho"]}
 
-    return cola_mod.encolar(
-        request,
-        "office",
-        [origen],
-        {"ajustar_ancho": contexto["ajustar_ancho"]},
-        sufijo=".pdf",
-    )
+    return cola_mod.encolar(request, "office", [origen], opciones, sufijo=".pdf")
 
 
 @login_required

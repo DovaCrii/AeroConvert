@@ -5,6 +5,12 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Sin publicar]
 
+### Añadido — «Office a PDF» con LibreOffice cuando no hay Office (F17.1)
+
+- En el servidor no hay Office. Si hay LibreOffice, la pantalla **lo ofrece, no lo pone en su lugar**: hay que marcar «Acepto que el PDF puede variar respecto del original» (fuentes, tablas, saltos de página). Sin esa marca no se encola nada, y el motor tampoco sustituye por su cuenta. «PDF a Word» sigue siendo solo de Word.
+- El hijo (`libreoffice_hijo.py`) convierte **una copia** en una carpeta propia: LibreOffice deja un archivo de bloqueo junto al documento que abre, y así ni el original ni su carpeta se tocan. Perfil propio por trabajo (dos a la vez no se pisan), tope de tiempo, y la carpeta de trabajo se borra siempre; si el hijo muere, la borra el corredor. Que salga con código 0 no basta: tiene que existir un PDF no vacío.
+- `AEROCONVERT_LIBREOFFICE` (opcional; si no, `soffice` en el `PATH`). Se instala con `instalar_faltantes.sh`. **Sin comprobar aquí con LibreOffice real** (no está en la estación): el oráculo, PDFium hallando una frase de control, corre en `p340`.
+
 
 ### Corregido — Brechas encontradas al revisar lo pendiente (2026-10-08)
 

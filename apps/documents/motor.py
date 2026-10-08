@@ -188,8 +188,13 @@ def borrar_auxiliares(job) -> None:
 # --- Disponibilidad, plan y verificación --------------------------------------
 
 
-def disponibilidad(herramienta: str) -> Disponibilidad:
-    """Si esta máquina puede ejecutarla **ahora**. Lo mira el padre, que sí tiene Django."""
+def disponibilidad(herramienta: str, opciones: dict | None = None) -> Disponibilidad:
+    """Si esta máquina puede ejecutarla **ahora**, y con qué. Lo mira el padre, que sí tiene Django.
+
+    `opciones` son las del trabajo: «Office a PDF» con LibreOffice solo cuenta si el trabajo lo
+    pidió (`con_libreoffice`). Así el recibo dice con qué se convirtió de verdad, y una vía que no
+    puede aceptar la advertencia (un lote, la API) ve la herramienta apagada en vez de fallar tarde.
+    """
     espec = ESPECIFICACIONES.get(herramienta)
     if espec is None:
         return Disponibilidad.no("sin-motor", f"«{herramienta}» no se ejecuta desde la cola.")
@@ -204,11 +209,23 @@ def disponibilidad(herramienta: str) -> Disponibilidad:
         "access": (catalogos.sondar, "sin-access"),
         "tesseract": (ocr.sondar, "sin-tesseract"),
     }
+    if herramienta == "office" and (opciones or {}).get("con_libreoffice"):
+        if office.sondar_libreoffice():
+            return Disponibilidad.si(ROTULO_LIBREOFFICE)
+        return Disponibilidad.no(
+            "sin-office",
+            "Se pidió convertir con LibreOffice y en esta máquina ya no está.",
+            sugerencia="sudo despliegue/instalar_faltantes.sh",
+        )
     sondar, codigo = sondas[espec.exige]
     estado = sondar()
     if not estado:
         return Disponibilidad.no(codigo, estado.motivo, sugerencia=estado.sugerencia)
     return Disponibilidad.si(f"documentos:{herramienta}")
+
+
+#: Lo que queda en el recibo (`engine_version`) cuando se convirtió con LibreOffice.
+ROTULO_LIBREOFFICE = "documentos:office con LibreOffice (el PDF puede variar respecto del original)"
 
 
 _PROGRESO = re.compile(r"^PROGRESO\s+([0-9.]+)(?:\s+(.+?))?\s*$")
@@ -314,6 +331,10 @@ def _plan_de_office(job, espec, entrada: dict, destino, parcial, entorno) -> Pla
     origen = Path(entrada["ruta"])
     if job.herramienta == "a_word":
         argv = office.plan(origen, parcial, office.PDF_A_WORD)
+    elif (job.options or {}).get("con_libreoffice"):
+        # La disponibilidad ya se comprobó con estas opciones (`disponibilidad`): aquí está.
+        office.programa_de(origen)  # valida la extensión: la misma lista que con Office
+        argv = office.plan_libreoffice(origen, parcial, office.sondar_libreoffice())
     else:
         argv = office.plan(
             origen,
