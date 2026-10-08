@@ -5,6 +5,14 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Sin publicar]
 
+### Interno — agentes, skills y un hook para no repetir los fallos de esta tanda
+
+- **Puerta rápida con `bandit`** (`verificar.py rapido`) y un **hook `PreToolUse`** que la corre antes de cada `git push` y lo bloquea si falla (`scripts/claude/antes_de_push.py`): el CI había cazado dos veces lo que el gate local habría visto en segundos.
+- **`scripts/claude/fusionar_main.py`**: fusiona `main` y resuelve solo los choques de «los dos añadieron» (dos herramientas nuevas en el mismo registro), **validando** con `ast` (sin claves repetidas) y XML; lo que no sabe resolver, y las tablas de estado de `MASTER_PLAN.md` y `SEGUIMIENTO.md`, lo deja con sus marcas.
+- **Skill `/nueva-herramienta`** y una prueba (`test_herramientas_completas.py`) que recorre las piezas de cada herramienta de documentos: campos, icono, grupo, cola, tarea, pantalla con y sin sesión y prueba de su pantalla.
+- **Agentes del proyecto** en `.claude/agents/`: `revisor-de-reglas` (solo lectura, contra las cinco reglas de `AGENTS.md`) y `fusionador-de-pr` (solo `gh`: espera el CI y fusiona en verde).
+- `/avanzar` y `/abrir-pr` recogen lo aprendido: bandit antes de subir, reintento cuando GitHub falla al fusionar, y subir de uno en uno los PR que añaden herramientas.
+
 ### Añadido — la portada de J.E.J. desde sus plantillas Word (F14.19)
 
 - **«Portada de J.E.J.»**: rellena las dos plantillas de la empresa —«Portada Documentos» (código `JEJ-…`, título del procedimiento y autor) y «Portada Ofertas y Planes Licitaciones» (servicio y plan)— y entrega un `.docx` con el logotipo y el diseño intactos. El PDF es un clic más: «Seguir con este archivo» → «Office a PDF».

@@ -9,7 +9,7 @@ las líneas que dicen qué falló y el final de la salida. La puerta real sigue 
 Uso:
     uv run python scripts/claude/verificar.py [rapido|pruebas|todo] [RUTA ...] [--seguir]
 
-    rapido   check, makemigrations, ruff check y ruff format (segundos; sin pytest)
+    rapido   check, makemigrations, ruff check, ruff format y bandit (segundos; sin pytest)
     pruebas  solo pytest, sin cobertura, sobre las RUTA dadas (o todo si no hay ninguna)
     todo     los mismos pasos que el CI, en su orden (por omisión)
 
@@ -115,7 +115,8 @@ def pasos(modo: str, rutas: list[str], sin_red: bool) -> list[dict]:
     audit = {"id": "audit", "nombre": "pip-audit", "cmd": [*uv, "pip-audit"]}
 
     if modo == "rapido":
-        return [check, migr, ruff, fmt]
+        # bandit entra: el CI lo cazó dos veces tras un push que lo habría visto en segundos.
+        return [check, migr, ruff, fmt, bandit]
     if modo == "pruebas":
         return [
             {
