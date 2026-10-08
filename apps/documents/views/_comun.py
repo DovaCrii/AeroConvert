@@ -206,6 +206,10 @@ def estado_de_herramientas() -> list[dict]:
     tesseract = ocr_mod.sondar()
     # Las plantillas de portada de la empresa: archivos fuera del repositorio.
     plantillas = portadas_mod.sondar()
+    # FFmpeg, para el video: programa aparte, sondeado (D1).
+    from .. import video as video_mod
+
+    ffmpeg = video_mod.sondar()
 
     estado = []
     for herramienta in HERRAMIENTAS:
@@ -219,6 +223,10 @@ def estado_de_herramientas() -> list[dict]:
             if not office and herramienta.get("id") == "office" and office_mod.sondar_libreoffice():
                 fila["disponible"] = True
                 fila["variante"] = "con LibreOffice: el PDF puede variar"
+        elif herramienta.get("exige_ffmpeg"):
+            fila["disponible"] = bool(ffmpeg)
+            fila["motivo"] = ffmpeg.motivo
+            fila["sugerencia"] = ffmpeg.sugerencia
         elif herramienta.get("exige_access"):
             fila["disponible"] = bool(access)
             fila["motivo"] = access.motivo

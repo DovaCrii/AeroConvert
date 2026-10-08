@@ -114,6 +114,8 @@ ESPECIFICACIONES: dict[str, Especificacion] = {
     # Al pesado: quinientas páginas son unos cuarenta minutos. El plazo crece con ellas; ver
     # `ocr.plazo_s`, que es quien sabe cuánto tarda una.
     "ocr": Especificacion(carril=PESADO, emite_progreso=True, exige="tesseract"),
+    # Un video de veinte minutos recodificado tarda: carril pesado y una hora de plazo.
+    "video": Especificacion(carril=PESADO, timeout_s=3600, emite_progreso=True, exige="ffmpeg"),
     # Office ya se ejecuta en un proceso aparte —pwsh hablando COM—, así que el hijo es ese
     # y no `tarea.py`. Ver `plan()`. Cinco minutos: un informe de doscientas páginas con
     # imágenes tarda de verdad, y más que eso es Word esperando una respuesta que no llegará.
@@ -201,13 +203,14 @@ def disponibilidad(herramienta: str, opciones: dict | None = None) -> Disponibil
     if not espec.exige:
         return Disponibilidad.si(f"documentos:{herramienta}")
 
-    from . import catalogos, ocr, office, portadas
+    from . import catalogos, ocr, office, portadas, video
 
     sondas = {
         "plantillas": (portadas.sondar, "sin-plantillas"),
         "office": (office.sondar, "sin-office"),
         "access": (catalogos.sondar, "sin-access"),
         "tesseract": (ocr.sondar, "sin-tesseract"),
+        "ffmpeg": (video.sondar, "sin-ffmpeg"),
     }
     if herramienta == "office" and (opciones or {}).get("con_libreoffice"):
         if office.sondar_libreoffice():
@@ -280,6 +283,13 @@ def plan(job) -> PlanDeEjecucion:
         # sonda guarda en la caché de Django. Así que se le da la ruta hecha.
         entorno[VARIABLE_TESSERACT] = ocr.sondar().programa
         plazo_s = ocr.plazo_s(_paginas_del_trabajo(job, entradas))
+    if espec.exige == "ffmpeg":
+        from . import video
+        from .tarea import VARIABLE_FFMPEG, VARIABLE_FFPROBE
+
+        estado = video.sondar()
+        entorno[VARIABLE_FFMPEG] = estado.ffmpeg
+        entorno[VARIABLE_FFPROBE] = estado.ffprobe
     if espec.exige == "access":
         from . import catalogos
         from .tarea import VARIABLE_ACCESS
@@ -395,6 +405,8 @@ def verificar(parcial: Path, informe: dict, plan: PlanDeEjecucion | None = None)
             # PDFium acaba de abrirlo sin contraseña, que es justo lo que se pidió.
             veredicto.detalles["cifrado"] = "ninguno"
         return veredicto
+    if extension == ".mp4":
+        return _verificar_video(parcial, detalles)
     if extension == ".zip":
         return _verificar_zip(parcial, detalles)
     if extension in _PARTE_PRINCIPAL:
@@ -747,6 +759,44 @@ def _problema_en_posiciones(nombre: str, datos: bytes, pieza: dict) -> str:
     if not cuantas or (esperadas is not None and int(esperadas) != cuantas):
         return f"{nombre} debía traer {esperadas} posición(es) y trae {cuantas}."
     return ""
+
+
+def _verificar_video(parcial: Path, detalles: dict) -> Verificacion:
+    """Lo mira **ffprobe**: que sea video, H.264 si se recodificó, sin audio si se quitó, y con la
+    duración del tramo si se recortó (±1 s, lo que separa dos fotogramas clave)."""
+    from . import video
+    from .composicion import ComposicionInvalida
+
+    sonda = video.sondar()
+    if not sonda:
+        return Verificacion(False, "No hay ffprobe para comprobar el video.", "sin-ffmpeg")
+    try:
+        ficha = video.probar(sonda.ffprobe, parcial)
+    except ComposicionInvalida as fallo:
+        return Verificacion(False, str(fallo), "salida-invalida")
+    detalles.update(
+        duracion_s=round(ficha.duracion_s, 2),
+        codec=ficha.codec,
+        ancho=ficha.ancho,
+        alto=ficha.alto,
+        con_audio=ficha.con_audio,
+        verificado_con="ffprobe",
+    )
+    operacion = detalles.get("operacion")
+    if ficha.duracion_s <= 0 or not ficha.ancho:
+        return Verificacion(False, "El video salió sin duración o sin imagen.", "salida-invalida")
+    if operacion in ("comprimir", "a_mp4", "recortar") and ficha.codec != "h264":
+        return Verificacion(False, f"Se pidió H.264 y salió {ficha.codec}.", "salida-invalida")
+    if operacion == "sin_audio" and ficha.con_audio:
+        return Verificacion(False, "Se pidió sin audio y todavía lo tiene.", "salida-invalida")
+    esperada = detalles.get("duracion_esperada_s")
+    if esperada and abs(ficha.duracion_s - float(esperada)) > 1.0:
+        return Verificacion(
+            False,
+            f"El tramo debía durar {esperada} s y dura {ficha.duracion_s:.1f} s.",
+            "salida-invalida",
+        )
+    return Verificacion(True, detalles=detalles)
 
 
 def _verificar_zip(parcial: Path, detalles: dict) -> Verificacion:

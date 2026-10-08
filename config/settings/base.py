@@ -130,6 +130,9 @@ TSA_URL = config("AEROCONVERT_TSA_URL", default="")
 
 # LibreOffice para «Office a PDF» sin Office (F17.1). Vacío: `soffice` en el PATH.
 LIBREOFFICE = config("AEROCONVERT_LIBREOFFICE", default="")
+
+# Video (F14.17): la ruta de ffmpeg; ffprobe tiene que estar al lado. Vacío: el PATH.
+FFMPEG = config("AEROCONVERT_FFMPEG", default="")
 # Donde vive el prefijo de Wine. Hace falta fuera de `$HOME`: el servicio corre con
 # `ProtectHome=yes`, asi que el `~/.wine` por omision no se puede ni crear.
 WINEPREFIX = config("AEROCONVERT_WINEPREFIX", default="")

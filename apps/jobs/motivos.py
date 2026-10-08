@@ -175,6 +175,11 @@ MOTIVOS: dict[str, Motivo] = dict(
             "AEROCONVERT_PLANTILLAS_JEJ.",
         ),
         _m(
+            "sin-ffmpeg",
+            "Esta máquina no tiene FFmpeg (o le falta ffprobe), que es lo que trabaja el video.",
+            "sudo despliegue/instalar_faltantes.sh",
+        ),
+        _m(
             "sin-tesseract",
             "Esta máquina no tiene Tesseract, que es lo que reconoce el texto.",
             "sudo apt install tesseract-ocr tesseract-ocr-spa",

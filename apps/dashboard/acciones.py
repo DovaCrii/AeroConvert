@@ -402,6 +402,16 @@ def _de_los_documentos() -> list[Accion]:
             "copiar el texto",
             "seleccionar texto",
         ),
+        "video": (
+            "video",
+            "fotogramas",
+            "frames",
+            "sacar fotos de un video",
+            "comprimir video",
+            "recortar video",
+            "quitar el audio",
+            "mp4",
+        ),
         # Texto y tablas. «md» y «markdown» en todas, porque quien busca escribe una u otra.
         "md_excel": ("md", "markdown", "xlsx", "hoja de calculo", "tabla", "pegar en un correo"),
         "md_csv": ("md", "markdown", "tabla", "separado por comas", "punto y coma"),
@@ -508,6 +518,8 @@ HERRAMIENTAS_POR_EXTENSION = {
     ".dxf": ("dxf_lamina",),
     ".mdb": ("catalogo_excel",),
     ".accdb": ("catalogo_excel",),
+    ".mp4": ("video",),
+    ".mov": ("video",),
 }
 
 
