@@ -147,6 +147,17 @@ class TestElComando:
         plan = motores.MotorCadPorOda().plan(_trabajo(plano, tmp_path, "gpkg"))
         assert plan.timeout_s > 1800
 
+    def test_la_ruta_de_oda_del_env_llega_al_hijo(self, plano, tmp_path, settings):
+        """El hijo no tiene Django y busca ODA en su entorno; `python-decouple` no copia el `.env`
+        a `os.environ` y el servicio no tiene `EnvironmentFile`. Sin pasarla, ODA configurado no
+        se encontraba en el servidor."""
+        settings.ODA_CONVERTER = "/opt/oda/ODAFileConverter"
+        plan = motores.MotorCadPorOda().plan(_trabajo(plano, tmp_path, "gpkg"))
+        assert plan.env["AEROCONVERT_ODA_CONVERTER"] == "/opt/oda/ODAFileConverter"
+        settings.ODA_CONVERTER = ""
+        plan = motores.MotorCadPorOda().plan(_trabajo(plano, tmp_path, "gpkg"))
+        assert "AEROCONVERT_ODA_CONVERTER" not in plan.env
+
 
 class TestLaDisponibilidad:
     def test_sin_conversor_dice_cual_falta_y_ofrece_la_salida(self, settings, monkeypatch):

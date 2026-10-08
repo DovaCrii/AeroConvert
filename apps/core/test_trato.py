@@ -36,14 +36,18 @@ SOLO_DE_TU = (
     "eliges quieres puedes sabes tienes crees necesitas estabas querías "
     "equivocaste indicaste olvidaste dejaste elegiste pegaste subiste hiciste "
     "verás harás podrás tendrás "
-    "díselo elígelo ábrelo guárdalo quítasela súbelo ponle dímelo"
+    "díselo elígelo ábrelo guárdalo quítasela súbelo ponle dímelo "
+    # Se colaron en Preajustes y en la pantalla de convertir (2026-10-08): enclíticos de tú y la
+    # segunda persona de «haber».
+    "cámbialo cámbiala cópialo cópialos instálalo compruébalo bórralo marcaste escribiste"
 ).split()
 
 #: Imperativos de tú, **solo si abren una frase** o un título. «Pega» y «Mira» en medio de una
 #: frase pueden ser tercera persona («lo mira y escribe»).
 IMPERATIVOS = (
     "Elige Mira Pincha Suelta Arrastra Prueba Vuelve Pulsa Haz Dime Revisa Indica Pega "
-    "Ponle Abre Sube Escribe Usa Elígelo Ábrelo Pásalo"
+    "Ponle Abre Sube Escribe Usa Elígelo Ábrelo Pásalo "
+    "Copia Corre Deja Cambia Instala Comprueba Borra Has"
 ).split()
 
 #: Módulos cuyas cadenas **no son para una persona**. `apps/tino/fuera.py` es la instrucción que se
@@ -59,7 +63,12 @@ _INICIO = re.compile(
 # Imperativos de tú que se confunden con la tercera persona de los `que_hace` («Abre en cualquier
 # puesto»): ahí el sujeto es la herramienta, no la persona. Solo se marcan los que NO son de ese
 # estilo; los que sí lo son se vigilan con la lista de palabras de arriba.
-_AMBIGUOS_DE_TERCERA = {"Abre", "Sube", "Escribe", "Usa", "Pega", "Revisa", "Indica"}
+_AMBIGUOS_DE_TERCERA = {
+    "Abre", "Sube", "Escribe", "Usa", "Pega", "Revisa", "Indica",
+    # «Copia la base de datos», «Borra salidas caducadas», «Corre en segundo plano»: el `help` de
+    # una orden habla de la orden. Sus enclíticos («cópialo», «bórralo») sí se vigilan.
+    "Copia", "Borra", "Corre",
+}  # fmt: skip
 
 
 def _hallazgos(texto: str) -> list[str]:
@@ -86,11 +95,23 @@ def _conservando_lineas(patron: re.Pattern[str], texto: str) -> str:
     return patron.sub(lambda m: "\n" * m.group(0).count("\n"), texto)
 
 
+#: Un texto literal que se le pasa a un `{% include … with titulo="…" %}` **se pinta**: quitar la
+#: etiqueta entera lo escondía, y así se coló «Tuyos» como título de una tarjeta.
+_LITERAL_EN_INCLUDE = re.compile(r'\b\w+="([^"{}%]+)"')
+
+
+def _literales_de_include(etiqueta: str) -> str:
+    if not etiqueta.lstrip("{% ").startswith("include"):
+        return "\n" * etiqueta.count("\n")
+    textos = ". ".join(_LITERAL_EN_INCLUDE.findall(etiqueta))
+    return textos + "\n" * etiqueta.count("\n")
+
+
 def _visible(plantilla: str) -> str:
     texto = plantilla
     for patron in (_COMENTARIO_DJANGO, _COMENTARIO_LINEA, _COMENTARIO_HTML, _GUION_O_ESTILO):
         texto = _conservando_lineas(patron, texto)
-    return _conservando_lineas(_ETIQUETA_DJANGO, texto)
+    return _ETIQUETA_DJANGO.sub(lambda m: _literales_de_include(m.group(0)), texto)
 
 
 def _plantillas() -> list[Path]:
@@ -225,6 +246,8 @@ class TestElDetector:
             "si no quieres",
             "Pincha para entrar",
             "te la da",
+            "Copia uno de fábrica y cámbialo.",
+            "Has marcado coordenadas locales",
         ):
             assert _hallazgos(frase), frase
 
@@ -245,6 +268,11 @@ class TestElDetector:
         assert _hallazgos("Mire dentro del archivo") == []
         assert _hallazgos("Mira dentro del archivo") == ["Mira"]
         assert _hallazgos("El motor lo mira dos veces") == []
+
+    def test_mira_el_texto_que_se_le_pasa_a_un_include(self):
+        plantilla = '{% include "x.html" with titulo="Tuyos" ayuda="Elige el archivo" %}'
+        hallados = [h for _, linea in _lineas_de(_visible(plantilla)) for h in _hallazgos(linea)]
+        assert "Tuyos" in hallados and "Elige" in hallados
 
     def test_no_mira_los_comentarios_de_las_plantillas(self):
         plantilla = "{% comment %}Elige tu equipo{% endcomment %}\n<p>Elija su equipo</p>"

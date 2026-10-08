@@ -551,7 +551,7 @@ class TestMarcaDeAgua:
             {"ruta": str(plano), "accion": "marcar", "texto": "   "},
             follow=True,
         ).content.decode()
-        assert "No escribiste" in cuerpo
+        assert "Falta el texto" in cuerpo
         assert not (tmp_path / "plano_marcado.pdf").exists()
         assert list(tmp_path.glob("*parcial*")) == []
 

@@ -82,13 +82,13 @@ def borrar(request, slug):
     sin que se enterase, que es peor.
 
     La búsqueda va contra `visibles_para` y no contra los propios a secas para que el intento
-    de borrar uno de fábrica siga contestando lo que explica —«cópialos y cambia la copia»—
+    de borrar uno de fábrica siga contestando lo que explica —«cópielos y cambie la copia»—
     en vez de un 404 que no enseña nada.
     """
     preajuste = get_object_or_404(ConversionPreset.visibles_para(request.user), slug=slug)
     if preajuste.de_fabrica:
         messages.error(
-            request, "Los preajustes de fábrica no se borran; cópialos y cambia la copia."
+            request, "Los preajustes de fábrica no se borran; cópielos y cambie la copia."
         )
         return redirect("presets:lista")
     nombre = preajuste.nombre

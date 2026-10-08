@@ -819,8 +819,8 @@ def _crs_del_trabajo(request, inspeccion):
     if request.POST.get("crs_local") == "si":
         if declarado:
             raise ValueError(
-                "Has marcado coordenadas locales y además has escrito un EPSG. "
-                "Es una cosa o la otra: deja solo la que sea cierta."
+                "Marcó coordenadas locales y además escribió un EPSG. "
+                "Es una cosa o la otra: deje solo la que sea cierta."
             )
         if inspeccion.familia != catalogo.NUBE:
             raise ValueError("Las coordenadas locales solo se admiten en nubes de puntos.")
