@@ -127,6 +127,9 @@ RTKLIB_RNX2RTKP = config("AEROCONVERT_RTKLIB_RNX2RTKP", default="")
 # se las pasa al hijo (`documents/motor.py`).
 RAICES_DE_CONFIANZA = config("AEROCONVERT_RAICES_DE_CONFIANZA", default="")
 TSA_URL = config("AEROCONVERT_TSA_URL", default="")
+
+# LibreOffice para «Office a PDF» sin Office (F17.1). Vacío: `soffice` en el PATH.
+LIBREOFFICE = config("AEROCONVERT_LIBREOFFICE", default="")
 # Donde vive el prefijo de Wine. Hace falta fuera de `$HOME`: el servicio corre con
 # `ProtectHome=yes`, asi que el `~/.wine` por omision no se puede ni crear.
 WINEPREFIX = config("AEROCONVERT_WINEPREFIX", default="")
