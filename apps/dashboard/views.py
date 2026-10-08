@@ -6,6 +6,7 @@ Ahora se llama por lo que hace, y el nombre interno va con el visible: tenerlos 
 obliga a traducir mentalmente cada vez que se lee un error.
 """
 
+import re
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -529,11 +530,16 @@ def explorar(request):
     if not actual.is_dir():
         return render(request, "dashboard/_explorador.html", {"error": "Eso no es una carpeta."})
 
-    carpetas, archivos = _listar(actual)
+    extensiones = _extensiones_pedidas(request.GET.get("ext") or "")
+    carpetas, archivos = _listar(actual, extensiones)
     return render(
         request,
         "dashboard/_explorador.html",
         {
+            # Los dos viajan en cada enlace del fragmento, para que entrar en una carpeta no
+            # pierda el filtro ni el «usar esta carpeta».
+            "ext": ",".join(sorted(extensiones)),
+            "elegir_carpeta": request.GET.get("carpeta") == "1",
             "actual": str(actual),
             "migas": _migas(actual, raices),
             "carpetas": carpetas,
@@ -549,14 +555,32 @@ def explorar(request):
 TOPE_DE_ENTRADAS = 300
 
 
-def _listar(carpeta: Path):
+def _extensiones_pedidas(crudo: str) -> frozenset[str]:
+    """Las extensiones que una pantalla pide listar (`.mrk,.csv`). Solo letras y cifras.
+
+    Una pantalla cuyo archivo no está entre los formatos geoespaciales —el `.MRK` de un dron, las
+    fotos— dice cuáles quiere ver. Se limpia lo que llega: es un parámetro de la dirección.
+    """
+    limpias = set()
+    for trozo in crudo.split(",")[:12]:
+        trozo = trozo.strip().lower()
+        if re.fullmatch(r"\.[a-z0-9]{1,8}", trozo):
+            limpias.add(trozo)
+    return frozenset(limpias)
+
+
+def _listar(carpeta: Path, extensiones: frozenset[str] = frozenset()):
     """Las subcarpetas y los archivos que la aplicación sabe abrir.
 
     Lo que no reconoce **no se lista**: un `.docx` o un `.zip` en medio de la obra solo son
     ruido cuando lo que se busca es la ortofoto. La extensión aquí es un filtro para mirar,
     no un veredicto — el veredicto lo sigue dando la inspección, que abre el archivo.
+
+    Con `extensiones`, la pantalla dice qué quiere ver y se lista **eso** (y no lo demás).
     """
-    conocidas = {e.lower() for f in catalogo.FORMATOS.values() for e in f.extensiones}
+    conocidas = extensiones or {
+        e.lower() for f in catalogo.FORMATOS.values() for e in f.extensiones
+    }
     carpetas, archivos = [], []
     try:
         entradas = sorted(carpeta.iterdir(), key=lambda p: (not p.is_dir(), p.name.lower()))

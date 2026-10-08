@@ -138,6 +138,68 @@ class TestExplorarLaCarpetaCompartida:
         assert client.get(reverse("dashboard:explorar")).status_code == 302
 
 
+class TestExplorarConFiltroYCarpeta:
+    """Una pantalla cuyo archivo no es un formato geoespacial (el `.MRK` de un dron, las fotos)
+    dice qué quiere ver, y puede pedir **una carpeta entera**."""
+
+    def _con(self, entrada):
+        carpeta = entrada / "CC716"
+        (carpeta / "vuelo_Timestamp.MRK").write_text("1\t1\t[2399]\n", encoding="utf-8")
+        return carpeta
+
+    def test_con_ext_se_listan_esas_y_no_las_demas(self, client, ana, entrada):
+        carpeta = self._con(entrada)
+        client.force_login(ana)
+        cuerpo = client.get(
+            reverse("dashboard:explorar"), {"en": str(carpeta), "ext": ".mrk"}
+        ).content.decode()
+        assert "vuelo_Timestamp.MRK" in cuerpo and "ortofoto.png" not in cuerpo
+
+    def test_sin_ext_el_mrk_no_se_lista_como_antes(self, client, ana, entrada):
+        carpeta = self._con(entrada)
+        client.force_login(ana)
+        cuerpo = client.get(reverse("dashboard:explorar"), {"en": str(carpeta)}).content.decode()
+        assert "vuelo_Timestamp.MRK" not in cuerpo and "ortofoto.png" in cuerpo
+
+    def test_el_filtro_y_la_carpeta_viajan_en_cada_enlace(self, client, ana, entrada):
+        carpeta = self._con(entrada)
+        (carpeta / "sub").mkdir(exist_ok=True)
+        client.force_login(ana)
+        cuerpo = client.get(
+            reverse("dashboard:explorar"), {"en": str(carpeta), "ext": ".mrk,.csv", "carpeta": "1"}
+        ).content.decode()
+        assert "&ext=.csv%2C.mrk" in cuerpo or "&amp;ext=.csv%2C.mrk" in cuerpo
+        assert "carpeta=1" in cuerpo
+
+    def test_lo_que_no_parece_una_extension_se_ignora(self, client, ana, entrada):
+        carpeta = self._con(entrada)
+        client.force_login(ana)
+        cuerpo = client.get(
+            reverse("dashboard:explorar"), {"en": str(carpeta), "ext": "<script>,../../x,.png;"}
+        ).content.decode()
+        # Nada válido: vale el filtro de siempre, y lo escrito no sale en la página.
+        assert "ortofoto.png" in cuerpo and "<script>" not in cuerpo
+
+    def test_pedir_una_carpeta_ofrece_usar_esta_con_su_ruta(self, client, ana, entrada):
+        carpeta = self._con(entrada)
+        client.force_login(ana)
+        cuerpo = client.get(
+            reverse("dashboard:explorar"), {"en": str(carpeta), "carpeta": "1"}
+        ).content.decode()
+        assert "Usar esta carpeta" in cuerpo and f'data-ruta="{carpeta}"' in cuerpo
+        sin = client.get(reverse("dashboard:explorar"), {"en": str(carpeta)}).content.decode()
+        assert "Usar esta carpeta" not in sin
+
+    def test_la_carpeta_pedida_sigue_dentro_de_las_raices(self, client, ana, entrada, tmp_path):
+        fuera = tmp_path / "privado"
+        fuera.mkdir()
+        client.force_login(ana)
+        cuerpo = client.get(
+            reverse("dashboard:explorar"), {"en": str(fuera), "carpeta": "1"}
+        ).content.decode()
+        assert "Usar esta carpeta" not in cuerpo
+
+
 class TestConvertirLoSubido:
     def test_se_puede_encolar_con_el_identificador(self, client, ana, con_gdal):
         """El recorrido entero: subir, y que el trabajo salga con el nombre que la persona
