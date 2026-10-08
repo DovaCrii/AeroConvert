@@ -5,6 +5,14 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Sin publicar]
 
+### Interno — agentes, skills y un hook para no repetir los fallos de esta tanda
+
+- **Puerta rápida con `bandit`** (`verificar.py rapido`) y un **hook `PreToolUse`** que la corre antes de cada `git push` y lo bloquea si falla (`scripts/claude/antes_de_push.py`): el CI había cazado dos veces lo que el gate local habría visto en segundos.
+- **`scripts/claude/fusionar_main.py`**: fusiona `main` y resuelve solo los choques de «los dos añadieron» (dos herramientas nuevas en el mismo registro), **validando** con `ast` (sin claves repetidas) y XML; lo que no sabe resolver, y las tablas de estado de `MASTER_PLAN.md` y `SEGUIMIENTO.md`, lo deja con sus marcas.
+- **Skill `/nueva-herramienta`** y una prueba (`test_herramientas_completas.py`) que recorre las piezas de cada herramienta de documentos: campos, icono, grupo, cola, tarea, pantalla con y sin sesión y prueba de su pantalla.
+- **Agentes del proyecto** en `.claude/agents/`: `revisor-de-reglas` (solo lectura, contra las cinco reglas de `AGENTS.md`) y `fusionador-de-pr` (solo `gh`: espera el CI y fusiona en verde).
+- `/avanzar` y `/abrir-pr` recogen lo aprendido: bandit antes de subir, reintento cuando GitHub falla al fusionar, y subir de uno en uno los PR que añaden herramientas.
+
 ### Añadido — convertir imágenes por lote y la traza de un video de dron (F14.13, F14.18)
 
 - **«Convertir imágenes»**: varias fotos a la vez a **JPG, PNG, WebP o TIFF**, con tamaño (lado mayor, sin agrandar nunca), giro (según la orientación de la foto, por omisión, o fijo), recorte centrado a 1:1, 4:3, 3:2 o 16:9 y calidad. Se entrega **un zip con una imagen por cada una que entró**, conservando fecha, perfil de color y **GPS** (en TIFF, sin comprimir: libtiff rechaza toda compresión con EXIF, medido). **HEIC** solo si el servidor trae `pillow-heif`, y si no, se dice por foto antes de encolar; el lote es todo o nada. La verificación del trabajo reabre cada imagen con Pillow y compara formato y medidas con lo que se dijo.

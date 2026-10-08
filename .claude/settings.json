@@ -54,5 +54,19 @@
       "Bash(git add:*)",
       "Bash(git commit:*)"
     ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "PowerShell|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv run python scripts/claude/antes_de_push.py",
+            "timeout": 240
+          }
+        ]
+      }
+    ]
   }
 }
