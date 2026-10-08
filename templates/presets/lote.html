@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block titulo %}Lote · AeroConvert{% endblock %}
+
+
+
+{% block contenido %}
+{% if estado == "en-curso" %}<meta http-equiv="refresh" content="6">{% endif %}
+<div class="tarjeta">
+  <div class="eyebrow">Estado del lote</div>
+  <p class="av-mb-1">
+    {% if estado == "hecho" %}
+      <span class="pildora pildora-done">Hecho</span>
+    {% elif estado == "en-curso" %}
+      <span class="pildora pildora-running">En curso</span>
+    {% else %}
+      <span class="pildora pildora-error">Con fallos</span>
+    {% endif %}
+    {{ cuentas.hechos }} de {{ cuentas.total }} trabajo{{ cuentas.total|pluralize }} hechos
+    {% if cuentas.fallidos %}· <strong>{{ cuentas.fallidos }} con fallo</strong>{% endif %}
+    {% if cuentas.en_curso %}· {{ cuentas.en_curso }} en curso{% endif %}
+  </p>
+  <p class="tenue av-fs-sm av-mb-0">Carpeta: <code>{{ lote.carpeta }}</code></p>
+  {% if estado == "con-fallos" %}
+    <p class="av-mt-2 av-mb-0">
+      El lote <strong>no está completo</strong>: al menos un trabajo falló o se canceló. Más abajo está cuál y por qué.
+    </p>
+  {% endif %}
+</div>
+
+<div class="tarjeta">
+  <div class="eyebrow">Trabajos</div>
+  <table class="table table-sm align-middle av-m-0">
+    <thead><tr><th>Archivo</th><th>Destino</th><th>Estado</th><th>Motivo</th></tr></thead>
+    <tbody>
+      {% for t in trabajos %}
+        <tr>
+          <td>{{ t.source_name }}</td>
+          <td>{{ t.target_format_code }}</td>
+          <td><a href="{% url 'jobs:ficha' t.pk %}">{{ t.get_status_display }}</a></td>
+          <td class="tenue">{% if t.reason_code %}<code>{{ t.reason_code }}</code> {{ t.reason_detail }}{% endif %}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% if omitidos %}
+<div class="tarjeta">
+  <div class="eyebrow">Archivos que no entraron ({{ omitidos|length }})</div>
+  <ul class="av-m-0">
+    {% for o in omitidos %}<li><strong>{{ o.nombre }}</strong> <span class="tenue">— {{ o.motivo }}</span></li>{% endfor %}
+  </ul>
+</div>
+{% endif %}
+{% endblock %}

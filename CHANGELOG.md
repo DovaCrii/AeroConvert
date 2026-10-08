@@ -6,6 +6,14 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 ## [Sin publicar]
 
 
+### Añadido — Paquetes de entrega y lotes (F16.1 y F16.2)
+
+- **Paquetes de entrega** («Entrega a BHP»): una receta con nombre que junta varios preajustes, un patrón para el nombre de los archivos de salida (`{origen}`, `{destino}`, `{perfil}`, `{fecha}`, `{n}`) y, si se quiere, un sistema al que llevarlo todo. La misma receta da los mismos parámetros en dos corridas. Los nombres salen limpios (sin separadores, sin `..`, sin nombres reservados de Windows) y dos pasos nunca se pisan. Son de quien los hizo: el de otro es un 404.
+- **Lotes:** aplicar un paquete a una **carpeta entera** (hasta 200 archivos, sin entrar en subcarpetas) crea un **trabajo padre** con un trabajo hijo por archivo y por paso. Cada hijo es un trabajo de siempre, con su motor y su verificación. El estado del lote se **deriva de los hijos**: «en curso», «hecho» o «con fallos»; si falla o se cancela uno, el lote no se presenta como completo y dice cuál y por qué. Lo que no entró (archivo no reconocido, sin motor, o que pisaría un original) queda en la ficha con su motivo.
+- Un archivo sin sistema de coordenadas **no se adivina**: su trabajo se detiene con `crs-ausente` si el paquete reproyecta o el destino lo exige. Un nombre de salida que coincidiera con el original no se aplica.
+- Pantalla nueva «Paquetes de entrega» (enlazada desde Preajustes) y ficha del lote, sin desborde a 375 px. **Migraciones: `jobs.0004` (lote y su relación con los trabajos) y `presets.0002` (paquetes).**
+
+
 ### Añadido — Curvas de nivel desde un modelo de elevación (F15.6)
 
 - **Un par nuevo en la matriz:** GeoTIFF, BigTIFF, COG, IMG o ASCII Grid → **DXF, Shapefile o GeoPackage**, con el motor `gdal-curvas` (`gdal_contour`). Opciones: el intervalo entre curvas en metros (`intervalo_m`, 10 por omisión) y la cota de partida (`desde_m`). La banda 1 se toma como altura; con un intervalo mayor que el desnivel, o sobre una ortofoto, el trabajo **falla diciéndolo** en vez de entregar un archivo vacío.

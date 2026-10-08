@@ -148,6 +148,14 @@ class ConversionJob(BaseModel):
     retry_of = models.ForeignKey(
         "self", null=True, blank=True, on_delete=models.SET_NULL, related_name="reintentos"
     )
+    #: El lote (trabajo padre) al que pertenece, si se encoló con un paquete de entrega.
+    lote = models.ForeignKey(
+        "LoteDeTrabajos",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="trabajos",
+    )
 
     queued_at = models.DateTimeField(default=timezone.now)
     started_at = models.DateTimeField(null=True, blank=True)
@@ -465,3 +473,50 @@ class EntradaDeTrabajo(BaseModel):
 
     def __str__(self) -> str:
         return f"{self.orden}: {self.nombre}"
+
+
+class LoteDeTrabajos(BaseModel):
+    """El trabajo padre de un paquete aplicado a una carpeta (F16.1).
+
+    **No convierte nada**: agrupa los `ConversionJob` hijos y dice cómo va el conjunto. Su estado no
+    se guarda, se **deriva de los hijos** cada vez que se mira: guardarlo era dejar que un hijo
+    cambiara y el padre siguiera diciendo otra cosa. Falla si falla un hijo, y lo dice.
+    """
+
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="lotes"
+    )
+    #: El nombre del paquete con que se hizo, tal como estaba al aplicarlo.
+    nombre = models.CharField(max_length=120)
+    carpeta = models.CharField(max_length=1000, blank=True)
+    paquete_slug = models.CharField(max_length=80, blank=True)
+    #: Lo que se dejó fuera, con su motivo: `[{"nombre": ..., "motivo": ...}]`. No se esconde.
+    omitidos = models.JSONField(default=list, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self) -> str:
+        return f"{self.nombre} ({self.created_at:%Y-%m-%d %H:%M})"
+
+    def cuentas(self) -> dict[str, int]:
+        resultado = {"total": 0, "hechos": 0, "fallidos": 0, "en_curso": 0}
+        for estado in self.trabajos.values_list("status", flat=True):
+            resultado["total"] += 1
+            if estado == HECHO:
+                resultado["hechos"] += 1
+            elif estado in (ERROR, CANCELADO, CADUCADO):
+                resultado["fallidos"] += 1
+            else:
+                resultado["en_curso"] += 1
+        return resultado
+
+    @property
+    def estado(self) -> str:
+        """`en-curso`, `hecho` o `con-fallos`. Deriva de los hijos."""
+        c = self.cuentas()
+        if c["en_curso"]:
+            return "en-curso"
+        if c["fallidos"] or not c["total"]:
+            return "con-fallos"
+        return "hecho"

@@ -95,6 +95,43 @@ class ConversionPreset(BaseModel):
         type(self).objects.filter(pk=self.pk).update(veces_usado=models.F("veces_usado") + 1)
 
 
+class PaqueteDeEntrega(BaseModel):
+    """Una receta con nombre que aplica varios preajustes a un mismo archivo. Ver `paquetes.py`.
+
+    Es **siempre de una persona**: lleva el nombre del cliente y del contrato, y no hay paquetes
+    de fábrica. Se ve y se aplica solo por quien lo hizo.
+    """
+
+    slug = models.SlugField(max_length=80, unique=True)
+    nombre = models.CharField(max_length=120)
+    descripcion = models.CharField(max_length=250, blank=True)
+    #: Los slugs de los preajustes, **en orden**: es el orden de los pasos y el `{n}` del patrón.
+    pasos = models.JSONField(default=list)
+    patron_de_nombre = models.CharField(max_length=120, default="{origen}_{destino}")
+    #: Si se pone, todos los pasos llevan los datos a este EPSG. Vacío: cada paso trae el suyo.
+    target_crs_code = models.CharField(max_length=16, blank=True)
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="paquetes_de_entrega",
+    )
+    veces_usado = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ["-veces_usado", "nombre"]
+
+    def __str__(self) -> str:
+        return self.nombre
+
+    @classmethod
+    def propios_de(cls, usuario):
+        """Solo los suyos. No hay otra visibilidad."""
+        return cls.objects.filter(owner=usuario)
+
+    def usar(self) -> None:
+        type(self).objects.filter(pk=self.pk).update(veces_usado=models.F("veces_usado") + 1)
+
+
 #: Los preajustes que trae la aplicación, derivados de los perfiles de destino.
 #:
 #: Se derivan y no se copian a mano justo por lo que pasó con las claves de las opciones: si
