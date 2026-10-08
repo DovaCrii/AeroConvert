@@ -47,6 +47,11 @@ MOTIVOS: dict[str, Motivo] = dict(
             "Se necesita una compilacion de GDAL con la SDK de Hexagon.",
         ),
         _m(
+            "sin-driver-mrsid",
+            "Esta instalación de GDAL no trae el controlador MrSID.",
+            "Se necesita una compilación de GDAL con la SDK de LizardTech.",
+        ),
+        _m(
             "sin-clave-ecw",
             "El controlador ECW esta, pero escribir exige una clave OEM de Hexagon.",
             "Configura AEROCONVERT_ECW_ENCODE_KEY, o usa COG o JP2.",

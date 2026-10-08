@@ -4579,3 +4579,9 @@ code {
   min-width: 0;
 }
 
+
+/* «Cómo dejar listo el equipo» (F17.3): un paso es una orden larga y tiene que partirse a 375 px. */
+.paso-equipo {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
