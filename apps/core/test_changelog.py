@@ -29,3 +29,19 @@ def test_lo_no_publicado_va_arriba_y_las_versiones_de_nueva_a_vieja():
     assert secciones[0] == "Sin publicar"
     versiones = [tuple(int(n) for n in s.split(".")) for s in secciones[1:]]
     assert versiones == sorted(versiones, reverse=True)
+
+
+def test_los_documentos_no_llevan_bytes_nulos():
+    """Dos bytes nulos en `CHANGELOG.md` hacían que git lo tratara como **binario**: cada fusión
+    chocaba en el archivo entero y la unión de los dos lados lo dejó dos veces (2026-10-08)."""
+    con_nulos = [
+        str(p.relative_to(RAIZ))
+        for p in [
+            RAIZ / "CHANGELOG.md",
+            RAIZ / "MASTER_PLAN.md",
+            RAIZ / "HANDOFF.md",
+            *RAIZ.glob("docs/**/*.md"),
+        ]
+        if p.is_file() and b"\x00" in p.read_bytes()
+    ]
+    assert not con_nulos, f"Bytes nulos en: {con_nulos}"

@@ -5,6 +5,10 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Sin publicar]
 
+## [0.12.0] — 2026-10-08
+
+Firma digital y sello de tiempo, PDF/A, vuelos de dron con PPK y el visor, curvas de nivel, paquetes de entrega y lotes, la API con token, y lo apagado del servidor con su camino para encenderlo (LibreOffice, mdbtools, FFmpeg, Ghostscript, `instalar_faltantes.sh`). Ver las entradas de abajo; los pasos del despliegue están en `HANDOFF.md`.
+
 ### Corregido — `fusionar_main.py` ya no funde ni inventa piezas al juntar dos ramas
 
 - Esta noche dejó tres resultados que se leían bien y estaban rotos: dos `_m(...)` del catálogo de motivos fundidas en una llamada de seis argumentos, un `return {...}` convertido en `return ({...},)` y el `CHANGELOG.md` entero dos veces. Ahora rechaza un resultado con una llamada de más argumentos que en ningún lado, una tupla de un solo elemento salida de la nada o un encabezado de versión repetido, y cuando el hueco cae dentro de algo que comparten los dos lados prueba primero a cerrarlo y volver a abrirlo. Con pruebas de los tres casos.
@@ -360,7 +364,7 @@ usted, iconos y color coherentes, plana pero con color, y una portada que empiez
 
 ### Cambiado — tipografía y radios desde la escala (F9.4)
 
-- Los 14 tamaños de letra escritos a mano ( .82rem,  .9rem, 1.02rem, 11px…) y los radios 3px, 4px, 6px y 999px pasan a --av-fs-* y --av-radius-* (nuevo --av-radius-xs). Los textos se acercan al peldaño más próximo, así que alguno cambia una fracción de rem.
+- Los 14 tamaños de letra escritos a mano (.82rem, .9rem, 1.02rem, 11px…) y los radios 3px, 4px, 6px y 999px pasan a --av-fs-* y --av-radius-* (nuevo --av-radius-xs). Los textos se acercan al peldaño más próximo, así que alguno cambia una fracción de rem.
 - 	est_escala_visual.py falla si vuelve a aparecer un tamaño de letra o un radio fuera de la escala.
 ### Cambiado — la paleta en OKLCH, sin cambiar lo que se ve (F9.5)
 
