@@ -13,6 +13,15 @@ En vez de adivinarlo, se **prueba** y se valida el resultado:
 - en `.svg`, que sea un XML bien formado;
 - en `CHANGELOG.md`, nada: las dos entradas se apilan.
 
+Y en todos, **que la fusión no funda ni invente piezas** (ver `_suma`): ninguna llamada con más
+argumentos que en alguno de los dos lados, ninguna tupla de un elemento salida de la nada, ningún
+encabezado de versión repetido en un `.md`. Cuando el hueco cae **dentro** de algo que comparten
+los dos lados (`_m(` … `),`), el primer separador que se prueba es cerrarlo y volver a abrirlo.
+El 2026-10-08 un separador vacío fundió dos
+`_m(...)` del catálogo de motivos en una sola llamada de seis argumentos, otro convirtió un
+`return {...}` en `return ({...},)`, y el `CHANGELOG.md` acabó entero dos veces: los tres archivos
+se leían bien y ninguno sumaba.
+
 Lo que no se sabe resolver **se deja con sus marcas y se dice**: las tablas de `MASTER_PLAN.md` y de
 `SEGUIMIENTO.md` llevan el estado de cada fila y ahí decide una persona (o el cierre de la fila).
 Nunca se hace `push`, nunca `--force`.
@@ -81,6 +90,88 @@ def valido(nombre: str, texto: str) -> bool:
     return True
 
 
+_TIPOS_QUE_SUMAN = (
+    ast.Call,
+    ast.Dict,
+    ast.Tuple,
+    ast.List,
+    ast.FunctionDef,
+    ast.ClassDef,
+    ast.Return,
+)
+
+
+def estructura(nombre: str, texto: str) -> dict[str, int] | None:
+    """Cuántas piezas de cada clase tiene el texto, o `None` si no se puede contar."""
+    if not nombre.endswith(".py"):
+        return None
+    try:
+        arbol = ast.parse(texto)
+    except SyntaxError:
+        return None
+    cuentas = dict.fromkeys((t.__name__ for t in _TIPOS_QUE_SUMAN), 0)
+    for nodo in ast.walk(arbol):
+        if isinstance(nodo, _TIPOS_QUE_SUMAN):
+            cuentas[type(nodo).__name__] += 1
+    return cuentas
+
+
+def _tuplas_de_uno(texto: str) -> int:
+    return sum(
+        1 for n in ast.walk(ast.parse(texto)) if isinstance(n, ast.Tuple) and len(n.elts) == 1
+    )
+
+
+def _argumentos_por_funcion(texto: str) -> dict[str, int]:
+    """El mayor número de argumentos con que se llama a cada función por su nombre."""
+    maximos: dict[str, int] = {}
+    for nodo in ast.walk(ast.parse(texto)):
+        if isinstance(nodo, ast.Call):
+            nombre = getattr(nodo.func, "id", None) or getattr(nodo.func, "attr", None)
+            if nombre:
+                n = len(nodo.args) + len(nodo.keywords)
+                maximos[nombre] = max(maximos.get(nombre, 0), n)
+    return maximos
+
+
+def _suma(nombre: str, resultado: str, mio: str, suyo: str, comun: str) -> bool:
+    """Que la fusión no **invente** piezas ni **funda** dos en una.
+
+    - No pueden aparecer tuplas de un solo elemento que no estaban en ningún lado: es una coma
+      suelta de un separador mal puesto (`return ({...},)`).
+    - Ninguna llamada puede llevar más argumentos que los que lleva en alguno de los dos lados: dos
+      `_m(...)` fundidas en una llaman a `_m` con seis.
+    - En un `.md`, ningún encabezado de versión (`## [x]`) puede quedar repetido.
+    """
+    if nombre.endswith(".md"):
+        versiones = re.findall(r"^## \[[^\]]+\]", resultado, re.M)
+        return len(versiones) == len(set(versiones))
+    if estructura(nombre, resultado) is None or estructura(nombre, mio) is None:
+        return True  # sin poder contar, decide `valido`
+    # Una tupla de un solo elemento casi nunca se escribe a propósito; aparece cuando un separador
+    # deja una coma suelta (`return ({...},)`). Más de las que ya había en los dos lados, no.
+    if _tuplas_de_uno(resultado) > _tuplas_de_uno(mio) + _tuplas_de_uno(suyo):
+        return False
+    tope = _argumentos_por_funcion(mio)
+    for funcion, n in _argumentos_por_funcion(suyo).items():
+        tope[funcion] = max(tope.get(funcion, 0), n)
+    return all(n <= tope.get(f, n) for f, n in _argumentos_por_funcion(resultado).items())
+
+
+def _separador_del_contexto(antes: str, resto: str) -> str | None:
+    """Si el hueco está **dentro** de algo que los dos comparten (`_m(` … `),`), el separador es
+    cerrar eso y volver a abrirlo: la última línea de antes que abre y la primera de después que
+    cierra."""
+    lineas_antes = antes.splitlines(keepends=True)
+    lineas_despues = resto.splitlines(keepends=True)
+    if not lineas_antes or not lineas_despues:
+        return None
+    apertura, cierre = lineas_antes[-1], lineas_despues[0]
+    if apertura.rstrip().endswith(("(", "{", "[")) and cierre.lstrip().startswith((")", "}", "]")):
+        return cierre + apertura
+    return None
+
+
 def resolver_texto(nombre: str, texto: str, *, valida: Callable[[str, str], bool] = valido) -> str:
     """El texto sin marcas de conflicto, o `ValueError` si algún hueco no se puede resolver."""
     huecos = list(HUECO.finditer(texto))
@@ -93,15 +184,20 @@ def resolver_texto(nombre: str, texto: str, *, valida: Callable[[str, str], bool
         ultimo = m.end()
         mia, suya = m.group(1), m.group(2)
         resto = HUECO.sub(lambda r: r.group(1), texto[m.end() :])  # lo que falta: solo «el nuestro»
+        antes = "".join(partes)
         candidatos = ("\n",) if Path(nombre).name in APILAR else SEPARADORES
+        contexto = _separador_del_contexto(antes, resto)
+        if contexto is not None and Path(nombre).name not in APILAR:
+            candidatos = (contexto, *candidatos)
         for sep in candidatos:
-            if Path(nombre).name in APILAR or valida(
-                nombre, "".join(partes) + mia + sep + suya + resto
+            junto = antes + mia + sep + suya + resto
+            if (Path(nombre).name in APILAR or valida(nombre, junto)) and _suma(
+                nombre, junto, antes + mia + resto, antes + suya + resto, antes + resto
             ):
                 partes.append(mia + sep + suya)
                 break
         else:
-            raise ValueError(f"{nombre}: ningún separador deja válido el hueco {k + 1}")
+            raise ValueError(f"{nombre}: ningún separador deja el hueco {k + 1} válido y sumando")
     partes.append(texto[ultimo:])
     return "".join(partes)
 

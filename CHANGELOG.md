@@ -5,6 +5,11 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Sin publicar]
 
+### Corregido — `fusionar_main.py` ya no funde ni inventa piezas al juntar dos ramas
+
+- Esta noche dejó tres resultados que se leían bien y estaban rotos: dos `_m(...)` del catálogo de motivos fundidas en una llamada de seis argumentos, un `return {...}` convertido en `return ({...},)` y el `CHANGELOG.md` entero dos veces. Ahora rechaza un resultado con una llamada de más argumentos que en ningún lado, una tupla de un solo elemento salida de la nada o un encabezado de versión repetido, y cuando el hueco cae dentro de algo que comparten los dos lados prueba primero a cerrarlo y volver a abrirlo. Con pruebas de los tres casos.
+- Prueba nueva `apps/core/test_changelog.py`: cada versión aparece una sola vez y en orden.
+
 ### Añadido — Leer catálogos de Access sin Access, con `mdbtools` (F17.2)
 
 - «Catálogo Plant 3D a Excel» deja de estar apagada en el servidor: donde no está el motor de Access de Microsoft, lee con **`mdbtools`** (programa externo sondeado, `AEROCONVERT_MDBTOOLS` o el `PATH`; lo instala `instalar_faltantes.sh`). Los nombres de las columnas salen de `mdb-export` y los valores con su tipo de `mdb-json`; si esa versión no lo trae, van como texto. Las tablas `MSys…` no salen, los nombres pasan por el mismo filtro que con ACE, y si `mdbtools` cuenta unas filas y devuelve otras, se para.
