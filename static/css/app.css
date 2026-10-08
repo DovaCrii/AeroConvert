@@ -3731,6 +3731,53 @@ code {
   r: 5;
 }
 
+/* --- Transiciones de estado y entrada suave (F13.13) ---------------------------------------
+ * El estilo oscuro se siente vivo por cómo cambian las cosas, no porque se muevan: al pasar,
+ * enfocar o desactivar, el **color, el fondo, el borde y la opacidad** cambian en 160 ms. Nada
+ * se desplaza (sin `transform` al pasar, F13.7), nada proyecta sombra y no hay degradados.
+ * Las páginas y lo que htmx pinta **aparecen** (opacidad), no entran de ningún lado. `backwards`
+ * y no `both`: al terminar, el elemento vuelve a ser normal y no queda un contexto de apilado
+ * por una animación ya terminada. El bloque `prefers-reduced-motion` de abajo lo apaga todo. */
+:root {
+  --av-estado: 0.16s ease;
+  --av-aparecer: 0.22s ease-out;
+}
+
+.boton,
+.boton-suave,
+.boton-pequeno,
+.boton-icono,
+.boton-barra,
+.herramienta,
+.lateral-enlace-principal,
+.lateral-grupo-titulo,
+.ejemplos a,
+.form-control,
+.form-select {
+  transition:
+    color var(--av-estado),
+    background-color var(--av-estado),
+    border-color var(--av-estado),
+    opacity var(--av-estado);
+}
+
+@keyframes av-aparecer {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+#principal,
+#resultados > *,
+#reconocido > *,
+#ficha > * {
+  animation: av-aparecer var(--av-aparecer) backwards;
+}
+
 @media (prefers-reduced-motion: reduce) {
   /* 0.01ms y no 0, para que `transitionend` siga disparando. */
   *,
