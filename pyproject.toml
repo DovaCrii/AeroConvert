@@ -101,6 +101,7 @@ dependencies = [
     # baja y la sonda dice por que la herramienta sale apagada -- exactamente como Office.
     "pyodbc>=5.1,<6; sys_platform == 'win32'",
     "ezdxf>=1.4.4",
+    "pyhanko>=0.37.0",
 ]
 
 # GDAL, PDAL y el conversor de ECW **no van aca a proposito**. Son herramientas

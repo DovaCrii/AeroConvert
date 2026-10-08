@@ -6,6 +6,14 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 ## [Sin publicar]
 
 
+### Añadido — firma digital y verificación de firmas (F14.5)
+
+- **«Firmar con certificado»**: firma un PDF (PAdES, SHA-256) con el `.p12` de la persona, con motivo y lugar opcionales. **Incremental**: lo que traía el PDF queda byte por byte al principio y una firma anterior sigue valiendo. **El certificado y su contraseña no se guardan**: llegan al obrero como un solo secreto cifrado y de un solo uso (el mismo camino que «Proteger»), nunca en `options`, la base, el argv ni la bitácora; el campo no vuelve al formulario y la contraseña mala o el certificado vencido se dicen **antes de encolar**. Un PDF cifrado no se firma.
+- **«Verificar firmas»**: informe de un PDF recibido (quién firmó, cuándo según el firmante, si está **íntegro**, si **cubre todo el archivo** o se añadió algo después). **La confianza en el emisor solo se afirma si el servidor tiene una lista de emisores** (`AEROCONVERT_RAICES_DE_CONFIANZA`); sin ella el informe lo dice y no da por buena una cadena que no miró.
+- **Otro lector, no pyHanko:** `firma_comprobar.py` calcula el resumen del `/ByteRange` con `hashlib`, lee el CMS con `asn1crypto` y verifica la firma con `cryptography` (RSA PKCS#1 y ECDSA). El motor lo corre sobre cada PDF firmado, y las pruebas rompen un byte, añaden contenido después y firman dos veces, y en cada caso los dos lectores coinciden. Prueba «centinela»: ni la contraseña ni el certificado aparecen en ningún archivo, fila ni log.
+- Dependencia nueva: `pyhanko` (MIT) y sus transitivas. Pendiente: sello de tiempo (necesita la URL de una TSA, P14).
+
+
 ### Añadido — plano DXF a lámina PDF o SVG (F14.16, primera parte)
 
 - **«Plano DXF a PDF»**: dibuja un DXF (líneas, polilíneas con arcos, círculos, arcos, elipses, splines, textos y puntos; bloques y cotas expandidos) en una lámina de **A4 a A0**, apaisada o vertical según el plano, **centrada y con margen fijo de 10 mm**, con el color de sus capas (el blanco sale negro). **La escala solo se dice si el plano declara sus unidades** (`$INSUNITS`): si no, sale ajustado al papel y no se inventa un «1:500». Las capas apagadas no se dibujan y **lo que no se puede dibujar** (sombreados, imágenes…) **se cuenta por tipo**. Un DWG se rechaza con su camino (pasarlo antes a DXF). Se lee con `ezdxf` (MIT, dependencia nueva) y se dibuja con `reportlab`. Oráculo: PDFium lee la lámina y comprueba que el dibujo toca el margen en el eje que manda y queda centrado en el otro. Queda pendiente el SVG a PDF o PNG, que exige Inkscape.

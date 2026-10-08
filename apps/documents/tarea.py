@@ -511,6 +511,64 @@ def _proteger(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
     return {"paginas": paginas, "accion": accion}
 
 
+def _firmar(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
+    import base64
+    import json
+    import os
+
+    from apps.documents import firma_digital
+
+    # El certificado y su contraseña llegan por el entorno como un solo secreto, **no por las
+    # opciones**: la clave privada no puede quedar en la base ni en la bitácora.
+    # Se sacan al leerlos.
+    crudo = os.environ.pop(VARIABLE_CONTRASENA, "")
+    if not crudo:
+        raise FalloDeTarea("falta-la-contrasena", "No llegó el certificado con el que firmar.")
+    try:
+        paquete = json.loads(crudo)
+        p12 = base64.b64decode(paquete["p12"])
+        clave = str(paquete["clave"])
+    except (ValueError, KeyError, TypeError) as fallo:
+        raise FalloDeTarea("documento-invalido", "El certificado no se pudo leer.") from fallo
+    try:
+        hecha = firma_digital.firmar(
+            entradas[0]["ruta"],
+            parcial,
+            p12,
+            clave,
+            motivo=opciones.get("motivo", ""),
+            lugar=opciones.get("lugar", ""),
+        )
+    finally:
+        p12, clave, crudo = b"", "", ""  # noqa: F841 - que no sigan vivos en el marco
+    # Lo que el verificador necesita para comprobar con otro lector que el original quedó entero
+    # al principio del archivo firmado (firma incremental).
+    import hashlib
+
+    original = Path(entradas[0]["ruta"]).read_bytes()
+    return {
+        "accion": "firmar",
+        "bytes_original": len(original),
+        "sha256_original": hashlib.sha256(original).hexdigest(),
+        "campo": hecha.campo,
+        "firmante": hecha.firmante,
+        "firmas_previas": hecha.previas,
+    }
+
+
+def _verificar_firmas(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
+    from apps.documents import firma_digital
+
+    ruta = Path(entradas[0]["ruta"])
+    informe = firma_digital.verificar(ruta)
+    parcial.write_text(firma_digital.a_markdown(informe, ruta.name), encoding="utf-8")
+    return {
+        "firmas": len(informe.firmas),
+        "rotas": sum(1 for f in informe.firmas if not f.integra),
+        "emisores_de_confianza": informe.raices,
+    }
+
+
 def _redactar(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
     import json
     import os
@@ -643,6 +701,8 @@ TAREAS = {
     "extraer_imagenes": _extraer_imagenes,
     "formularios": _formularios,
     "firma_visible": _firma_visible,
+    "firmar": _firmar,
+    "verificar_firmas": _verificar_firmas,
     "telemetria": _telemetria,
     "portada": _portada,
     "imagenes_lote": _imagenes_lote,

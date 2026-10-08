@@ -265,6 +265,30 @@ HERRAMIENTAS = (
         ),
     },
     {
+        "id": "firmar",
+        "icono": "icon-sello-firma",
+        "sale": "un PDF con su firma digital",
+        "familia": "proteger",
+        "url": "documents:firmar",
+        "nombre": "Firmar con certificado",
+        "que_hace": (
+            "Pone su firma digital con su certificado .p12: si el documento cambia "
+            "después, la firma se rompe. Su certificado no se guarda."
+        ),
+    },
+    {
+        "id": "verificar_firmas",
+        "icono": "icon-verificar-firma",
+        "sale": "un informe de las firmas",
+        "familia": "proteger",
+        "url": "documents:verificar_firmas",
+        "nombre": "Verificar firmas",
+        "que_hace": (
+            "Lee las firmas digitales de un PDF recibido: quién firmó, cuándo, si sigue "
+            "íntegro y si se añadió contenido después."
+        ),
+    },
+    {
         "id": "metadatos",
         "icono": "icon-pdf-metadatos",
         "sale": "el mismo PDF, con los metadatos que usted decida",

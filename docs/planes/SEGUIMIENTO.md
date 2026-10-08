@@ -25,6 +25,7 @@ Lo que Claude necesita para avanzar y no tiene. **Sin él, la fila espera (⏸) 
 | P11 | **Permiso para descargar PDF.js** y vendorizarlo con SRI | F14.11 | Un sí | F14.11 ⏸ |
 | P12 | **GDAL con ECW** en el equipo que ejecuta (lectura) | Pantalla de compatibilidad | Instalación | ECW sigue apagado; sirven COG y JP2 |
 | P13 | **Clave OEM de ECW** (escritura) | Pantalla de compatibilidad | `AEROCONVERT_ECW_ENCODE_KEY` y `…_COMPANY` en el `.env`, nunca en el repo | Sin escritura ECW |
+| P14 | **URL de una autoridad de sello de tiempo (TSA)** y, si hay, sus credenciales | F14.5 (sello de tiempo opcional) | Una URL en el `.env` | Las firmas salen sin sello de tiempo: valen, pero la fecha es la que dice el firmante |
 | P10 | **Terminar F10.5** (Trimble bajo Wine) | F10.5 | Pasos de `HANDOFF.md` | Sigue abierta |
 
 ## Bloques
@@ -39,7 +40,7 @@ Estados: ✅ hecho · 🟨 en curso · ⬜ por hacer · ⏸ espera un pedido · 
 | **B3 · Iconos y color** | F13.4 ✅ · F13.5 ✅ · F13.6 ✅ | ✅ 2026-10-07 | #61 | — |
 | **B4 · Plano con color** | F13.7 ✅ | ✅ 2026-10-07 | #62 | — |
 | **B5 · Barra, portada y mapa** | F13.9 ✅ · F13.8 ✅ · F13.11 ✅ · F13.12 ✅ (cierra F13; versión `0.11.0`) | ✅ 2026-10-07 | #63, #64 | — |
-| **B6 · Suite PDF** | F14.0 ✅ · F14.1 ✅ · F14.2 ✅ · F14.3 ✅ · F14.4 ✅ · F14.5 · F14.6 ✅ · F14.7 ✅ · F14.8 ✅ · F14.9 · F14.11 · F14.20 ✅ | 🟨 | #65, #66, #67, #68, #69, #70, #71 | — |
+| **B6 · Suite PDF** | F14.0 ✅ · F14.1 ✅ · F14.2 ✅ · F14.3 ✅ · F14.4 ✅ · F14.5 ✅ · F14.6 ✅ · F14.7 ✅ · F14.8 ✅ · F14.9 · F14.11 · F14.20 ✅ | 🟨 | #65, #66, #67, #68, #69, #70, #71 | — |
 | **B7 · Imagen, dron, video y vector** | F14.12 · F14.13 ✅ · F14.14 ✅ · F14.15 · F14.16 🟨 · F14.17 · F14.18 ✅ · F14.19 ✅ | ⬜ | — | D1 (FFmpeg) |
 | **B8 · Geoespacial** | F15.1 a F15.8 | ⬜ | — | P5 · P6 · P7 |
 | **B9 · Plataforma** | F16.1 a F16.6 | ⬜ | — | B7 · B8 para los lotes |

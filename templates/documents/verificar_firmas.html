@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block titulo %}Verificar firmas · AeroConvert{% endblock %}
+
+{% block contenido %}
+
+<div class="tarjeta">
+  <div class="eyebrow">Qué hace</div>
+  <p class="av-mb-0">
+    Lee las <strong>firmas digitales</strong> de un PDF recibido y entrega un informe: quién firmó,
+    cuándo (según el propio firmante), si el documento sigue <strong>íntegro</strong> y si se añadió
+    algo después. <strong>La confianza en el emisor solo se afirma si el servidor tiene su lista de
+    emisores</strong>: sin ella, el informe lo dice y no da por buena una cadena que no pudo mirar.
+    El original no se toca.
+  </p>
+</div>
+
+<form method="post" id="forma-documento" enctype="multipart/form-data">
+  {% csrf_token %}
+
+  {% include "documents/_origen.html" with accion="convertir" boton="Verificar" pregunta="¿Qué PDF revisamos?" acepta=".pdf" %}
+</form>
+
+{% endblock %}

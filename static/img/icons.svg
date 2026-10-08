@@ -355,6 +355,21 @@
     <circle cx="18.5" cy="7" r="2.1" fill="currentColor" />
   </symbol>
 
+  <symbol id="icon-sello-firma" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Firmar con certificado: un sello de lacre con sus dos cintas. -->
+    <circle cx="12" cy="9.5" r="5.5" />
+    <circle cx="12" cy="9.5" r="2" fill="currentColor" fill-opacity=".16" />
+    <path d="M8.6 14.2 7 21l5-2.6 5 2.6-1.6-6.8" />
+  </symbol>
+
+  <symbol id="icon-verificar-firma" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Verificar firmas: un escudo con su marca de comprobado. -->
+    <path d="M12 3 19 6v5.2c0 4.3-2.9 7.7-7 9.8-4.1-2.1-7-5.5-7-9.8V6z" fill="currentColor" fill-opacity=".16" />
+    <path d="m8.8 12 2.2 2.2 4.2-4.6" />
+  </symbol>
+
   <symbol id="icon-lamina-dxf" viewBox="0 0 24 24" fill="none" stroke="currentColor"
           stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
     <!-- Plano DXF a lámina: el pliego con su cuadro de rótulo y un trazo de plano adentro. -->
