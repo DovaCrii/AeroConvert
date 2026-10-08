@@ -142,3 +142,39 @@ def test_el_proceso_entero_con_el_vuelo_real(vuelo):
     assert len(datos["fotos"]) == 2505 and datos["trayectoria_total"] == 7519
     assert len(datos["trayectoria"]) <= vuelo_proceso.PUNTOS_DEL_VISOR + 1
     assert all(f["miniatura"] for f in datos["fotos"]), "las 2 505 fotos están en la carpeta"
+
+
+def test_la_posicion_escrita_en_fotos_reales_de_dji_la_lee_otro_lector():
+    """F18.5 con fotos de DJI de verdad (EXIF de ~31 kB con MakerNote y XMP), no sintéticas.
+
+    Medido el 2026-10-08 con fotos de una Matrice: `exifread` lee la posición escrita, el XMP deja
+    de repetir la del dron, la imagen y el MakerNote quedan iguales y el original conserva su
+    sha256 y su mtime.
+    """
+    import hashlib
+    import io
+
+    import exifread
+    from PIL import Image
+
+    from apps.documents import fotos_dron, vuelo_exif
+
+    fotos = sorted(Path(CARPETA).glob("*.JPG"))[:3] or sorted(Path(CARPETA).glob("*.jpg"))[:3]
+    assert fotos, "la carpeta del vuelo no trae fotos"
+    for ruta in fotos:
+        original = ruta.read_bytes()
+        huella = (hashlib.sha256(original).hexdigest(), ruta.stat().st_mtime_ns)
+        nuevo = vuelo_exif.poner_posicion(original, -23.1234567, -69.7654321, 1234.567)
+
+        e = exifread.process_file(io.BytesIO(nuevo), details=False)
+        g, m, s = (float(v.num) / float(v.den) for v in e["GPS GPSLatitude"].values)
+        assert -(g + m / 60 + s / 3600) == pytest.approx(-23.1234567, abs=1e-9)
+        assert str(e["GPS GPSLatitudeRef"]) == "S" and str(e["GPS GPSMapDatum"]) == "WGS-84"
+
+        assert fotos_dron._segmentos(nuevo)[1] == fotos_dron._segmentos(original)[1]
+        a, b = Image.open(io.BytesIO(original)), Image.open(io.BytesIO(nuevo))
+        assert a.tobytes() == b.tobytes()
+        assert a.getexif().get_ifd(0x8769).get(0x927C) == b.getexif().get_ifd(0x8769).get(0x927C)
+        assert b'GpsLatitude="-23.12345670"' in nuevo
+
+        assert (hashlib.sha256(ruta.read_bytes()).hexdigest(), ruta.stat().st_mtime_ns) == huella

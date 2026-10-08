@@ -626,6 +626,8 @@ detenía `requestAnimationFrame`), y uno que el vuelo destapó en el explorador 
 compartida (cortaba a 300 entradas **antes** de filtrar, y en una carpeta con 2 505 fotos nunca
 mostraba los CSV).
 
+**F18.5, la posición escrita en fotos reales de DJI (2026-10-08).** Fotos de una Matrice (EXIF de unos 31 kB con MakerNote, y XMP de DJI): con `vuelo_exif.poner_posicion`, `exifread` —otro lector— devuelve la latitud escrita con error menor de 1e-9° (0,1 mm), el sur con su signo y el datum WGS-84; el XMP deja de repetir la posición del dron y conserva la altura relativa y el gimbal; lo que va desde SOS es idéntico byte por byte, Pillow decodifica los mismos píxeles, el MakerNote es el mismo y el original conserva su sha256 y su mtime.
+
 **Lo que no se midió:** la corrida de RTKLIB. Ese vuelo trae el RINEX del dron (`*_PPKOBS.obs`,
 RINEX 3.05, 35 MB) y el crudo de la base (`13933630.T04`), pero no hay RTKLIB en esta estación ni
 se conoce la coordenada de la base (pedidos P16 y P15).

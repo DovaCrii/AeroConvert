@@ -460,10 +460,21 @@ def _vuelo_dron(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
         aplicar_desfase=bool(opciones.get("aplicar_desfase", True)),
         progreso=progreso,
     )
+    corregidas: list[dict] = []
     with zipfile.ZipFile(parcial, "w", zipfile.ZIP_DEFLATED) as paquete:
         for nombre, datos in hecho.archivos.items():
             paquete.writestr(nombre, datos)
+        if opciones.get("escribir_en_fotos"):
+            corregidas, aviso_de_copias = _fotos_corregidas(
+                paquete,
+                hecho,
+                Path(carpeta) if carpeta else None,
+                nombres or [],
+            )
+            hecho.resumen["avisos"] = [*hecho.resumen["avisos"], *aviso_de_copias]
     fotos = hecho.resumen["fotos"]
+    if opciones.get("escribir_en_fotos"):
+        hecho.resumen["fotos_corregidas"] = len(corregidas)
     return {
         **hecho.resumen,
         "piezas": [
@@ -476,8 +487,98 @@ def _vuelo_dron(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
             ),
             {"nombre": "calidad.md"},
             {"nombre": "vuelo.json", "fotos": fotos},
+            *corregidas,
         ],
     }
+
+
+#: Las copias van sin comprimir (un JPEG ya viene comprimido) y el zip crece con ellas: tope.
+TOPE_DE_FOTOS_CORREGIDAS_BYTES = 8 * 1024**3
+
+
+def _fotos_corregidas(
+    paquete, hecho, carpeta: Path | None, en_carpeta: list[str]
+) -> tuple[list[dict], list[str]]:
+    """Copias de las fotos con la posición corregida en su EXIF (F18.5), dentro del zip.
+
+    El original solo se **lee**; la copia sale de `vuelo_exif.poner_posicion`, que no recodifica
+    los píxeles. Una foto sin posición, o que no está en la carpeta, no se copia y se cuenta.
+    """
+    import struct
+    import zipfile
+
+    from apps.documents import vuelo_exif
+    from apps.documents.composicion import ComposicionInvalida
+
+    if carpeta is None:
+        raise FalloDeTarea(
+            "documento-invalido",
+            "Para escribir la posición en las fotos hace falta la carpeta de fotos.",
+        )
+    reales = {n.lower(): n for n in en_carpeta}
+    candidatas = [
+        (f, reales[f.nombre.lower()])
+        for f in hecho.fotos
+        if f.con_posicion and f.nombre.lower() in reales
+    ]
+    avisos: list[str] = []
+    if len(candidatas) < len(hecho.fotos):
+        avisos.append(
+            f"{len(hecho.fotos) - len(candidatas)} foto(s) no tienen copia: no tienen "
+            "posición o no están en la carpeta."
+        )
+    # La altura solo se escribe si su referencia está declarada: el EXIF diría «sobre el nivel
+    # del mar» y no se sabe. Sin ella, el XMP del dron conserva su altura.
+    con_altura = (
+        bool(hecho.referencia_de_altura) and "no declarada" not in hecho.referencia_de_altura
+    )
+    if not con_altura:
+        avisos.append(
+            "Las copias no llevan altura: su referencia no está declarada, y el EXIF solo sabe "
+            "de «sobre el nivel del mar». La altura del XMP del dron queda como estaba."
+        )
+    total = sum((carpeta / real).stat().st_size for _f, real in candidatas)
+    if total > TOPE_DE_FOTOS_CORREGIDAS_BYTES:
+        raise FalloDeTarea(
+            "documento-invalido",
+            f"Las {len(candidatas)} fotos pesan {total / 1024**3:.1f} GB: el zip de copias "
+            f"pasaría de {TOPE_DE_FOTOS_CORREGIDAS_BYTES / 1024**3:.0f} GB. Deje en la carpeta "
+            "solo las fotos de una parte del vuelo.",
+        )
+    piezas = []
+    sin_copia: list[str] = []
+    for i, (foto, real) in enumerate(candidatas, start=1):
+        alt = foto.alt_m if con_altura else None
+        try:
+            datos = vuelo_exif.poner_posicion(
+                (carpeta / real).read_bytes(), foto.lat, foto.lon, alt, hecho.geografico
+            )
+        except (ComposicionInvalida, struct.error) as fallo:
+            # Una foto que no se puede corregir no tumba el vuelo: se cuenta, con su nombre.
+            sin_copia.append(f"{real} ({fallo})")
+            continue
+        nombre = f"fotos_corregidas/{real}"
+        paquete.writestr(nombre, datos, compress_type=zipfile.ZIP_STORED)
+        piezas.append(
+            {
+                "nombre": nombre,
+                "lat": foto.lat,
+                "lon": foto.lon,
+                "alt": alt,
+                "datum": hecho.geografico,
+            }
+        )
+        if i % 25 == 0:
+            progreso(0.99, f"Escribiendo la posición en las fotos ({i} de {len(candidatas)})")
+    if sin_copia:
+        avisos.append(
+            f"{len(sin_copia)} foto(s) sin copia porque no se pudo escribir su posición: "
+            + "; ".join(sin_copia[:5])
+            + (" …" if len(sin_copia) > 5 else "")
+        )
+    if not piezas:
+        raise FalloDeTarea("documento-invalido", "Ninguna foto se pudo copiar con su posición.")
+    return piezas, avisos
 
 
 def _fotos_dron(entradas: list[dict], opciones: dict, parcial: Path) -> dict:

@@ -413,6 +413,183 @@ def _cambiar_vuelo_json(trabajo, cambio):
             z.writestr(n, b)
 
 
+class TestLasFotosConLaPosicionCorregida:
+    """F18.5: copias con la posición del CSV en su EXIF, leída por otros lectores."""
+
+    def _correr_con_copias(self, sesion, tmp_path):
+        carpeta = _carpeta_de_fotos(tmp_path)
+        trabajo, rutas = _correr(
+            sesion, tmp_path, carpeta_de_fotos=str(carpeta), escribir_en_fotos="on"
+        )
+        return trabajo, rutas, carpeta
+
+    def test_el_zip_trae_una_copia_por_foto_y_su_posicion_coincide_con_el_csv(
+        self, sesion, tmp_path
+    ):
+        import csv
+
+        import exifread
+
+        trabajo, _rutas, carpeta = self._correr_con_copias(sesion, tmp_path)
+        assert trabajo.status == "done", trabajo.reason_detail
+        assert trabajo.verification["fotos_corregidas"] == N_FOTOS
+        with zipfile.ZipFile(trabajo.output_path) as z:
+            filas = list(csv.DictReader(io.StringIO(z.read("fotos.csv").decode())))
+            copias = {n for n in z.namelist() if n.startswith("fotos_corregidas/")}
+            assert len(copias) == N_FOTOS
+            for fila in filas:
+                datos = z.read(f"fotos_corregidas/{fila['foto']}")
+                e = exifread.process_file(io.BytesIO(datos), details=False)
+                g, m, s = (float(v.num) / float(v.den) for v in e["GPS GPSLatitude"].values)
+                lat = (
+                    -(g + m / 60 + s / 3600)
+                    if str(e["GPS GPSLatitudeRef"]) == "S"
+                    else g + m / 60 + s / 3600
+                )
+                assert lat == pytest.approx(float(fila["lat"]), abs=2e-9)
+                # La imagen es la misma que la del original, píxel por píxel.
+                original = Image.open(carpeta / fila["foto"])
+                assert Image.open(io.BytesIO(datos)).tobytes() == original.tobytes()
+
+    def test_los_originales_quedan_intactos(self, sesion, tmp_path):
+        carpeta = _carpeta_de_fotos(tmp_path)
+        antes = _huellas({p.name: p for p in carpeta.iterdir()})
+        _correr(sesion, tmp_path, carpeta_de_fotos=str(carpeta), escribir_en_fotos="on")
+        assert _huellas({p.name: p for p in carpeta.iterdir()}) == antes
+
+    def test_sin_la_carpeta_se_dice_antes_de_encolar(self, sesion, tmp_path):
+        from apps.jobs.models import ConversionJob
+
+        respuesta = _enviar(sesion, _archivos(tmp_path), escribir_en_fotos="on")
+        assert "elegir la carpeta" in respuesta.content.decode()
+        assert not ConversionJob.objects.exists()
+
+    def test_si_ninguna_foto_se_puede_copiar_el_trabajo_falla_sin_zip(self, sesion, tmp_path):
+        from apps.jobs import despachador
+        from apps.jobs.models import ConversionJob
+
+        carpeta = _carpeta_de_fotos(tmp_path)
+        for foto in carpeta.iterdir():
+            foto.write_bytes(b"no soy una foto")
+        antes = _huellas({p.name: p for p in carpeta.iterdir()})
+        _enviar(sesion, _archivos(tmp_path), carpeta_de_fotos=str(carpeta), escribir_en_fotos="on")
+        despachador.procesar_una_vez()
+        trabajo = ConversionJob.objects.latest("created_at")
+        assert trabajo.status == "error"
+        assert "Ninguna foto" in trabajo.reason_detail
+        assert not trabajo.output_path or not Path(trabajo.output_path).exists()
+        assert _huellas({p.name: p for p in carpeta.iterdir()}) == antes
+
+    def test_el_motor_rechaza_una_copia_con_otra_posicion(self, tmp_path):
+        from apps.documents import vuelo_exif
+
+        from_ = Image.new("RGB", (40, 30))
+        memoria = io.BytesIO()
+        from_.save(memoria, "JPEG")
+        mal = vuelo_exif.poner_posicion(memoria.getvalue(), -10.0, -20.0, None)
+        parcial = tmp_path / "v.zip"
+        with zipfile.ZipFile(parcial, "w") as z:
+            z.writestr("fotos_corregidas/a.jpg", mal)
+        veredicto = motor._verificar_zip(
+            parcial,
+            {"piezas": [{"nombre": "fotos_corregidas/a.jpg", "lat": -11.0, "lon": -20.0}]},
+        )
+        assert not veredicto.correcta and "debía traer" in veredicto.motivo
+
+    def test_la_pantalla_lo_ofrece_y_dice_que_las_originales_no_se_tocan(self, sesion):
+        cuerpo = sesion.get(reverse("documents:vuelo_dron")).content.decode()
+        assert 'name="escribir_en_fotos"' in cuerpo and "no se tocan" in cuerpo
+
+
+class TestLasCopiasNoSuponenNada:
+    def test_sin_altura_declarada_las_copias_no_llevan_altura_y_se_avisa(self, sesion, tmp_path):
+        import exifread
+
+        trabajo, _r, _c = TestLasFotosConLaPosicionCorregida()._correr_con_copias(sesion, tmp_path)
+        with zipfile.ZipFile(trabajo.output_path) as z:
+            copia = next(n for n in z.namelist() if n.startswith("fotos_corregidas/"))
+            e = exifread.process_file(io.BytesIO(z.read(copia)), details=False)
+        assert "GPS GPSAltitude" not in e and str(e["GPS GPSMapDatum"]) == "WGS84"
+        from apps.jobs.models import JobEvent
+
+        avisos = JobEvent.objects.filter(job=trabajo, level=JobEvent.AVISO)
+        assert any("no llevan altura" in a.message for a in avisos)
+
+    def test_una_foto_que_no_se_puede_corregir_se_cuenta_y_no_tumba_el_vuelo(
+        self, sesion, tmp_path
+    ):
+        carpeta = _carpeta_de_fotos(tmp_path)
+        (carpeta / "DJI_0002_V.JPG").write_bytes(b"no soy una foto")
+        trabajo, _ = _correr(
+            sesion, tmp_path, carpeta_de_fotos=str(carpeta), escribir_en_fotos="on"
+        )
+        assert trabajo.status == "done", trabajo.reason_detail
+        assert trabajo.verification["fotos_corregidas"] == N_FOTOS - 1
+        from apps.jobs.models import JobEvent
+
+        avisos = JobEvent.objects.filter(job=trabajo, level=JobEvent.AVISO)
+        assert any("DJI_0002_V.JPG" in a.message for a in avisos)
+
+    def test_el_motor_rechaza_una_altura_o_un_datum_que_no_son_los_pedidos(self, tmp_path):
+        from apps.documents import vuelo_exif
+
+        memoria = io.BytesIO()
+        Image.new("RGB", (40, 30)).save(memoria, "JPEG")
+        copia = vuelo_exif.poner_posicion(memoria.getvalue(), -10.0, -20.0, 7.0, "SIRGAS 2000")
+        parcial = tmp_path / "v.zip"
+        with zipfile.ZipFile(parcial, "w") as z:
+            z.writestr("fotos_corregidas/a.jpg", copia)
+        base = {"nombre": "fotos_corregidas/a.jpg", "lat": -10.0, "lon": -20.0}
+        bien = {**base, "alt": 7.0, "datum": "SIRGAS 2000"}
+        assert motor._verificar_zip(parcial, {"piezas": [dict(bien)]}).correcta
+        for cambio, texto in (
+            ({"alt": 8.0}, "altura"),
+            ({"alt": None}, "no se le quiso escribir"),
+            ({"datum": "WGS84"}, "datum"),
+        ):
+            veredicto = motor._verificar_zip(parcial, {"piezas": [{**bien, **cambio}]})
+            assert not veredicto.correcta and texto in veredicto.motivo
+
+    def test_el_tope_de_bytes_detiene_el_trabajo_antes_de_empezar(self, tmp_path, monkeypatch):
+        from types import SimpleNamespace
+
+        monkeypatch.setattr(tarea, "TOPE_DE_FOTOS_CORREGIDAS_BYTES", 10)
+        carpeta = _carpeta_de_fotos(tmp_path)
+        fotos = [
+            SimpleNamespace(nombre=p.name, con_posicion=True, lat=-10.0, lon=-20.0, alt_m=1.0)
+            for p in carpeta.iterdir()
+        ]
+        hecho = SimpleNamespace(fotos=fotos, referencia_de_altura="elipsoidal", geografico="WGS84")
+        with zipfile.ZipFile(tmp_path / "v.zip", "w") as z:
+            with pytest.raises(tarea.FalloDeTarea, match="pesan"):
+                tarea._fotos_corregidas(z, hecho, carpeta, [p.name for p in carpeta.iterdir()])
+            assert z.namelist() == []  # se detuvo antes de escribir nada
+
+    def test_con_la_altura_declarada_la_copia_la_lleva_y_el_datum_es_el_del_sistema(self, tmp_path):
+        from types import SimpleNamespace
+
+        import exifread
+
+        carpeta = _carpeta_de_fotos(tmp_path)
+        nombre = next(iter(sorted(carpeta.iterdir()))).name
+        foto = SimpleNamespace(
+            nombre=nombre, con_posicion=True, lat=-23.5, lon=-69.5, alt_m=1123.319
+        )
+        hecho = SimpleNamespace(
+            fotos=[foto], referencia_de_altura="elipsoidal", geografico="SIRGAS-Chile 2002"
+        )
+        with zipfile.ZipFile(tmp_path / "v.zip", "w") as z:
+            piezas, _avisos = tarea._fotos_corregidas(z, hecho, carpeta, [nombre])
+            e = exifread.process_file(
+                io.BytesIO(z.read(f"fotos_corregidas/{nombre}")), details=False
+            )
+        assert piezas[0]["alt"] == pytest.approx(1123.319)
+        assert str(e["GPS GPSMapDatum"]) == "SIRGAS-Chile 2002"
+        assert float(e["GPS GPSAltitude"].values[0].num) / float(
+            e["GPS GPSAltitude"].values[0].den
+        ) == pytest.approx(1123.319)
+
+
 class TestLaMiniaturaEsDura:
     def test_el_nombre_real_de_la_carpeta_se_guarda_en_vuelo_json(self, sesion, tmp_path):
         carpeta = _carpeta_de_fotos(tmp_path)

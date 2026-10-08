@@ -65,6 +65,7 @@ def vuelo_dron_vista(request):
         "escala": "GPST",
         "sistema": "medir",
         "aplicar_desfase": True,
+        "escribir_en_fotos": False,
         "trayectoria_texto": "",
         "disparos_texto": "",
         "referencia_texto": "",
@@ -76,6 +77,7 @@ def vuelo_dron_vista(request):
     contexto["escala"] = request.POST.get("escala_de_tiempo") or ""
     contexto["sistema"] = request.POST.get("sistema") or "medir"
     contexto["aplicar_desfase"] = request.POST.get("aplicar_desfase") == "on"
+    contexto["escribir_en_fotos"] = request.POST.get("escribir_en_fotos") == "on"
     for campo in ("trayectoria", "disparos", "referencia"):
         contexto[f"{campo}_texto"] = (request.POST.get(campo) or "").strip()
     contexto["carpeta_texto"] = (request.POST.get("carpeta_de_fotos") or "").strip()
@@ -112,6 +114,10 @@ def vuelo_dron_vista(request):
             if not ruta.is_dir():
                 raise ComposicionInvalida("Eso no es una carpeta de fotos.")
             carpeta = str(ruta)
+        if contexto["escribir_en_fotos"] and not carpeta:
+            raise ComposicionInvalida(
+                "Para escribir la posición en las fotos hay que elegir la carpeta donde están."
+            )
 
         # El sistema se mide (o se comprueba) **aquí**, con el formulario delante: un sistema que no
         # coincide se dice ahora y no en una ficha roja de la cola.
@@ -143,6 +149,7 @@ def vuelo_dron_vista(request):
             "sistema": contexto["sistema"],
             "aplicar_desfase": contexto["aplicar_desfase"],
             "carpeta_de_fotos": carpeta,
+            "escribir_en_fotos": contexto["escribir_en_fotos"],
         },
         sufijo="_vuelo.zip",
         papeles=papeles,

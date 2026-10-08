@@ -6,6 +6,15 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 ## [Sin publicar]
 
 
+### Añadido — La posición corregida, escrita en copias de las fotos (F18.5)
+
+- En «Corregir un vuelo de dron», la casilla **«Escribir la posición corregida en copias de las fotos»** pone en el zip una carpeta `fotos_corregidas/` con cada foto de la carpeta elegida y su posición nueva en el EXIF. **La imagen es la misma, byte por byte** (todo lo que va desde el marcador SOS pasa tal cual); las originales solo se leen.
+- Cómo se escribe: el bloque GPS viejo se pone a cero, el nuevo se añade al **final** del bloque TIFF y solo se apunta hacia él, de modo que ningún desplazamiento del MakerNote del fabricante se mueve. El XMP de DJI, que repite latitud, longitud y altura, se actualiza en su sitio y conserva la orientación de la cámara y del gimbal. El datum escrito es WGS 84.
+- **Nada se supone:** el datum que se escribe es el del sistema elegido (WGS84, SIRGAS-Chile 2002 o SIRGAS 2000), no uno fijo. **La altura solo se escribe si su referencia está declarada**: el EXIF solo sabe de «sobre el nivel del mar» y afirmaría algo que no se sabe; con las posiciones de Trimble (referencia «no declarada») las copias salen sin altura y el trabajo lo avisa. El XMP de DJI conserva entonces su altura.
+- Verificación: el motor lee cada copia con Pillow y exige la posición (a 1e-8°), la altura y el datum pedidos. Una foto que no se puede corregir (EXIF cortado, segmento que no cabe) no tumba el vuelo: queda sin copia, con su nombre en un aviso; si ninguna se puede, el trabajo falla. Con fotos reales de una Matrice, `exifread` lee la posición escrita y MakerNote e imagen salen idénticos.
+- Tope de 8 GB de fotos por trabajo (las copias van sin comprimir); sobre eso el trabajo se detiene antes de empezar y dice qué hacer. No comprobado: MakerNote de otras marcas con desplazamientos relativos al archivo.
+
+
 ### Añadido — «Corregir un vuelo de dron»: la pantalla, el grupo «Vuelos de dron» y el visor con el recorrido y las fotos (F18.4)
 
 - **Un grupo propio en el lateral, «Vuelos de dron»**, como el de GNSS pero para el vuelo: la traza de un video, las fotos del dron y este proceso, juntos, con su índice (`/documentos/vuelos/`). Son nueve grupos.

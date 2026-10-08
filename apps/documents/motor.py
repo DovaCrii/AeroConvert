@@ -631,6 +631,35 @@ def _conserva_gps(datos: bytes) -> bool:
     return bool(gps) or b"GpsLatitude" in datos
 
 
+def _problema_en_la_posicion(nombre: str, datos: bytes, pieza: dict) -> str:
+    """La foto corregida dice, leída por Pillow, la posición que se le quiso poner.
+
+    Pillow no escribió esos bytes (los escribió `vuelo_exif`). Vacío si está bien.
+    """
+    from PIL import Image
+
+    from apps.documents import fotos_dron
+
+    lat, lon = pieza["lat"], pieza["lon"]
+    with Image.open(io.BytesIO(datos)) as imagen:
+        gps = imagen.getexif().get_ifd(0x8825)
+    leida_lat = fotos_dron._grados(gps.get(2), gps.get(1)) if gps.get(2) is not None else None
+    leida_lon = fotos_dron._grados(gps.get(4), gps.get(3)) if gps.get(4) is not None else None
+    if leida_lat is None or leida_lon is None:
+        return f"{nombre} debía traer la posición corregida y no la trae."
+    if pieza.get("alt") is not None:
+        alt = gps.get(6)
+        if alt is None or abs(float(alt) - pieza["alt"]) > 1e-3:
+            return f"{nombre} debía traer la altura {pieza['alt']:.3f} y trae {alt}."
+    elif gps.get(6) is not None:
+        return f"{nombre} trae una altura que no se le quiso escribir."
+    if pieza.get("datum") and str(gps.get(18, "")).strip("\x00 ") != pieza["datum"]:
+        return f"{nombre} debía declarar el datum {pieza['datum']} y declara {gps.get(18)}."
+    if abs(leida_lat - lat) > 1e-8 or abs(leida_lon - lon) > 1e-8:
+        return f"{nombre} trae {leida_lat:.8f}, {leida_lon:.8f} y debía traer {lat:.8f}, {lon:.8f}."
+    return ""
+
+
 def _problema_en_texto(nombre: str, datos: bytes, pieza: dict) -> str:
     """Una pieza de texto del zip abre, y trae tantas filas, puntos o fotos como se dijo.
 
@@ -748,6 +777,10 @@ def _verificar_zip(parcial: Path, detalles: dict) -> Verificacion:
                             f"{nombre} debía salir sin posición y todavía la trae.",
                             "salida-invalida",
                         )
+                    if pieza.get("lat") is not None:
+                        problema = _problema_en_la_posicion(nombre, datos, pieza)
+                        if problema:
+                            return Verificacion(False, problema, "salida-invalida")
                     if pieza.get("ancho"):
                         veredicto = _comparar_con_lo_dicho(nombre, datos, pieza)
                         if veredicto is not None:
