@@ -669,7 +669,16 @@ class MotorCadPorOda(Motor):
             ruta_de_salida=destino,
             posteriores=(tuple(segundo),),
             salida_en_posteriores=True,
-            env=entorno_de_gdal(),
+            # **La ruta de ODA va explícita**: el hijo no tiene Django y la busca en su entorno,
+            # pero `python-decouple` no copia el `.env` a `os.environ` y el servicio no tiene
+            # `EnvironmentFile`. Sin esto, ODA configurado en el `.env` no se encontraba en p340.
+            env=entorno_de_gdal(
+                **(
+                    {"AEROCONVERT_ODA_CONVERTER": settings.ODA_CONVERTER}
+                    if getattr(settings, "ODA_CONVERTER", "")
+                    else {}
+                )
+            ),
             cwd=Path(settings.BASE_DIR),
             # Más largo que el resto: son dos conversiones seguidas, y la primera es un
             # programa de escritorio auditando un plano que puede tener cien mil entidades.

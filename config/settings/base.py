@@ -120,6 +120,13 @@ RTKLIB_CONVBIN = config("AEROCONVERT_RTKLIB_CONVBIN", default="")
 # RTKLIB `rnx2rtkp`, el que corrige la trayectoria de un vuelo con la base (PPK). Vacio, se busca
 # junto a `convbin` y luego en el PATH (viene en el mismo paquete: `apt install rtklib`).
 RTKLIB_RNX2RTKP = config("AEROCONVERT_RTKLIB_RNX2RTKP", default="")
+
+# Las firmas digitales (F14.5). **Se leen aquí y no con `os.environ` en el hijo:** `python-decouple`
+# lee el `.env` pero no lo copia al entorno del proceso, y el servicio no tiene `EnvironmentFile`.
+# Leídas en el hijo, las dos quedaban vacías en el servidor aunque estuvieran en el `.env`. El motor
+# se las pasa al hijo (`documents/motor.py`).
+RAICES_DE_CONFIANZA = config("AEROCONVERT_RAICES_DE_CONFIANZA", default="")
+TSA_URL = config("AEROCONVERT_TSA_URL", default="")
 # Donde vive el prefijo de Wine. Hace falta fuera de `$HOME`: el servicio corre con
 # `ProtectHome=yes`, asi que el `~/.wine` por omision no se puede ni crear.
 WINEPREFIX = config("AEROCONVERT_WINEPREFIX", default="")

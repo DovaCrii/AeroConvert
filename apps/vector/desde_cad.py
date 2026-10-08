@@ -115,7 +115,7 @@ def a_dxf(origen: str | Path, destino: str | Path) -> Path:
     if not conversor:
         raise SinConversorDeCad(
             "No hay conversor de CAD en este equipo. DWG es un formato cerrado de Autodesk y "
-            "hace falta el ODA File Converter, que es gratuito: instálalo y apunta "
+            "hace falta el ODA File Converter, que es gratuito: instálelo y apunte "
             "AEROCONVERT_ODA_CONVERTER a su ejecutable. Mientras tanto, «Guardar como DXF» "
             "desde cualquier CAD hace el mismo primer paso."
         )

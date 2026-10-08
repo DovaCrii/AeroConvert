@@ -567,7 +567,7 @@ def _avisos_de_puntos(cabecera: puntos_mod.CabeceraPuntos) -> list[str]:
     else:
         avisos.append(
             f"Orden de columnas {cabecera.orden.upper()}, "
-            f"{cabecera.etiqueta_certeza}. Compruébalo en la vista previa antes de "
+            f"{cabecera.etiqueta_certeza}. Compruébelo en la vista previa antes de "
             "convertir."
         )
 

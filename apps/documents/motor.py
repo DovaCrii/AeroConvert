@@ -238,6 +238,15 @@ def plan(job) -> PlanDeEjecucion:
         "PYTHONUNBUFFERED": "1",
         "PYTHONIOENCODING": "utf-8",
     }
+    # Lo que el hijo lee de su entorno y vive en el `.env`: se lo pasa el padre, que sí lo leyó.
+    from .firma_digital import VARIABLE_RAICES, VARIABLE_TSA
+
+    for variable, valor in (
+        (VARIABLE_RAICES, getattr(settings, "RAICES_DE_CONFIANZA", "")),
+        (VARIABLE_TSA, getattr(settings, "TSA_URL", "")),
+    ):
+        if valor:
+            entorno[variable] = valor
     if espec.con_secreto:
         from . import secretos
 

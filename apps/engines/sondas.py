@@ -153,8 +153,8 @@ def sondar_gdal() -> EstadoGdal:
         estado = EstadoGdal(
             disponible=False,
             motivo=(
-                "No se encontro gdalinfo. Instala GDAL (OSGeo4W, QGIS o conda-forge) y "
-                "apunta AEROCONVERT_GDAL_BIN a su carpeta bin."
+                "No se encontro gdalinfo. Instale GDAL (OSGeo4W, QGIS o conda-forge) y "
+                "apunte AEROCONVERT_GDAL_BIN a su carpeta bin."
             ),
         )
         cache.set("motores:gdal", estado, SEGUNDOS_DE_CACHE)
@@ -462,7 +462,7 @@ def sondar_oda() -> Disponibilidad:
             "sin-conversor",
             "No hay conversor configurado.",
             sugerencia=(
-                "Instala ODA File Converter (gratuito, de la Open Design Alliance) y apunta "
+                "Instale ODA File Converter (gratuito, de la Open Design Alliance) y apunte "
                 "AEROCONVERT_ODA_CONVERTER a su ejecutable."
             ),
             alternativas=("dxf",),
@@ -522,8 +522,8 @@ def sondar_trimble_rinex() -> Disponibilidad:
             "No hay convertidor de Trimble configurado.",
             sugerencia=(
                 "Es el programa «Convert To RINEX» de Trimble, de licencia propia: no se "
-                "distribuye con AeroConvert. Trimble Business Center lo trae; instálalo y "
-                "apunta AEROCONVERT_TRIMBLE_RINEX a convertToRinex.exe."
+                "distribuye con AeroConvert. Trimble Business Center lo trae; instálelo y "
+                "apunte AEROCONVERT_TRIMBLE_RINEX a convertToRinex.exe."
             ),
         )
     if not Path(ruta).is_file():
