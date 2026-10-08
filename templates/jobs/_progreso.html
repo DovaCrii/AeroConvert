@@ -112,6 +112,8 @@ generar 10.800 peticiones.
         <a class="boton remate-boton"
            href="{% url 'jobs:descargar' trabajo.pk %}">Descargar</a>
       {% endif %}
+      <a class="boton boton-suave remate-boton"
+         href="{% url 'jobs:informe' trabajo.pk %}">Informe en PDF</a>
     </div>
 
     {% if seguir_con %}

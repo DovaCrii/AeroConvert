@@ -3,11 +3,12 @@ from pathlib import Path
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.http import FileResponse
+from django.http import FileResponse, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
+from . import informe as informe_mod
 from . import retencion
 from .models import ERROR, TERMINALES, ConversionJob
 
@@ -321,6 +322,24 @@ def _ya_no_esta(request, job, motivo: str):
         },
         status=410,
     )
+
+
+@login_required
+def informe(request, pk):
+    """El informe de verificación del trabajo, en PDF, para que acompañe la entrega.
+
+    Solo de quien lo pidió (`_mio`) y solo cuando el trabajo ya terminó, para bien o para mal: un
+    informe de algo a medias diría cosas que todavía no son ciertas.
+    """
+    job = _mio(request, pk)
+    if job.status not in TERMINALES:
+        messages.info(request, "El informe se puede bajar cuando el trabajo termine.")
+        return redirect("jobs:ficha", pk=job.pk)
+    nombre = Path(job.source_name or "trabajo").stem[:80] or "trabajo"
+    respuesta = HttpResponse(informe_mod.construir(job), content_type="application/pdf")
+    respuesta["Content-Disposition"] = f'attachment; filename="informe_{nombre}.pdf"'
+    respuesta["Cache-Control"] = "private, no-store"
+    return respuesta
 
 
 @login_required

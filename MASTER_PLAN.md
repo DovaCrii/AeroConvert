@@ -536,7 +536,7 @@ volver atrás**, igual que `test_escala_visual.py` y `test_iconos.py`. Versión 
 | --- | --- | --- | --- | --- |
 | F16.1 | **Lotes**: una carpeta entera con la receta de un cliente, como trabajo padre con hijos | Cada hijo verifica con su oráculo; el padre falla si falla uno y lo dice | Claude | ⬜ |
 | F16.2 | **Paquete de entrega**: recetas con nombre («Entrega a BHP») que fijan destinos, CRS y nombres de archivo | La misma receta produce los mismos parámetros en dos corridas | Claude | ⬜ |
-| F16.3 | **Informe de verificación en PDF** que acompaña la entrega: ficha antes y después, CRS, estadísticas, `sha256` y veredictos | PDFium lo renderiza; `pypdf` encuentra cada `sha256` en el texto | Claude | ⬜ |
+| F16.3 | **Informe de verificación en PDF** que acompaña la entrega: ficha antes y después, CRS, estadísticas, `sha256` y veredictos | PDFium lo renderiza; `pypdf` encuentra cada `sha256` en el texto | Claude | ✅ 2026-10-08 |
 | F16.4 | **API de conversión** con token por usuario y permisos | Prueba de 403 por extremo; un cliente `httpx` de prueba convierte un TIFF de punta a punta | Claude | ⬜ |
 | F16.5 | **Integración con AeroBim** (cierra F4.2) por API | AeroBim abre el COG y el COPC entregados (paseo fechado) | Claude | ⬜ |
 | F16.6 | **`RegistroDeSonda`**, `remuestreo` y `nodata` expuestos, y traducciones compiladas (deuda conocida) | Pruebas de cada uno; `test_traducciones.py` verde con `.mo` versionado | Claude | ✅ 2026-10-08 |
