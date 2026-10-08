@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block titulo %}Paquetes de entrega · AeroConvert{% endblock %}
+
+{% block contenido %}
+<div class="tarjeta">
+  <div class="eyebrow">Sus paquetes</div>
+  {% for item in paquetes %}
+    <section class="av-mb-3" aria-labelledby="paquete-{{ item.paquete.slug }}">
+      <h2 class="av-fs-lg av-mb-1" id="paquete-{{ item.paquete.slug }}">{{ item.paquete.nombre }}</h2>
+      {% if item.paquete.descripcion %}<p class="tenue av-mb-1">{{ item.paquete.descripcion }}</p>{% endif %}
+      <ol class="av-mb-1">
+        {% for paso in item.pasos %}<li>{{ paso }}</li>{% endfor %}
+      </ol>
+      <p class="tenue av-fs-sm av-mb-2">
+        Nombre de salida: <code>{{ item.paquete.patron_de_nombre }}</code>
+        {% if item.paquete.target_crs_code %}· lleva todo a EPSG:{{ item.paquete.target_crs_code }}{% endif %}
+        · usado {{ item.paquete.veces_usado }} vez{{ item.paquete.veces_usado|pluralize:"es" }}
+      </p>
+
+      <form method="post" action="{% url 'presets:lote_nuevo' %}" class="av-mb-2">
+        {% csrf_token %}
+        <input type="hidden" name="paquete" value="{{ item.paquete.slug }}">
+        {% include "documents/_paso_vuelo.html" with numero="1" titulo="La carpeta con los archivos" ayuda="Se aplica a cada archivo de la carpeta (sin entrar en las subcarpetas). Un archivo sin sistema de coordenadas no se adivina: si el paquete lo necesita, ese trabajo se detiene diciéndolo." campo="ruta" subida="" acepta="" ext="" texto="" obligatorio=True carpeta=True %}
+        <button type="submit" class="boton boton-principal av-mt-2">Aplicar a la carpeta</button>
+      </form>
+
+      <form method="post" action="{% url 'presets:paquete_borrar' item.paquete.slug %}">
+        {% csrf_token %}
+        <button type="submit" class="boton boton-suave boton-pequeno">Borrar el paquete</button>
+      </form>
+    </section>
+  {% empty %}
+    <p class="vacio">Todavía no tiene ninguno. Cree el primero abajo.</p>
+  {% endfor %}
+</div>
+
+<div class="tarjeta">
+  <div class="eyebrow">Nuevo paquete</div>
+  <form method="post" action="{% url 'presets:paquete_nuevo' %}">
+    {% csrf_token %}
+    <div class="av-mb-2">
+      <label for="id_nombre" class="form-label">Nombre</label>
+      <input type="text" name="nombre" id="id_nombre" class="form-control" maxlength="120" required
+             value="{{ escrito.nombre }}" placeholder="Entrega a BHP">
+    </div>
+    <div class="av-mb-2">
+      <label for="id_descripcion" class="form-label">Descripción</label>
+      <input type="text" name="descripcion" id="id_descripcion" class="form-control" maxlength="250">
+    </div>
+    <fieldset class="av-mb-2">
+      <legend class="form-label av-fs-md">Destinos (en este orden)</legend>
+      {% for p in preajustes %}
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" name="pasos" value="{{ p.slug }}"
+                 id="paso-{{ p.slug }}"{% if p.slug in escrito.pasos %} checked{% endif %}>
+          <label class="form-check-label" for="paso-{{ p.slug }}">{{ p.nombre }} <span class="tenue">({{ p.nombre_destino }})</span></label>
+        </div>
+      {% endfor %}
+    </fieldset>
+    <div class="av-mb-2">
+      <label for="id_patron" class="form-label">Nombre de los archivos de salida</label>
+      <input type="text" name="patron" id="id_patron" class="form-control" maxlength="120"
+             value="{{ escrito.patron|default:patron_por_omision }}" aria-describedby="ayuda-patron">
+      <p class="tenue av-fs-sm av-mt-1 av-mb-0" id="ayuda-patron">
+        Marcas que puede usar:
+        {% for marca, que in marcas.items %}<code>{{ '{' }}{{ marca }}{{ '}' }}</code> {{ que }}{% if not forloop.last %}; {% endif %}{% endfor %}.
+        En un lote, ponga <code>{{ '{' }}origen{{ '}' }}</code> para que cada archivo tenga el suyo.
+      </p>
+    </div>
+    <div class="av-mb-2">
+      <label for="id_crs" class="form-label">Llevar todo a este sistema (opcional)</label>
+      <input type="text" name="crs" id="id_crs" class="form-control" maxlength="20"
+             value="{{ escrito.crs }}" placeholder="EPSG:32719" aria-describedby="ayuda-crs">
+      <p class="tenue av-fs-sm av-mt-1 av-mb-0" id="ayuda-crs">
+        Vacío: cada destino conserva el sistema del archivo. Con uno puesto, un archivo que no declare el suyo se detiene (no se adivina).
+      </p>
+    </div>
+    <button type="submit" class="boton boton-principal">Guardar el paquete</button>
+  </form>
+</div>
+
+<div class="tarjeta">
+  <div class="eyebrow">Lotes recientes</div>
+  <ul class="av-m-0">
+    {% for l in lotes %}
+      <li><a href="{% url 'presets:lote' l.pk %}">{{ l.nombre }}</a> <span class="tenue">· {{ l.created_at|date:"Y-m-d H:i" }}</span></li>
+    {% empty %}
+      <li class="vacio">Ninguno todavía.</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endblock %}
+
+{% block scripts %}<script src="{% static 'js/elegido.js' %}"></script>{% endblock %}

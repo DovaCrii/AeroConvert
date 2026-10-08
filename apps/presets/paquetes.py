@@ -71,13 +71,16 @@ def validar_patron(patron: str) -> str:
     for marca in _MARCA.findall(patron):
         if marca not in MARCAS:
             posibles = ", ".join("{" + m + "}" for m in MARCAS)
-            raise PaqueteInvalido(f"«{{{marca}}}» no es una marca del patrón. Las que hay: {posibles}.")
+            raise PaqueteInvalido(
+                f"«{{{marca}}}» no es una marca del patrón. Las que hay: {posibles}."
+            )
     sobrante = _MARCA.sub("", patron)
     if "{" in sobrante or "}" in sobrante:
         raise PaqueteInvalido("Hay una llave suelta en el patrón.")
     if _PROHIBIDOS.search(sobrante):
         raise PaqueteInvalido(
-            'El patrón lleva un carácter que no puede ir en un nombre de archivo: < > : " / \\ | ? *'
+            "El patrón lleva un carácter que no puede ir en un nombre de archivo: "
+            '< > : " / \\ | ? *'
         )
     return patron
 
@@ -85,13 +88,21 @@ def validar_patron(patron: str) -> str:
 def limpiar(texto: str) -> str:
     """Un trozo de nombre de archivo que ningún sistema rechaza ni usa para salir de su carpeta."""
     limpio = _PROHIBIDOS.sub("_", str(texto))
+    limpio = re.sub(r"\.{2,}", "_", limpio)  # un «..» no es un nombre, ni siquiera sin barras
     limpio = re.sub(r"\s+", " ", limpio).strip(" .")
-    if limpio.lower() in _RESERVADOS:
-        limpio = f"_{limpio}"
-    return limpio[:LARGO_MAXIMO_DE_NOMBRE]
+    return _sin_reservado(limpio[:LARGO_MAXIMO_DE_NOMBRE].rstrip(" ."))
 
 
-def nombre_de_salida(patron: str, *, origen: str, destino: str, perfil: str, fecha: date, n: int) -> str:
+def _sin_reservado(nombre: str) -> str:
+    """Windows rechaza `con`, `aux.x`, `nul.v2`…: se mira lo anterior al primer punto."""
+    if nombre.split(".")[0].strip().lower() in _RESERVADOS:
+        return f"_{nombre}"
+    return nombre
+
+
+def nombre_de_salida(
+    patron: str, *, origen: str, destino: str, perfil: str, fecha: date, n: int
+) -> str:
     """El nombre (sin extensión) que sale de aplicar el patrón. Siempre limpio y nunca vacío."""
     valores = {
         "origen": limpiar(origen),
@@ -105,7 +116,8 @@ def nombre_de_salida(patron: str, *, origen: str, destino: str, perfil: str, fec
     bruto = _MARCA.sub(lambda m: valores.get(m.group(1), ""), validar_patron(patron))
     # Lo que queda tras limpiar el patrón entero: los literales también pasan por el filtro.
     resultado = limpiar(re.sub(r"_{2,}", "_", bruto)).strip("_ ") or "entrega"
-    return resultado
+    # Tras el recorte: quitar los guiones bajos de los bordes puede volver a dejar un reservado.
+    return _sin_reservado(resultado)
 
 
 def expandir(paquete, preajustes: dict, *, nombre_origen: str, fecha: date) -> list[Paso]:

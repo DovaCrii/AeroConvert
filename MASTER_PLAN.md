@@ -534,8 +534,8 @@ volver atrás**, igual que `test_escala_visual.py` y `test_iconos.py`. Versión 
 
 | # | Entrega | Oráculo | La cierra | Estado |
 | --- | --- | --- | --- | --- |
-| F16.1 | **Lotes**: una carpeta entera con la receta de un cliente, como trabajo padre con hijos | Cada hijo verifica con su oráculo; el padre falla si falla uno y lo dice | Claude | ⬜ |
-| F16.2 | **Paquete de entrega**: recetas con nombre («Entrega a BHP») que fijan destinos, CRS y nombres de archivo | La misma receta produce los mismos parámetros en dos corridas | Claude | ⬜ |
+| F16.1 | **Lotes**: una carpeta entera con la receta de un cliente, como trabajo padre con hijos | Cada hijo verifica con su oráculo; el padre falla si falla uno y lo dice | Claude | ✅ 2026-10-08 (el estado del lote se deriva de los hijos; lo que no entra queda a la vista con su motivo; un archivo sin sistema se detiene en su hijo con `crs-ausente`, no se adivina) |
+| F16.2 | **Paquete de entrega**: recetas con nombre («Entrega a BHP») que fijan destinos, CRS y nombres de archivo | La misma receta produce los mismos parámetros en dos corridas | Claude | ✅ 2026-10-08 (`expandir()` es pura; nombres seguros, sin pisar el original ni otra salida del lote) |
 | F16.3 | **Informe de verificación en PDF** que acompaña la entrega: ficha antes y después, CRS, estadísticas, `sha256` y veredictos | PDFium lo renderiza; `pypdf` encuentra cada `sha256` en el texto | Claude | ✅ 2026-10-08 |
 | F16.4 | **API de conversión** con token por usuario y permisos | Prueba de 403 por extremo; un cliente `httpx` de prueba convierte un TIFF de punta a punta | Claude | ⬜ |
 | F16.5 | **Integración con AeroBim** (cierra F4.2) por API | AeroBim abre el COG y el COPC entregados (paseo fechado) | Claude | ⬜ |
