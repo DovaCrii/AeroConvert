@@ -117,6 +117,9 @@ TRIMBLE_RINEX = config("AEROCONVERT_TRIMBLE_RINEX", default="")
 # NovAtel, RTCM3, BINEX y Javad a RINEX. Vacio, se busca en el PATH (en Ubuntu: `apt install
 # rtklib`). Como Trimble, **se sondea y no se declara**.
 RTKLIB_CONVBIN = config("AEROCONVERT_RTKLIB_CONVBIN", default="")
+# RTKLIB `rnx2rtkp`, el que corrige la trayectoria de un vuelo con la base (PPK). Vacio, se busca
+# junto a `convbin` y luego en el PATH (viene en el mismo paquete: `apt install rtklib`).
+RTKLIB_RNX2RTKP = config("AEROCONVERT_RTKLIB_RNX2RTKP", default="")
 # Donde vive el prefijo de Wine. Hace falta fuera de `$HOME`: el servicio corre con
 # `ProtectHome=yes`, asi que el `~/.wine` por omision no se puede ni crear.
 WINEPREFIX = config("AEROCONVERT_WINEPREFIX", default="")

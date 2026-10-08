@@ -6,6 +6,14 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 ## [Sin publicar]
 
 
+### Añadido — el proceso PPK de un vuelo con RTKLIB, sin pantalla todavía (F18.3)
+
+- **`vuelo_ppk.py`**: arma y lanza `rnx2rtkp` (RTKLIB, BSD-2, **sondeado y ejecutado aparte**; `sondar()` dice qué falta y cómo ponerlo, y sale de `AEROCONVERT_RTKLIB_RNX2RTKP`, del lado de `convbin` o del `PATH`). **La base se declara con su sistema** (regla 3): no se toma el `APPROX POSITION` del RINEX como coordenada, y contra él solo se comprueba que la declarada no esté a más de 1 km; un error de signo, de zona o de estación sale en kilómetros y **se rechaza antes de gastar minutos de RTKLIB**.
+- Mira los RINEX antes de lanzar (versión que RTKLIB lee, observación contra navegación, vacío, binario) y arma la orden **sin shell, con rutas absolutas** (una ruta que empezara por «-» se leería como opción). Hora en calendario y GPST, para que `vuelo_pos` lo lea.
+- **El código de salida no prueba nada (regla 1):** `rnx2rtkp` sale con 0 sin resolver una época. Se comprueba el `.pos`: que exista, que se lea y que traiga posiciones; si no, falla con lo último que dijo RTKLIB.
+- Pruebas (46): la orden completa escrita a mano; RINEX escritos a mano y la distancia a la base contra una conversión geodésica **escrita aparte** en la prueba; y un `rnx2rtkp` de mentira que registra los argumentos que recibe y puede salir con 0 sin escribir, escribir basura, un `.pos` en ECEF o colgarse. **⚠ La corrida real de RTKLIB contra datos reales queda por hacer**: no hay RTKLIB en esta estación (P16) ni un vuelo (P15).
+
+
 ### Añadido — la base de los vuelos de dron con PPK: leer el `.pos` y sincronizar las fotos (F18.1, F18.2)
 
 - **Decisión (`docs/VUELOS_DE_DRON_Y_PPK.md`).** `geoforge-studio` trae su PPK como **marcador de posición** (devuelve un vector fijo `(10, 20, 5)` y un residuo `0,5`, con un `TODO`), así que no se porta: sería inventar números. El motor de PPK será **RTKLIB `rnx2rtkp`** (externo, sondeado; el paquete `rtklib` ya está en `p340`), y lo que se escribe aquí es lo de alrededor, que se puede probar con otro lector. Se abre la Fase 18 y el bloque B12, y los pedidos P15 (un vuelo de verdad) y P16 (permiso para bajar RTKLIB).
