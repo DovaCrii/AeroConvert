@@ -59,7 +59,7 @@ def vuelo_dron_vista(request):
         "seccion": "pdf",
         "etiqueta_seccion": "Vuelos de dron",
         "titulo_pagina": "Corregir un vuelo de dron",
-        "proposito": "La posición corregida de cada foto, contrastada con la posición de referencia, a la vista.",
+        "proposito": "La posición corregida de cada foto, contrastada con la de referencia.",
         "escalas": ESCALAS,
         "sistemas": _sistemas_para_declarar(),
         "escala": "GPST",
