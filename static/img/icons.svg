@@ -355,6 +355,15 @@
     <circle cx="18.5" cy="7" r="2.1" fill="currentColor" />
   </symbol>
 
+  <symbol id="icon-lamina-dxf" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Plano DXF a lámina: el pliego con su cuadro de rótulo y un trazo de plano adentro. -->
+    <rect x="3" y="3.5" width="18" height="17" rx="1.6" />
+    <path d="M3 16.5h18" />
+    <path d="M7 13l3.2-4.6 3 2.4 3.3-4.3" />
+    <path d="M14 18.6h4.5" />
+  </symbol>
+
   <symbol id="icon-foto-dron" viewBox="0 0 24 24" fill="none" stroke="currentColor"
           stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
     <!-- Fotos de dron: un marco de foto con la chincheta de su posición dentro. -->

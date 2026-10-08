@@ -141,6 +141,19 @@ HERRAMIENTAS = (
         ),
     },
     {
+        "id": "dxf_lamina",
+        "icono": "icon-lamina-dxf",
+        "sale": "una lámina PDF o SVG",
+        "familia": "transformar",
+        "url": "documents:dxf_lamina",
+        "nombre": "Plano DXF a PDF",
+        "que_hace": (
+            "Dibuja un plano DXF en una lámina de A4 a A0, centrada y con margen, con el color "
+            "de sus capas y la escala si el dibujo declara sus unidades. Lo que no dibuja, "
+            "lo cuenta."
+        ),
+    },
+    {
         "id": "fotos_dron",
         "icono": "icon-foto-dron",
         "sale": "un zip con una foto por cada una",

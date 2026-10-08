@@ -113,6 +113,7 @@ DE_DOCUMENTOS: dict[str, str] = {
     "comparar": "revisar",
     "imagenes": "convertir",
     "imagenes_lote": "convertir",
+    "dxf_lamina": "convertir",
     "a_imagenes": "convertir",
     "extraer_imagenes": "convertir",
     "office": "convertir",

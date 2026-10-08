@@ -1,4 +1,4 @@
-"""Las pantallas de las treinta y cuatro herramientas de documentos.
+"""Las pantallas de las treinta y cinco herramientas de documentos.
 
 ## Mirar aquí, hacer en la cola
 
@@ -66,6 +66,9 @@ from .pantalla_comprimir import (  # noqa: F401
 )
 from .pantalla_dividir import (  # noqa: F401
     dividir_vista,
+)
+from .pantalla_dxf_lamina import (  # noqa: F401
+    dxf_lamina_vista,
 )
 from .pantalla_fotos_dron import (  # noqa: F401
     fotos_dron_vista,

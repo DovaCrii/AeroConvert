@@ -23,6 +23,7 @@ urlpatterns = [
     path("imagenes/", views.imagenes_vista, name="imagenes"),
     path("imagenes-lote/", views.imagenes_lote_vista, name="imagenes_lote"),
     path("fotos-dron/", views.fotos_dron_vista, name="fotos_dron"),
+    path("plano-dxf/", views.dxf_lamina_vista, name="dxf_lamina"),
     path("a-imagenes/", views.a_imagenes_vista, name="a_imagenes"),
     path("numerar/", views.numerar_vista, name="numerar"),
     path("marca/", views.marca_vista, name="marca"),
