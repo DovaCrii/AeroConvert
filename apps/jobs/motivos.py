@@ -164,7 +164,7 @@ MOTIVOS: dict[str, Motivo] = dict(
         _m(
             "demasiadas-paginas",
             "El documento pasa del tope de páginas de esta herramienta.",
-            "Pártelo antes con «Dividir PDF».",
+            "Pártalo antes con «Dividir PDF».",
         ),
         _m("sin-office", "Esta máquina no tiene Office, que es lo que hace esta conversión."),
         _m("sin-access", "Esta máquina no tiene el motor de Access que abre los catálogos."),
@@ -178,6 +178,9 @@ MOTIVOS: dict[str, Motivo] = dict(
             "sin-ffmpeg",
             "Esta máquina no tiene FFmpeg (o le falta ffprobe), que es lo que trabaja el video.",
             "sudo despliegue/instalar_faltantes.sh",
+            "sin-ghostscript",
+            "Esta máquina no tiene Ghostscript, que es lo que escribe el PDF/A.",
+            "sudo despliegue/instalar_faltantes.sh (en Windows lo trae QGIS).",
         ),
         _m(
             "sin-tesseract",

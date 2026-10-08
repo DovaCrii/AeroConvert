@@ -46,6 +46,7 @@ urlpatterns = [
     # pantalla existe igual y dice como ponerlo, como las de Office.
     path("ocr/", views.ocr_vista, name="ocr"),
     path("video/", views.video_vista, name="video"),
+    path("pdf-a/", views.pdf_a_vista, name="pdf_a"),
     # «Texto y tablas» tiene su propio índice. Compartía el de PDF, y entonces el desplegable
     # ofrecía dos columnas distintas que llevaban al mismo sitio.
     path("texto/", views.texto, name="texto"),

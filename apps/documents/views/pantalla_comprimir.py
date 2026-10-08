@@ -133,7 +133,7 @@ def ocr_vista(request):
         messages.error(
             request,
             f"{origen.nombre} tiene {cabecera.cuantas} páginas y el tope son "
-            f"{ocr_mod.TOPE_PAGINAS}. Pártelo antes con «Dividir PDF».",
+            f"{ocr_mod.TOPE_PAGINAS}. Pártalo antes con «Dividir PDF».",
         )
         return render(request, "documents/ocr.html", contexto)
 

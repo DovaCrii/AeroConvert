@@ -412,6 +412,7 @@ def _de_los_documentos() -> list[Accion]:
             "quitar el audio",
             "mp4",
         ),
+        "pdf_a": ("pdf/a", "pdfa", "pdf de archivo", "archivar un pdf", "archivo a largo plazo"),
         # Texto y tablas. «md» y «markdown» en todas, porque quien busca escribe una u otra.
         "md_excel": ("md", "markdown", "xlsx", "hoja de calculo", "tabla", "pegar en un correo"),
         "md_csv": ("md", "markdown", "tabla", "separado por comas", "punto y coma"),
@@ -485,6 +486,7 @@ HERRAMIENTAS_POR_EXTENSION = {
         "dividir",
         "comprimir",
         "ocr",
+        "pdf_a",
         "numerar",
         "marca",
         "proteger",

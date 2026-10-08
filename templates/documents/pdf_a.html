@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block titulo %}PDF a PDF/A · AeroConvert{% endblock %}
+
+{% block contenido %}
+{% if not ghostscript %}
+  <div class="tarjeta">
+    <div class="eyebrow">Ahora mismo no se puede</div>
+    <h2 class="av-fs-md">{{ ghostscript.motivo }}</h2>
+    <p class="tenue av-mt-2 av-mb-0">{{ ghostscript.sugerencia }}</p>
+  </div>
+{% else %}
+<div class="tarjeta antes-de-empezar">
+  <p class="sin-hueco">
+    <strong>PDF/A-2b</strong> es un PDF que se basta a sí mismo: las fuentes van dentro y el color
+    está definido. Lo escribe Ghostscript y <strong>otro programa lo comprueba</strong> (que diga
+    PDF/A-2b, que tenga su perfil de color y que todas las fuentes vayan incrustadas).
+  </p>
+  {% if con_verapdf %}
+    <p class="tenue">Esta máquina tiene veraPDF: además, se valida la conformidad entera.</p>
+  {% else %}
+    <p class="aviso">
+      Esta máquina no tiene veraPDF: el recibo <strong>no afirmará que sea conforme</strong>, solo
+      lo que se comprobó. Si el destinatario exige la validación, pásela por veraPDF.
+    </p>
+  {% endif %}
+</div>
+
+<form id="forma-documento" method="post" enctype="multipart/form-data">
+  {% csrf_token %}
+  {% include "documents/_origen.html" with pregunta="¿Qué PDF hay que pasar a PDF/A?" accion="convertir" boton="Pasar a PDF/A" acepta=".pdf" %}
+</form>
+{% endif %}
+{% endblock %}

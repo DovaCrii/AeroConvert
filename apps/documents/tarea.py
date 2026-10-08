@@ -864,15 +864,57 @@ def _video(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
     finally:
         shutil.rmtree(carpeta, ignore_errors=True)
     con_posicion = sum(1 for linea in tabla.splitlines()[1:] if linea.split(",")[2])
+    return (
+        {
+            "operacion": "fotogramas",
+            "fotogramas": len(archivos),
+            "con_posicion": con_posicion,
+            "duracion_original_s": round(ficha.duracion_s, 2),
+            "piezas": [
+                *({"nombre": a.name} for a in archivos),
+                {"nombre": "fotogramas.csv", "filas": len(archivos)},
+            ],
+        },
+    )
+
+
+#: Ghostscript y veraPDF, sondeados por el padre (el hijo no tiene Django para sondear).
+VARIABLE_GHOSTSCRIPT = "AEROCONVERT_GHOSTSCRIPT_HIJO"
+VARIABLE_VERAPDF = "AEROCONVERT_VERAPDF_HIJO"
+
+
+def _pdf_a(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
+    import os
+
+    from apps.documents import pdfa
+
+    programa = os.environ.get(VARIABLE_GHOSTSCRIPT, "")
+    if not programa:
+        raise FalloDeTarea("sin-ghostscript", "No llegó la ruta de Ghostscript desde el corredor.")
+    progreso(0.1, "Escribiendo el PDF/A con Ghostscript")
+    comprobado = pdfa.convertir(
+        Path(entradas[0]["ruta"]),
+        parcial,
+        programa,
+        verapdf=os.environ.get(VARIABLE_VERAPDF, ""),
+    )
+    progreso(1.0, "Comprobado con otro lector")
     return {
-        "operacion": "fotogramas",
-        "fotogramas": len(archivos),
-        "con_posicion": con_posicion,
-        "duracion_original_s": round(ficha.duracion_s, 2),
-        "piezas": [
-            *({"nombre": a.name} for a in archivos),
-            {"nombre": "fotogramas.csv", "filas": len(archivos)},
-        ],
+        "accion": "pdf_a",
+        "paginas": comprobado["paginas"],
+        "pdfa": comprobado["pdfa"],
+        # `None` = no se pudo validar con veraPDF, y entonces **no se afirma** la conformidad.
+        "conforme": comprobado["conforme"],
+        "validado_con": "veraPDF" if comprobado["conforme"] is not None else "",
+        "avisos": (
+            []
+            if comprobado["conforme"]
+            else [
+                "PDF/A-2b escrito y comprobado por fuera (identificación, perfil de color y "
+                "fuentes incrustadas), pero sin veraPDF en esta máquina la conformidad completa "
+                "no se valida."
+            ]
+        ),
     }
 
 
@@ -951,6 +993,7 @@ TAREAS = {
     "redactar": _redactar,
     "ocr": _ocr,
     "video": _video,
+    "pdf_a": _pdf_a,
     "catalogo_excel": _catalogo_a_excel,
     "excel_catalogo": _excel_a_catalogo,
 }

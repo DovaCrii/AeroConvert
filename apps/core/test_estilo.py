@@ -66,6 +66,9 @@ PROPIOS = {
     "plant",
     # La alternativa a Office en el servidor (F17.1).
     "libreoffice",
+    # La norma de archivo (F14.9).
+    "pdf/a",
+    "pdf/a-2b",
     # Formatos y siglas
     "pdf",
     "pdfs",

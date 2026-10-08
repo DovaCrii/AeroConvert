@@ -227,7 +227,7 @@ def reconocer(
         documento.close()
         raise DemasiadasPaginas(
             f"{origen.name} tiene {total} páginas y el tope son {TOPE_PAGINAS}. "
-            "Cada página tarda unos segundos: pártelo antes con «Dividir PDF»."
+            "Cada página tarda unos segundos: pártalo antes con «Dividir PDF»."
         )
 
     destino = Path(destino) if destino else origen.with_name(f"{origen.stem}_con_texto.pdf")

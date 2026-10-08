@@ -128,6 +128,13 @@ PASOS: dict[str, Paso] = {
         "Descargue FFmpeg (los binarios de gyan.dev) y ponga AEROCONVERT_FFMPEG en el .env; "
         "ffprobe tiene que estar en la misma carpeta.",
     ),
+    "sin-ghostscript": Paso(
+        GUION,
+        f"{INSTALAR_FALTANTES} (instala ghostscript; veraPDF, para validar la conformidad, va "
+        "aparte y es opcional).",
+        "QGIS ya trae Ghostscript: con AEROCONVERT_GDAL_BIN apuntando a su carpeta bin, se "
+        "encuentra solo. O ponga AEROCONVERT_GHOSTSCRIPT en el .env.",
+    ),
     "sin-tesseract": Paso(
         GUION,
         f"{INSTALAR_FALTANTES} (instala tesseract-ocr con español e inglés).",
@@ -142,6 +149,7 @@ _EXIGE_A_CODIGO = {
     "exige_plantillas": "sin-plantillas",
     "exige_tesseract": "sin-tesseract",
     "exige_ffmpeg": "sin-ffmpeg",
+    "exige_ghostscript": "sin-ghostscript",
 }
 
 

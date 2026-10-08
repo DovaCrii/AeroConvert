@@ -133,6 +133,9 @@ LIBREOFFICE = config("AEROCONVERT_LIBREOFFICE", default="")
 
 # Video (F14.17): la ruta de ffmpeg; ffprobe tiene que estar al lado. Vacío: el PATH.
 FFMPEG = config("AEROCONVERT_FFMPEG", default="")
+# PDF/A (F14.9): Ghostscript escribe y veraPDF, si está, valida. Vacíos: se buscan en el PATH.
+GHOSTSCRIPT = config("AEROCONVERT_GHOSTSCRIPT", default="")
+VERAPDF = config("AEROCONVERT_VERAPDF", default="")
 # Donde vive el prefijo de Wine. Hace falta fuera de `$HOME`: el servicio corre con
 # `ProtectHome=yes`, asi que el `~/.wine` por omision no se puede ni crear.
 WINEPREFIX = config("AEROCONVERT_WINEPREFIX", default="")

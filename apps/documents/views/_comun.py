@@ -210,6 +210,10 @@ def estado_de_herramientas() -> list[dict]:
     from .. import video as video_mod
 
     ffmpeg = video_mod.sondar()
+    # Ghostscript, para el PDF/A: programa aparte, sondeado (D1).
+    from .. import pdfa as pdfa_mod
+
+    ghostscript = pdfa_mod.sondar()
 
     estado = []
     for herramienta in HERRAMIENTAS:
@@ -227,6 +231,10 @@ def estado_de_herramientas() -> list[dict]:
             fila["disponible"] = bool(ffmpeg)
             fila["motivo"] = ffmpeg.motivo
             fila["sugerencia"] = ffmpeg.sugerencia
+        elif herramienta.get("exige_ghostscript"):
+            fila["disponible"] = bool(ghostscript)
+            fila["motivo"] = ghostscript.motivo
+            fila["sugerencia"] = ghostscript.sugerencia
         elif herramienta.get("exige_access"):
             fila["disponible"] = bool(access)
             fila["motivo"] = access.motivo
