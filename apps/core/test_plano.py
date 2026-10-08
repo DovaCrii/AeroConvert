@@ -114,3 +114,54 @@ def test_pasar_el_ratón_no_mueve_nada():
         if ":hover" in selector and re.search(r"(^|[;\s])transform\s*:", cuerpo):
             mal.append(selector)
     assert not mal, f"`transform` al pasar el ratón: {mal}"
+
+
+# --- F13.13: transiciones de estado y entrada suave -------------------------------------------
+
+
+def _bloque(nombre_inicio: str) -> str:
+    """El cuerpo de una regla `@…` por su cabecera, contando llaves."""
+    i = SIN_COMENTARIOS.index(nombre_inicio)
+    j = SIN_COMENTARIOS.index("{", i)
+    nivel, k = 0, j
+    while True:
+        nivel += SIN_COMENTARIOS[k] == "{"
+        nivel -= SIN_COMENTARIOS[k] == "}"
+        k += 1
+        if nivel == 0:
+            return SIN_COMENTARIOS[j:k]
+
+
+def test_ninguna_transicion_es_all():
+    assert not re.findall(r"transition\s*:\s*all\b", SIN_COMENTARIOS)
+
+
+def test_nada_transiciona_el_movimiento_al_pasar_o_enfocar():
+    mal = []
+    for selector, cuerpo in _reglas():
+        if re.search(r":(hover|focus|focus-visible|active)", selector) and re.search(
+            r"transition[^;]*\btransform\b", cuerpo
+        ):
+            mal.append(selector)
+    assert not mal, mal
+
+
+def test_los_botones_y_baldosas_transicionan_solo_estado():
+    permitidas = {"color", "background-color", "background", "border-color", "opacity"}
+    cuerpo = next(c for s, c in _reglas() if s.strip().startswith(".boton,"))
+    propiedades = set(re.findall(r"(?:^|,)\s*([a-z-]+)\s+var\(", cuerpo.split("transition:")[1]))
+    assert propiedades and propiedades <= permitidas, propiedades
+
+
+def test_la_entrada_suave_solo_cambia_la_opacidad():
+    cuerpo = _bloque("@keyframes av-aparecer")
+    assert set(re.findall(r"([a-z-]+)\s*:", cuerpo)) == {"opacity"}
+    # `backwards`: no deja un contexto de apilado por una animación ya terminada.
+    assert re.search(r"animation:\s*av-aparecer[^;]*\bbackwards\b", SIN_COMENTARIOS)
+    assert not re.search(r"animation:\s*av-aparecer[^;]*\b(both|forwards)\b", SIN_COMENTARIOS)
+
+
+def test_con_movimiento_reducido_todo_es_instantaneo():
+    cuerpo = _bloque("@media (prefers-reduced-motion: reduce)")
+    assert "transition-duration: 0.01ms !important" in cuerpo
+    assert "animation-duration: 0.01ms !important" in cuerpo
