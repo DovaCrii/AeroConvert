@@ -103,3 +103,28 @@ def matriz(request):
             ),
         },
     )
+
+
+@login_required
+def equipo(request):
+    """Cómo dejar listo el equipo: lo que hoy sale apagado aquí, y el paso exacto de cada cosa."""
+    from . import equipo as equipo_mod
+
+    return render(
+        request,
+        "engines/equipo.html",
+        {
+            "apagados": equipo_mod.apagados_ahora(),
+            "pasos": sorted(equipo_mod.PASOS.items()),
+            "guion": equipo_mod.GUION,
+            "persona": equipo_mod.PERSONA,
+            "nadie": equipo_mod.NADIE,
+            "seccion": "compatibilidad",
+            "etiqueta_seccion": "Compatibilidad",
+            "titulo_pagina": "Cómo dejar listo el equipo",
+            "proposito": (
+                "Lo que en esta máquina sale apagado ahora y el paso exacto para encenderlo, en el "
+                "servidor y en la estación. Lo que pide licencia o registro es de la persona."
+            ),
+        },
+    )

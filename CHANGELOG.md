@@ -5,6 +5,11 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Sin publicar]
 
+### Añadido — «Cómo dejar listo el equipo» (F17.3)
+
+- Pantalla nueva en `/motores/equipo/`, enlazada desde «Qué se puede convertir en este equipo»: lo que **en esta máquina sale apagado ahora** (sonda en vivo de los motores y de las herramientas de documentos), agrupado por motivo, con **el paso exacto** en el servidor (Linux) y en la estación (Windows), **quién** lo hace (un guion, la persona o nadie) y cómo se comprueba. Abajo, todos los pasos aunque no haya nada apagado.
+- Catálogo cerrado (`apps/engines/equipo.py`): una prueba exige que cada motivo de «falta algo en esta máquina» tenga su paso. Un motivo sin paso no se esconde: sale como «sin paso escrito».
+- **Corregido:** MrSID salía apagado con el código `sin-driver-mrsid`, que no estaba en el catálogo de motivos (lo destapó esta pantalla). Ahora está, con su paso, y una prueba cubre los códigos que arma la sonda.
 ### Añadido — `despliegue/instalar_faltantes.sh` (F17.4)
 
 - Instala por `apt` lo que AeroConvert sondea y **no pide licencia ni registro**: Tesseract (español e inglés), **RTKLIB** (`rnx2rtkp` para el PPK de los vuelos), `xvfb`, FFmpeg, Ghostscript, Inkscape, `mdbtools` y LibreOffice sin interfaz. Con `--ver` dice qué haría sin tocar nada. Un paquete que la versión de Ubuntu no tenga se dice y se sigue con el resto; al final comprueba que cada programa quedó en el `PATH`.

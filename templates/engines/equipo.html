@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block titulo %}Cómo dejar listo el equipo · AeroConvert{% endblock %}
+
+{% block contenido %}
+<p><a href="{% url 'engines:matriz' %}">Volver a «Qué se puede convertir en este equipo»</a></p>
+
+<div class="tarjeta" aria-labelledby="titulo-apagados">
+  <h2 class="eyebrow" id="titulo-apagados">Apagado ahora en esta máquina</h2>
+  {% for g in apagados %}
+    <section class="av-mb-3" aria-labelledby="motivo-{{ forloop.counter }}">
+      <h3 class="av-fs-md av-mb-1" id="motivo-{{ forloop.counter }}">
+        {% if g.paso.quien == guion %}
+          <span class="pildora pildora-running">se arregla con un guion</span>
+        {% elif g.paso.quien == nadie %}
+          <span class="pildora pildora-cancelled">no tiene arreglo: use la alternativa</span>
+        {% elif g.paso %}
+          <span class="pildora pildora-error">lo hace la persona</span>
+        {% else %}
+          <span class="pildora pildora-error">sin paso escrito</span>
+        {% endif %}
+        <code>{{ g.codigo|default:"sin código" }}</code>
+      </h3>
+      <p class="av-mb-1">{{ g.mensaje }}</p>
+      <p class="tenue av-fs-sm av-mb-1">Afecta a {{ g.afectados|length }}: {{ g.afectados|join:", " }}.</p>
+      {% if g.paso %}
+        <dl class="av-mb-0">
+          <dt>En el servidor (Linux)</dt>
+          <dd><code class="paso-equipo">{{ g.paso.servidor }}</code></dd>
+          <dt>En la estación (Windows)</dt>
+          <dd><code class="paso-equipo">{{ g.paso.estacion }}</code></dd>
+          <dt>Cómo se comprueba</dt>
+          <dd>{{ g.paso.comprobar }}</dd>
+        </dl>
+      {% endif %}
+    </section>
+  {% empty %}
+    <p class="vacio">Nada apagado: esta máquina tiene todo lo que AeroConvert sabe usar.</p>
+  {% endfor %}
+</div>
+
+<div class="tarjeta" aria-labelledby="titulo-todos">
+  <h2 class="eyebrow" id="titulo-todos">Todos los pasos</h2>
+  <details>
+    <summary>Ver el paso de cada motivo, esté apagado aquí o no</summary>
+    <dl class="av-mt-2 av-mb-0">
+      {% for codigo, paso in pasos %}
+        <dt><code>{{ codigo }}</code></dt>
+        <dd>
+          <strong>Servidor:</strong> {{ paso.servidor }}<br>
+          <strong>Estación:</strong> {{ paso.estacion }}
+        </dd>
+      {% endfor %}
+    </dl>
+  </details>
+</div>
+{% endblock %}
