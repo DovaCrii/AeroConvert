@@ -64,6 +64,8 @@ PROPIOS = {
     # Autodesk. Los dos entraron el 2026-09-15 y esta prueba los cazó el mismo día.
     "access",
     "plant",
+    # La alternativa a Office en el servidor (F17.1).
+    "libreoffice",
     # Formatos y siglas
     "pdf",
     "pdfs",

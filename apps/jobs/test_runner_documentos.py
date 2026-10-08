@@ -251,7 +251,9 @@ class TestLosCaminosDeFallo:
         monkeypatch.setattr(
             documentos,
             "disponibilidad",
-            lambda h: Disponibilidad.no("sin-office", "No hay Office en esta máquina."),
+            lambda h, opciones=None: Disponibilidad.no(
+                "sin-office", "No hay Office en esta máquina."
+            ),
         )
         job = _correr(_trabajo(usuario, plano))
         assert job.status == ERROR

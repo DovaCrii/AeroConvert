@@ -351,7 +351,7 @@ def _ejecutar_documento(job: ConversionJob) -> Resultado:
 
     # --- 2. Que esta máquina pueda --------------------------------------------
     job.marcar_progreso(INSPECCION, 0.0)
-    disponible = documentos.disponibilidad(job.herramienta)
+    disponible = documentos.disponibilidad(job.herramienta, job.options)
     if not disponible.disponible:
         raise TrabajoFallido(disponible.codigo_motivo or "sin-motor", disponible.mensaje)
 
@@ -1228,7 +1228,13 @@ def _borrar(ruta: Path) -> None:
             restos = []
         for resto in restos:  # uno por uno: que uno esté abierto no salva a los demás
             try:
-                resto.unlink(missing_ok=True)
+                if resto.is_dir():
+                    # **Solo** la carpeta de trabajo de LibreOffice (`<parcial>.lo`), si el hijo
+                    # murió antes de borrarla él mismo; nunca otra carpeta, ni un enlace.
+                    if resto.name == ruta.name + ".lo" and not resto.is_symlink():
+                        shutil.rmtree(resto, ignore_errors=True)
+                else:
+                    resto.unlink(missing_ok=True)
             except OSError:
                 pass
 

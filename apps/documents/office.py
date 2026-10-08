@@ -25,6 +25,14 @@ llevaría el servidor. Aquí, como mucho, se mata al hijo y se dice qué pasó.
 Ese es además el motivo de que el trabajo sucio lo haga **PowerShell**: ya habla COM, así que
 no entra ninguna dependencia nueva y el aislamiento sale de regalo. Ver
 `scripts/office_a_pdf.ps1`, donde están las trampas de cada programa.
+
+## Y sin Office: LibreOffice, pedido a propósito y rotulado (F17.1)
+
+En el servidor no hay Office. Si hay LibreOffice (programa externo, MPL, sondeado y ejecutado
+aparte: decisión D1), la pantalla **lo ofrece**, pero no lo pone en lugar de Office: quien convierte
+tiene que marcar que acepta un PDF que **puede variar** respecto del original (fuentes, saltos de
+página, tablas). Sin esa marca no se encola nada. El recibo dice con qué se convirtió. Lo hace
+`libreoffice_hijo.py`.
 """
 
 from __future__ import annotations
@@ -84,6 +92,10 @@ TIEMPO_MAXIMO_S = 300
 SEGUNDOS_DE_CACHE = 600
 
 CLAVE_DE_CACHE = "documentos:office"
+CLAVE_DE_CACHE_LIBRE = "documentos:libreoffice"
+
+#: Donde suele quedar en Windows; en Linux, en el PATH (`instalar_faltantes.sh`).
+_SOFFICE_EN_WINDOWS = Path(r"C:\Program Files\LibreOffice\program\soffice.exe")
 
 
 @dataclass(frozen=True)
@@ -177,6 +189,47 @@ def sondar(*, recordar: bool = True) -> Disponible:
 def olvidar() -> None:
     """Vacía la caché de la sonda. La usan las pruebas."""
     cache.delete(CLAVE_DE_CACHE)
+    cache.delete(CLAVE_DE_CACHE_LIBRE)
+
+
+def sondar_libreoffice(*, recordar: bool = True) -> str:
+    """La ruta de `soffice`, o cadena vacía. Mira la configuración, el PATH y la ruta de Windows.
+
+    No lanza el programa: arrancar LibreOffice para preguntarle si existe cuesta segundos.
+    """
+    import shutil
+
+    if recordar:
+        guardado = cache.get(CLAVE_DE_CACHE_LIBRE)
+        if guardado is not None:
+            return guardado
+    configurado = (getattr(settings, "LIBREOFFICE", "") or "").strip().strip('"')
+    if configurado and Path(configurado).is_file():
+        ruta = configurado
+    else:
+        ruta = shutil.which("soffice") or shutil.which("libreoffice") or ""
+        if not ruta and _SOFFICE_EN_WINDOWS.is_file():
+            ruta = str(_SOFFICE_EN_WINDOWS)
+    if recordar:
+        cache.set(CLAVE_DE_CACHE_LIBRE, ruta, SEGUNDOS_DE_CACHE)
+    return ruta
+
+
+def plan_libreoffice(origen: Path, parcial: Path, soffice: str) -> list[str]:
+    """El `argv` del hijo que convierte con LibreOffice. Ver `libreoffice_hijo.py`."""
+    import sys
+
+    return [
+        sys.executable,
+        "-m",
+        "apps.documents.libreoffice_hijo",
+        soffice,
+        str(origen),
+        str(parcial),
+        # Menos que el corredor (`timeout_s` de la herramienta): así el hijo corta, dice por qué
+        # y limpia, en vez de que el corredor lo mate sin mensaje.
+        str(TIEMPO_MAXIMO_S - 30),
+    ]
 
 
 def programa_de(origen: str | Path) -> str:
