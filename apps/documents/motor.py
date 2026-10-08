@@ -99,6 +99,7 @@ ESPECIFICACIONES: dict[str, Especificacion] = {
     "imagenes": Especificacion(),
     "imagenes_lote": Especificacion(timeout_s=1800, emite_progreso=True),
     "fotos_dron": Especificacion(timeout_s=1800, emite_progreso=True),
+    "dxf_lamina": Especificacion(timeout_s=600),
     # La contraseña llega por `secretos`, nunca por el encargo. Ver `plan()`.
     "proteger": Especificacion(con_secreto=True),
     # Los términos a tachar llegan por el mismo camino que la contraseña: son justo lo que se
@@ -363,6 +364,8 @@ def verificar(parcial: Path, informe: dict, plan: PlanDeEjecucion | None = None)
         return _verificar_mdb(parcial, detalles)
     if extension in (".gpx", ".kml"):
         return _verificar_traza(parcial, detalles)
+    if extension == ".svg":
+        return _verificar_svg(parcial, detalles)
     if extension in _IMAGENES:
         try:
             _comprobar_imagen(parcial.read_bytes())
@@ -540,6 +543,26 @@ def _comprobar_imagen(datos: bytes) -> None:
 
     with Image.open(io.BytesIO(datos)) as imagen:
         imagen.verify()
+
+
+def _verificar_svg(parcial: Path, detalles: dict) -> Verificacion:
+    """Un SVG cerrado y con tantas trayectorias como se dijo (sin analizar XML ajeno)."""
+    import re
+
+    try:
+        texto = parcial.read_text(encoding="utf-8")
+    except UnicodeDecodeError as fallo:
+        return Verificacion(False, f"El SVG no se decodifica: {fallo}", "salida-invalida")
+    if "<svg" not in texto[:400] or not texto.rstrip().endswith("</svg>"):
+        return Verificacion(False, "El SVG no está completo.", "salida-invalida")
+    dicho = detalles.get("trazos")
+    hay = len(re.findall(r"<path ", texto))
+    if dicho is not None and int(dicho) != hay:
+        return Verificacion(
+            False, f"El SVG debía traer {dicho} trayectorias y trae {hay}.", "salida-invalida"
+        )
+    detalles["verificado_con"] = "lectura del SVG"
+    return Verificacion(True, detalles=detalles)
 
 
 def _conserva_gps(datos: bytes) -> bool:

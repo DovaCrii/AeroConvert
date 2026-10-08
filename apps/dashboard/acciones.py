@@ -338,6 +338,13 @@ def _de_los_documentos() -> list[Accion]:
             "jej",
             "membrete",
         ),
+        "dxf_lamina": (
+            "dxf a pdf",
+            "plano a pdf",
+            "lamina del plano",
+            "imprimir un plano",
+            "plano dxf",
+        ),
         "fotos_dron": (
             "fotos del dron",
             "quitar gps",
@@ -473,6 +480,7 @@ HERRAMIENTAS_POR_EXTENSION = {
     ".htm": ("md_html", "html_a_pdf"),
     ".md": ("md_a_pdf",),
     ".srt": ("telemetria",),
+    ".dxf": ("dxf_lamina",),
     ".mdb": ("catalogo_excel",),
     ".accdb": ("catalogo_excel",),
 }
