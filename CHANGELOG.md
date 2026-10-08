@@ -6,6 +6,17 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 ## [Sin publicar]
 
 
+### Añadido — «Corregir un vuelo de dron»: la pantalla, el grupo «Vuelos de dron» y el visor con el recorrido y las fotos (F18.4)
+
+- **Un grupo propio en el lateral, «Vuelos de dron»**, como el de GNSS pero para el vuelo: la traza de un video, las fotos del dron y este proceso, juntos, con su índice (`/documentos/vuelos/`). Son nueve grupos.
+- **«Corregir un vuelo de dron»** (herramienta 38), con la disposición de Emlid Studio: los pasos a la izquierda (trayectoria y disparos de Trimble, sus posiciones por foto, la carpeta de fotos y cómo procesar) y a la derecha qué va a pasar. Cada paso sube del equipo o se pincha en la carpeta compartida, y **dice lo que se eligió**. El **sistema de coordenadas se mide** contra la latitud y longitud de Trimble (o se declara y **se comprueba**) y se dice dónde se verá. Con el vuelo real de Baquedano (2 505 fotos): **un segundo**, a 0,65 mm de Trimble.
+- **Barra de avance con porcentaje y qué se está haciendo** («Sincronizando las fotos con la trayectoria»): las herramientas pueden decir su frase y el corredor la guarda (`progress_label`, migración `jobs.0003`). Las que no la dicen no cambian.
+- **El visor del vuelo** («Ver el vuelo en el mapa», en la ficha del trabajo): el recorrido, un punto por foto coloreado por su calidad, la retícula con el Este y el Norte reales del sistema medido, la foto elegida (miniatura de la carpeta, con la ruta comprobada otra vez contra las raíces permitidas) y sus datos, y una lista con búsqueda y filtro. Un `<canvas>` sin mapa base ni bibliotecas; teclado, ratón y táctil; claro y oscuro; sin desborde a 375 px. Los nombres de las fotos (de un CSV) nunca entran como HTML.
+- Entregables (zip): `fotos.csv`, `fotos.geojson`, `fotos.kml`, `calidad.md` (con el contraste foto por foto contra Trimble y los sistemas probados) y `vuelo.json`. El motor verifica cada pieza con otro lector (`csv`, `json`, conteo de marcas).
+- **Corregido: el explorador de la carpeta compartida cortaba a 300 entradas antes de filtrar.** En la carpeta de un vuelo, con 2 505 fotos, los CSV que van después en el orden alfabético no salían nunca. Además ahora una pantalla puede pedir sus extensiones (`.mrk`, `.jpg`) y elegir **una carpeta entera**.
+- Papeles de entrada nuevos (`trayectoria`, `disparos`, `referencia`).
+
+
 ### Añadido — lo que entrega Trimble Business Center, el desfase de la antena y el sistema medido, con un vuelo real (F18.6, F18.2)
 
 - **Un vuelo real de oráculo** (Matrice 3E, 2025-12-29, 2 505 fotos; los datos quedan fuera del repositorio): la posición de cada foto que calcula `vuelo_sync` coincide con la que entregó el UAS sync de Trimble Business Center a **0,9 mm como máximo** (0,3 mm de desviación en norte, este y altura: el redondeo de su CSV). Prueba `test_vuelo_real.py`, con `AEROCONVERT_VUELO_DE_PRUEBA=<carpeta>`.

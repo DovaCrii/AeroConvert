@@ -26,7 +26,7 @@ from pathlib import Path
 import pytest
 from pyproj import Transformer
 
-from apps.documents import vuelo_sync, vuelo_trimble
+from apps.documents import vuelo_proceso, vuelo_sync, vuelo_trimble
 
 CARPETA = os.environ.get("AEROCONVERT_VUELO_DE_PRUEBA", "")
 
@@ -109,3 +109,36 @@ def test_la_altura_de_trimble_no_es_la_elipsoidal_del_mrk(vuelo):
     fotos = vuelo_sync.sincronizar(tray, mrk)
     assert "no declarada" in tray.referencia_de_altura
     assert fotos[0].alt_m is not None
+
+
+def test_el_proceso_entero_con_el_vuelo_real(vuelo):
+    """`procesar` de punta a punta: lo que hace la pantalla «Corregir un vuelo de dron».
+
+    Medido el 2026-10-08: 2 505 fotos y 7 519 puntos en **un segundo**, con las posiciones a
+    0,65 mm de las de Trimble como máximo.
+    """
+    carpeta = Path(CARPETA)
+
+    def uno(patron: str) -> Path:
+        return sorted(carpeta.glob(patron))[0]
+
+    mrk = uno("*Timestamp.MRK")
+    r = vuelo_proceso.procesar(
+        trayectoria=uno("[0-9][0-9][0-9].csv").read_bytes(),
+        disparos=mrk.read_bytes(),
+        nombre_de_disparos=mrk.name,
+        referencia=uno("*export_extended.csv").read_bytes(),
+        nombres_en_carpeta=vuelo_proceso.nombres_de_fotos(carpeta),
+        escala_de_tiempo="GPST",
+    )
+    assert r.resumen["fotos"] == r.resumen["con_posicion"] == 2505
+    assert r.resumen["sistema_epsg"] == 32719 and r.resumen["sistema_como"].startswith("medido")
+    assert r.resumen["contraste_maximo_mm"] < 2.0
+    assert r.avisos == [] and r.resumen["desfase_aplicado"] == 2505
+
+    import json
+
+    datos = json.loads(r.archivos["vuelo.json"])
+    assert len(datos["fotos"]) == 2505 and datos["trayectoria_total"] == 7519
+    assert len(datos["trayectoria"]) <= vuelo_proceso.PUNTOS_DEL_VISOR + 1
+    assert all(f["miniatura"] for f in datos["fotos"]), "las 2 505 fotos están en la carpeta"

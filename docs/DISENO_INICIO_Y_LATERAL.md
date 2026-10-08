@@ -16,7 +16,7 @@ se actualiza en el despliegue final. La implementación vive en `templates/dashb
 2. **Debajo, para quien trae una intención y no un archivo:** el buscador («juntar planos, quitar
    contraseña, pasar a Excel…»), con el atajo `/` enseñado al lado y ejemplos pulsables
    («tif a jp2», «excel»). Entiende la palabra de quien busca, pares de formato y contenido.
-3. **Después, el catálogo por grupos**, los mismos ocho del lateral y en el mismo orden, cada uno
+3. **Después, el catálogo por grupos**, los mismos nueve del lateral y en el mismo orden, cada uno
    con su icono, su frase y la cifra de herramientas. Las baldosas dicen **qué entregan**
    («Sale: un PDF») y llevan el color de su familia.
 4. **Trato de usted** en todo el texto («¿Qué necesita hacer?»).
@@ -27,7 +27,7 @@ se actualiza en el despliegue final. La implementación vive en `templates/dashb
 ## Lateral
 
 1. **Arriba, tres destinos fijos:** Inicio, Convertir, Historial.
-2. **Debajo, «Herramientas» en ocho grupos** (una sola taxonomía, `taxonomia.py`): cada grupo es un
+2. **Debajo, «Herramientas» en nueve grupos** (una sola taxonomía, `taxonomia.py`): cada grupo es un
    `details` con su **icono**, su nombre y **la cifra de herramientas**. Cada persona deja abiertos
    los que quiera y el sistema lo **recuerda** (por id estable del grupo, no por su título).
 3. Dentro del grupo, cada herramienta con su icono de familia y su nombre en verbo o «X a Y».
@@ -74,3 +74,15 @@ movimiento al pasar el cursor):
 
 Entra como **F13.13** (`MASTER_PLAN.md`), con prueba: transiciones declaradas solo sobre
 propiedades de estado, ninguna `transform` en `:hover`, y bloque `prefers-reduced-motion`.
+
+## El grupo «Vuelos de dron» y el visor del vuelo (2026-10-08)
+
+Los vuelos tienen **su propio grupo**, como GNSS (la traza de un video, las fotos del dron y el
+proceso que corrige su posición), con su índice en `/documentos/vuelos/`. La pantalla **«Corregir
+un vuelo de dron»** sigue la disposición de Emlid Studio: a la izquierda los pasos en orden
+(trayectoria, disparos, posiciones de Trimble, carpeta de fotos y cómo procesar) y a la derecha
+qué va a pasar y qué sale. Al terminar, la ficha del trabajo ofrece **«Ver el vuelo en el mapa»**:
+el recorrido, un punto por foto coloreado por su calidad, la retícula con el Este y el Norte reales
+del sistema **medido** (que se dice arriba, con su EPSG), y la foto elegida con sus datos. Sin mapa
+base ni bibliotecas: un `<canvas>` con lo que hay en `vuelo.json`. Mientras corre, la barra dice el
+porcentaje **y qué se está haciendo** («Sincronizando las fotos con la trayectoria»).

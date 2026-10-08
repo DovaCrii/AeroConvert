@@ -23,6 +23,10 @@ urlpatterns = [
     path("imagenes/", views.imagenes_vista, name="imagenes"),
     path("imagenes-lote/", views.imagenes_lote_vista, name="imagenes_lote"),
     path("fotos-dron/", views.fotos_dron_vista, name="fotos_dron"),
+    path("vuelo-dron/", views.vuelo_dron_vista, name="vuelo_dron"),
+    path("vuelo/<uuid:pk>/", views.vuelo_ver, name="vuelo_ver"),
+    path("vuelo/<uuid:pk>/datos/", views.vuelo_datos, name="vuelo_datos"),
+    path("vuelo/<uuid:pk>/foto/<int:n>/", views.vuelo_miniatura, name="vuelo_miniatura"),
     path("plano-dxf/", views.dxf_lamina_vista, name="dxf_lamina"),
     path("a-imagenes/", views.a_imagenes_vista, name="a_imagenes"),
     path("numerar/", views.numerar_vista, name="numerar"),
@@ -44,6 +48,7 @@ urlpatterns = [
     # «Texto y tablas» tiene su propio índice. Compartía el de PDF, y entonces el desplegable
     # ofrecía dos columnas distintas que llevaban al mismo sitio.
     path("texto/", views.texto, name="texto"),
+    path("vuelos/", views.vuelos, name="vuelos"),
     # Una pantalla para los seis orígenes: lo que cambia por dentro lo decide la extensión, y
     # seis pantallas idénticas salvo por el título serían seis sitios donde arreglar el mismo
     # fallo. El catálogo sí las lista por separado, con `?de=`.

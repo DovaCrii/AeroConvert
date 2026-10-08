@@ -47,7 +47,7 @@ Estados: ✅ hecho · 🟨 en curso · ⬜ por hacer · ⏸ espera un pedido · 
 | **B8 · Geoespacial** | F15.1 a F15.8 | ⬜ | — | P5 · P6 · P7 |
 | **B9 · Plataforma** | F16.1 · F16.2 · F16.3 ✅ · F16.4 · F16.5 · F16.6 ✅ | ⬜ | — | B7 · B8 para los lotes |
 | **B11 · Poner en marcha lo apagado** | F17.1 a F17.4 (`docs/PUESTA_EN_MARCHA_DE_LO_APAGADO.md`) | ⬜ | — | P7 · P10 · P11 · P12 · P13 para lo que es de la persona |
-| **B12 · Vuelos de dron: PPK y sincronía** | F18.1 ✅ · F18.2 ✅ · F18.3 ⚠ · F18.4 · F18.5 · F18.6 ✅ (`docs/VUELOS_DE_DRON_Y_PPK.md`) | 🟨 | — | P15 para la corrida real |
+| **B12 · Vuelos de dron: PPK y sincronía** | F18.1 ✅ · F18.2 ✅ · F18.3 ⚠ · F18.4 ✅ · F18.5 · F18.6 ✅ · F18.7 (`docs/VUELOS_DE_DRON_Y_PPK.md`) | 🟨 | — | P15 para la corrida real |
 | **B10 · Cierre y despliegue** | Versión (`0.11.0` al cerrar F13, `0.12.0` con las firmas), `HANDOFF.md` con los pasos de la VM, lista para desplegar | ⬜ | — | Todo lo anterior |
 
 **Orden de trabajo:** B1 → B2 → B3 → B4 → B5 (esto cierra F13 y la versión `0.11.0`); B6 con

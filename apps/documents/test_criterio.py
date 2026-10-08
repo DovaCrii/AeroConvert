@@ -38,7 +38,7 @@ PANTALLAS = Path(settings.BASE_DIR) / "templates" / "documents"
 #: `descargar` y `miniatura` no tienen pantalla.
 #: Las pantallas que **no reciben un archivo del usuario**: el índice, y la portada de la empresa,
 #: cuya única entrada es una plantilla del servidor.
-SIN_ARCHIVO = frozenset({"inicio.html", "portada.html"})
+SIN_ARCHIVO = frozenset({"inicio.html", "portada.html", "vuelo_visor.html"})
 
 CON_ARCHIVO = sorted(
     p.name
@@ -85,14 +85,17 @@ class TestNadieTecleaUnaRuta:
         """Subir del equipo **y** andar la carpeta compartida. Una sola deja fuera a la mitad:
         quien tiene el archivo en su portátil, o quien lo tiene en la unidad de red."""
         html = textos[pantalla]
-        tiene_las_dos = '{% include "documents/_origen.html"' in html or (
-            'type="file"' in html and "dashboard/_buscador.html" in html
+        tiene_las_dos = (
+            '{% include "documents/_origen.html"' in html
+            # El vuelo de dron son cinco pasos, cada uno con las dos vías, en su propio trozo.
+            or '{% include "documents/_paso_vuelo.html"' in html
+            or ('type="file"' in html and "dashboard/_buscador.html" in html)
         )
         assert tiene_las_dos, f"{pantalla} no ofrece las dos vías"
 
 
 class TestElTopeYElAvance:
-    @pytest.mark.parametrize("pantalla", [*CON_ARCHIVO, "_origen.html"])
+    @pytest.mark.parametrize("pantalla", [*CON_ARCHIVO, "_origen.html", "_paso_vuelo.html"])
     def test_todo_campo_de_archivo_declara_el_tope(self, textos, pantalla):
         """Sin `data-tope-mb`, el navegador manda el archivo entero y el servidor lo corta a
         mitad. Es lo que le pasó a una ortofoto de 600 MB: minutos de subida para recibir

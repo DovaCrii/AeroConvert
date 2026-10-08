@@ -23,7 +23,7 @@
     {% for miga in migas %}
       {% if not forloop.last %}
         <button type="button" class="miga"
-                hx-get="{% url 'dashboard:explorar' %}?en={{ miga.ruta|urlencode }}"
+                hx-get="{% url 'dashboard:explorar' %}?en={{ miga.ruta|urlencode }}{% if ext %}&ext={{ ext|urlencode }}{% endif %}{% if elegir_carpeta %}&carpeta=1{% endif %}"
                 hx-target="closest .explorador" hx-swap="innerHTML">{{ miga.nombre }}</button>
         <span class="miga-sep" aria-hidden="true">/</span>
       {% else %}
@@ -31,6 +31,16 @@
       {% endif %}
     {% endfor %}
   </nav>
+
+  {% if elegir_carpeta %}
+    {% comment %}
+      Elegir **una carpeta** (la de las fotos de un vuelo): no hay un archivo que pinchar, así
+      que el botón lleva la ruta de la carpeta donde se está.
+    {% endcomment %}
+    <button type="button" class="boton boton-suave boton-pequeno av-mb-2" data-ruta="{{ actual }}">
+      Usar esta carpeta
+    </button>
+  {% endif %}
 
   {% if vacia %}
     {% comment %}
@@ -51,7 +61,7 @@
       {% for carpeta in carpetas %}
         <li>
           <button type="button" class="linea linea-carpeta"
-                  hx-get="{% url 'dashboard:explorar' %}?en={{ carpeta.ruta|urlencode }}"
+                  hx-get="{% url 'dashboard:explorar' %}?en={{ carpeta.ruta|urlencode }}{% if ext %}&ext={{ ext|urlencode }}{% endif %}{% if elegir_carpeta %}&carpeta=1{% endif %}"
                   hx-target="closest .explorador" hx-swap="innerHTML">
             <svg class="linea-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-carpeta"></use></svg>
             <span class="linea-nombre">{{ carpeta.nombre }}</span>

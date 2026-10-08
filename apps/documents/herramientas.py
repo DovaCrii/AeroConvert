@@ -154,6 +154,18 @@ HERRAMIENTAS = (
         ),
     },
     {
+        "id": "vuelo_dron",
+        "icono": "icon-vuelo",
+        "sale": "un zip con la posición de cada foto",
+        "familia": "transformar",
+        "url": "documents:vuelo_dron",
+        "nombre": "Corregir un vuelo de dron",
+        "que_hace": (
+            "Le pone a cada foto del vuelo su posición corregida, con la trayectoria que sacó "
+            "Trimble, y la deja a la vista en un mapa: el recorrido, los puntos y las fotos."
+        ),
+    },
+    {
         "id": "fotos_dron",
         "icono": "icon-foto-dron",
         "sale": "un zip con una foto por cada una",

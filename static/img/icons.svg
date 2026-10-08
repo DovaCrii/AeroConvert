@@ -379,6 +379,29 @@
     <path d="M14 18.6h4.5" />
   </symbol>
 
+  <symbol id="icon-dron" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Vuelos de dron: un cuadricóptero visto desde arriba, con sus cuatro hélices. -->
+    <circle cx="5.5" cy="5.5" r="2.5" />
+    <circle cx="18.5" cy="5.5" r="2.5" />
+    <circle cx="5.5" cy="18.5" r="2.5" />
+    <circle cx="18.5" cy="18.5" r="2.5" />
+    <path d="M7.3 7.3 10 10M16.7 7.3 14 10M7.3 16.7 10 14M16.7 16.7 14 14" />
+    <rect x="9.5" y="9.5" width="5" height="5" rx="1.2" fill="currentColor" fill-opacity=".16" />
+  </symbol>
+
+  <symbol id="icon-vuelo" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Corregir un vuelo: las pasadas del levantamiento en serpentina, con los puntos de las fotos. -->
+    <path d="M4 5.5h16v6.5H4v6.5h16" />
+    <circle cx="8.5" cy="5.5" r="1.2" fill="currentColor" />
+    <circle cx="14.5" cy="5.5" r="1.2" fill="currentColor" />
+    <circle cx="14.5" cy="12" r="1.2" fill="currentColor" />
+    <circle cx="8.5" cy="12" r="1.2" fill="currentColor" />
+    <circle cx="8.5" cy="18.5" r="1.2" fill="currentColor" />
+    <circle cx="14.5" cy="18.5" r="1.2" fill="currentColor" />
+  </symbol>
+
   <symbol id="icon-foto-dron" viewBox="0 0 24 24" fill="none" stroke="currentColor"
           stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
     <!-- Fotos de dron: un marco de foto con la chincheta de su posición dentro. -->

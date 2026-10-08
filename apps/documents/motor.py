@@ -102,6 +102,7 @@ ESPECIFICACIONES: dict[str, Especificacion] = {
     "imagenes": Especificacion(),
     "imagenes_lote": Especificacion(timeout_s=1800, emite_progreso=True),
     "fotos_dron": Especificacion(timeout_s=1800, emite_progreso=True),
+    "vuelo_dron": Especificacion(carril=PESADO, timeout_s=1800, emite_progreso=True),
     "dxf_lamina": Especificacion(timeout_s=600),
     # La contraseña llega por `secretos`, nunca por el encargo. Ver `plan()`.
     "proteger": Especificacion(con_secreto=True),
@@ -210,12 +211,15 @@ def disponibilidad(herramienta: str) -> Disponibilidad:
     return Disponibilidad.si(f"documentos:{herramienta}")
 
 
-_PROGRESO = re.compile(r"^PROGRESO\s+([0-9.]+)\s*$")
+_PROGRESO = re.compile(r"^PROGRESO\s+([0-9.]+)(?:\s+(.+?))?\s*$")
 
 
-def _analizar_progreso(linea: str) -> float | None:
+def _analizar_progreso(linea: str) -> float | tuple[float, str] | None:
     encontrado = _PROGRESO.match(linea.strip())
-    return float(encontrado.group(1)) if encontrado else None
+    if not encontrado:
+        return None
+    fraccion = float(encontrado.group(1))
+    return (fraccion, encontrado.group(2)) if encontrado.group(2) else fraccion
 
 
 def plan(job) -> PlanDeEjecucion:
@@ -627,6 +631,47 @@ def _conserva_gps(datos: bytes) -> bool:
     return bool(gps) or b"GpsLatitude" in datos
 
 
+def _problema_en_texto(nombre: str, datos: bytes, pieza: dict) -> str:
+    """Una pieza de texto del zip abre, y trae tantas filas, puntos o fotos como se dijo.
+
+    Se lee con `csv` y `json` de la biblioteca estándar, que no escribieron la pieza. Vacío si
+    está bien.
+    """
+    import csv
+    import json
+    import re
+
+    try:
+        texto = datos.decode("utf-8")
+    except UnicodeDecodeError as fallo:
+        return f"{nombre} no se decodifica como texto: {fallo}"
+    if not texto.strip():
+        return f"{nombre} salió vacío."
+    minuscula = nombre.lower()
+    if minuscula.endswith(".csv"):
+        filas = list(csv.reader(io.StringIO(texto)))
+        cuerpo = len(filas) - 1
+        dicho = pieza.get("filas")
+        if dicho is not None and int(dicho) != cuerpo:
+            return f"{nombre} debía traer {dicho} fila(s) y trae {cuerpo}."
+    elif minuscula.endswith(".json"):
+        try:
+            contenido = json.loads(texto)
+        except ValueError as fallo:
+            return f"{nombre} no es un JSON válido: {fallo}"
+        dicho = pieza.get("fotos")
+        if dicho is not None and len(contenido.get("fotos", [])) != int(dicho):
+            return f"{nombre} debía traer {dicho} foto(s) y trae {len(contenido.get('fotos', []))}."
+    elif minuscula.endswith(".kml"):
+        if not texto.rstrip().endswith("</kml>"):
+            return f"{nombre} no está completo."
+        cuantas = len(re.findall(r"<Placemark>", texto))
+        dicho = pieza.get("puntos")
+        if dicho is not None and int(dicho) != cuantas:
+            return f"{nombre} debía traer {dicho} punto(s) y trae {cuantas}."
+    return ""
+
+
 def _problema_en_posiciones(nombre: str, datos: bytes, pieza: dict) -> str:
     """El archivo de posiciones abre y trae tantas como se dijo. Vacío si está bien."""
     import json
@@ -683,6 +728,11 @@ def _verificar_zip(parcial: Path, detalles: dict) -> Verificacion:
                             f"{nombre} debía tener {pedidas} página(s) y tiene {paginas}.",
                             "salida-invalida",
                         )
+                elif nombre.lower().endswith((".csv", ".json", ".kml", ".md")):
+                    problema = _problema_en_texto(nombre, datos, esperadas.get(nombre) or {})
+                    if problema:
+                        return Verificacion(False, problema, "salida-invalida")
+                    lectores.add("lectura del texto")
                 elif nombre.lower().endswith((".geojson", ".kmz")):
                     problema = _problema_en_posiciones(nombre, datos, esperadas.get(nombre) or {})
                     if problema:

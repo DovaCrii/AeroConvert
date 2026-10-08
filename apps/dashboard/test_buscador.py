@@ -138,6 +138,94 @@ class TestExplorarLaCarpetaCompartida:
         assert client.get(reverse("dashboard:explorar")).status_code == 302
 
 
+class TestExplorarConFiltroYCarpeta:
+    """Una pantalla cuyo archivo no es un formato geoespacial (el `.MRK` de un dron, las fotos)
+    dice qué quiere ver, y puede pedir **una carpeta entera**."""
+
+    def _con(self, entrada):
+        carpeta = entrada / "CC716"
+        (carpeta / "vuelo_Timestamp.MRK").write_text("1\t1\t[2399]\n", encoding="utf-8")
+        return carpeta
+
+    def test_con_ext_se_listan_esas_y_no_las_demas(self, client, ana, entrada):
+        carpeta = self._con(entrada)
+        client.force_login(ana)
+        cuerpo = client.get(
+            reverse("dashboard:explorar"), {"en": str(carpeta), "ext": ".mrk"}
+        ).content.decode()
+        assert "vuelo_Timestamp.MRK" in cuerpo and "ortofoto.png" not in cuerpo
+
+    def test_sin_ext_el_mrk_no_se_lista_como_antes(self, client, ana, entrada):
+        carpeta = self._con(entrada)
+        client.force_login(ana)
+        cuerpo = client.get(reverse("dashboard:explorar"), {"en": str(carpeta)}).content.decode()
+        assert "vuelo_Timestamp.MRK" not in cuerpo and "ortofoto.png" in cuerpo
+
+    def test_el_filtro_y_la_carpeta_viajan_en_cada_enlace(self, client, ana, entrada):
+        carpeta = self._con(entrada)
+        (carpeta / "sub").mkdir(exist_ok=True)
+        client.force_login(ana)
+        cuerpo = client.get(
+            reverse("dashboard:explorar"), {"en": str(carpeta), "ext": ".mrk,.csv", "carpeta": "1"}
+        ).content.decode()
+        assert "&ext=.csv%2C.mrk" in cuerpo or "&amp;ext=.csv%2C.mrk" in cuerpo
+        assert "carpeta=1" in cuerpo
+
+    def test_lo_que_no_parece_una_extension_se_ignora(self, client, ana, entrada):
+        carpeta = self._con(entrada)
+        client.force_login(ana)
+        cuerpo = client.get(
+            reverse("dashboard:explorar"), {"en": str(carpeta), "ext": "<script>,../../x,.png;"}
+        ).content.decode()
+        # Nada válido: vale el filtro de siempre, y lo escrito no sale en la página.
+        assert "ortofoto.png" in cuerpo and "<script>" not in cuerpo
+
+    def test_pedir_una_carpeta_ofrece_usar_esta_con_su_ruta(self, client, ana, entrada):
+        carpeta = self._con(entrada)
+        client.force_login(ana)
+        cuerpo = client.get(
+            reverse("dashboard:explorar"), {"en": str(carpeta), "carpeta": "1"}
+        ).content.decode()
+        assert "Usar esta carpeta" in cuerpo and f'data-ruta="{carpeta}"' in cuerpo
+        sin = client.get(reverse("dashboard:explorar"), {"en": str(carpeta)}).content.decode()
+        assert "Usar esta carpeta" not in sin
+
+    def test_la_carpeta_pedida_sigue_dentro_de_las_raices(self, client, ana, entrada, tmp_path):
+        fuera = tmp_path / "privado"
+        fuera.mkdir()
+        client.force_login(ana)
+        cuerpo = client.get(
+            reverse("dashboard:explorar"), {"en": str(fuera), "carpeta": "1"}
+        ).content.decode()
+        assert "Usar esta carpeta" not in cuerpo
+
+
+class TestElTopeCuentaLoQueSeLista:
+    def test_los_que_van_despues_de_cientos_de_otros_archivos_si_salen(self, client, ana, entrada):
+        """La carpeta de un vuelo: 2 505 fotos y, después en el orden, los CSV de Trimble."""
+        carpeta = entrada / "vuelo"
+        carpeta.mkdir()
+        for i in range(400):
+            (carpeta / f"DJI_{i:04d}.JPG").write_bytes(b"x")
+        (carpeta / "PPK - export_extended.csv").write_text("ID,Este\n", encoding="utf-8")
+        client.force_login(ana)
+        cuerpo = client.get(
+            reverse("dashboard:explorar"), {"en": str(carpeta), "ext": ".csv"}
+        ).content.decode()
+        assert "PPK - export_extended.csv" in cuerpo and "DJI_0001.JPG" not in cuerpo
+
+    def test_el_tope_sigue_poniendo_limite_a_lo_que_se_lista(self, client, ana, entrada):
+        carpeta = entrada / "muchas"
+        carpeta.mkdir()
+        for i in range(350):
+            (carpeta / f"a_{i:04d}.jpg").write_bytes(b"x")
+        client.force_login(ana)
+        cuerpo = client.get(
+            reverse("dashboard:explorar"), {"en": str(carpeta), "ext": ".jpg"}
+        ).content.decode()
+        assert cuerpo.count("linea-archivo") == 300
+
+
 class TestConvertirLoSubido:
     def test_se_puede_encolar_con_el_identificador(self, client, ana, con_gdal):
         """El recorrido entero: subir, y que el trabajo salga con el nombre que la persona
