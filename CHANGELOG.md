@@ -6,6 +6,15 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 ## [Sin publicar]
 
 
+### Añadido — lo que entrega Trimble Business Center, el desfase de la antena y el sistema medido, con un vuelo real (F18.6, F18.2)
+
+- **Un vuelo real de oráculo** (Matrice 3E, 2025-12-29, 2 505 fotos; los datos quedan fuera del repositorio): la posición de cada foto que calcula `vuelo_sync` coincide con la que entregó el UAS sync de Trimble Business Center a **0,9 mm como máximo** (0,3 mm de desviación en norte, este y altura: el redondeo de su CSV). Prueba `test_vuelo_real.py`, con `AEROCONVERT_VUELO_DE_PRUEBA=<carpeta>`.
+- **El desfase de la antena (N, E, V del `.MRK`) ahora se aplica**, con el signo **medido contra Trimble**: norte y este suman; `V` es positivo hacia abajo y se resta de la altura. Con cualquier otra combinación la diferencia es de 6 a 170 mm. Se puede apagar, y una foto sin desfase (una lista de tiempos) sale con la posición de la antena y **el CSV lo dice** (`desfase_aplicado`). Probado contra `pyproj.Geod`: mil milímetros al norte son un metro al norte en cualquier latitud, y lo mismo al este.
+- **Importar lo de Trimble** (`vuelo_trimble.py`): la trayectoria (`009.csv`, sin cabecera, a 5 Hz), las posiciones de las fotos (corto y ampliado) y la hora en GPST (o en UTC, sumando los 18 s). **La calidad y la incertidumbre que Trimble no informa quedan sin dato**, no en cero.
+- **El sistema de coordenadas se mide, no se supone.** Trimble exporta Este y Norte sin decir en qué sistema están. Con la latitud y longitud del archivo ampliado se prueban catorce candidatos (WGS 84, SIRGAS-Chile 2002, SIRGAS 2000, PSAD56 y SAD69, UTM 18, 19 y 20 Sur) y se dice **cuál coincide y a cuántos milímetros**: en el vuelo real, WGS 84, SIRGAS-Chile y SIRGAS 2000 a 0,8 mm (no se distinguen entre sí y el informe lo dice), PSAD56 a 418 m y SAD69 a 73 m. Con un sistema antiguo no se pasa a latitud y longitud: haría falta una transformación de datum que no se adivina.
+- **La altura de Trimble no se llama elipsoidal**: difiere 35 m de la del `.MRK` en ese vuelo (el geoide y el error del tiempo real), y no hay aquí un modelo de geoide. El CSV ahora lleva `altura_m` y `referencia_de_altura`.
+
+
 ### Añadido — el proceso PPK de un vuelo con RTKLIB, sin pantalla todavía (F18.3)
 
 - **`vuelo_ppk.py`**: arma y lanza `rnx2rtkp` (RTKLIB, BSD-2, **sondeado y ejecutado aparte**; `sondar()` dice qué falta y cómo ponerlo, y sale de `AEROCONVERT_RTKLIB_RNX2RTKP`, del lado de `convbin` o del `PATH`). **La base se declara con su sistema** (regla 3): no se toma el `APPROX POSITION` del RINEX como coordenada, y contra él solo se comprueba que la declarada no esté a más de 1 km; un error de signo, de zona o de estación sale en kilómetros y **se rechaza antes de gastar minutos de RTKLIB**.

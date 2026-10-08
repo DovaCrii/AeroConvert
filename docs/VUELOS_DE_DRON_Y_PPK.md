@@ -48,6 +48,21 @@ parcial que se informa sin caerse.
 Y se junta todo en un grupo propio del lateral, **«Vuelos de dron»**, como «Datos de receptores
 GNSS» pero para el vuelo: la traza de un video, las fotos del dron y este proceso, juntos.
 
+## Lo que enseñó el primer vuelo real (2026-10-08)
+
+Llegó un vuelo de un Matrice 3E con lo que sacó Trimble Business Center (su UAS sync). Cifras en
+`docs/PRUEBAS_CON_ORACULO.md`. Lo que cambió:
+
+- **El desfase de la antena se aplica.** Se había dejado sin sumar por no conocer el signo; con las
+  2 505 fotos y Trimble de oráculo quedó medido: norte y este suman, `V` es positivo hacia abajo.
+  Con eso la posición de cada foto coincide con la de Trimble a 0,9 mm como máximo.
+- **El sistema se mide.** Trimble exporta Este y Norte sin decir en qué sistema; con el archivo
+  ampliado (trae latitud y longitud) se prueba cada candidato y se dice cuál coincide.
+- **La altura de Trimble no es la elipsoidal** del `.MRK` (35 m de diferencia): se dice de qué altura
+  se trata y no se llama elipsoidal.
+- **El flujo de Trimble es una segunda entrada**, además de RTKLIB: quien ya procesó el PPK en
+  Trimble sube su trayectoria y el `.MRK`, y obtiene lo mismo que haría el UAS sync.
+
 ## Qué falta de la persona
 
 - **Un vuelo de verdad** (P15): RINEX del dron, RINEX de la base, el `.MRK`, y unas fotos, fuera del
