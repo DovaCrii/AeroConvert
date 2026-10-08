@@ -11,4 +11,5 @@ urlpatterns = [
     path("<uuid:pk>/cancelar/", views.cancelar, name="cancelar"),
     path("<uuid:pk>/reencolar/", views.reencolar, name="reencolar"),
     path("<uuid:pk>/descargar/", views.descargar, name="descargar"),
+    path("<uuid:pk>/informe/", views.informe, name="informe"),
 ]

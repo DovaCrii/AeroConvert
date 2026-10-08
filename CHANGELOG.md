@@ -13,6 +13,11 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 - **Sincronía de fotos** (`vuelo_sync.py`, lo que hace un UAS sync): la posición de cada foto, interpolada en la trayectoria con el instante de su disparo (`.MRK` de DJI o lista de tiempos). **No extrapola**: un disparo fuera de la trayectoria o dentro de un hueco largo queda sin posición y con su motivo. La calidad de la foto es la del peor de sus dos vecinos y la incertidumbre es la mayor, no el promedio. **El desfase de la antena (N, E, V) va en el CSV y no se suma**: su signo se confirma con el fabricante antes. Empareja nombres solo si hay tantas fotos como disparos. Salidas CSV, GeoJSON y KMZ (este solo si el sistema es WGS84-compatible). Pruebas con trayectorias de fórmula conocida (recta exacta; círculo contra la cota de la flecha del arco) y `ogrinfo` sobre el GeoJSON y el KMZ.
 - Todavía sin pantalla: F18.3 (la orden de RTKLIB) y F18.4 (la pantalla y el grupo «Vuelos de dron») siguen.
 
+### Añadido — informe de verificación en PDF (F16.3)
+
+- **«Informe en PDF»** en la ficha de cada trabajo terminado (`/trabajos/<id>/informe/`): qué entró y qué salió, con el nombre, el tamaño y la huella **sha256** de cada uno; el programa y su versión; el sistema de coordenadas (o «no declarado»); lo que midió el lector que verificó la salida; las opciones aplicadas; los avisos que hubo y, si el trabajo falló, su motivo (y que no hay entrega que acompañar). **No recalcula nada ni afirma «sin pérdida»**: dice lo que el trabajo guardó, y lo que no calculó lo dice como «no calculado». Las opciones con secretos o datos de quien lo pidió (contraseñas, términos de tachado, valores de una portada) **no se imprimen**. Solo lo baja quien pidió el trabajo, y solo cuando ya terminó.
+- Oráculos: **PDFium** lo abre y lo pinta, y **pypdf** y PDFium encuentran cada `sha256` entero en el texto; los secretos se buscan en los bytes del PDF y no aparecen.
+
 
 ### Añadido y corregido — remuestreo, valor sin dato e historial de sondas (F16.6)
 
