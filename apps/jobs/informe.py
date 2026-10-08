@@ -167,7 +167,11 @@ def construir(job) -> bytes:
             [
                 ("Estado", ESTADOS.get(job.status, job.status), False),
                 ("Programa", programa, False),
-                ("Conversión", f"{job.source_format_code or '—'} a {job.target_format_code}", False),
+                (
+                    "Conversión",
+                    f"{job.source_format_code or '—'} a {job.target_format_code}",
+                    False,
+                ),
                 ("En cola", _fecha(job.queued_at), False),
                 ("Empezó", _fecha(job.started_at), False),
                 ("Terminó", _fecha(job.finished_at), False),
