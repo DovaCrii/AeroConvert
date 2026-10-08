@@ -524,7 +524,7 @@ volver atrás**, igual que `test_escala_visual.py` y `test_iconos.py`. Versión 
 | F15.3 | **Calibración a un sistema local de faena**: Helmert 2D/3D o afín desde puntos de control, con residuales por punto y RMS en el recibo; nunca se adivina (regla 3) | Cálculo independiente con `numpy` en la prueba: mismos residuales a 0,1 mm | Claude | ⬜ |
 | F15.4 | **Perfiles mineros**: Deswik, Vulcan, Surpac y Datamine, con su veredicto y formato preferido | Un archivo de cada programa abierto por la persona en el programa real, con fecha en `docs/PRUEBAS_CON_ORACULO.md` | Claude · **la persona valida** | ⬜ |
 | F15.5 | **Más perfiles**: Trimble Business Center, Pix4D/Metashape, Leica Cyclone, MicroStation/OpenRoads | Ídem | Claude | ⬜ |
-| F15.6 | **Curvas de nivel** desde un DEM a DXF, DWG (vía ODA), SHP y GeoPackage | `gdal_contour` independiente; mismo número de curvas por cota | Claude | ⬜ |
+| F15.6 | **Curvas de nivel** desde un DEM a DXF, DWG (vía ODA), SHP y GeoPackage | `gdal_contour` independiente; mismo número de curvas por cota | Claude | ◐ 2026-10-08 DXF, SHP y GeoPackage con un cono de fórmula conocida (cada cota, un anillo del radio que da la fórmula) · el **DWG** espera a ODA (F15.8, P7) |
 | F15.7 | **LandXML de superficie TIN** para Civil 3D (completa F3.5) | Civil 3D abre la superficie (paseo fechado) y `defusedxml` cuenta caras y puntos | Claude · **la persona valida** | ⬜ |
 | F15.8 | **DWG/DGN con ODA instalado** (cierra F3.4) | `ogrinfo` del DXF intermedio; ODA reabre el DWG escrito | **La persona instala** · Claude corre | ⬜ |
 

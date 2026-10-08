@@ -618,8 +618,287 @@ class MotorLecturaPropietaria(Motor):
         return MotorGdalRaster().verificar(trabajo, plan)
 
 
+#: Los origenes que pueden ser un modelo de elevacion. Un GeoTIFF de tres bandas no lo es, y lo
+#: dice el recibo: la banda 1 se toma como altura, y quien lo use sobre una ortofoto saca lineas
+#: que no son curvas de nada.
+ORIGENES_DE_ELEVACION = ("geotiff", "bigtiff", "cog", "img", "asc")
+
+#: Lo que se escribe. DWG no esta: lo escribe ODA (F15.8) a partir de un DXF.
+DESTINOS_DE_CURVAS = {"dxf": "DXF", "shp": "ESRI Shapefile", "gpkg": "GPKG"}
+
+#: El nombre del campo con la cota, y el de la capa. Cortos: el Shapefile corta a diez letras.
+CAMPO_DE_COTA = "ELEV"
+CAPA_DE_CURVAS = "curvas"
+
+#: Un intervalo menor que esto no es una curva de nivel: son millones de lineas pegadas.
+INTERVALO_MINIMO_M = 0.001
+
+
+class MotorCurvasDeNivel(Motor):
+    """Curvas de nivel desde un modelo de elevacion, con `gdal_contour` (F15.6).
+
+    **Va en un motor aparte** y no como un destino mas de `gdal-raster`: no convierte pixeles a
+    pixeles, saca **lineas** de un campo continuo, y por eso sus opciones (un intervalo, una cota de
+    partida) no se parecen a las de una ortofoto. Separarlo es tambien lo que permite que su celda
+    tenga su propio motivo si `gdal_contour` falta.
+
+    - El DXF sale **con la cota de cada curva** (grupo 38 de su polilínea): un DXF con curvas
+      planas es un dibujo de lineas que nadie sabe a que altura estan. El Shapefile y el GeoPackage
+      llevan la cota en el campo `ELEV`, que es lo que espera QGIS para rotular. El DXF se hace
+      pasando por un GeoPackage 3D, porque `gdal_contour` escribe el DXF directo sin la cota.
+    - La banda es la 1 y el valor sin dato es el que declara el archivo.
+    - El DXF **no guarda el sistema de coordenadas**: las curvas quedan en el del modelo, y el
+      recibo lo dice con su EPSG.
+    """
+
+    id = "gdal-curvas"
+    nombre = "GDAL (curvas de nivel)"
+    familia = "raster"
+    prioridad = 10
+
+    def pares(self) -> frozenset[ParDeFormatos]:
+        return frozenset(
+            ParDeFormatos(origen, destino)
+            for origen in ORIGENES_DE_ELEVACION
+            for destino in DESTINOS_DE_CURVAS
+        )
+
+    def disponibilidad(self) -> Disponibilidad:
+        from apps.engines import sondas
+
+        gdal = sondas.sondar_gdal()
+        if not gdal.disponible:
+            return Disponibilidad.no(
+                "motor-no-disponible", gdal.motivo, sugerencia="Ver INSTALL.md."
+            )
+        proj = sondas.sondar_proj()
+        if not proj.disponible:
+            return Disponibilidad.no(
+                proj.codigo_motivo, proj.mensaje, sugerencia=proj.sugerencia, version=gdal.version
+            )
+        faltan = [n for n in ("gdal_contour", "ogr2ogr") if not Path(_bin(n)).is_file()]
+        if faltan:
+            return Disponibilidad.no(
+                "motor-no-disponible",
+                f"Esta instalación de GDAL no trae {' ni '.join(f'`{n}`' for n in faltan)}.",
+                sugerencia="Ver INSTALL.md: es parte de las utilidades de GDAL.",
+                version=gdal.version,
+            )
+        return Disponibilidad.si(gdal.version)
+
+    def opciones(self, par: ParDeFormatos) -> tuple[OpcionDeMotor, ...]:
+        return (
+            OpcionDeMotor(
+                "intervalo_m",
+                "Intervalo entre curvas (m)",
+                "decimal",
+                por_defecto=10,
+                minimo=INTERVALO_MINIMO_M,
+                maximo=100000,
+                ayuda=(
+                    "Cada cuántos metros de altura va una curva. Se elige según la escala: 0,5 m "
+                    "para un plano de detalle, 10 m para una carta. Con un intervalo mayor que el "
+                    "desnivel del modelo no sale ninguna curva, y el trabajo lo dice."
+                ),
+            ),
+            OpcionDeMotor(
+                "desde_m",
+                "Cota de partida (m)",
+                "decimal",
+                por_defecto=0,
+                minimo=-100000,
+                maximo=100000,
+                ayuda=(
+                    "Las curvas caen en la cota de partida más un número entero de intervalos. "
+                    "Con 0 y un intervalo de 10, en 100, 110, 120… Con 5, en 105, 115, 125…"
+                ),
+            ),
+        )
+
+    def plan(self, trabajo) -> PlanDeEjecucion:
+        origen = Path(trabajo.source_path)
+        destino = Path(trabajo.output_path)
+        parcial = ruta_parcial(destino)
+        opciones = dict(trabajo.options or {})
+
+        intervalo = _numero_finito(opciones.get("intervalo_m", 10), "el intervalo")
+        if intervalo < INTERVALO_MINIMO_M:
+            raise ValueError(
+                f"El intervalo ({intervalo} m) es demasiado pequeño para ser una curva de nivel."
+            )
+        partida = _numero_finito(opciones.get("desde_m", 0) or 0, "la cota de partida")
+
+        controlador = DESTINOS_DE_CURVAS.get(trabajo.target_format_code)
+        if controlador is None:
+            raise ValueError(
+                f"«{trabajo.target_format_code}» no es un destino de curvas de nivel "
+                f"({', '.join(DESTINOS_DE_CURVAS)})."
+            )
+
+        # **B-04, a la manera de este programa:** `gdal_contour` no tiene `-if`, y con un `.asc` que
+        # es en realidad un VRT leeria otros archivos del disco. Un ASCII Grid empieza por `ncols`
+        # (o `NCOLS`): lo que no empieza asi no se pasa.
+        if getattr(trabajo, "source_format_code", "") in LECTOR_ESTRICTO:
+            with origen.open("rb") as archivo:
+                cabecera = archivo.read(32).lstrip().lower()
+            if not cabecera.startswith((b"ncols", b"nrows", b"xllcorner", b"xllcenter")):
+                raise ValueError(
+                    "El archivo dice ser un ASCII Grid y no empieza como uno: no se abre."
+                )
+
+        es_dxf = trabajo.target_format_code == "dxf"
+        # **El DXF se hace en dos pasos, y no por capricho.** Con `gdal_contour -f DXF -3d` el
+        # controlador crea la capa como 2D y tira la Z: sale un DXF con 29 polilíneas **sin cota**,
+        # válido y inservible. Se midió. Con un GeoPackage 3D en medio, `ogr2ogr` sí escribe la
+        # elevación de cada polilínea (grupo 38). El intermedio cuelga del nombre del parcial y el
+        # corredor lo borra con él.
+        intermedio = parcial.with_name(parcial.name + ".curvas3d.gpkg")
+        primero = intermedio if es_dxf else parcial
+        argv: list[str] = [
+            _bin("gdal_contour"),
+            "-i",
+            repr(intervalo),
+            "-off",
+            repr(partida),
+            "-f",
+            "GPKG" if es_dxf else controlador,
+            "-nln",
+            CAPA_DE_CURVAS,
+            "-a",
+            CAMPO_DE_COTA,
+        ]
+        if es_dxf:
+            argv.append("-3d")
+        argv += [str(origen), str(primero)]
+
+        posteriores: tuple[tuple[str, ...], ...] = ()
+        if es_dxf:
+            # `-select ""`: el DXF no tiene campos; sin él `ogr2ogr` da un error por cada uno.
+            posteriores = (
+                (_bin("ogr2ogr"), "-f", "DXF", "-select", "", str(parcial), str(intermedio)),
+            )
+
+        return PlanDeEjecucion(
+            argv=tuple(argv),
+            ruta_de_salida=destino,
+            posteriores=posteriores,
+            salida_en_posteriores=es_dxf,
+            env=entorno_de_gdal(GDAL_CACHEMAX="512"),
+            timeout_s=MotorGdalRaster()._presupuesto(trabajo),
+            analizador_de_progreso=analizar_progreso,
+        )
+
+    def verificar(self, trabajo, salida: Path) -> Verificacion:
+        """Se le pregunta a OGR: ¿hay curvas, y a qué cotas?
+
+        `gdal_contour` devuelve 0 y escribe un archivo válido **sin ninguna entidad** cuando el
+        intervalo es mayor que el desnivel o la banda no es una elevación: es el fallo que importa.
+        """
+        base = super().verificar(trabajo, salida)
+        if not base.correcta:
+            return base
+
+        from apps.vector.motores import _epsg_de as epsg_de_capas
+        from apps.vector.motores import _ogrinfo
+
+        info = _ogrinfo(salida)
+        if info is None:
+            return Verificacion(
+                correcta=False,
+                motivo="OGR no puede leer el archivo que acaba de escribir.",
+                codigo_motivo="salida-invalida",
+            )
+        capas = info.get("layers", []) or []
+        curvas = sum(int(capa.get("featureCount", 0) or 0) for capa in capas)
+        detalles = {
+            "curvas": curvas,
+            "controlador": info.get("driverShortName", ""),
+            "intervalo_m": (trabajo.options or {}).get("intervalo_m", 10),
+            "bytes": salida.stat().st_size,
+        }
+        if not curvas:
+            return Verificacion(
+                correcta=False,
+                motivo=(
+                    "No salió ninguna curva. Suele ser un intervalo mayor que el desnivel del "
+                    "modelo, o que la banda 1 no sea una elevación (una ortofoto no tiene curvas)."
+                ),
+                codigo_motivo="salida-invalida",
+                detalles=detalles,
+            )
+        no_es_elevacion = _no_es_un_modelo_de_elevacion(trabajo)
+        if no_es_elevacion:
+            return Verificacion(
+                correcta=False,
+                motivo=no_es_elevacion,
+                codigo_motivo="salida-invalida",
+                detalles=detalles,
+            )
+        epsg = epsg_de_capas(capas)
+        # Un ASCII Grid no lleva sistema dentro (su `.prj` queda al lado y no se copia): las curvas
+        # tampoco lo llevan, y no hay reproyección, así que es un aviso y no una detención.
+        sin_sistema_incrustado = trabajo.target_format_code == "dxf" or (
+            getattr(trabajo, "source_format_code", "") == "asc"
+        )
+        if epsg:
+            detalles["epsg"] = epsg
+        elif trabajo.source_crs_code and not sin_sistema_incrustado:
+            return Verificacion(
+                correcta=False,
+                motivo=(
+                    f"El modelo estaba en EPSG:{trabajo.source_crs_code} y las curvas no "
+                    "declaran ningún sistema de referencia."
+                ),
+                codigo_motivo="salida-invalida",
+                detalles=detalles,
+            )
+        if not epsg:
+            donde = f" (EPSG:{trabajo.source_crs_code})" if trabajo.source_crs_code else ""
+            if trabajo.target_format_code == "dxf":
+                quien = "El DXF no guarda el sistema de coordenadas"
+            elif getattr(trabajo, "source_format_code", "") == "asc":
+                quien = "El modelo (un ASCII Grid) no trae el sistema de coordenadas dentro"
+            else:
+                quien = "El modelo no declara su sistema de coordenadas"
+            detalles["avisos"] = [
+                f"{quien}: las curvas están en el sistema del modelo{donde} pero no lo declaran."
+            ]
+        return Verificacion(correcta=True, detalles=detalles)
+
+
+def _no_es_un_modelo_de_elevacion(trabajo) -> str:
+    """El motivo si el origen no puede ser un modelo de elevación; vacío si puede (o no se sabe).
+
+    Una ortofoto RGB tiene la banda 1 de 0 a 255, y sacarle curvas «de nivel» da unas 25 líneas que
+    parecen un resultado y no lo son. Se le pregunta a GDAL (`gdalinfo`), no se supone.
+    """
+    info = _gdalinfo(Path(trabajo.source_path))
+    if info is None:
+        return ""
+    bandas = info.get("bands", []) or []
+    if len(bandas) > 1:
+        return (
+            f"El archivo tiene {len(bandas)} bandas: es una imagen, no un modelo de elevación. "
+            "Las curvas de nivel salen de una sola banda con la altura de cada píxel."
+        )
+    return ""
+
+
+def _numero_finito(valor, que: str) -> float:
+    import math
+
+    try:
+        numero = float(valor)
+    except (TypeError, ValueError) as fallo:
+        raise ValueError(f"{que.capitalize()} no es un número.") from fallo
+    if not math.isfinite(numero):
+        raise ValueError(f"{que.capitalize()} no es un número finito.")
+    return numero
+
+
 def registrar_todos() -> None:
     registry.registrar(MotorGdalRaster())
+    registry.registrar(MotorCurvasDeNivel())
     registry.registrar(MotorEcw())
     for formato, (controlador, de_donde) in ORIGENES_PROPIETARIOS.items():
         registry.registrar(MotorLecturaPropietaria(formato, controlador, de_donde))

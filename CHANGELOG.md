@@ -6,6 +6,14 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 ## [Sin publicar]
 
 
+### Añadido — Curvas de nivel desde un modelo de elevación (F15.6)
+
+- **Un par nuevo en la matriz:** GeoTIFF, BigTIFF, COG, IMG o ASCII Grid → **DXF, Shapefile o GeoPackage**, con el motor `gdal-curvas` (`gdal_contour`). Opciones: el intervalo entre curvas en metros (`intervalo_m`, 10 por omisión) y la cota de partida (`desde_m`). La banda 1 se toma como altura; con un intervalo mayor que el desnivel, o sobre una ortofoto, el trabajo **falla diciéndolo** en vez de entregar un archivo vacío.
+- El Shapefile y el GeoPackage llevan la cota en el campo `ELEV`. **El DXF lleva la elevación de cada polilínea**: `gdal_contour` lo escribe directo sin la cota, así que se pasa por un GeoPackage 3D y luego `ogr2ogr`. El intermedio se limpia con el parcial, también cuando el trabajo falla (`_borrar` ahora arrastra lo que cuelga del nombre del parcial).
+- Un ASCII Grid solo se abre si empieza como uno (`gdal_contour` no tiene `-if`; sin esto, un VRT disfrazado de `.asc` leería otros archivos). El DXF y el ASCII Grid no guardan el sistema de coordenadas: las curvas quedan en el del modelo y el recibo lo avisa con su EPSG.
+- Oráculo (fuera del CI): un cono `z = 100 − 0,5·r` en 400 × 400 px. Cada cota entre 10 y 90 es un solo anillo cerrado cuyo radio es `(100 − cota)/0,5` con error menor de 0,6 m; las cotas de 0 hacia abajo son cuatro arcos de esquina; los tres destinos dan el mismo número de curvas por cota (el DXF se lee con `ezdxf`). El DWG sigue pendiente de ODA (F15.8).
+
+
 ### Añadido — La posición corregida, escrita en copias de las fotos (F18.5)
 
 - En «Corregir un vuelo de dron», la casilla **«Escribir la posición corregida en copias de las fotos»** pone en el zip una carpeta `fotos_corregidas/` con cada foto de la carpeta elegida y su posición nueva en el EXIF. **La imagen es la misma, byte por byte** (todo lo que va desde el marcador SOS pasa tal cual); las originales solo se leen.

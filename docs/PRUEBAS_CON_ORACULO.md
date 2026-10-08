@@ -683,3 +683,23 @@ $gt = "C:\Program Files\QGIS 4.0.2\bin\gdal_translate.exe"
 
 Y luego se comparan los `.bin` muestra a muestra. La ventana se toma del centro a propósito:
 los bordes de una ortofoto son transparencia y comprimirían de forma poco representativa.
+
+## Corrida del 2026-10-08 — curvas de nivel contra una fórmula (F15.6)
+
+Un cono `z = 100 − 0,5·r` (`r` en metros desde el centro) en un GeoTIFF de 400 × 400 píxeles de 1 m,
+UTM 19S, convertido por el motor `gdal-curvas` con intervalo de 10 m. **El oráculo es la fórmula**, no
+una segunda lectura de GDAL: la curva de cota `L` tiene que ser una circunferencia de radio
+`(100 − L)/0,5`.
+
+- **Cotas 10 a 90:** un solo anillo por cota, **cerrado**, y **todos sus vértices a menos de 0,6 m** del
+  radio calculado (`ogrinfo -json -features`, que es otro programa que el que escribió el archivo).
+- **Cotas −40 a 0:** cuatro arcos cada una, porque el radio llega a 283 m y el cuadrado solo a 200 m
+  del centro. Total: **29 curvas** en los tres destinos; GeoPackage, Shapefile y DXF dan el mismo
+  número por cota (el DXF, leído con `ezdxf`).
+- **Lo que la corrida destapó:** `gdal_contour -f DXF -3d` escribe 29 polilíneas **sin elevación**
+  (valido y sin la cota: inservible), y `-a ELEV` con DXF falla («Failed to create elevation field»).
+  Por eso el DXF pasa por un GeoPackage 3D y `ogr2ogr`; la corrida lo comprobó con el grupo 38 de
+  cada polilínea.
+- Un intervalo de 5 000 m (mayor que el desnivel) **no deja un entregable vacío**: el trabajo falla.
+- **No medido:** DWG (espera a ODA, F15.8); un DEM real de la faena; rendimiento con un modelo de varios
+  gigabytes.
