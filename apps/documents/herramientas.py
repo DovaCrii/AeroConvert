@@ -84,7 +84,7 @@ HERRAMIENTAS = (
         "sale": "una traza GPX o KML",
         "familia": "transformar",
         "url": "documents:telemetria",
-        "nombre": "Traza de un video de dron",
+        "nombre": "Sacar la traza de un dron",
         "que_hace": (
             "Pasa el .SRT que graba el dron junto al video (una posición por fotograma) a una "
             "traza GPX o KML, para verla en QGIS o en Google Earth."
@@ -136,7 +136,7 @@ HERRAMIENTAS = (
         "url": "documents:imagenes_lote",
         "nombre": "Convertir imágenes",
         "que_hace": (
-            "Varias fotos a la vez: cambia el formato (JPG, PNG, WebP, TIFF), las achica, las "
+            "Varias fotos a la vez: cambia el formato, las achica, las "
             "gira o recorta y las comprime, conservando su fecha y su GPS."
         ),
     },
