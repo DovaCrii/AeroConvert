@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block titulo %}Firmar con certificado · AeroConvert{% endblock %}
+
+{% block contenido %}
+
+<div class="tarjeta">
+  <div class="eyebrow">Qué hace</div>
+  <p class="av-mb-0">
+    Pone su <strong>firma digital</strong> (PAdES) al PDF con su certificado <strong>.p12</strong>.
+    Si después alguien cambia algo, la firma se rompe y se nota. Lo que ya traía el PDF queda
+    intacto, y una firma anterior sigue valiendo: esta se añade. <strong>Su certificado no se
+    guarda</strong>: se usa una vez y se borra. El original no se toca.
+  </p>
+</div>
+
+<form method="post" id="forma-documento" enctype="multipart/form-data" autocomplete="off">
+  {% csrf_token %}
+
+  {% include "documents/_origen.html" with accion="convertir" boton="Firmar" pregunta="¿Qué PDF firmamos?" acepta=".pdf" %}
+
+  <div class="tarjeta">
+    <div class="eyebrow">Con quién</div>
+
+    <div class="av-mb-3 av-mw-38">
+      <label class="fw-semibold" for="id_certificado">Su certificado (.p12 o .pfx)</label>
+      <input type="file" name="certificado" id="id_certificado" class="form-control"
+             accept=".p12,.pfx" data-tope-mb="1" required>
+      <div class="av-mt-2" data-avance-subida hidden></div>
+    </div>
+
+    <div class="av-mb-3 av-mw-22">
+      <label class="fw-semibold" for="id_clave">Contraseña del certificado</label>
+      <input type="password" name="clave" id="id_clave" class="form-control"
+             autocomplete="off" spellcheck="false" value="" required>
+      <p class="tenue av-mt-1 av-mb-0 av-fs-sm">No vuelve a la pantalla ni queda guardada.</p>
+    </div>
+
+    <div class="av-mb-3 av-mw-38">
+      <label class="fw-semibold" for="id_motivo">Motivo (opcional)</label>
+      <input type="text" name="motivo" id="id_motivo" class="form-control" maxlength="120"
+             value="{{ motivo }}" placeholder="Aprobación del informe">
+    </div>
+
+    <div class="av-mb-0 av-mw-38">
+      <label class="fw-semibold" for="id_lugar">Lugar (opcional)</label>
+      <input type="text" name="lugar" id="id_lugar" class="form-control" maxlength="120"
+             value="{{ lugar }}" placeholder="Santiago">
+    </div>
+  </div>
+</form>
+
+{% endblock %}

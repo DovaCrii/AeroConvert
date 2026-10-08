@@ -21,6 +21,7 @@ escrito por otra gente: si pypdf escribiera un PDF que solo pypdf sabe leer, est
 
 from __future__ import annotations
 
+import hashlib
 import io
 import json
 import re
@@ -93,6 +94,8 @@ ESPECIFICACIONES: dict[str, Especificacion] = {
     "extraer_imagenes": Especificacion(timeout_s=900, emite_progreso=True, salida_opcional=True),
     "formularios": Especificacion(),
     "firma_visible": Especificacion(),
+    "firmar": Especificacion(con_secreto=True),
+    "verificar_firmas": Especificacion(),
     "unir": Especificacion(),
     # Es la misma receta que «unir» con un solo archivo: otra pantalla, el mismo hijo.
     "organizar": Especificacion(),
@@ -345,6 +348,8 @@ def verificar(parcial: Path, informe: dict, plan: PlanDeEjecucion | None = None)
     detalles["bytes"] = tamano
     extension = parcial.suffix.lower()
 
+    if extension == ".pdf" and detalles.get("accion") == "firmar":
+        return _verificar_firmado(parcial, detalles)
     if extension == ".pdf" and detalles.get("accion") == "proteger":
         from . import secretos
 
@@ -543,6 +548,54 @@ def _comprobar_imagen(datos: bytes) -> None:
 
     with Image.open(io.BytesIO(datos)) as imagen:
         imagen.verify()
+
+
+def _verificar_firmado(parcial: Path, detalles: dict) -> Verificacion:
+    """El PDF firmado abre con PDFium y la firma nueva cuadra **calculada a mano** (no por pyHanko).
+
+    Es el otro lector: resumen con `hashlib`, CMS con `asn1crypto` y firma con `cryptography`.
+    Las firmas que ya traía siguen con su resumen intacto, y la nueva cubre hasta el último byte.
+    """
+    from . import firma_comprobar
+
+    base = _verificar_pdf(parcial, detalles)
+    if not base.correcta:
+        return base
+    try:
+        hechas = firma_comprobar.comprobar(parcial.read_bytes())
+    except Exception as fallo:  # noqa: BLE001 - un CMS que no se lee es una firma que no vale
+        return Verificacion(False, f"La firma no se deja leer: {fallo}", "salida-invalida")
+    esperadas = int(detalles.get("firmas_previas", 0)) + 1
+    if len(hechas) != esperadas:
+        return Verificacion(
+            False,
+            f"Debía haber {esperadas} firma(s) y hay {len(hechas)}.",
+            "salida-invalida",
+        )
+    if not all(h.resumen_cuadra for h in hechas):
+        return Verificacion(False, "El resumen de una firma no cuadra.", "salida-invalida")
+    ultima = hechas[-1]
+    if detalles.get("firmante") and ultima.firmante != detalles["firmante"]:
+        return Verificacion(
+            False,
+            f"La última firma es de «{ultima.firmante}» y debía ser de «{detalles['firmante']}».",
+            "salida-invalida",
+        )
+    n = detalles.get("bytes_original")
+    if n and hashlib.sha256(parcial.read_bytes()[: int(n)]).hexdigest() != detalles.get(
+        "sha256_original"
+    ):
+        return Verificacion(
+            False,
+            "El PDF firmado no empieza por el original: no es una firma incremental.",
+            "salida-invalida",
+        )
+    if ultima.firma_cuadra is not True or not ultima.cubre_el_archivo:
+        return Verificacion(
+            False, "La firma nueva no se verifica o no cubre el archivo entero.", "salida-invalida"
+        )
+    base.detalles["verificado_con"] = "PDFium, hashlib y cryptography"
+    return base
 
 
 def _verificar_svg(parcial: Path, detalles: dict) -> Verificacion:

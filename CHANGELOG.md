@@ -6,6 +6,13 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 ## [Sin publicar]
 
 
+### Añadido — firma digital y verificación de firmas (F14.5)
+
+- **«Firmar con certificado»**: firma un PDF (PAdES, SHA-256) con el `.p12` de la persona, con motivo y lugar opcionales. **Incremental**: lo que traía el PDF queda byte por byte al principio y una firma anterior sigue valiendo. **El certificado y su contraseña no se guardan**: llegan al obrero como un solo secreto cifrado y de un solo uso (el mismo camino que «Proteger»), nunca en `options`, la base, el argv ni la bitácora; el campo no vuelve al formulario y la contraseña mala o el certificado vencido se dicen **antes de encolar**. Un PDF cifrado no se firma.
+- **«Verificar firmas»**: informe de un PDF recibido (quién firmó, cuándo según el firmante, si está **íntegro**, si **cubre todo el archivo** o se añadió algo después). **La confianza en el emisor solo se afirma si el servidor tiene una lista de emisores** (`AEROCONVERT_RAICES_DE_CONFIANZA`); sin ella el informe lo dice y no da por buena una cadena que no miró.
+- **Otro lector, no pyHanko:** `firma_comprobar.py` calcula el resumen del `/ByteRange` con `hashlib`, lee el CMS con `asn1crypto` y verifica la firma con `cryptography` (RSA PKCS#1 y ECDSA). El motor lo corre sobre cada PDF firmado, y las pruebas rompen un byte, añaden contenido después y firman dos veces, y en cada caso los dos lectores coinciden. Prueba «centinela»: ni la contraseña ni el certificado aparecen en ningún archivo, fila ni log.
+- Dependencia nueva: `pyhanko` (MIT) y sus transitivas. Pendiente: sello de tiempo (necesita la URL de una TSA, P14).
+
 ### Cambiado — transiciones de estado y entrada suave (F13.13)
 
 - **Botones, campos, baldosas y enlaces del lateral** cambian de color, fondo, borde y opacidad en 160 ms al pasar, enfocar o desactivarse; **nada se desplaza, no hay sombras ni degradados** (F13.7 sigue en pie). Cada página y lo que htmx pinta (resultados, ficha, lo reconocido) **aparece** en 220 ms por opacidad. Con `prefers-reduced-motion` todo es instantáneo. Cinco pruebas nuevas en `test_plano.py`: ninguna transición `all`, nada de `transform` al pasar o enfocar, solo propiedades de estado, la animación solo cambia la opacidad y no deja un contexto de apilado (`backwards`), y el bloque de movimiento reducido. Visto en el navegador, en claro a 375 px y en oscuro a 1280 px, sin desborde.
