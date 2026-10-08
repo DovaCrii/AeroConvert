@@ -138,7 +138,7 @@ MOTIVOS: dict[str, Motivo] = dict(
         _m(
             "crudo-incompleto",
             "El archivo del receptor está cortado: termina a mitad de un bloque.",
-            "Cópialo otra vez desde el receptor. Convertirlo así daría un RINEX más corto "
+            "Cópielo otra vez desde el receptor. Convertirlo así daría un RINEX más corto "
             "sin avisar de nada.",
         ),
         _m(

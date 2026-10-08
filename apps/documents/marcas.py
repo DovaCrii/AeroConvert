@@ -184,7 +184,7 @@ def comprobar_marca(texto: str, opacidad: str) -> str:
     """La misma idea que `comprobar_numeracion`. Devuelve el texto ya limpio."""
     texto = " ".join((texto or "").split())
     if not texto:
-        raise ComposicionInvalida("No escribiste el texto de la marca.")
+        raise ComposicionInvalida("Falta el texto de la marca.")
     if len(texto) > MAXIMO_TEXTO:
         raise ComposicionInvalida(
             f"El texto no puede pasar de {MAXIMO_TEXTO} caracteres: más largo sale ilegible."
