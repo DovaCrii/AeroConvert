@@ -13,6 +13,10 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 - **Otro lector, no pyHanko:** `firma_comprobar.py` calcula el resumen del `/ByteRange` con `hashlib`, lee el CMS con `asn1crypto` y verifica la firma con `cryptography` (RSA PKCS#1 y ECDSA). El motor lo corre sobre cada PDF firmado, y las pruebas rompen un byte, añaden contenido después y firman dos veces, y en cada caso los dos lectores coinciden. Prueba «centinela»: ni la contraseña ni el certificado aparecen en ningún archivo, fila ni log.
 - Dependencia nueva: `pyhanko` (MIT) y sus transitivas. Pendiente: sello de tiempo (necesita la URL de una TSA, P14).
 
+### Cambiado — transiciones de estado y entrada suave (F13.13)
+
+- **Botones, campos, baldosas y enlaces del lateral** cambian de color, fondo, borde y opacidad en 160 ms al pasar, enfocar o desactivarse; **nada se desplaza, no hay sombras ni degradados** (F13.7 sigue en pie). Cada página y lo que htmx pinta (resultados, ficha, lo reconocido) **aparece** en 220 ms por opacidad. Con `prefers-reduced-motion` todo es instantáneo. Cinco pruebas nuevas en `test_plano.py`: ninguna transición `all`, nada de `transform` al pasar o enfocar, solo propiedades de estado, la animación solo cambia la opacidad y no deja un contexto de apilado (`backwards`), y el bloque de movimiento reducido. Visto en el navegador, en claro a 375 px y en oscuro a 1280 px, sin desborde.
+
 
 ### Añadido — plano DXF a lámina PDF o SVG (F14.16, primera parte)
 
