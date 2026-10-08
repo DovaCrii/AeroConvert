@@ -150,6 +150,7 @@ DE_DOCUMENTOS: dict[str, str] = {
     "telemetria": "vuelos",
     "fotos_dron": "vuelos",
     "vuelo_dron": "vuelos",
+    "video": "vuelos",
     "portada": "texto",
     "catalogo_excel": "planta",
     "excel_catalogo": "planta",

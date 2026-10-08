@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block titulo %}Trabajar un video de dron · AeroConvert{% endblock %}
+
+{% block contenido %}
+{% if not ffmpeg %}
+  <div class="tarjeta">
+    <div class="eyebrow">Ahora mismo no se puede</div>
+    <h2 class="av-fs-md">{{ ffmpeg.motivo }}</h2>
+    <p class="tenue av-mt-2 av-mb-0">{{ ffmpeg.sugerencia }}</p>
+  </div>
+{% else %}
+<div class="tarjeta antes-de-empezar">
+  <p class="sin-hueco">
+    <strong>Para fotogrametría importa la separación entre tomas, no el reloj.</strong> Con el
+    <code>.SRT</code> que DJI graba junto al video, los fotogramas salen cada tantos metros recorridos y
+    cada uno lleva su latitud y longitud en el EXIF. La altura no se escribe: la del SRT no dice
+    respecto de qué se mide (va en el CSV, con esa advertencia).
+  </p>
+</div>
+
+<form id="forma-documento" method="post" enctype="multipart/form-data">
+  {% csrf_token %}
+  {% include "documents/_origen.html" with pregunta="¿Qué video?" accion="convertir" boton="Trabajar el video" acepta=".mp4,.mov,.m4v,.mkv,.avi" %}
+
+  <div class="tarjeta">
+    <fieldset>
+      <legend class="eyebrow">Qué hacer</legend>
+      {% for clave, nombre in operaciones.items %}
+        <label class="opcion">
+          <input type="radio" name="operacion" value="{{ clave }}" {% if operacion == clave %}checked{% endif %}>
+          <span><strong>{{ nombre }}</strong></span>
+        </label>
+      {% endfor %}
+    </fieldset>
+  </div>
+
+  <div class="tarjeta">
+    <fieldset>
+      <legend class="eyebrow">Si son fotogramas</legend>
+      <label class="opcion">
+        <input type="radio" name="criterio" value="segundos" checked>
+        <span>Cada
+          <select name="cada_s" aria-label="Segundos entre fotogramas">
+            {% for s in cada_segundos %}<option value="{{ s }}">{{ s }}</option>{% endfor %}
+          </select> segundos</span>
+      </label>
+      <label class="opcion">
+        <input type="radio" name="criterio" value="metros">
+        <span>Cada
+          <select name="cada_m" aria-label="Metros entre fotogramas">
+            {% for m in cada_metros %}<option value="{{ m }}">{{ m }}</option>{% endfor %}
+          </select> metros recorridos (hace falta el .SRT)</span>
+      </label>
+      <div class="av-mt-2">
+        <label class="form-label" for="id_srt_subida">El .SRT del dron, si el video lo sube desde su equipo</label>
+        <input type="file" name="srt_subida" id="id_srt_subida" class="form-control" accept=".srt" data-tope-mb="50">
+        <p class="tenue av-fs-sm av-mt-1 av-mb-0">Si el video está en la carpeta compartida, se usa el .SRT que tenga al lado con el mismo nombre.</p>
+        <div class="av-mt-2" data-avance-subida hidden></div>
+      </div>
+    </fieldset>
+  </div>
+
+  <div class="tarjeta">
+    <fieldset>
+      <legend class="eyebrow">Si es recortar</legend>
+      <label class="form-label" for="id_inicio_s">Desde (segundos)</label>
+      <input type="number" name="inicio_s" id="id_inicio_s" class="form-control estrecho" min="0" step="0.1">
+      <label class="form-label av-mt-2" for="id_fin_s">Hasta (segundos)</label>
+      <input type="number" name="fin_s" id="id_fin_s" class="form-control estrecho" min="0" step="0.1">
+    </fieldset>
+  </div>
+</form>
+{% endif %}
+{% endblock %}

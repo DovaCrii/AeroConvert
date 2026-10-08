@@ -799,6 +799,99 @@ def _ocr(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
     return {"paginas": len(PdfReader(origen).pages)}
 
 
+#: FFmpeg y ffprobe, sondeados por el padre (el hijo no tiene Django para sondear).
+VARIABLE_FFMPEG = "AEROCONVERT_FFMPEG_HIJO"
+VARIABLE_FFPROBE = "AEROCONVERT_FFPROBE_HIJO"
+
+
+def _video(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
+    import os
+    import shutil
+    import zipfile
+
+    from apps.documents import telemetria, video
+
+    ffmpeg = os.environ.get(VARIABLE_FFMPEG, "")
+    ffprobe = os.environ.get(VARIABLE_FFPROBE, "")
+    if not ffmpeg or not ffprobe:
+        raise FalloDeTarea("sin-ffmpeg", "No llegaron las rutas de FFmpeg desde el corredor.")
+    origen = next(Path(e["ruta"]) for e in entradas if not e["ruta"].lower().endswith(".srt"))
+    srt = next((Path(e["ruta"]) for e in entradas if e["ruta"].lower().endswith(".srt")), None)
+    operacion = opciones.get("operacion", "")
+    progreso(0.02, "Leyendo el video con ffprobe")
+    ficha = video.probar(ffprobe, origen)
+
+    if operacion != "fotogramas":
+        rango = {}
+        detalles = {"operacion": operacion, "duracion_original_s": round(ficha.duracion_s, 2)}
+        if operacion == "recortar":
+            rango = {"inicio_s": float(opciones["inicio_s"]), "fin_s": float(opciones["fin_s"])}
+            if rango["fin_s"] > ficha.duracion_s + 0.5:
+                raise FalloDeTarea(
+                    "documento-invalido",
+                    f"El video dura {ficha.duracion_s:.1f} s: no se puede recortar hasta "
+                    f"{rango['fin_s']:.1f} s.",
+                )
+            detalles["duracion_esperada_s"] = round(rango["fin_s"] - rango["inicio_s"], 3)
+        progreso(0.1, "Trabajando el video con FFmpeg")
+        video.operar(ffmpeg, operacion, origen, parcial, **rango)
+        return detalles
+
+    puntos = telemetria.leer(srt).puntos if srt else None
+    if opciones.get("cada_m"):
+        if not puntos:
+            raise FalloDeTarea(
+                "documento-invalido", "Para sacar fotogramas cada tantos metros hace falta el .SRT."
+            )
+        instantes = video.instantes_por_distancia(puntos, float(opciones["cada_m"]))
+        instantes = [t for t in instantes if t < ficha.duracion_s]
+    else:
+        instantes = video.instantes_por_tiempo(ficha.duracion_s, float(opciones.get("cada_s") or 1))
+    carpeta = carpeta_de_piezas(parcial)
+    try:
+        archivos, tabla = video.extraer_fotogramas(
+            ffmpeg,
+            origen,
+            carpeta,
+            instantes,
+            puntos=puntos,
+            progreso=lambda f, e: progreso(0.1 + 0.85 * f, e),
+        )
+        with zipfile.ZipFile(parcial, "w", zipfile.ZIP_STORED) as paquete:
+            for archivo in archivos:
+                paquete.write(archivo, archivo.name)
+            paquete.writestr("fotogramas.csv", tabla)
+    finally:
+        shutil.rmtree(carpeta, ignore_errors=True)
+    filas = [linea.split(",") for linea in tabla.splitlines()[1:]]
+    con_posicion = sum(1 for fila in filas if fila[2])
+    # Cada JPG con posición la lleva en su pieza: el corredor la vuelve a leer con **Pillow** (otro
+    # lector que el que la escribió) y rechaza el zip si no coincide.
+    por_nombre = {fila[0]: fila for fila in filas}
+    piezas = []
+    for archivo in archivos:
+        fila = por_nombre.get(archivo.name)
+        pieza = {"nombre": archivo.name}
+        if fila and fila[2]:
+            pieza.update(lat=float(fila[2]), lon=float(fila[3]))
+        piezas.append(pieza)
+    return {
+        "operacion": "fotogramas",
+        "fotogramas": len(archivos),
+        "con_posicion": con_posicion,
+        "duracion_original_s": round(ficha.duracion_s, 2),
+        "piezas": [*piezas, {"nombre": "fotogramas.csv", "filas": len(archivos)}],
+        "avisos": (
+            [
+                "Las posiciones salen del .SRT suponiendo que su instante 0 es el del video "
+                "(así lo graba DJI). La altura no va en el EXIF: su referencia no está declarada."
+            ]
+            if puntos
+            else []
+        ),
+    }
+
+
 #: Ghostscript y veraPDF, sondeados por el padre (el hijo no tiene Django para sondear).
 VARIABLE_GHOSTSCRIPT = "AEROCONVERT_GHOSTSCRIPT_HIJO"
 VARIABLE_VERAPDF = "AEROCONVERT_VERAPDF_HIJO"
@@ -913,6 +1006,7 @@ TAREAS = {
     "proteger": _proteger,
     "redactar": _redactar,
     "ocr": _ocr,
+    "video": _video,
     "pdf_a": _pdf_a,
     "catalogo_excel": _catalogo_a_excel,
     "excel_catalogo": _excel_a_catalogo,

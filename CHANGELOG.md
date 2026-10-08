@@ -5,6 +5,14 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Sin publicar]
 
+### Añadido — «Trabajar un video de dron» (F14.17)
+
+- Herramienta nueva en «Vuelos de dron», con **FFmpeg** sondeado (D1; `AEROCONVERT_FFMPEG` o el `PATH`, con `ffprobe` al lado). Sin él, apagada con `sin-ffmpeg` y su paso.
+- **Fotogramas para fotogrametría cada N segundos o cada N metros recorridos**: con el `.SRT` de DJI (subido, o el que está al lado del video en la carpeta compartida) se eligen los instantes en que el dron avanzó N metros sobre el elipsoide, y cada JPG lleva la latitud y la longitud interpoladas en su EXIF. **La altura no se escribe** (la del SRT no declara su referencia): va en el CSV, advertida. Tope de 2.000 fotogramas.
+- Además: comprimir (H.264), recortar un tramo (recodificado, para que dure lo pedido), quitar el audio y pasar a MP4. **`ffprobe` verifica cada salida**: H.264 si se recodificó, sin audio si se quitó, y la duración del tramo (±1 s).
+- Probado con un FFmpeg de mentira que se comporta como el de verdad; la separación entre fotogramas se comprueba con una fórmula de haversine escrita en la prueba (el código usa `pyproj.Geod`). **Sin FFmpeg en la estación**: el oráculo real (5 s de video de prueba dan 5 fotogramas de 320 × 240) corre donde esté instalado.
+
+
 ### Añadido — «PDF a PDF/A para archivar» (F14.9)
 
 - Herramienta 39. **Ghostscript** (programa externo sondeado: el del `PATH`, `AEROCONVERT_GHOSTSCRIPT` o el que trae QGIS junto a GDAL) escribe PDF/A-2b con un perfil sRGB creado en memoria; **pikepdf, que no escribió el archivo, lo comprueba**: identificación PDF/A-2B, intención de salida con su perfil y **todas las fuentes incrustadas**. Si falla algo, no se entrega.

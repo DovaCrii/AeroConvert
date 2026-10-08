@@ -131,6 +131,8 @@ TSA_URL = config("AEROCONVERT_TSA_URL", default="")
 # LibreOffice para «Office a PDF» sin Office (F17.1). Vacío: `soffice` en el PATH.
 LIBREOFFICE = config("AEROCONVERT_LIBREOFFICE", default="")
 
+# Video (F14.17): la ruta de ffmpeg; ffprobe tiene que estar al lado. Vacío: el PATH.
+FFMPEG = config("AEROCONVERT_FFMPEG", default="")
 # PDF/A (F14.9): Ghostscript escribe y veraPDF, si está, valida. Vacíos: se buscan en el PATH.
 GHOSTSCRIPT = config("AEROCONVERT_GHOSTSCRIPT", default="")
 VERAPDF = config("AEROCONVERT_VERAPDF", default="")
