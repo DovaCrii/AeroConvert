@@ -100,7 +100,10 @@ class TestLasHerramientasDelArchivo:
 
     def test_un_pdf_ofrece_las_de_pdf_y_una_foto_las_de_imagen(self):
         assert "pdf-unir" in {a.id for a in acciones.para_el_archivo("x.PDF")}
-        assert {a.id for a in acciones.para_el_archivo("foto.jpg")} == {"pdf-imagenes"}
+        assert {a.id for a in acciones.para_el_archivo("foto.jpg")} == {
+            "pdf-imagenes",
+            "pdf-imagenes_lote",
+        }
         assert acciones.para_el_archivo("sin_extension") == []
 
 

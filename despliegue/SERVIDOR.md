@@ -209,7 +209,7 @@ servicio, con un error que no menciona `/home` por ningún lado.
 nubes de puntos salen apagadas con su motivo, igual que las dos herramientas de Office; el
 ráster, el vectorial y LandXML funcionan. No bloquea nada.
 
-De las **treinta y una de documentos**, en este servidor funcionan **veintiséis** desde el
+De las **treinta y tres de documentos**, en este servidor funcionan **veintiocho** desde el
 2026-09-21, cuando se instaló Tesseract:
 
 ```bash

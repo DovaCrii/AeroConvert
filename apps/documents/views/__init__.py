@@ -1,4 +1,4 @@
-"""Las pantallas de las treinta y una herramientas de documentos.
+"""Las pantallas de las treinta y tres herramientas de documentos.
 
 ## Mirar aquí, hacer en la cola
 
@@ -72,6 +72,9 @@ from .pantalla_imagenes import (  # noqa: F401
     extraer_imagenes_vista,
     imagenes_vista,
 )
+from .pantalla_imagenes_lote import (  # noqa: F401
+    imagenes_lote_vista,
+)
 from .pantalla_inicio import (  # noqa: F401
     inicio,
     texto,
@@ -108,6 +111,9 @@ from .pantalla_reparar import (  # noqa: F401
 )
 from .pantalla_tamano import (  # noqa: F401
     tamano_vista,
+)
+from .pantalla_telemetria import (  # noqa: F401
+    telemetria_vista,
 )
 from .pantalla_unir import (  # noqa: F401
     _generar,
