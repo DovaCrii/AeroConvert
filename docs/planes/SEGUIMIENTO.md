@@ -43,7 +43,7 @@ Estados: ✅ hecho · 🟨 en curso · ⬜ por hacer · ⏸ espera un pedido · 
 | **B6 · Suite PDF** | F14.0 ✅ · F14.1 ✅ · F14.2 ✅ · F14.3 ✅ · F14.4 ✅ · F14.5 ✅ · F14.6 ✅ · F14.7 ✅ · F14.8 ✅ · F14.9 · F14.11 · F14.20 ✅ | 🟨 | #65, #66, #67, #68, #69, #70, #71 | — |
 | **B7 · Imagen, dron, video y vector** | F14.12 · F14.13 ✅ · F14.14 ✅ · F14.15 · F14.16 🟨 · F14.17 · F14.18 ✅ · F14.19 ✅ | ⬜ | — | D1 (FFmpeg) |
 | **B8 · Geoespacial** | F15.1 a F15.8 | ⬜ | — | P5 · P6 · P7 |
-| **B9 · Plataforma** | F16.1 a F16.5 · F16.6 ✅ | ⬜ | — | B7 · B8 para los lotes |
+| **B9 · Plataforma** | F16.1 · F16.2 · F16.3 ✅ · F16.4 · F16.5 · F16.6 ✅ | ⬜ | — | B7 · B8 para los lotes |
 | **B11 · Poner en marcha lo apagado** | F17.1 a F17.4 (`docs/PUESTA_EN_MARCHA_DE_LO_APAGADO.md`) | ⬜ | — | P7 · P10 · P11 · P12 · P13 para lo que es de la persona |
 | **B10 · Cierre y despliegue** | Versión (`0.11.0` al cerrar F13, `0.12.0` con las firmas), `HANDOFF.md` con los pasos de la VM, lista para desplegar | ⬜ | — | Todo lo anterior |
 

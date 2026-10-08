@@ -6,6 +6,12 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 ## [Sin publicar]
 
 
+### Añadido — informe de verificación en PDF (F16.3)
+
+- **«Informe en PDF»** en la ficha de cada trabajo terminado (`/trabajos/<id>/informe/`): qué entró y qué salió, con el nombre, el tamaño y la huella **sha256** de cada uno; el programa y su versión; el sistema de coordenadas (o «no declarado»); lo que midió el lector que verificó la salida; las opciones aplicadas; los avisos que hubo y, si el trabajo falló, su motivo (y que no hay entrega que acompañar). **No recalcula nada ni afirma «sin pérdida»**: dice lo que el trabajo guardó, y lo que no calculó lo dice como «no calculado». Las opciones con secretos o datos de quien lo pidió (contraseñas, términos de tachado, valores de una portada) **no se imprimen**. Solo lo baja quien pidió el trabajo, y solo cuando ya terminó.
+- Oráculos: **PDFium** lo abre y lo pinta, y **pypdf** y PDFium encuentran cada `sha256` entero en el texto; los secretos se buscan en los bytes del PDF y no aparecen.
+
+
 ### Añadido y corregido — remuestreo, valor sin dato e historial de sondas (F16.6)
 
 - **Remuestreo y valor sin dato en el modo experto del ráster.** `remuestreo` (cúbica por omisión, bilineal, Lanczos, promedio, vecino más cercano; validado dos veces porque acaba en un argumento de `gdalwarp`) y `nodata` (solo donde el archivo lo guarda: GeoTIFF, BigTIFF, COG, IMG y ASC; en PNG o WebP no se ofrece, porque no puede contenerlo). Con `gdal_translate` declara el vacío (`-a_nodata`) y con `gdalwarp` lo escribe (`-dstnodata`); **los píxeles no cambian de valor**. Antes el motor leía `opciones["remuestreo"]` y nadie podía ponerlo.
