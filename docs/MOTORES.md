@@ -69,6 +69,14 @@ El `PATH` de GDAL se antepone **al del proceso hijo**, jamás al del servidor.
 | --- | --- | ---: | --- |
 | `gdal-raster` | ráster | 80 | GDAL + PROJ |
 | `gdal-ecw` | ráster | 10 | GDAL con SDK de Hexagon y clave OEM |
+| `gdal-curvas` | ráster → vector | 15 | GDAL (`gdal_contour`) + PROJ |
+
+`gdal-curvas` saca **curvas de nivel** de un modelo de elevación (GeoTIFF, BigTIFF, COG, IMG o ASCII
+Grid → DXF, Shapefile o GeoPackage) con un intervalo y una cota de partida. La banda 1 es la altura.
+El Shapefile y el GeoPackage llevan la cota en el campo `ELEV`; el DXF la lleva en la elevación de cada
+polilínea, y para eso **pasa por un GeoPackage 3D**: `gdal_contour` escribe el DXF directo sin la cota
+(se midió: 29 polilíneas planas). El DXF no guarda el sistema de coordenadas, y el recibo lo dice. El
+DWG espera a ODA (F15.8).
 
 `gdal-ecw` está **separado a propósito** y no es un destino más de `gdal-raster`. Si ECW
 fuera un destino más, al faltar la clave la fila entera se apagaría con el motivo

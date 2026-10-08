@@ -30,6 +30,7 @@ esta atascado**, dure lo que dure el presupuesto.
 
 from __future__ import annotations
 
+import glob
 import os
 import queue
 import shutil
@@ -1204,7 +1205,7 @@ def _limpiar_restos(parcial: Path) -> None:
     `entrega.jp2.parcial`.
     """
     try:
-        for resto in parcial.parent.glob(parcial.name + ".*"):
+        for resto in parcial.parent.glob(glob.escape(parcial.name) + ".*"):
             _borrar(resto)
     except OSError:
         pass
@@ -1217,6 +1218,19 @@ def _borrar(ruta: Path) -> None:
         # Que no se pueda borrar el parcial es feo, no grave: el trabajo ya fallo y el
         # motivo real es el que se esta reportando.
         pass
+    if ".parcial" in ruta.name:
+        # Los intermedios que un motor deja **colgados del nombre del parcial** (el GeoPackage 3D
+        # de las curvas en DXF, un `.aux.xml`) se van con él, también cuando el trabajo falla: antes
+        # solo el camino feliz los limpiaba.
+        try:
+            restos = list(ruta.parent.glob(glob.escape(ruta.name) + ".*"))
+        except OSError:
+            restos = []
+        for resto in restos:  # uno por uno: que uno esté abierto no salva a los demás
+            try:
+                resto.unlink(missing_ok=True)
+            except OSError:
+                pass
 
 
 def _renombrar_con_acompanantes(job: ConversionJob, parcial: Path, destino: Path) -> None:
