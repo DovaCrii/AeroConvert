@@ -79,6 +79,18 @@ HERRAMIENTAS = (
         ),
     },
     {
+        "id": "telemetria",
+        "icono": "icon-traza",
+        "sale": "una traza GPX o KML",
+        "familia": "transformar",
+        "url": "documents:telemetria",
+        "nombre": "Sacar la traza de un dron",
+        "que_hace": (
+            "Pasa el .SRT que graba el dron junto al video (una posición por fotograma) a una "
+            "traza GPX o KML, para verla en QGIS o en Google Earth."
+        ),
+    },
+    {
         "id": "portada",
         "icono": "icon-portada",
         "sale": "un Word con la portada puesta",
@@ -114,6 +126,18 @@ HERRAMIENTAS = (
         "que_hace": (
             "Una página guardada (.html) a PDF con su texto, títulos y tablas. No es un "
             "navegador: no respeta el diseño ni ejecuta programas."
+        ),
+    },
+    {
+        "id": "imagenes_lote",
+        "icono": "icon-imagenes-lote",
+        "sale": "un zip con una imagen por cada una",
+        "familia": "transformar",
+        "url": "documents:imagenes_lote",
+        "nombre": "Convertir imágenes",
+        "que_hace": (
+            "Varias fotos a la vez: cambia el formato, las achica, las "
+            "gira o recorta y las comprime, conservando su fecha y su GPS."
         ),
     },
     {

@@ -331,6 +331,25 @@ def _firma_visible(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
     return {"pagina": puesto.pagina, "ancho_pt": round(puesto.ancho, 1)}
 
 
+def _telemetria(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
+    from apps.documents import telemetria
+
+    desfase = opciones.get("desfase_h")
+    lectura, puntos = telemetria.convertir(
+        entradas[0]["ruta"],
+        parcial,
+        opciones.get("formato", "gpx"),
+        cada_s=int(opciones.get("cada_s", 0)),
+        desfase_h=float(desfase) if desfase not in (None, "") else None,
+    )
+    return {
+        "puntos": puntos,
+        "entradas": lectura.entradas,
+        "sin_posicion": lectura.sin_posicion,
+        "formato": opciones.get("formato", "gpx"),
+    }
+
+
 def _portada(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
     from apps.documents import portadas
 
@@ -353,6 +372,34 @@ def _html_a_pdf(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
     from apps.documents import html_a_pdf
 
     return {"paginas": html_a_pdf.convertir(entradas[0]["ruta"], parcial)}
+
+
+def _imagenes_lote(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
+    import shutil
+
+    from apps.documents import imagenes_lote
+
+    carpeta = carpeta_de_piezas(parcial)
+    carpeta.mkdir(parents=True, exist_ok=True)
+    try:
+        hechas = imagenes_lote.procesar(
+            [Path(e["ruta"]) for e in entradas],
+            carpeta,
+            formato=opciones.get("formato", "jpg"),
+            lado_max=int(opciones.get("lado_max", 0)),
+            giro=str(opciones.get("giro", "exif")),
+            recorte=opciones.get("recorte", ""),
+            calidad=int(opciones.get("calidad", 85)),
+            progreso=progreso,
+        )
+        formato = imagenes_lote.SALIDAS[opciones.get("formato", "jpg")][0]
+        piezas = [
+            {"nombre": h.salida, "ancho": h.ancho, "alto": h.alto, "formato": formato}
+            for h in hechas
+        ]
+        return _entregar_piezas([carpeta / h.salida for h in hechas], parcial, piezas, en_zip=True)
+    finally:
+        shutil.rmtree(carpeta, ignore_errors=True)
 
 
 def _unir(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
@@ -539,7 +586,9 @@ TAREAS = {
     "extraer_imagenes": _extraer_imagenes,
     "formularios": _formularios,
     "firma_visible": _firma_visible,
+    "telemetria": _telemetria,
     "portada": _portada,
+    "imagenes_lote": _imagenes_lote,
     "unir": _unir,
     "organizar": _unir,
     "imagenes": _imagenes,

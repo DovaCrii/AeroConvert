@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block titulo %}Traza de un video de dron · AeroConvert{% endblock %}
+
+{% block contenido %}
+
+<div class="tarjeta">
+  <div class="eyebrow">Qué hace</div>
+  <p class="av-mb-0">
+    Los DJI graban junto al video un archivo <strong>.SRT</strong> con una posición por fotograma.
+    Aquí se pasa a una <strong>traza</strong> (GPX para QGIS, KML para Google Earth). Un fotograma sin
+    posición —el dron aún no había fijado satélites— se descarta y se cuenta. Siempre una copia; el
+    original no se toca.
+  </p>
+</div>
+
+<form method="post" id="forma-documento" enctype="multipart/form-data">
+  {% csrf_token %}
+
+  {% include "documents/_origen.html" with accion="convertir" boton="Hacer la traza" pregunta="¿Qué archivo .SRT?" acepta=".srt" %}
+
+  <div class="tarjeta">
+    <div class="eyebrow">Cómo</div>
+
+    <div class="av-mb-3 av-mw-38">
+      <label class="fw-semibold" for="id_formato">Formato</label>
+      <select id="id_formato" name="formato" class="form-select">
+        {% for valor, texto in formatos.items %}
+          <option value="{{ valor }}" {% if valor == formato %}selected{% endif %}>{{ texto }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="av-mb-3 av-mw-38">
+      <label class="fw-semibold" for="id_cada_s">Cuántos puntos</label>
+      <select id="id_cada_s" name="cada_s" class="form-select">
+        {% for valor, texto in intervalos.items %}
+          <option value="{{ valor }}" {% if valor == cada_s %}selected{% endif %}>{{ texto }}</option>
+        {% endfor %}
+      </select>
+      <p class="tenue av-mt-1 av-mb-0 av-fs-sm">
+        Un video de una hora a 30 cuadros por segundo son unos cien mil puntos: sirven para medir y
+        sobran para mirar.
+      </p>
+    </div>
+
+    <div class="av-mb-0 av-mw-16">
+      <label class="fw-semibold" for="id_desfase">Hora de la cámara respecto de UTC (opcional)</label>
+      <input type="text" inputmode="decimal" id="id_desfase" name="desfase" class="form-control"
+             value="{{ desfase }}" placeholder="−4" autocomplete="off">
+      <p class="tenue av-mt-1 av-mb-0 av-fs-sm">
+        Solo GPX. El .SRT trae la hora de la cámara <strong>sin zona</strong>: si no dice cuántas
+        horas se aparta de UTC, la traza va sin hora, que es mejor que una hora corrida.
+      </p>
+    </div>
+  </div>
+</form>
+
+{% endblock %}
