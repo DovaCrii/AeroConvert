@@ -122,6 +122,10 @@ Trimble, copias con la posición) se ocultan y se muestra el sistema del visor s
    «no reconocida».
 5. **Sin trayectoria**: el visor dibuja solo los puntos, y el sistema se declara (no se supone).
 
+**Ficha de cada foto (F18.9).** En el visor, al elegir una foto aparece su ficha de cámara, GNSS y dron, leída
+del archivo (solo la cabecera), o, si la foto no está en la carpeta, del `export_extended` de Trimble.
+Funciona igual en los tres orígenes.
+
 **Qué se comprobó:** cifras con las 2 505 fotos del vuelo de Baquedano en `docs/PRUEBAS_CON_ORACULO.md`
 (2026-10-09). Ese vuelo fue PPK y no RTK: solo se vio la bandera 16; **las 50 y 34 esperan un vuelo RTK
 real (P20)**.

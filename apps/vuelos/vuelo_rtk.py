@@ -243,7 +243,9 @@ def procesar(
     avance(0.92, "Preparando el visor")
     a_proyectado = Transformer.from_crs("EPSG:4326", f"EPSG:{elegido.epsg}", always_xy=True)
     salida.archivos["vuelo.json"] = json.dumps(
-        vuelo_proceso._datos_del_visor(elegido, [], fotos, None, a_proyectado, ref_altura, nombres),
+        vuelo_proceso._datos_del_visor(
+            elegido, [], fotos, None, a_proyectado, ref_altura, nombres, aplicar_desfase
+        ),
         ensure_ascii=False,
         separators=(",", ":"),
     ).encode("utf-8")

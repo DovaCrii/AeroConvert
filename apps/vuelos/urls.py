@@ -19,6 +19,7 @@ urlpatterns = [
     path("vuelo/<uuid:pk>/", views.vuelo_ver, name="vuelo_ver"),
     path("vuelo/<uuid:pk>/datos/", views.vuelo_datos, name="vuelo_datos"),
     path("vuelo/<uuid:pk>/foto/<int:n>/", views.vuelo_miniatura, name="vuelo_miniatura"),
+    path("vuelo/<uuid:pk>/foto/<int:n>/ficha/", views.vuelo_ficha, name="vuelo_ficha"),
     path("video/", views.video_vista, name="video"),
     path("vuelos/", views.vuelos, name="vuelos"),
 ]

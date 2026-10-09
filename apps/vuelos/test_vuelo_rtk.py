@@ -312,6 +312,12 @@ class TestElVisorNoInventaUnRecorrido:
         datos = json.loads(_procesar(tmp_path).archivos["vuelo.json"])
         assert datos["trayectoria"] == [] and datos["trayectoria_total"] == 0
         assert len(datos["fotos"]) == N_FOTOS and datos["sistema"]["epsg"] == EPSG
+        assert datos["fotos"][3]["desfase"] == {
+            "n_mm": _desfase(3)[0],
+            "e_mm": _desfase(3)[1],
+            "v_mm": _desfase(3)[2],
+            "aplicado": True,
+        }
         assert all(f["miniatura"] for f in datos["fotos"])
 
     def test_el_origen_sale_de_las_fotos(self, tmp_path):

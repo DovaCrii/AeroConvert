@@ -35,6 +35,19 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 - Lector de la cabecera de las fotos (`apps/vuelos/ficha_foto.py`): solo lee los primeros 192 kB, abre en
   solo lectura y no usa un lector de XML para el XMP.
 
+### Añadido — la ficha EXIF de cada foto en el visor del vuelo (F18.9)
+
+- Al elegir una foto, un panel **a la vista** (no un cuadro en hover) con tres grupos plegables con el
+  teclado: **cámara** (modelo, focal, equivalente en 35 mm, apertura, exposición, ISO, dimensiones, fecha),
+  **GNSS** (calidad, bandera RTK, desviaciones, edad de la corrección, posición, altura y su tipo, datum, y
+  el desfase antena a cámara del `.MRK` con su signo y si se aplicó) y **dron** (gimbal y actitud del dron,
+  velocidades, altura sobre el despegue). Lo que la foto no trae **no aparece como fila**: no hay guiones
+  que parezcan datos.
+- Nueva dirección `documents:vuelo_ficha` (`/documentos/vuelo/<id>/foto/<n>/ficha/`), solo de quien pidió el
+  trabajo, con las mismas comprobaciones de carpeta y de enlaces que la miniatura. Se lee del archivo de la
+  foto; si ya no está, del `export_extended` de Trimble que el trabajo guardó en su `vuelo.json`, y la
+  respuesta dice de cuál.
+
 ### Cambiado — los vuelos de dron en su propia app, `apps/vuelos/` (F18.13)
 
 - Salen de `apps/documents/` los motores (`vuelo_pos`, `vuelo_sync`, `vuelo_ppk`, `vuelo_proceso`,

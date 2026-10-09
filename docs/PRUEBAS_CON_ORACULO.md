@@ -651,6 +651,11 @@ sintéticas, `exifread` y un analizador de XML.
 | Bandera `RtkFlag` | Columna `Q` del `.MRK` (las 2 505 líneas) | **16** en las 102 y en las 2 505 líneas del `.MRK`: coinciden |
 | Estado `GpsStatus` | — | «RTK» en las 102, con la bandera en 16 |
 | `AltitudeType`, datum del EXIF | — | «RtkAlt» y «WGS-84» en las 102 |
+| Gimbal (guiñada, cabeceo, alabeo) | `Gimbal Yaw`, `Pitch`, `Roll` de Trimble | diferencia **0** |
+| Actitud del dron | `UAV Yaw`, `Pitch`, `Roll` | diferencia **0** |
+| Velocidades X, Y, Z | `V. UAV X`, `Y`, `Z` | diferencia **0** |
+| Focal, apertura, exposición, ISO, dimensiones, modelo | `Focal`, `F Number`, `Tiempo exp.`, `ISO Speed`, `Dimensiones`, `Modelo` | diferencia **0**; 5280 × 3956, M3E |
+| Altura del XMP y altura sobre el despegue | `Alt. abs. vuelo` y `Alt.rel.vuelo` | diferencia **0** |
 
 **Lo que dice esta corrida de la altura.** La `AbsoluteAltitude` de DJI coincide con la «Ellh» que el propio
 `.MRK` llama elipsoidal, y es la misma que Trimble copia en su columna `Alt. abs. vuelo` (diferencia 0). **No** es la

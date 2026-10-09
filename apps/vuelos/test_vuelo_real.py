@@ -248,3 +248,37 @@ def test_las_fotos_del_vuelo_real_dan_su_posicion_rtk_y_el_mrk_la_confirma(muest
     assert {
         f["calidad"] for f in csv.DictReader(io.StringIO(r.archivos["fotos.csv"].decode()))
     } == {"simple"}
+
+
+def test_la_ficha_del_vuelo_real_coincide_con_el_export_extended_de_trimble(muestra):
+    """F18.9: cada dato de la ficha contra la columna de Trimble de la misma foto.
+
+    Medido el 2026-10-09 sobre 102 fotos: la diferencia máxima es **0** en todos (focal, apertura,
+    exposición, ISO, dimensiones, gimbal, actitud del dron, velocidades y alturas).
+    """
+    columnas = {
+        "gimbal_guinada_deg": "Gimbal Yaw",
+        "gimbal_cabeceo_deg": "Gimbal Pitch",
+        "gimbal_alabeo_deg": "Gimbal Roll",
+        "dron_guinada_deg": "UAV Yaw",
+        "dron_cabeceo_deg": "UAV Pitch",
+        "dron_alabeo_deg": "UAV Roll",
+        "velocidad_x_ms": "V. UAV X",
+        "velocidad_y_ms": "V. UAV Y",
+        "velocidad_z_ms": "V. UAV Z",
+        "alt_m": "Alt. abs. vuelo",
+        "altura_relativa_m": "Alt.rel.vuelo",
+        "focal_mm": "Focal",
+        "apertura_f": "F Number",
+        "exposicion_s": "Tiempo exp.",
+        "iso": "ISO Speed",
+    }
+    for ficha, r in zip(muestra["fichas"], muestra["referencia"], strict=True):
+        assert ficha.nombre == r.nombre
+        for campo, columna in columnas.items():
+            assert getattr(ficha, campo) == pytest.approx(float(r.extras[columna]), abs=1e-9), (
+                ficha.nombre,
+                campo,
+            )
+        assert f"{ficha.ancho_px} x {ficha.alto_px}" == r.extras["Dimensiones"]
+        assert ficha.modelo in r.extras["Modelo"]

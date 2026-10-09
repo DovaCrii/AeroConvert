@@ -34,7 +34,7 @@ from pathlib import Path
 
 from apps.documents.composicion import ComposicionInvalida
 
-from . import vuelo_pos, vuelo_sync, vuelo_trimble
+from . import ficha_foto, vuelo_pos, vuelo_sync, vuelo_trimble
 
 #: Con cuántos metros de diferencia contra las posiciones de Trimble se avisa. El vuelo real
 #: (2 505 fotos) quedó a 0,9 mm; cinco milímetros ya es un tiempo o un desfase equivocado.
@@ -339,6 +339,7 @@ def procesar(
             a_proyectado,
             ref_altura,
             nombres_en_carpeta,
+            aplicar_desfase,
         ),
         ensure_ascii=False,
         separators=(",", ":"),
@@ -527,6 +528,7 @@ def _datos_del_visor(
     a_proyectado,
     ref_altura,
     nombres_en_carpeta,
+    desfase_aplicado=False,
 ):
     """Lo que dibuja el visor. Sin `puntos` (un vuelo RTK no tiene trayectoria) no se dibuja
     ninguna línea: unir las fotos en orden sería inventar un recorrido."""
@@ -569,6 +571,14 @@ def _datos_del_visor(
                     if f.nombre.lower() in en_carpeta
                     else {}
                 ),
+                **_lo_que_trae_el_disparo(f, desfase_aplicado),
+                # Si la foto no está en la carpeta pero Trimble sí la describe, la ficha del
+                # visor sale de aquí (F18.9). Si está en la carpeta, se lee del archivo.
+                **(
+                    {"ficha": ficha_foto.ficha_de_trimble(f.nombre, ref[i].extras).a_dict()}
+                    if ref and ref[i].extras and f.nombre.lower() not in en_carpeta
+                    else {}
+                ),
             }
         )
     return {
@@ -585,4 +595,19 @@ def _datos_del_visor(
         "trayectoria_total": len(puntos),
         "trayectoria": [[round(p.este - este0, 2), round(p.norte - norte0, 2)] for p in elegidos],
         "fotos": lista,
+    }
+
+
+def _lo_que_trae_el_disparo(f, desfase_aplicado: bool) -> dict:
+    """El desfase antena a cámara del `.MRK` de esta foto, para la ficha del visor."""
+    d = f.disparo
+    if d.desfase_n_mm is None or d.desfase_e_mm is None or d.desfase_v_mm is None:
+        return {}
+    return {
+        "desfase": {
+            "n_mm": d.desfase_n_mm,
+            "e_mm": d.desfase_e_mm,
+            "v_mm": d.desfase_v_mm,
+            "aplicado": bool(f.desfase_aplicado and desfase_aplicado),
+        }
     }

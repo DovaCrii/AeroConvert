@@ -31,7 +31,7 @@ from __future__ import annotations
 
 import math
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 from pathlib import Path
 
 from apps.documents.composicion import ComposicionInvalida
@@ -112,6 +112,19 @@ class FichaFoto:
     @property
     def con_orientacion(self) -> bool:
         return self.gimbal_guinada_deg is not None and self.gimbal_cabeceo_deg is not None
+
+    def a_dict(self) -> dict:
+        """Para guardarla en el `vuelo.json`: solo lo que tiene valor."""
+        return {
+            f.name: getattr(self, f.name)
+            for f in fields(self)
+            if getattr(self, f.name) not in (None, "")
+        }
+
+    @classmethod
+    def de_dict(cls, datos: dict) -> FichaFoto:
+        conocidos = {f.name for f in fields(cls)}
+        return cls(**{k: v for k, v in datos.items() if k in conocidos})
 
 
 # --- Lectura del archivo ----------------------------------------------------------------------
@@ -269,3 +282,153 @@ def ficha_de_segmentos(nombre: str, segmentos: list[tuple[int, bytes]]) -> Ficha
         velocidad_z_ms=_numero(dji.get("FlightZSpeed")),
         altura_relativa_m=_numero(dji.get("RelativeAltitude")),
     )
+
+
+# --- La ficha de Trimble (cuando es lo único que hay) -----------------------------------------
+
+
+def ficha_de_trimble(nombre: str, extras: dict[str, str], calidad: str = "") -> FichaFoto:
+    """La ficha desde una fila del `export_extended` de Trimble (las columnas que trae).
+
+    Trimble no exporta la bandera RTK, las desviaciones ni el tipo de altura: quedan sin dato.
+    `Alt. abs. vuelo` es la `AbsoluteAltitude` del XMP (se midió: coincide con ella).
+    """
+
+    def n(clave):
+        return _numero(extras.get(clave))
+
+    ancho = alto = None
+    if "x" in (extras.get("Dimensiones") or ""):
+        partes = [p.strip() for p in extras["Dimensiones"].split("x")]
+        if len(partes) == 2:
+            ancho, alto = _entero(partes[0]), _entero(partes[1])
+    return FichaFoto(
+        nombre=nombre,
+        fuente="trimble",
+        modelo=(extras.get("Modelo") or "").strip() or None,
+        focal_mm=n("Focal"),
+        focal_35mm_mm=n("Focal 35 mm"),
+        apertura_f=n("F Number"),
+        exposicion_s=n("Tiempo exp."),
+        iso=_entero(extras.get("ISO Speed")),
+        ancho_px=ancho,
+        alto_px=alto,
+        fecha=(extras.get("Fecha") or "").strip() or None,
+        alt_m=n("Alt. abs. vuelo"),
+        gimbal_guinada_deg=n("Gimbal Yaw"),
+        gimbal_cabeceo_deg=n("Gimbal Pitch"),
+        gimbal_alabeo_deg=n("Gimbal Roll"),
+        dron_guinada_deg=n("UAV Yaw"),
+        dron_cabeceo_deg=n("UAV Pitch"),
+        dron_alabeo_deg=n("UAV Roll"),
+        velocidad_x_ms=n("V. UAV X"),
+        velocidad_y_ms=n("V. UAV Y"),
+        velocidad_z_ms=n("V. UAV Z"),
+        altura_relativa_m=n("Alt.rel.vuelo"),
+    )
+
+
+# --- Para mostrarla ---------------------------------------------------------------------------
+
+
+def _coma(valor: float, decimales: int) -> str:
+    return f"{valor:.{decimales}f}".replace(".", ",")
+
+
+def _fila(rotulo: str, valor, unidad: str = "", decimales: int = 2):
+    """La fila `rótulo, valor`; sin valor **no hay fila**: un guion parecería un dato."""
+    if valor is None:
+        return None
+    if isinstance(valor, str):
+        return {"rotulo": rotulo, "valor": valor}
+    texto = _coma(valor, decimales) + (f" {unidad}" if unidad else "")
+    return {"rotulo": rotulo, "valor": texto, "numero": valor}
+
+
+def _apertura(f_numero: float | None):
+    if f_numero is None:
+        return None
+    return {"rotulo": "Apertura", "valor": f"f/{_coma(f_numero, 1)}", "numero": f_numero}
+
+
+def _exposicion(segundos: float | None):
+    if segundos is None:
+        return None
+    if 0 < segundos < 1:
+        texto = f"1/{round(1 / segundos)} s"
+    else:
+        texto = f"{_coma(segundos, 1)} s"
+    return {"rotulo": "Tiempo de exposición", "valor": texto, "numero": segundos}
+
+
+def grupos(ficha: FichaFoto, desfase: dict | None = None, calidad: str = "") -> list[dict]:
+    """Los tres grupos de la ficha, en el orden de la ventana de UAS Sync: cámara, GNSS y dron.
+
+    `desfase` (si el vuelo tuvo `.MRK`): `{"n_mm", "e_mm", "v_mm", "aplicado"}`. `calidad` es la
+    que dijo otra fuente (la de Trimble) cuando la ficha no trae la bandera RTK. Un grupo sin
+    ninguna fila no se devuelve.
+    """
+    camara = [
+        _fila("Marca", ficha.marca),
+        _fila("Modelo", ficha.modelo),
+        _fila("Distancia focal", ficha.focal_mm, "mm"),
+        _fila("Equivalente en 35 mm", ficha.focal_35mm_mm, "mm", 0),
+        _apertura(ficha.apertura_f),
+        _exposicion(ficha.exposicion_s),
+        _fila("ISO", float(ficha.iso), "", 0) if ficha.iso is not None else None,
+        {"rotulo": "Dimensiones", "valor": f"{ficha.ancho_px} × {ficha.alto_px} px"}
+        if ficha.ancho_px and ficha.alto_px
+        else None,
+        _fila("Fecha de la foto", ficha.fecha),
+    ]
+
+    gnss = [
+        {"rotulo": "Calidad de la posición", "valor": ficha.calidad}
+        if ficha.rtk_bandera is not None or ficha.fuente == "foto"
+        else None,
+        {"rotulo": "Calidad según Trimble", "valor": calidad}
+        if calidad and ficha.rtk_bandera is None and ficha.fuente == "trimble"
+        else None,
+        _fila("Bandera RTK", float(ficha.rtk_bandera), "", 0)
+        if ficha.rtk_bandera is not None
+        else None,
+        _fila("Estado que declara el GPS", ficha.gps_estado),
+        _fila("Desviación RTK, latitud", ficha.rtk_desv_lat_m, "m", 3),
+        _fila("Desviación RTK, longitud", ficha.rtk_desv_lon_m, "m", 3),
+        _fila("Desviación RTK, altura", ficha.rtk_desv_alt_m, "m", 3),
+        _fila("Edad de la corrección", ficha.rtk_edad_dif_s, "s", 1),
+        _fila("Latitud", ficha.lat, "", 9),
+        _fila("Longitud", ficha.lon, "", 9),
+        _fila("Altura de la foto", ficha.alt_m, "m", 3),
+        _fila("Tipo de altura (XMP)", ficha.tipo_de_altura),
+        _fila("Datum del EXIF", ficha.datum),
+    ]
+    if desfase:
+        sentido = "aplicado" if desfase.get("aplicado") else "no aplicado"
+        gnss += [
+            _fila("Desfase antena a cámara, norte", desfase["n_mm"], "mm", 1),
+            _fila("Desfase antena a cámara, este", desfase["e_mm"], "mm", 1),
+            _fila(
+                "Desfase antena a cámara, vertical (positivo hacia abajo)", desfase["v_mm"], "mm", 1
+            ),
+            {"rotulo": "Desfase en la posición entregada", "valor": sentido},
+        ]
+
+    dron = [
+        _fila("Gimbal, guiñada", ficha.gimbal_guinada_deg, "°"),
+        _fila("Gimbal, cabeceo (−90° = nadir)", ficha.gimbal_cabeceo_deg, "°"),
+        _fila("Gimbal, alabeo", ficha.gimbal_alabeo_deg, "°"),
+        _fila("Dron, guiñada", ficha.dron_guinada_deg, "°"),
+        _fila("Dron, cabeceo", ficha.dron_cabeceo_deg, "°"),
+        _fila("Dron, alabeo", ficha.dron_alabeo_deg, "°"),
+        _fila("Velocidad X", ficha.velocidad_x_ms, "m/s", 1),
+        _fila("Velocidad Y", ficha.velocidad_y_ms, "m/s", 1),
+        _fila("Velocidad Z", ficha.velocidad_z_ms, "m/s", 1),
+        _fila("Altura sobre el despegue", ficha.altura_relativa_m, "m", 3),
+    ]
+    resultado = []
+    for titulo, filas in (("Cámara", camara), ("GNSS", gnss), ("Dron", dron)):
+        filas = [f for f in filas if f]
+        if filas:
+            resultado.append({"titulo": titulo, "filas": filas})
+    return resultado

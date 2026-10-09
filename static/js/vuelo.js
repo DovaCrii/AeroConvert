@@ -14,6 +14,13 @@
  * informada sale en gris y la leyenda lo dice. Los colores no se escriben aquí: se leen de las
  * variables de la hoja de estilos (`--av-ok`, `--av-warn`…), así que cambian solos con el tema.
  *
+ * ## La ficha de la foto (F18.9)
+ *
+ * Al elegir una foto se pide su ficha al servidor (`data-ficha`), que la lee del archivo de la foto en
+ * la carpeta (o, si no está, de lo que describió Trimble) y la devuelve en tres grupos: cámara, GNSS
+ * y dron. Se pinta en un panel **siempre a la vista**: nada aparece al pasar el ratón. Si se elige
+ * otra foto antes de que llegue la respuesta, la vieja se descarta.
+ *
  * ## Por qué es un archivo
  *
  * La CSP es `script-src 'self'` sin `unsafe-inline`. Todo el contrato con la plantilla es por
@@ -362,8 +369,58 @@
     return [dt, dd];
   }
 
+  let fichaPedida = 0;
+
+  function mostrarFicha(i) {
+    const caja = $("visor-exif");
+    const grupos = $("visor-exif-grupos");
+    const fuente = $("visor-exif-fuente");
+    const marca = ++fichaPedida;
+    grupos.replaceChildren();
+    if (i < 0) {
+      caja.hidden = true;
+      return;
+    }
+    caja.hidden = false;
+    fuente.textContent = "Leyendo la ficha…";
+    const f = fotos[i];
+    const url = raiz.dataset.ficha.replace(/\/foto\/1\/ficha\/$/, "/foto/" + f.n + "/ficha/");
+    fetch(url, { credentials: "same-origin", headers: { Accept: "application/json" } })
+      .then((r) => {
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        return r.json();
+      })
+      .then((json) => {
+        if (marca !== fichaPedida) return; // se eligió otra foto mientras tanto
+        fuente.textContent = json.fuente_texto;
+        json.grupos.forEach((g) => {
+          const grupo = document.createElement("details");
+          grupo.className = "visor-exif-grupo";
+          grupo.open = true;
+          const titulo = document.createElement("summary");
+          titulo.textContent = g.titulo;
+          const lista = document.createElement("dl");
+          lista.className = "visor-ficha";
+          g.filas.forEach((par) => {
+            const [dt, dd] = fila(par.rotulo, par.valor);
+            lista.append(dt, dd);
+          });
+          grupo.append(titulo, lista);
+          grupos.append(grupo);
+        });
+      })
+      .catch((fallo) => {
+        if (marca !== fichaPedida) return;
+        fuente.textContent =
+          fallo.message === "HTTP 404"
+            ? "Esta foto no tiene ficha: no está en la carpeta elegida y no hay posiciones de Trimble que la describan."
+            : "No se pudo leer la ficha (" + fallo.message + ").";
+      });
+  }
+
   function mostrarFoto(i) {
     seleccion = i;
+    mostrarFicha(i);
     const titulo = $("visor-foto-titulo");
     const imagen = $("visor-imagen");
     const vacia = $("visor-foto-vacia");
