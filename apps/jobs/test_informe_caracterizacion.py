@@ -312,10 +312,48 @@ ESPERADO: dict[str, str] = {
     "tamano tesela\n"
     "512\n"
     "Avisos durante el trabajo\n"
+    "warn\n"
+    "Aviso uno del motor.\n"
     "error\n"
     "Falló un paso menor.\n"
-    "El original\n"
+    "warn\n"
+    "Aviso número 0\n"
     "\n"
+    "warn\n"
+    "Aviso número 1\n"
+    "warn\n"
+    "Aviso número 2\n"
+    "warn\n"
+    "Aviso número 3\n"
+    "warn\n"
+    "Aviso número 4\n"
+    "warn\n"
+    "Aviso número 5\n"
+    "warn\n"
+    "Aviso número 6\n"
+    "warn\n"
+    "Aviso número 7\n"
+    "warn\n"
+    "Aviso número 8\n"
+    "warn\n"
+    "Aviso número 9\n"
+    "warn\n"
+    "Aviso número 10\n"
+    "warn\n"
+    "Aviso número 11\n"
+    "warn\n"
+    "Aviso número 12\n"
+    "warn\n"
+    "Aviso número 13\n"
+    "warn\n"
+    "Aviso número 14\n"
+    "warn\n"
+    "Aviso número 15\n"
+    "warn\n"
+    "Aviso número 16\n"
+    "warn\n"
+    "Aviso número 17\n"
+    "El original\n"
     "El corredor comprobó al terminar que la fecha de "
     "modificación del original no cambió; si hubiera cambiado, el "
     "trabajo\n"
@@ -1169,16 +1207,6 @@ def test_las_secciones_salen_en_el_mismo_orden(monkeypatch):
     assert posiciones == sorted(posiciones)
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "Defecto hallado al caracterizar (F11.8): `informe.construir` filtra los eventos por "
-        "`level__in=('warning', 'error')`, pero `JobEvent.AVISO` vale `'warn'`, así que los avisos "
-        "reales de la bitácora (los que escribe el corredor) nunca salen en el informe; solo "
-        "salen los errores. `test_informe.py::test_los_avisos_del_trabajo_salen` pasa porque crea "
-        "el evento con el nivel inventado `'warning'`. No se arregla en el refactor."
-    ),
-)
 def test_un_aviso_real_de_la_bitacora_sale_en_el_informe(monkeypatch):
     class Reloj:
         @staticmethod

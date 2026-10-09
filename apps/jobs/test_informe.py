@@ -120,7 +120,7 @@ class TestContenido:
 
     def test_los_avisos_del_trabajo_salen(self, usuario, tmp_path):
         job = _trabajo(usuario, tmp_path)
-        JobEvent.objects.create(job=job, sequence=1, level="warning", message="Sin banda alfa")
+        JobEvent.objects.create(job=job, sequence=1, level=JobEvent.AVISO, message="Sin banda alfa")
         JobEvent.objects.create(job=job, sequence=2, level="info", message="Todo bien aquí")
         texto = _texto_pypdf(informe.construir(job))
         assert "Sin banda alfa" in texto and "Todo bien aquí" not in texto
