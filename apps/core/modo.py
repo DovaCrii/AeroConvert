@@ -205,6 +205,8 @@ class Chapa:
     modo: str
     etiqueta: str
     explicacion: str
+    #: El símbolo que va delante de la etiqueta: la forma dice el modo aunque no se lea el color.
+    icono: str = "icon-equipo"
 
 
 def chapa() -> Chapa:
@@ -219,9 +221,10 @@ def chapa() -> Chapa:
                 modo=settings.MODO_TALLER,
                 etiqueta="Equipo",
                 explicacion=(
-                    "Los archivos salen de la carpeta compartida, y lo que conviertas lo "
+                    "Los archivos salen de la carpeta compartida, y lo que convierta lo "
                     "ve todo el equipo."
                 ),
+                icono="icon-personas",
             )
         return Chapa(
             modo=settings.MODO_TALLER,
@@ -232,4 +235,5 @@ def chapa() -> Chapa:
         modo=settings.MODO_NUBE,
         etiqueta="Nube",
         explicacion=f"Los archivos se suben al servidor. Tope {settings.TOPE_MB} MB.",
+        icono="icon-soltar",
     )

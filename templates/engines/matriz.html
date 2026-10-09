@@ -10,165 +10,130 @@
   hay instalado?» sino «¿por qué no puedo hacer esto?».
 
   1. El resumen, para saber en dos segundos si la máquina está entera.
-  2. **Lo que falta**, que es lo único sobre lo que hay algo que hacer.
-  3. Lo que funciona, para confirmar.
-  4. Y la matriz, que es la consulta fina.
-
-  Antes las tres primeras eran una tabla sola, con las apagadas mezcladas entre las que
-  funcionan y a media pantalla de ancho.
+  2. **Lo que falta, en una sola lista**: motores y herramientas de documentos juntos, una fila
+     cada una con «por qué» y «qué hace falta» en columnas. Antes eran dos rejillas de tarjetas
+     grandes, una por tipo, y en p340 (2026-10-09) la página pedía tres pantallas de
+     desplazamiento antes de llegar a lo que funciona.
+  3. Lo que funciona, **compacto**: confirmar que algo está listo no necesita una tarjeta.
+  4. La matriz y el historial, **plegados**: son la consulta fina, no lo primero que se mira.
+     Se recuerdan abiertos o cerrados como los grupos del lateral.
 {% endcomment %}
 
 <div class="resumen-tiras">
   <div class="tira-dato">
     <span class="tira-cifra">{{ listas|length }}<span class="tira-de">/{{ motores|length }}</span></span>
-    <span class="tira-que">herramientas listas</span>
+    <span class="tira-que">motores de conversión listos</span>
+  </div>
+  <div class="tira-dato">
+    <span class="tira-cifra">{{ documentos_listos }}<span class="tira-de">/{{ documentos_totales }}</span></span>
+    <span class="tira-que">herramientas de documentos listas</span>
   </div>
   <div class="tira-dato">
     <span class="tira-cifra">{{ conversiones_posibles }}<span class="tira-de">/{{ conversiones_totales }}</span></span>
     <span class="tira-que">conversiones posibles hoy</span>
   </div>
-  {% if apagadas %}
+  {% if faltan %}
     <div class="tira-dato tira-dato-ojo">
-      <span class="tira-cifra">{{ apagadas|length }}</span>
+      <span class="tira-cifra">{{ faltan }}</span>
       <span class="tira-que">apagadas, con su motivo abajo</span>
     </div>
   {% endif %}
 </div>
 
-<p><a href="{% url 'engines:equipo' %}">Cómo dejar listo el equipo</a>: el paso exacto para encender cada cosa apagada, en el servidor y en la estación.</p>
-
-{% if apagadas %}
-  <section class="bloque">
-    <h2 class="bloque-titulo">Lo que falta, y qué haría falta para tenerlo</h2>
+{% if faltan %}
+  <section class="bloque" aria-labelledby="titulo-faltas">
+    <h2 class="bloque-titulo" id="titulo-faltas">Lo que falta, y qué haría falta para tenerlo</h2>
     <p class="bloque-nota">
-      Nada de esto impide usar el resto. Cada una dice qué le falta y qué sirve en su lugar.
+      Nada de esto impide usar el resto. El paso exacto para encender cada una está en
+      <a href="{% url 'engines:equipo' %}">cómo dejar listo el equipo</a>.
     </p>
 
-    <div class="motores motores-apagados">
+    <ul class="faltas">
       {% for m in apagadas %}
-        <article class="motor motor-apagado">
-          <header class="motor-cabeza">
+        <li class="falta">
+          <div class="falta-que">
             <span class="motor-marca fam-marcar" aria-hidden="true">
               <svg class="motor-icono"><use href="{% static 'img/icons.svg' %}#icon-veredicto-reparos"></use></svg>
             </span>
-            <div class="motor-nombre">
-              <strong>{{ m.id }}</strong>
-              <span class="tenue">{{ m.nombre }}</span>
-            </div>
+            <span class="falta-nombre">
+              <strong>{{ m.nombre }}</strong>
+              <span class="tenue">Motor <code>{{ m.id }}</code> · {{ m.pares }} conversiones en espera</span>
+            </span>
             <span class="pildora pildora-error">apagado</span>
-          </header>
-
-          <p class="motor-motivo">{{ m.estado.mensaje }}</p>
-          {% if m.estado.sugerencia %}
-            <p class="motor-remedio"><strong>Qué hace falta:</strong> {{ m.estado.sugerencia }}</p>
-          {% endif %}
-          {% if m.estado.alternativas %}
-            <p class="motor-alternativa">
-              <strong>En su lugar sirven:</strong> {{ m.estado.alternativas|join:", " }}
-            </p>
-          {% endif %}
-          <footer class="motor-pie cifra">{{ m.pares }} conversiones en espera</footer>
-        </article>
+          </div>
+          <p class="falta-por"><span class="falta-rotulo">Por qué</span>{{ m.estado.mensaje }}</p>
+          <div class="falta-remedio">
+            {% if m.estado.sugerencia %}<p><span class="falta-rotulo">Qué hace falta</span>{{ m.estado.sugerencia }}</p>{% endif %}
+            {% if m.estado.alternativas %}<p><span class="falta-rotulo">Mientras tanto</span>{{ m.estado.alternativas|join:", " }}</p>{% endif %}
+          </div>
+        </li>
       {% endfor %}
-    </div>
-  </section>
-{% endif %}
-
-{% if documentos_apagados %}
-  {% comment %}
-    Las de documentos no pasan por el registro de motores —son pantallas directas— pero la
-    pregunta es la misma, así que se contestan aquí. **Y solo aquí**: el índice de PDF llevaba
-    el mismo párrafo repetido, gastando media pantalla de la que se viene a trabajar.
-  {% endcomment %}
-  <section class="bloque">
-    <h2 class="bloque-titulo">Herramientas de PDF que no funcionan aquí</h2>
-    <p class="bloque-nota">
-      Las otras {{ documentos_listos }} de
-      <a href="{% url 'documents:inicio' %}">la sección PDF</a> sí funcionan.
-    </p>
-
-    <div class="motores motores-apagados">
+      {% comment %}
+        Las de documentos no pasan por el registro de motores —son pantallas directas— pero la
+        pregunta es la misma, así que se contestan aquí. **Y solo aquí**: el índice de PDF llevaba
+        el mismo párrafo repetido, gastando media pantalla de la que se viene a trabajar.
+      {% endcomment %}
       {% for d in documentos_apagados %}
-        <article class="motor motor-apagado">
-          <header class="motor-cabeza">
+        <li class="falta">
+          <div class="falta-que">
             <span class="motor-marca fam-marcar" aria-hidden="true">
               <svg class="motor-icono"><use href="{% static 'img/icons.svg' %}#{{ d.icono }}"></use></svg>
             </span>
-            <div class="motor-nombre">
+            <span class="falta-nombre">
               <strong>{{ d.nombre }}</strong>
-              <span class="tenue">{{ d.que_hace }}</span>
-            </div>
+              <span class="tenue">Herramienta de documentos · saldría: {{ d.sale }}</span>
+            </span>
             <span class="pildora pildora-error">apagado</span>
-          </header>
-
-          <p class="motor-motivo">{{ d.motivo }}</p>
-          {% if d.sugerencia %}
-            <p class="motor-remedio"><strong>Qué hace falta:</strong> {{ d.sugerencia }}</p>
-          {% endif %}
-          <footer class="motor-pie cifra">Saldría: {{ d.sale }}</footer>
-        </article>
-      {% endfor %}
-    </div>
-  </section>
-{% endif %}
-
-<section class="bloque">
-  <h2 class="bloque-titulo">Listas para usar</h2>
-
-  <div class="motores">
-    {% for m in listas %}
-      <article class="motor">
-        <header class="motor-cabeza">
-          <span class="motor-marca fam-proteger" aria-hidden="true">
-            <svg class="motor-icono"><use href="{% static 'img/icons.svg' %}#icon-veredicto-abre"></use></svg>
-          </span>
-          <div class="motor-nombre">
-            <strong>{{ m.id }}</strong>
-            <span class="tenue">{{ m.nombre }}</span>
           </div>
-          <span class="pildora pildora-done">disponible</span>
-        </header>
-        <p class="motor-version">{{ m.estado.version }}</p>
-        <footer class="motor-pie cifra">{{ m.pares }} conversiones</footer>
-      </article>
-    {% endfor %}
-  </div>
-</section>
-
-{% if historial %}
-<section class="bloque">
-  <h2 class="bloque-titulo">Lo que cambió en este equipo</h2>
-  <p class="bloque-nota">
-    Cada vez que un motor se enciende, se apaga o cambia de versión queda una línea. Sirve para
-    saber desde cuándo dejó de funcionar algo.
-  </p>
-  <div class="tarjeta av-p-4">
-    <ul class="historial-sondas">
-      {% for h in historial %}
-        <li>
-          <span class="cifra tenue">{{ h.fila.visto_en|date:"d/m/Y H:i" }}</span>
-          <strong>{{ h.fila.motor }}</strong>
-          {% if h.fila.disponible %}
-            <span class="pildora pildora-done">{{ h.descripcion }}</span>
-          {% else %}
-            <span class="pildora pildora-cancelled">{{ h.descripcion }}</span>
-          {% endif %}
+          <p class="falta-por"><span class="falta-rotulo">Por qué</span>{{ d.motivo }}</p>
+          <div class="falta-remedio">
+            {% if d.sugerencia %}<p><span class="falta-rotulo">Qué hace falta</span>{{ d.sugerencia }}</p>{% endif %}
+          </div>
         </li>
       {% endfor %}
     </ul>
-  </div>
-</section>
+  </section>
+{% else %}
+  <p class="aviso-todo-listo">
+    <svg class="motor-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-veredicto-abre"></use></svg>
+    <span>Todo está encendido en este equipo. Los pasos de instalación siguen en
+    <a href="{% url 'engines:equipo' %}">cómo dejar listo el equipo</a>.</span>
+  </p>
 {% endif %}
 
-<section class="bloque">
-  <h2 class="bloque-titulo">Matriz de capacidades</h2>
+<section class="bloque" aria-labelledby="titulo-listas">
+  <h2 class="bloque-titulo" id="titulo-listas">Listas para usar</h2>
   <p class="bloque-nota">
-    <span class="pildora pildora-done">disponible</span> funciona ahora ·
-    <span class="pildora pildora-running">instalable</span> funcionaría con algo ·
-    <span class="pildora pildora-cancelled">no soportado</span> nadie sabe hacerlo
+    Los {{ listas|length }} motores de conversión que responden, con su versión. Las
+    {{ documentos_listos }} herramientas de documentos que funcionan están en
+    <a href="{% url 'documents:inicio' %}">la sección PDF</a>.
   </p>
+  <ul class="listas-compactas">
+    {% for m in listas %}
+      <li class="lista-compacta">
+        <svg class="motor-icono lista-compacta-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-veredicto-abre"></use></svg>
+        <span class="lista-compacta-texto">
+          <strong>{{ m.nombre }}</strong>
+          <span class="tenue"><code>{{ m.id }}</code>{% if m.estado.version %} · {{ m.estado.version }}{% endif %} · {{ m.pares }} conversiones</span>
+        </span>
+        <span class="visually-hidden">disponible</span>
+      </li>
+    {% endfor %}
+  </ul>
+</section>
 
-  <div class="tarjeta av-p-4">
+<details class="grupo-herramientas" data-recuerda="compatibilidad-matriz">
+  <summary class="grupo-resumen">
+    <h2 class="grupo-titulo">Matriz de capacidades</h2>
+    <span class="grupo-nota">Qué origen pasa a qué destino, celda por celda</span>
+    <span class="grupo-cuenta">{{ conversiones_posibles }} de {{ conversiones_totales }}</span>
+  </summary>
+  <div class="tarjeta av-p-4 av-mt-3">
+    <p class="bloque-nota">
+      <span class="pildora pildora-done">disponible</span> funciona ahora ·
+      <span class="pildora pildora-running">instalable</span> funcionaría con algo ·
+      <span class="pildora pildora-cancelled">no soportado</span> nadie sabe hacerlo
+    </p>
     <div class="av-scroll-x">
       <table class="matriz">
         <thead>
@@ -209,5 +174,30 @@
       </div>
     {% endif %}
   </div>
-</section>
+</details>
+
+{% if historial %}
+<details class="grupo-herramientas" data-recuerda="compatibilidad-historial">
+  <summary class="grupo-resumen">
+    <h2 class="grupo-titulo">Lo que cambió en este equipo</h2>
+    <span class="grupo-nota">Desde cuándo se encendió, se apagó o cambió de versión cada motor</span>
+    <span class="grupo-cuenta">{{ historial|length }}</span>
+  </summary>
+  <div class="tarjeta av-p-4 av-mt-3">
+    <ul class="historial-sondas">
+      {% for h in historial %}
+        <li>
+          <span class="cifra tenue">{{ h.fila.visto_en|date:"d/m/Y H:i" }}</span>
+          <strong>{{ h.fila.motor }}</strong>
+          {% if h.fila.disponible %}
+            <span class="pildora pildora-done">{{ h.descripcion }}</span>
+          {% else %}
+            <span class="pildora pildora-cancelled">{{ h.descripcion }}</span>
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  </div>
+</details>
+{% endif %}
 {% endblock %}
