@@ -335,9 +335,10 @@ class TestLosColoresDeFamilia:
 # como hacen las pruebas de arriba, no ve un token declarado una sola vez en `:root` que
 # apunta a otro que el oscuro sí cambia —`--av-link: var(--av-primary)`—.
 
-#: La barra. No son tokens: el degradado va de este al navy.
+#: La barra: el degradado va del navy (`--av-navy`) a `--av-barra-fin` (D8, F13.14). El navy sigue
+#: escrito aquí porque el foco, el buscador y el texto se miden contra él; una prueba comprueba que
+#: es el del token y no una copia que se quedó atrás.
 NAVY = "#1b2a4a"
-NAVY_ARRIBA = "#22335a"
 BLANCO = "#ffffff"
 
 
@@ -407,6 +408,11 @@ def _sobre_barra(color: str, alfa: float):
     return lambda t: (mezcla(color, NAVY, alfa), NAVY)
 
 
+def _sobre_el_final_de_la_barra(color: str, alfa: float):
+    """Lo mismo, pero contra el **otro extremo** del degradado: `--av-barra-fin`."""
+    return lambda t: (mezcla(color, t["--av-barra-fin"], alfa), t["--av-barra-fin"])
+
+
 #: (nombre, cómo sacar el par de un tema, piso). El par es (primer plano, fondo).
 PARES = [
     # El texto, sobre los tres fondos donde vive.
@@ -447,8 +453,26 @@ PARES = [
     ],
     # La barra es navy en los tres temas, y ahí el foco de todo lo demás daba 1,97.
     ("foco sobre la barra", ("--av-foco-barra", NAVY), GRAFICO),
-    ("foco sobre lo alto de la barra", ("--av-foco-barra", NAVY_ARRIBA), GRAFICO),
+    # D8: la barra es un degradado, y cada texto se mide contra sus dos extremos.
+    ("foco sobre el final de la barra", ("--av-foco-barra", "--av-barra-fin"), GRAFICO),
     ("borde del buscador de la barra", _sobre_barra(BLANCO, 0.45), GRAFICO),
+    ("borde del buscador, final de la barra", _sobre_el_final_de_la_barra(BLANCO, 0.45), GRAFICO),
+    ("texto de la barra", (BLANCO, NAVY), TEXTO),
+    ("texto de la barra, final del degradado", (BLANCO, "--av-barra-fin"), TEXTO),
+    ("explicación de la barra al 72 %", _sobre_barra(BLANCO, 0.72), TEXTO),
+    ("explicación de la barra al 72 %, final", _sobre_el_final_de_la_barra(BLANCO, 0.72), TEXTO),
+    ("marcador del buscador al 55 %", _sobre_barra(BLANCO, 0.55), TEXTO),
+    ("marcador del buscador al 55 %, final", _sobre_el_final_de_la_barra(BLANCO, 0.55), TEXTO),
+    # D8: la trayectoria punteada entre pasos y el filete de la barra son adorno, pero se ven.
+    *[
+        (f"ruta sobre {fondo}", ("--av-ruta", fondo), GRAFICO)
+        for fondo in ("--av-surface", "--av-bg")
+    ],
+    ("filete de la barra (cielo) sobre el navy", ("--av-ruta-barra", NAVY), GRAFICO),
+    # La marca ✓ del paso hecho: la insignia lleva `--av-surface` sobre `--av-ok`.
+    ("marca de paso hecho", ("--av-surface", "--av-ok"), TEXTO),
+    # El número del paso, con su anillo contra la tarjeta.
+    ("anillo del número del paso", ("--av-border-control", "--av-surface"), GRAFICO),
     # La barra de progreso: el relleno es lo que informa, contra la pista y la tarjeta.
     ("relleno del progreso sobre su pista", ("--av-primary", "--av-border"), GRAFICO),
 ]
@@ -463,6 +487,23 @@ def test_cada_par_llega_a_su_piso(temas, tema, nombre, par, piso):
     )
     medido = contraste(delante, detras)
     assert medido >= piso, f"{nombre} en {tema}: {medido:.2f}:1 ({delante} sobre {detras})"
+
+
+class TestLaBarraEsUnDegradadoMedidoPorSusDosExtremos:
+    """D8: la barra pasó de navy plano a un degradado frío. Un texto que se lee sobre el navy puede
+    no leerse sobre el otro extremo, así que **los dos extremos son tokens y se miden**."""
+
+    def test_el_navy_de_esta_prueba_es_el_del_token(self, temas):
+        assert _hex(_rgb(temas["claro"]["--av-navy"])) == NAVY
+
+    def test_la_barra_se_pinta_con_los_dos_tokens(self, css):
+        bloque = _bloque(css, "\n.barra {\n  z-index")
+        assert "linear-gradient(" in bloque
+        assert "var(--av-navy)" in bloque and "var(--av-barra-fin)" in bloque
+
+    def test_el_final_de_la_barra_es_el_mismo_en_los_tres_temas(self, temas):
+        """La barra es de la marca: no cambia con el tema, y el degradado tampoco."""
+        assert len({t["--av-barra-fin"] for t in temas.values()}) == 1
 
 
 class TestLoQueUsaLosTokens:
