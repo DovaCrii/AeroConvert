@@ -339,6 +339,37 @@ def _ejecutar_documento(job: ConversionJob) -> Resultado:
     """
     from apps.documents import motor as documentos
 
+    entradas = _entradas_del_documento(job)
+
+    # --- 1. Huella de cada entrada ------------------------------------------
+    _huellar_entradas(job, entradas)
+
+    # --- 2. Que esta máquina pueda --------------------------------------------
+    plan, destino, parcial = _preparar_documento(job, documentos)
+
+    # --- 3. Ejecutar ------------------------------------------------------------
+    job.marcar_progreso(CONVERSION, 0.0)
+    try:
+        informe = _correr_el_hijo_del_documento(job, documentos, plan, parcial)
+
+        # **Sin archivo solo vale si el hijo lo ha declarado.** La ausencia sola es
+        # `sin-salida`, como siempre: la excepción a la regla número uno exige un motivo.
+        if not parcial.exists():
+            return _cerrar_sin_archivo(job, plan, informe, entradas)
+
+        # --- 4. Verificar ---------------------------------------------------------
+        veredicto = _verificar_y_colocar_el_documento(
+            job, documentos, plan, informe, parcial, destino
+        )
+    finally:
+        documentos.borrar_auxiliares(job)
+        _limpiar_restos(parcial)
+
+    return _cerrar_documento(job, destino, informe, veredicto, entradas)
+
+
+def _entradas_del_documento(job: ConversionJob) -> list:
+    """Las entradas del trabajo, comprobando que **todas** siguen donde estaban."""
     entradas = list(job.entradas.all())
     if not entradas:
         # Un trabajo encolado por la API o por una prueba puede no traerlas: la única entrada
@@ -352,8 +383,11 @@ def _ejecutar_documento(job: ConversionJob) -> Resultado:
             raise TrabajoFallido(
                 "origen-no-legible", f"Ya no hay ningún archivo en {entrada.ruta}."
             )
+    return entradas
 
-    # --- 1. Huella de cada entrada ------------------------------------------
+
+def _huellar_entradas(job: ConversionJob, entradas: list) -> None:
+    """`sha256`, tamaño y `mtime` de cada entrada: contra esto se comprueba que no se tocaron."""
     job.marcar_progreso(HUELLA, 0.0)
     total = len(entradas)
     for indice, entrada in enumerate(entradas):
@@ -372,7 +406,9 @@ def _ejecutar_documento(job: ConversionJob) -> Resultado:
     job.source_size_bytes = sum(e.bytes for e in entradas)
     job.save(update_fields=["source_sha256", "source_size_bytes", "updated_at"])
 
-    # --- 2. Que esta máquina pueda --------------------------------------------
+
+def _preparar_documento(job: ConversionJob, documentos) -> tuple:
+    """Disponibilidad, destino libre, plan, reserva y espacio: `(plan, destino, parcial)`."""
     job.marcar_progreso(INSPECCION, 0.0)
     disponible = documentos.disponibilidad(job.herramienta, job.options)
     if not disponible.disponible:
@@ -395,72 +431,81 @@ def _ejecutar_documento(job: ConversionJob) -> Resultado:
     _reservar_destino(destino)
     estimados = int((job.options or {}).get("bytes_estimados") or 0)
     _exigir_espacio(destino, max(job.source_size_bytes, estimados))
+    return plan, destino, parcial
 
-    # --- 3. Ejecutar ------------------------------------------------------------
-    job.marcar_progreso(CONVERSION, 0.0)
+
+def _correr_el_hijo_del_documento(job: ConversionJob, documentos, plan, parcial: Path) -> dict:
+    """Lanza el hijo y devuelve su informe. Si el informe trae un motivo, el trabajo falla."""
     try:
-        try:
-            _lanzar(job, plan, parcial)
-        except TrabajoFallido as fallo:
-            # **El hijo sabe mejor que nadie por qué falló.** `_lanzar` solo ve un código de
-            # salida distinto de cero y lo llama `error-del-motor`; el informe trae el motivo
-            # de verdad —`contrasena-incorrecta`, `documento-invalido`— con su mensaje.
-            informe = documentos.leer_informe(job)
-            if fallo.codigo == "error-del-motor" and informe.get("codigo"):
-                raise TrabajoFallido(
-                    informe["codigo"], informe.get("mensaje") or fallo.mensaje
-                ) from fallo
-            raise
-
+        _lanzar(job, plan, parcial)
+    except TrabajoFallido as fallo:
+        # **El hijo sabe mejor que nadie por qué falló.** `_lanzar` solo ve un código de
+        # salida distinto de cero y lo llama `error-del-motor`; el informe trae el motivo
+        # de verdad —`contrasena-incorrecta`, `documento-invalido`— con su mensaje.
         informe = documentos.leer_informe(job)
-        if informe.get("codigo"):
-            _borrar(parcial)
-            raise TrabajoFallido(informe["codigo"], informe.get("mensaje", ""))
+        if fallo.codigo == "error-del-motor" and informe.get("codigo"):
+            raise TrabajoFallido(
+                informe["codigo"], informe.get("mensaje") or fallo.mensaje
+            ) from fallo
+        raise
 
-        # **Sin archivo solo vale si el hijo lo ha declarado.** La ausencia sola es
-        # `sin-salida`, como siempre: la excepción a la regla número uno exige un motivo.
-        if not parcial.exists():
-            desenlace = informe.get("desenlace", "")
-            if not (plan.salida_opcional and desenlace in motivos_mod.DESENLACES):
-                job.registrar(
-                    "La herramienta terminó sin escribir ningún archivo y sin decir por qué.",
-                    nivel=JobEvent.ERROR,
-                    etapa=CONVERSION,
-                )
-                raise TrabajoFallido("sin-salida", "La herramienta terminó sin escribir nada.")
+    informe = documentos.leer_informe(job)
+    if informe.get("codigo"):
+        _borrar(parcial)
+        raise TrabajoFallido(informe["codigo"], informe.get("mensaje", ""))
+    return informe
 
-            job.desenlace = desenlace
-            job.verification = informe.get("detalles") or {}
-            job.output_path = ""
-            job.verified_at = timezone.now()
-            job.save(
-                update_fields=[
-                    "desenlace",
-                    "verification",
-                    "output_path",
-                    "verified_at",
-                    "updated_at",
-                ]
-            )
-            job.marcar_progreso(VERIFICACION, 1.0)
-            _comprobar_originales(job, entradas)
-            return Resultado(HECHO, "", motivos_mod.DESENLACES[desenlace].mensaje)
 
-        # --- 4. Verificar ---------------------------------------------------------
-        job.status = VERIFICANDO
-        job.save(update_fields=["status", "updated_at"])
-        job.marcar_progreso(VERIFICACION, 0.0)
+def _cerrar_sin_archivo(job: ConversionJob, plan, informe: dict, entradas: list) -> Resultado:
+    """El hijo no escribió nada: solo es un éxito si lo **declaró** con un desenlace conocido."""
+    desenlace = informe.get("desenlace", "")
+    if not (plan.salida_opcional and desenlace in motivos_mod.DESENLACES):
+        job.registrar(
+            "La herramienta terminó sin escribir ningún archivo y sin decir por qué.",
+            nivel=JobEvent.ERROR,
+            etapa=CONVERSION,
+        )
+        raise TrabajoFallido("sin-salida", "La herramienta terminó sin escribir nada.")
 
-        veredicto = documentos.verificar(parcial, informe, plan)
-        if not veredicto.correcta:
-            _borrar(parcial)
-            raise TrabajoFallido(veredicto.codigo_motivo or "salida-invalida", veredicto.motivo)
+    job.desenlace = desenlace
+    job.verification = informe.get("detalles") or {}
+    job.output_path = ""
+    job.verified_at = timezone.now()
+    job.save(
+        update_fields=[
+            "desenlace",
+            "verification",
+            "output_path",
+            "verified_at",
+            "updated_at",
+        ]
+    )
+    job.marcar_progreso(VERIFICACION, 1.0)
+    _comprobar_originales(job, entradas)
+    return Resultado(HECHO, "", motivos_mod.DESENLACES[desenlace].mensaje)
 
-        _renombrar(parcial, destino)
-    finally:
-        documentos.borrar_auxiliares(job)
-        _limpiar_restos(parcial)
 
+def _verificar_y_colocar_el_documento(
+    job: ConversionJob, documentos, plan, informe: dict, parcial: Path, destino: Path
+):
+    """Verifica el parcial con un lector distinto del que escribió y lo renombra."""
+    job.status = VERIFICANDO
+    job.save(update_fields=["status", "updated_at"])
+    job.marcar_progreso(VERIFICACION, 0.0)
+
+    veredicto = documentos.verificar(parcial, informe, plan)
+    if not veredicto.correcta:
+        _borrar(parcial)
+        raise TrabajoFallido(veredicto.codigo_motivo or "salida-invalida", veredicto.motivo)
+
+    _renombrar(parcial, destino)
+    return veredicto
+
+
+def _cerrar_documento(
+    job: ConversionJob, destino: Path, informe: dict, veredicto, entradas: list
+) -> Resultado:
+    """Lo que queda escrito en el trabajo tras una salida verificada, y el chequeo de originales."""
     avisos = [str(a) for a in informe.get("avisos") or []]
     for aviso in avisos:
         job.registrar(aviso, nivel=JobEvent.AVISO, etapa=VERIFICACION)

@@ -1,6 +1,6 @@
 """El proceso hijo del motor: lanzarlo, seguir su avance, vigilar el plazo y matarlo con su árbol.
 
-Salió de `runner.py` en F11.8 sin cambiar una línea. Es la regla uno en la práctica: aquí se mira
+x Es la regla uno en la práctica: aquí se mira
 el código de salida **y además** que exista el parcial; un `0` sin archivo es `sin-salida`.
 
 El detector de atasco (`SILENCIO_MAXIMO_S`) es lo útil; el plazo del plan es solo el respaldo.
@@ -43,12 +43,31 @@ def _lanzar(job: ConversionJob, plan: PlanDeEjecucion, parcial: Path) -> None:
         argv=list(plan.argv),
     )
 
+    proceso = _abrir_proceso(plan, entorno)
+
+    # **`worker_pid` se queda con el del obrero**, el de `reclamar()`. Aquí se pisaba con el del
+    # motor, y en cuanto el motor terminaba y el obrero seguía con los pasos posteriores o la
+    # verificación, `recoger_muertos` veía un PID muerto y un latido viejo y marcaba como
+    # «interrumpido» un trabajo vivo (B-07 de la auditoría). Cancelar no lo necesita: es
+    # cooperativo y se pide por la base.
+
+    cola_de_salida = _vigilar_al_hijo(job, plan, proceso, parcial)
+
+    codigo = proceso.wait()
+    texto = "\n".join(cola_de_salida)
+
+    _exigir_codigo_de_salida(job, parcial, codigo, texto)
+    _exigir_la_salida_escrita(job, plan, parcial, entorno, texto)
+
+
+def _abrir_proceso(plan: PlanDeEjecucion, entorno: dict) -> subprocess.Popen:
+    """Arranca el hijo, cabeza de su propio grupo. Sin ejecutable: `motor-no-disponible`."""
     try:
         # El argv lo construye el motor a partir de rutas validadas y literales del codigo;
         # va como lista y con `shell=False`, asi que no hay interpretacion de
         # metacaracteres. La justificacion va aqui y no tras el `nosec` porque bandit lee
         # todo lo que sigue al `nosec` como identificadores de prueba.
-        proceso = subprocess.Popen(  # nosec B603
+        return subprocess.Popen(  # nosec B603
             list(plan.argv),
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
@@ -70,12 +89,16 @@ def _lanzar(job: ConversionJob, plan: PlanDeEjecucion, parcial: Path) -> None:
     except OSError as fallo:
         raise TrabajoFallido("error-del-motor", f"No se pudo lanzar el motor: {fallo}") from fallo
 
-    # **`worker_pid` se queda con el del obrero**, el de `reclamar()`. Aquí se pisaba con el del
-    # motor, y en cuanto el motor terminaba y el obrero seguía con los pasos posteriores o la
-    # verificación, `recoger_muertos` veía un PID muerto y un latido viejo y marcaba como
-    # «interrumpido» un trabajo vivo (B-07 de la auditoría). Cancelar no lo necesita: es
-    # cooperativo y se pide por la base.
 
+def _vigilar_al_hijo(
+    job: ConversionJob, plan: PlanDeEjecucion, proceso: subprocess.Popen, parcial: Path
+) -> list[str]:
+    """Sigue al hijo hasta que acaba: progreso, cancelación, atasco y plazo.
+
+    Devuelve el final de su salida (doscientas líneas como mucho). Si hay que cortarlo —lo
+    pidió la persona, se atascó o pasó del plazo— lo mata con su árbol, borra el parcial y
+    levanta el motivo.
+    """
     lineas: queue.Queue[str | None] = queue.Queue()
     lector = threading.Thread(target=_leer_salida, args=(proceso, lineas), daemon=True)
     lector.start()
@@ -138,20 +161,28 @@ def _lanzar(job: ConversionJob, plan: PlanDeEjecucion, parcial: Path) -> None:
                 f"La conversión paso de {plan.timeout_s // 60} minutos y se corto.",
             )
 
-    codigo = proceso.wait()
-    texto = "\n".join(cola_de_salida)
+    return cola_de_salida
 
-    if codigo != 0:
-        _borrar(parcial)
-        job.registrar(
-            f"El motor terminó con código {codigo}.",
-            nivel=JobEvent.ERROR,
-            etapa=CONVERSION,
-            stderr_cola=texto,
-            codigo_de_salida=codigo,
-        )
-        raise TrabajoFallido("error-del-motor", _ultima_linea_util(texto) or f"Código {codigo}.")
 
+def _exigir_codigo_de_salida(job: ConversionJob, parcial: Path, codigo: int, texto: str) -> None:
+    """Un código distinto de cero es `error-del-motor`, con la última línea útil de su salida."""
+    if codigo == 0:
+        return
+    _borrar(parcial)
+    job.registrar(
+        f"El motor terminó con código {codigo}.",
+        nivel=JobEvent.ERROR,
+        etapa=CONVERSION,
+        stderr_cola=texto,
+        codigo_de_salida=codigo,
+    )
+    raise TrabajoFallido("error-del-motor", _ultima_linea_util(texto) or f"Código {codigo}.")
+
+
+def _exigir_la_salida_escrita(
+    job: ConversionJob, plan: PlanDeEjecucion, parcial: Path, entorno: dict, texto: str
+) -> None:
+    """Código 0 no basta: tiene que existir el parcial. Y corre los pasos posteriores."""
     # Codigo 0 no basta. Es la regla numero uno del proyecto.
     #
     # Se comprueba aqui salvo que el plan diga que la salida la escribe un paso posterior:
