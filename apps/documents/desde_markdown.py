@@ -140,9 +140,24 @@ def markdown_a_pdf(origen: str | Path, *, destino: Path | None = None) -> Path:
     """
     from reportlab.lib.pagesizes import A4
     from reportlab.lib.units import mm
-    from reportlab.platypus import ListFlowable, ListItem, Paragraph, SimpleDocTemplate, Spacer
 
     origen = Path(origen)
+    lineas = _leer_las_lineas(origen)
+
+    hoja = _estilos()
+    destino = Path(destino) if destino else origen.with_suffix(".pdf")
+    ancho_util = A4[0] - 40 * mm
+
+    piezas = _piezas_de(lineas, hoja, ancho_util)
+    if not piezas:
+        raise ComposicionInvalida(f"{origen.name} no tiene nada que imprimir.")
+
+    _escribir_el_pdf(piezas, origen, destino)
+    return destino
+
+
+def _leer_las_lineas(origen: Path) -> list[str]:
+    """El texto del Markdown por líneas, con sus topes: ni vacío ni un volcado."""
     try:
         texto = origen.read_text(encoding="utf-8")
     except UnicodeDecodeError:
@@ -158,10 +173,12 @@ def markdown_a_pdf(origen: str | Path, *, destino: Path | None = None) -> Path:
         )
     if not texto.strip():
         raise ComposicionInvalida(f"{origen.name} está vacío.")
+    return lineas
 
-    hoja = _estilos()
-    destino = Path(destino) if destino else origen.with_suffix(".pdf")
-    ancho_util = A4[0] - 40 * mm
+
+def _piezas_de(lineas: list[str], hoja, ancho_util: float) -> list:
+    """Recorre las líneas y arma las piezas de reportlab: títulos, párrafos, listas, tablas..."""
+    from reportlab.platypus import ListFlowable, ListItem, Paragraph, Spacer
 
     piezas: list = []
     parrafo: list[str] = []
@@ -255,9 +272,14 @@ def markdown_a_pdf(origen: str | Path, *, destino: Path | None = None) -> Path:
         # Una cerca sin cerrar. Se imprime lo que hay: perderlo sería peor que enseñarlo.
         piezas.append(Paragraph(_escapar("\n".join(codigo)), hoja["Codigo"]))
     cerrar_todo()
+    return piezas
 
-    if not piezas:
-        raise ComposicionInvalida(f"{origen.name} no tiene nada que imprimir.")
+
+def _escribir_el_pdf(piezas: list, origen: Path, destino: Path) -> None:
+    """Compone en un parcial y lo renombra; un fallo no deja un PDF truncado."""
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.units import mm
+    from reportlab.platypus import SimpleDocTemplate
 
     parcial = destino.with_name(destino.name + ".parcial")
     documento = SimpleDocTemplate(
@@ -276,4 +298,3 @@ def markdown_a_pdf(origen: str | Path, *, destino: Path | None = None) -> Path:
         raise ComposicionInvalida(f"No se pudo componer el PDF: {fallo}") from fallo
 
     parcial.replace(destino)
-    return destino
