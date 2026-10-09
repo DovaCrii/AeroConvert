@@ -44,4 +44,12 @@ def menu(request):
 
     from apps.dashboard import acciones as acciones_mod
 
-    return {"menu_grupos": acciones_mod.por_categoria()}
+    # El lateral solo enseña las que se pueden hacer, así que **cuenta solo esas**: con una
+    # apagada, «Imagen, video y planta» decía 2 y enseñaba 1 (p340, 2026-10-09). Un grupo sin
+    # ninguna disponible no se pinta. Las apagadas siguen, con su motivo, en la portada.
+    grupos = []
+    for grupo in acciones_mod.por_categoria():
+        disponibles = [a for a in grupo["acciones"] if a.disponible]
+        if disponibles:
+            grupos.append({**grupo, "acciones": disponibles})
+    return {"menu_grupos": grupos}

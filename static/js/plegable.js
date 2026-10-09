@@ -53,6 +53,20 @@
     }
   }
 
+  // El grupo del lateral que contiene la pantalla donde se está se abre siempre, y el enlace se
+  // trae a la vista: llegar a «Corregir un vuelo» con su grupo cerrado no dice dónde se está.
+  // **No se guarda**: es una apertura de paso, no una preferencia de la persona.
+  function abrirElDeLaPagina() {
+    var actual = document.querySelector(".lateral details [aria-current='page']");
+    if (!actual) return;
+    var bloque = actual.closest("details");
+    if (bloque && !bloque.open) {
+      bloque.setAttribute("data-sin-guardar", "");
+      bloque.open = true;
+    }
+    if (actual.scrollIntoView) actual.scrollIntoView({ block: "nearest" });
+  }
+
   window.addEventListener("hashchange", abrirElDelEnlace);
 
   document.addEventListener(
@@ -60,6 +74,10 @@
     function (evento) {
       var bloque = evento.target;
       if (bloque && bloque.matches && bloque.matches("details[data-recuerda]")) {
+        if (bloque.hasAttribute("data-sin-guardar")) {
+          bloque.removeAttribute("data-sin-guardar");
+          return;
+        }
         guardar(bloque.getAttribute("data-recuerda"), bloque.open);
       }
     },
@@ -74,9 +92,11 @@
     document.addEventListener("DOMContentLoaded", function () {
       restaurar(document);
       abrirElDelEnlace();
+      abrirElDeLaPagina();
     });
   } else {
     restaurar(document);
     abrirElDelEnlace();
+    abrirElDeLaPagina();
   }
 })();
