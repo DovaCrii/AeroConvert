@@ -151,6 +151,13 @@
             </a>
           </li>
           <li>
+            <a class="lateral-enlace-principal" href="{% url 'visor:inicio' %}" title="Ver en el mapa"
+               {% if seccion == 'mapa' %}aria-current="page"{% endif %}>
+              <svg class="nav-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-mapa"></use></svg>
+              <span>Ver en el mapa</span>
+            </a>
+          </li>
+          <li>
             <a class="lateral-enlace-principal" href="{% url 'jobs:lista' %}" title="Historial"
                {% if seccion == 'historial' %}aria-current="page"{% endif %}>
               <svg class="nav-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-historial"></use></svg>

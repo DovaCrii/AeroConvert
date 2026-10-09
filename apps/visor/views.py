@@ -1,0 +1,368 @@
+"""Ver en el mapa: una ortofoto o una imagen georreferenciada, con zoom y paneo por teselas.
+
+## Quién puede qué
+
+Todas las vistas piden **sesión** (`login_required`, 302 a la entrada) y son de **solo lectura**
+(`require_GET`). El archivo llega por `entrada.resolver`, la puerta única: una ruta de la carpeta
+compartida **dentro de las raíces permitidas** o el resultado de un trabajo **de quien pregunta**.
+Lo que no pasa por ahí es un **403** con su código (`ruta-no-permitida`, `origen-no-legible`), no un
+404, porque aquí no hay nada que esconder: la respuesta no confirma que el archivo exista.
+
+## Nada sale del equipo (D5)
+
+Las teselas las corta GDAL del propio archivo. No hay ninguna petición a un servidor de mapas, y el
+JavaScript (`static/js/visor.js`) es propio y se sirve de `'self'`.
+"""
+
+from __future__ import annotations
+
+import logging
+import math
+from pathlib import Path
+
+from django.contrib.auth.decorators import login_required
+from django.http import HttpResponse, HttpResponseNotModified, JsonResponse
+from django.shortcuts import render
+from django.views.decorators.http import require_GET
+
+from apps.core import entrada as entrada_mod
+from apps.core import modo as modo_mod
+from apps.formats import huella as huella_mod
+from apps.jobs.motivos import MOTIVOS
+
+from . import cache, mercator, motor, teselas
+from . import capa as capa_mod
+from . import punto as punto_mod
+
+registro = logging.getLogger(__name__)
+
+#: Cuánto vive una tesela en el navegador antes de preguntar si cambió. El `ETag` hace barata la
+#: pregunta (304 sin cortar nada) y el original que cambia cambia también la clave.
+EDAD_EN_EL_NAVEGADOR_S = 0
+
+#: `must-revalidate` con edad 0: el navegador **pregunta cada vez** (con `If-None-Match`, y la
+#: respuesta 304 es casi gratis) y así una cuenta a la que se le quita el permiso, o una sesión que
+#: se cierra, no sigue viendo teselas guardadas en ese navegador.
+CACHE_CONTROL = f"private, max-age={EDAD_EN_EL_NAVEGADOR_S}, must-revalidate"
+
+#: Cuántos niveles más allá del último útil se sirven. Acercar más inventa detalle.
+NIVELES_DE_SOBRE_ACERCAMIENTO = 2
+
+#: Lo que se enseña de las salidas propias en la pantalla de elegir.
+MAXIMO_DE_PROPIOS = 8
+
+EXTENSIONES_DE_IMAGEN = (".tif", ".tiff")
+
+
+def _error(codigo: str, mensaje: str, estado: int, **extra) -> JsonResponse:
+    cuerpo = {"codigo": codigo, "mensaje": mensaje, **extra}
+    respuesta = JsonResponse(cuerpo, status=estado, json_dumps_params={"ensure_ascii": False})
+    respuesta["Cache-Control"] = "private, no-store"
+    return respuesta
+
+
+def _origen(request):
+    """`(origen, None)` si se puede leer, o `(None, respuesta de error)`."""
+    pedida = (request.GET.get("ruta") or "").strip()
+    try:
+        origen = entrada_mod.resolver(pedida, usuario=request.user)
+    except modo_mod.RutaNoPermitida as fallo:
+        return None, _error(fallo.codigo, str(fallo), 403)
+    if not Path(origen.ruta).is_file():
+        return None, _error("origen-no-legible", "Ese archivo ya no está.", 404)
+    if not _es_imagen(origen.ruta):
+        return None, _error("formato-no-reconocido", _SOLO_TIFF, 422)
+    return origen, None
+
+
+_SOLO_TIFF = "El mapa solo abre GeoTIFF y COG (.tif o .tiff)."
+
+
+def _es_imagen(ruta) -> bool:
+    """Solo `.tif` y `.tiff` llegan a GDAL: un `.vrt` o un `.xml` pueden apuntar a otro archivo o a
+    una dirección de internet, y abrirlos saltaría las raíces permitidas y la regla D5."""
+    return Path(ruta).suffix.lower() in EXTENSIONES_DE_IMAGEN
+
+
+CODIGO_DE_DISCO = "cache-no-disponible"
+MENSAJE_DE_DISCO = (
+    "La caché de teselas no se pudo leer o escribir. Avise a quien administra el equipo para que "
+    "revise el disco."
+)
+
+
+def _anotar_fallo_de_disco(fallo: OSError) -> None:
+    """El detalle (con rutas del servidor) va al registro; a la persona, solo el mensaje fijo."""
+    registro.error("Fallo de disco en el visor: %s", fallo, exc_info=True)
+
+
+def _de_disco(fallo: OSError) -> JsonResponse:
+    _anotar_fallo_de_disco(fallo)
+    return _error(CODIGO_DE_DISCO, MENSAJE_DE_DISCO, 500)
+
+
+def _con_gdal():
+    """`None` si GDAL está, o la respuesta 503 que lo dice (con su alternativa)."""
+    disponibilidad = motor.disponibilidad()
+    if disponibilidad.disponible:
+        return None
+    return _error(
+        disponibilidad.codigo_motivo,
+        disponibilidad.mensaje,
+        503,
+        sugerencia=disponibilidad.sugerencia,
+    )
+
+
+def _resultados_propios(usuario) -> list[dict]:
+    """Las salidas de trabajos **propios**, terminados y que son una imagen que se puede ver."""
+    from apps.jobs.models import HECHO, ConversionJob
+
+    propios = []
+    trabajos = ConversionJob.objects.filter(owner=usuario, status=HECHO).exclude(output_path="")
+    for trabajo in trabajos.order_by("-finished_at")[:60]:
+        salida = Path(trabajo.output_path)
+        if salida.suffix.lower() not in EXTENSIONES_DE_IMAGEN:
+            continue
+        try:
+            existe = salida.is_file()
+        except OSError:
+            existe = False
+        if not existe:
+            continue
+        propios.append(
+            {
+                "token": f"{entrada_mod.PREFIJO_RESULTADO}{trabajo.pk}",
+                "nombre": salida.name,
+                "fecha": trabajo.finished_at,
+            }
+        )
+        if len(propios) >= MAXIMO_DE_PROPIOS:
+            break
+    return propios
+
+
+def _contexto_base() -> dict:
+    return {
+        "seccion": "mapa",
+        "etiqueta_seccion": "Ver en el mapa",
+        "titulo_pagina": "Ver una ortofoto en el mapa",
+        "proposito": (
+            "Acerque y recorra una ortofoto o una imagen georreferenciada sobre una retícula de "
+            "coordenadas. Se corta del propio archivo: nada sale del equipo."
+        ),
+    }
+
+
+@login_required
+@require_GET
+def inicio(request):
+    """Elegir un archivo y, ya elegido, verlo."""
+    contexto = _contexto_base()
+    disponibilidad = motor.disponibilidad()
+    contexto["gdal"] = disponibilidad
+    contexto["ruta_texto"] = (request.GET.get("ruta") or "").strip()
+
+    if not disponibilidad.disponible:
+        # Regla 4: apagada, con su motivo y su alternativa. No se esconde ni se sustituye.
+        return render(request, "visor/inicio.html", contexto)
+
+    if not contexto["ruta_texto"]:
+        contexto["propios"] = _resultados_propios(request.user)
+        return render(request, "visor/inicio.html", contexto)
+
+    try:
+        origen = entrada_mod.resolver(contexto["ruta_texto"], usuario=request.user)
+    except modo_mod.RutaNoPermitida as fallo:
+        contexto.update(error=str(fallo), codigo_error=fallo.codigo, propios=[])
+        return render(request, "visor/inicio.html", contexto, status=403)
+
+    try:
+        if not _es_imagen(origen.ruta):
+            raise motor.ErrorDeGdal(_SOLO_TIFF, "formato-no-reconocido")
+        try:
+            clave = cache.clave_de(origen.ruta)
+        except OSError as fallo:
+            raise motor.ErrorDeGdal("Ese archivo ya no está.", "origen-no-legible") from fallo
+        capa = capa_mod.con_cache(origen.ruta, clave)
+    except motor.ErrorDeGdal as fallo:
+        contexto.update(
+            error=str(fallo),
+            codigo_error=fallo.codigo,
+            propios=_resultados_propios(request.user),
+        )
+        return render(request, "visor/inicio.html", contexto, status=422)
+    except OSError as fallo:
+        _anotar_fallo_de_disco(fallo)
+        contexto.update(
+            error=MENSAJE_DE_DISCO,
+            codigo_error=CODIGO_DE_DISCO,
+            propios=_resultados_propios(request.user),
+        )
+        return render(request, "visor/inicio.html", contexto, status=500)
+
+    contexto["capa"] = capa
+    contexto["nombre_origen"] = origen.nombre
+    contexto["token"] = origen.token
+    if not capa.dibujable:
+        contexto["motivo"] = MOTIVOS.get(capa.motivo)
+    else:
+        contexto["esquinas"] = _esquinas(capa)
+        if capa.pixel_size_m:
+            contexto["gsd_cm"] = capa.pixel_size_m * 100
+    return render(request, "visor/inicio.html", contexto)
+
+
+def _esquinas(ficha) -> list[dict]:
+    """Las cuatro esquinas de la imagen y su centro, en grados y en el sistema del archivo."""
+    nombres = (*huella_mod.ESQUINAS, "centro")
+    en_grados = [*ficha.esquinas_4326, ficha.centro_4326]
+    en_su_sistema = [*ficha.esquinas, ficha.centro]
+    return [
+        {"nombre": nombre, "lon": ll[0], "lat": ll[1], "x": xy[0], "y": xy[1]}
+        for nombre, ll, xy in zip(nombres, en_grados, en_su_sistema, strict=True)
+    ]
+
+
+@login_required
+@require_GET
+def capa(request):
+    """La ficha de la capa en JSON: lo que el navegador necesita para encuadrar y dibujar."""
+    sin_gdal = _con_gdal()
+    if sin_gdal is not None:
+        return sin_gdal
+    origen, error = _origen(request)
+    if error is not None:
+        return error
+    try:
+        clave = cache.clave_de(origen.ruta)
+    except OSError:
+        return _error("origen-no-legible", "Ese archivo ya no está.", 404)
+    try:
+        ficha = capa_mod.con_cache(origen.ruta, clave)
+    except motor.ErrorDeGdal as fallo:
+        return _error(fallo.codigo, str(fallo), 422)
+    except OSError as fallo:
+        return _de_disco(fallo)
+
+    datos = ficha.a_dict()
+    datos.pop("wkt", None)  # pesa y el navegador no lo usa
+    datos.pop("geotransform", None)
+    respuesta = JsonResponse(datos, json_dumps_params={"ensure_ascii": False})
+    respuesta["Cache-Control"] = "private, no-store"
+    return respuesta
+
+
+def _etiqueta(clave: str, z: int, x: int, y: int) -> str:
+    return f'"{clave}-{z}-{x}-{y}"'
+
+
+@login_required
+@require_GET
+def tesela(request, z: int, x: int, y: int):
+    """La tesela `z/x/y` en PNG de 256 × 256, EPSG:3857, cortada del archivo.
+
+    `ETag` y `Cache-Control: private`: la tesela es de quien tiene permiso sobre el archivo y no se
+    guarda en cachés compartidas. Con `If-None-Match` que coincida, 304 sin cortar nada.
+    """
+    if not mercator.es_valida(z, x, y):
+        return _error("tesela-fuera-de-la-cuadricula", "Esa tesela no existe.", 404)
+    sin_gdal = _con_gdal()
+    if sin_gdal is not None:
+        return sin_gdal
+    origen, error = _origen(request)
+    if error is not None:
+        return error
+
+    try:
+        clave = cache.clave_de(origen.ruta)
+    except OSError:
+        return _error("origen-no-legible", "Ese archivo ya no está.", 404)
+    etiqueta = _etiqueta(clave, z, x, y)
+    candidatas = [t.strip() for t in request.headers.get("If-None-Match", "").split(",")]
+    if etiqueta in candidatas:
+        respuesta = HttpResponseNotModified()
+        respuesta["ETag"] = etiqueta
+        respuesta["Cache-Control"] = CACHE_CONTROL
+        return respuesta
+
+    try:
+        ficha = capa_mod.con_cache(origen.ruta, clave)
+        if not ficha.dibujable:
+            mensaje = MOTIVOS[ficha.motivo].mensaje if ficha.motivo in MOTIVOS else ficha.detalle
+            return _error(ficha.motivo, mensaje, 409)
+        if z > ficha.zoom_maximo + NIVELES_DE_SOBRE_ACERCAMIENTO:
+            return _error("tesela-fuera-de-la-cuadricula", "Más cerca no hay más detalle.", 404)
+        contenido = teselas.tesela(origen.ruta, ficha, clave, z, x, y)
+    except motor.ErrorDeGdal as fallo:
+        estado = 504 if fallo.codigo == "tardo-demasiado" else 502
+        return _error(fallo.codigo, str(fallo), estado)
+    except OSError as fallo:
+        return _de_disco(fallo)
+
+    respuesta = HttpResponse(contenido, content_type="image/png")
+    respuesta["ETag"] = etiqueta
+    respuesta["Cache-Control"] = CACHE_CONTROL
+    return respuesta
+
+
+def _numero(texto: str | None) -> float | None:
+    try:
+        valor = float((texto or "").replace(",", "."))
+    except ValueError:
+        return None
+    return valor if math.isfinite(valor) else None
+
+
+@login_required
+@require_GET
+def punto(request):
+    """Dónde cae un punto del mapa en el archivo, y con `valor=1` qué hay en ese píxel."""
+    sin_gdal = _con_gdal()
+    if sin_gdal is not None:
+        return sin_gdal
+    origen, error = _origen(request)
+    if error is not None:
+        return error
+
+    lon, lat = _numero(request.GET.get("lon")), _numero(request.GET.get("lat"))
+    if lon is None or lat is None or not (-180 <= lon <= 180 and -90 <= lat <= 90):
+        return _error("coordenadas-no-validas", "Longitud o latitud fuera de rango.", 400)
+
+    try:
+        clave = cache.clave_de(origen.ruta)
+    except OSError:
+        return _error("origen-no-legible", "Ese archivo ya no está.", 404)
+    try:
+        ficha = capa_mod.con_cache(origen.ruta, clave)
+        if not ficha.dibujable:
+            return _error(ficha.motivo, ficha.detalle, 409)
+        encontrado = punto_mod.localizar(ficha, lon, lat)
+        if request.GET.get("valor") == "1":
+            encontrado = punto_mod.con_valores(origen.ruta, ficha, encontrado)
+    except motor.ErrorDeGdal as fallo:
+        return _error(fallo.codigo, str(fallo), 502)
+    except OSError as fallo:
+        return _de_disco(fallo)
+
+    def cifra(valor: float) -> float | None:
+        return round(valor, 4) if math.isfinite(valor) else None
+
+    respuesta = JsonResponse(
+        {
+            "lon": lon,
+            "lat": lat,
+            "sistema": ficha.sistema,
+            "epsg": ficha.epsg,
+            "unidad": ficha.unidad,
+            "x": cifra(encontrado.x),
+            "y": cifra(encontrado.y),
+            "columna": cifra(encontrado.columna),
+            "fila": cifra(encontrado.fila),
+            "dentro": encontrado.dentro,
+            "valores": list(encontrado.valores),
+        },
+        json_dumps_params={"ensure_ascii": False},
+    )
+    respuesta["Cache-Control"] = "private, no-store"
+    return respuesta

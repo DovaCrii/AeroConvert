@@ -22,6 +22,7 @@ normalmente se lleva la base de datos por delante.
 
 from __future__ import annotations
 
+import logging
 import shutil
 from dataclasses import dataclass
 from datetime import timedelta
@@ -29,6 +30,8 @@ from pathlib import Path
 
 from django.conf import settings
 from django.utils import timezone
+
+registro = logging.getLogger(__name__)
 
 #: Nada sobrevive a la descarga. Es la politica para un servicio compartido.
 EFIMERA = "efimera"
@@ -163,14 +166,18 @@ class Barrido:
     entradas_borradas: int = 0
     subidas_caducadas: int = 0
     huerfanos: int = 0
+    #: Archivos de la caché de teselas del visor que se borraron por pasarse del tope (F19.2).
+    teselas_borradas: int = 0
     bytes_liberados: int = 0
 
     def __str__(self) -> str:
+        teselas = f"{self.teselas_borradas} de la caché del mapa, " if self.teselas_borradas else ""
         return (
             f"{self.salidas_caducadas} salidas caducadas, "
             f"{self.entradas_borradas} entradas, "
             f"{self.subidas_caducadas} subidas sin usar, "
             f"{self.huerfanos} huerfanos, "
+            f"{teselas}"
             f"{self.bytes_liberados / 1e6:.1f} MB liberados"
         )
 
@@ -227,6 +234,17 @@ def barrer() -> Barrido:
 
     resultado.huerfanos, huerfanos_bytes = _barrer_huerfanos()
     resultado.bytes_liberados += huerfanos_bytes
+
+    # 5. La caché de teselas del visor (F19.2): acotada por su propio tope, no por el presupuesto.
+    from apps.visor import cache as cache_del_visor
+
+    try:
+        del_visor = cache_del_visor.barrer()
+    except OSError:
+        registro.warning("No se pudo barrer la caché de teselas.", exc_info=True)
+    else:
+        resultado.teselas_borradas = del_visor.archivos_borrados
+        resultado.bytes_liberados += del_visor.bytes_liberados
     return resultado
 
 

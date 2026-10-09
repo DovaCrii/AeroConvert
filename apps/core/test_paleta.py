@@ -456,6 +456,21 @@ PARES = [
     # D8: la barra es un degradado, y cada texto se mide contra sus dos extremos.
     ("foco sobre el final de la barra", ("--av-foco-barra", "--av-barra-fin"), GRAFICO),
     ("borde del buscador de la barra", _sobre_barra(BLANCO, 0.45), GRAFICO),
+    # El canvas de «Ver en el mapa» (`static/js/visor.js`): sus etiquetas y su escala se pintan con
+    # estos tokens sobre un fondo **opaco** `--av-surface`; el contorno y la marca, sobre el fondo
+    # del mapa. Texto de las etiquetas: `--av-text-secondary`; escala: `--av-text`.
+    ("etiquetas del mapa", ("--av-text-secondary", "--av-surface"), TEXTO),
+    ("escala del mapa", ("--av-text", "--av-surface"), TEXTO),
+    (
+        "contorno de la imagen sobre el fondo del mapa",
+        ("--av-primary", "--av-surface-alt"),
+        GRAFICO,
+    ),
+    (
+        "marca del punto elegido sobre el fondo del mapa",
+        ("--av-danger", "--av-surface-alt"),
+        GRAFICO,
+    ),
     ("borde del buscador, final de la barra", _sobre_el_final_de_la_barra(BLANCO, 0.45), GRAFICO),
     ("texto de la barra", (BLANCO, NAVY), TEXTO),
     ("texto de la barra, final del degradado", (BLANCO, "--av-barra-fin"), TEXTO),
