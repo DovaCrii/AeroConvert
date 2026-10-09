@@ -399,7 +399,7 @@ def _huellar_entradas(job: ConversionJob, entradas: list) -> None:
             ruta,
             progreso=lambda f, i=indice: job.marcar_progreso(HUELLA, (i + f) / total),
         )
-        if entrada.pk:
+        if not entrada._state.adding:
             entrada.save(update_fields=["mtime_ns", "bytes", "sha256", "updated_at"])
 
     job.source_sha256 = entradas[0].sha256

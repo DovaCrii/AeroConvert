@@ -1287,16 +1287,6 @@ class TestDocumentoCaminoFeliz:
         assert _huella(doc.origen) == antes
 
     @pytest.mark.django_db(transaction=True)
-    @pytest.mark.xfail(
-        strict=True,
-        reason=(
-            "Defecto hallado al caracterizar (F11.8): sin filas de entrada, el corredor arma una "
-            "`EntradaDeTrabajo` sin guardar y, como su `pk` (UUID) ya existe, `if entrada.pk:` "
-            "intenta `save(update_fields=...)` sobre una fila inexistente y acaba en "
-            "IntegrityError (`job_id` nulo). El comentario dice «sin fila que guardar»; hay que "
-            "preguntar por `entrada._state.adding`, no por `pk`. No se arregla en el refactor."
-        ),
-    )
     def test_sin_entradas_la_unica_es_source_path(self, doc):
         doc.job.entradas.all().delete()
         resultado = _correr_doc(doc.job)
