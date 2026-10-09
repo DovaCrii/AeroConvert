@@ -5,6 +5,10 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Sin publicar]
 
+### Corregido — `instalar_faltantes.sh` daba todo por ausente en un servidor en español
+
+- `apt-cache policy` contesta en el idioma del sistema («Candidato:» en p340) y el guion buscaba «Candidate:»: en la primera corrida (2026-10-09) dijo que no había ninguno de los doce paquetes. Ahora fija `LC_ALL=C` antes de hablar con apt, y una prueba lo vigila.
+
 ## [0.12.0] — 2026-10-08
 
 Firma digital y sello de tiempo, PDF/A, vuelos de dron con PPK y el visor, curvas de nivel, paquetes de entrega y lotes, la API con token, y lo apagado del servidor con su camino para encenderlo (LibreOffice, mdbtools, FFmpeg, Ghostscript, `instalar_faltantes.sh`). Ver las entradas de abajo; los pasos del despliegue están en `HANDOFF.md`.
