@@ -34,7 +34,7 @@ from collections import OrderedDict
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
-from . import cache, mercator, motor
+from . import cache, dem, mercator, motor
 
 registro = logging.getLogger(__name__)
 
@@ -91,6 +91,22 @@ class Capa:
     necesita_vrt: bool = False
     paleta: bool = False
     escala: list[float] = field(default_factory=list)
+    #: Un modelo digital de elevación (F19.4): una banda entera o flotante. Todo lo de abajo es
+    #: lo que **declara el archivo**; lo que no declara queda vacío y la pantalla lo dice (regla 3).
+    es_dem: bool = False
+    #: Unidad vertical de la banda («m», «ft»), ya limpiada; `""` si no declara ninguna.
+    unidad_vertical: str = ""
+    #: Metros por unidad vertical, solo si la unidad es una conocida; para el sombreado.
+    unidad_vertical_m: float | None = None
+    #: La parte vertical del sistema, si el archivo lo trae compuesto; `""` si no.
+    referencia_vertical: str = ""
+    #: El «sin dato» de la banda. `nodata_es_nan` aparte: `NaN` no viaja en JSON.
+    nodata: float | None = None
+    nodata_es_nan: bool = False
+    #: El `-s` de `gdaldem hillshade` (ver `dem.escala_de_sombreado`).
+    escala_sombreado: float = 1.0
+    #: De menor a mayor: `[[valor, [r, g, b]], …]`, repartida en el rango medido (aproximado).
+    rampa: list[list] = field(default_factory=list)
     #: Si se puede dibujar. Si no, `motivo` es un código de `apps/jobs/motivos.py`.
     dibujable: bool = True
     motivo: str = ""
@@ -244,6 +260,19 @@ def desde_gdalinfo(info: dict, nombre: str) -> Capa:
     paleta = (primera.get("colorInterpretation") or "").lower() == "palette"
     necesita_vrt = tipo != TIPO_DE_8_BITS or paleta or len(bandas) > 4
     sin_piramide = not primera.get("overviews") and ancho * alto > PIXELES_SIN_PIRAMIDE
+    extras: dict = {}
+    if dem.es_dem(bandas=len(bandas), tipo=tipo, paleta=paleta):
+        unidad_v, unidad_v_m = dem.unidad_vertical(primera.get("unit"))
+        sin_dato, es_nan = dem.sin_dato_de(primera)
+        extras = {
+            "es_dem": True,
+            "unidad_vertical": unidad_v,
+            "unidad_vertical_m": unidad_v_m,
+            "referencia_vertical": dem.referencia_vertical(crs),
+            "nodata": sin_dato,
+            "nodata_es_nan": es_nan,
+            "escala_sombreado": dem.escala_de_sombreado(crs, unidad_v_m),
+        }
 
     return Capa(
         **base,
@@ -264,6 +293,7 @@ def desde_gdalinfo(info: dict, nombre: str) -> Capa:
         sin_piramide=sin_piramide,
         necesita_vrt=necesita_vrt,
         paleta=paleta,
+        **extras,
     )
 
 
@@ -303,6 +333,8 @@ def leer(ruta: Path) -> Capa:
             capa.escala = _extremos(json.loads(crudo))
         except (motor.ErrorDeGdal, json.JSONDecodeError):
             capa.escala = []
+        if capa.es_dem and capa.escala:
+            capa.rampa = dem.rampa(*capa.escala)
         if not capa.escala:
             capa.dibujable = False
             capa.motivo = "origen-no-legible"

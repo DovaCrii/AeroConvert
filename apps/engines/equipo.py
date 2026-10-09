@@ -45,6 +45,14 @@ PASOS: dict[str, Paso] = {
         "Mientras tanto, la ficha del archivo en «Convertir» lo sitúa sobre una retícula de "
         "coordenadas.",
     ),
+    "sin-gdaldem": Paso(
+        PERSONA,
+        "sudo apt install gdal-bin (trae gdaldem, que calcula el sombreado y el color por cota).",
+        "Complete la instalación de GDAL: QGIS trae gdaldem en su carpeta bin, la misma de "
+        "AEROCONVERT_GDAL_BIN.",
+        "Mientras tanto, la imagen en grises, la cota bajo el cursor y el perfil siguen "
+        "disponibles.",
+    ),
     "proj-descolocado": Paso(
         PERSONA,
         "Que PROJ_DATA apunte a la carpeta con proj.db del mismo GDAL (no de otra instalación).",

@@ -18,11 +18,13 @@ from __future__ import annotations
 
 import logging
 import math
+import re
 from pathlib import Path
 
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, HttpResponseNotModified, JsonResponse
 from django.shortcuts import render
+from django.utils.http import content_disposition_header
 from django.views.decorators.http import require_GET
 
 from apps.core import entrada as entrada_mod
@@ -30,7 +32,7 @@ from apps.core import modo as modo_mod
 from apps.formats import huella as huella_mod
 from apps.jobs.motivos import MOTIVOS
 
-from . import cache, mercator, motor, teselas
+from . import cache, mercator, motor, terreno, teselas
 from . import capa as capa_mod
 from . import punto as punto_mod
 
@@ -210,6 +212,11 @@ def inicio(request):
         contexto["esquinas"] = _esquinas(capa)
         if capa.pixel_size_m:
             contexto["gsd_cm"] = capa.pixel_size_m * 100
+        if capa.es_dem:
+            contexto["sombreado"] = motor.disponibilidad_sombreado()
+            contexto["azimut_deg"] = terreno.AZIMUT_POR_OMISION_DEG
+            contexto["altura_deg"] = terreno.ALTURA_POR_OMISION_DEG
+            contexto["exageracion_z"] = terreno.EXAGERACION_POR_OMISION
     return render(request, "visor/inicio.html", contexto)
 
 
@@ -248,13 +255,56 @@ def capa(request):
     datos = ficha.a_dict()
     datos.pop("wkt", None)  # pesa y el navegador no lo usa
     datos.pop("geotransform", None)
+    if ficha.es_dem:
+        datos["sombreado"] = _sombreado_a_dict()
     respuesta = JsonResponse(datos, json_dumps_params={"ensure_ascii": False})
     respuesta["Cache-Control"] = "private, no-store"
     return respuesta
 
 
-def _etiqueta(clave: str, z: int, x: int, y: int) -> str:
-    return f'"{clave}-{z}-{x}-{y}"'
+def _sombreado_a_dict() -> dict:
+    """Si el sombreado está o está apagado, con su motivo y su alternativa (regla 4)."""
+    d = motor.disponibilidad_sombreado()
+    return {
+        "disponible": d.disponible,
+        "codigo": d.codigo_motivo,
+        "mensaje": d.mensaje,
+        "sugerencia": d.sugerencia,
+    }
+
+
+def _etiqueta(clave: str, z: int, x: int, y: int, sufijo: str = "") -> str:
+    """El `ETag` de una tesela. El terreno añade su sufijo (modo y huella de los parámetros): la
+    misma tesela con otro sol es **otra** tesela y no debe devolver un 304."""
+    return f'"{clave}{"-" + sufijo if sufijo else ""}-{z}-{x}-{y}"'
+
+
+def _sin_gdaldem() -> JsonResponse | None:
+    """`None` si hay `gdaldem`, o el 503 que dice por qué el sombreado está apagado (regla 4)."""
+    disponibilidad = motor.disponibilidad_sombreado()
+    if disponibilidad.disponible:
+        return None
+    return _error(
+        disponibilidad.codigo_motivo,
+        disponibilidad.mensaje,
+        503,
+        sugerencia=disponibilidad.sugerencia,
+    )
+
+
+def _modo_o_error(request, ficha) -> tuple[terreno.Modo | None, JsonResponse | None]:
+    """El modo de terreno de la petición, o la respuesta que explica por qué no se puede."""
+    try:
+        modo = terreno.modo_de(request.GET, ficha)
+    except terreno.ParametrosNoValidos as fallo:
+        return None, _error("parametros-no-validos", str(fallo), 400)
+    except terreno.CapaNoEsDem:
+        return None, _error("capa-no-es-dem", MOTIVOS["capa-no-es-dem"].mensaje, 409)
+    if modo.es_terreno:
+        sin = _sin_gdaldem()
+        if sin is not None:
+            return None, sin
+    return modo, None
 
 
 @login_required
@@ -278,22 +328,42 @@ def tesela(request, z: int, x: int, y: int):
         clave = cache.clave_de(origen.ruta)
     except OSError:
         return _error("origen-no-legible", "Ese archivo ya no está.", 404)
-    etiqueta = _etiqueta(clave, z, x, y)
     candidatas = [t.strip() for t in request.headers.get("If-None-Match", "").split(",")]
-    if etiqueta in candidatas:
+
+    def no_modificada(etiqueta: str):
+        if etiqueta not in candidatas:
+            return None
         respuesta = HttpResponseNotModified()
         respuesta["ETag"] = etiqueta
         respuesta["Cache-Control"] = CACHE_CONTROL
         return respuesta
+
+    # La imagen en grises (lo de siempre) se resuelve sin abrir la ficha; el terreno necesita la
+    # ficha para saber **qué** pide (la huella de sus parámetros entra en el `ETag`).
+    etiqueta = _etiqueta(clave, z, x, y)
+    if request.GET.get("modo", "gris") == "gris":
+        igual = no_modificada(etiqueta)
+        if igual is not None:
+            return igual
 
     try:
         ficha = capa_mod.con_cache(origen.ruta, clave)
         if not ficha.dibujable:
             mensaje = MOTIVOS[ficha.motivo].mensaje if ficha.motivo in MOTIVOS else ficha.detalle
             return _error(ficha.motivo, mensaje, 409)
+        modo, error = _modo_o_error(request, ficha)
+        if error is not None:
+            return error
+        etiqueta = _etiqueta(clave, z, x, y, modo.sufijo)
+        igual = no_modificada(etiqueta)
+        if igual is not None:
+            return igual
         if z > ficha.zoom_maximo + NIVELES_DE_SOBRE_ACERCAMIENTO:
             return _error("tesela-fuera-de-la-cuadricula", "Más cerca no hay más detalle.", 404)
-        contenido = teselas.tesela(origen.ruta, ficha, clave, z, x, y)
+        if modo.es_terreno:
+            contenido = terreno.tesela(origen.ruta, ficha, clave, modo, z, x, y)
+        else:
+            contenido = teselas.tesela(origen.ruta, ficha, clave, z, x, y)
     except motor.ErrorDeGdal as fallo:
         estado = 504 if fallo.codigo == "tardo-demasiado" else 502
         return _error(fallo.codigo, str(fallo), estado)
@@ -364,5 +434,65 @@ def punto(request):
         },
         json_dumps_params={"ensure_ascii": False},
     )
+    respuesta["Cache-Control"] = "private, no-store"
+    return respuesta
+
+
+@login_required
+@require_GET
+def perfil(request):
+    """El perfil de un DEM entre dos puntos: JSON, o `formato=csv` para descargarlo.
+
+    Los dos puntos van en EPSG:4326 (`lon1`, `lat1`, `lon2`, `lat2`) y `n` es el número de
+    muestras.
+    Sin valores por omisión para los puntos. Lo que cae fuera del modelo o en «sin dato» sale como
+    hueco (`null` o celda vacía), nunca como cero.
+    """
+    sin_gdal = _con_gdal()
+    if sin_gdal is not None:
+        return sin_gdal
+    origen, error = _origen(request)
+    if error is not None:
+        return error
+
+    try:
+        extremos = terreno.extremos_de(request.GET)
+        n = terreno.muestras_de_de(request.GET)
+    except terreno.ParametrosNoValidos as fallo:
+        return _error("parametros-no-validos", str(fallo), 400)
+    formato = (request.GET.get("formato") or "json").strip().lower()
+    if formato not in ("json", "csv"):
+        return _error("parametros-no-validos", "El formato del perfil es json o csv.", 400)
+
+    try:
+        clave = cache.clave_de(origen.ruta)
+    except OSError:
+        return _error("origen-no-legible", "Ese archivo ya no está.", 404)
+    try:
+        ficha = capa_mod.con_cache(origen.ruta, clave)
+        if not ficha.dibujable:
+            return _error(ficha.motivo, ficha.detalle, 409)
+        resultado = terreno.perfil(origen.ruta, ficha, extremos, n)
+    except terreno.CapaNoEsDem:
+        return _error("capa-no-es-dem", MOTIVOS["capa-no-es-dem"].mensaje, 409)
+    except terreno.ParametrosNoValidos as fallo:
+        return _error("parametros-no-validos", str(fallo), 400)
+    except motor.ErrorDeGdal as fallo:
+        return _error(fallo.codigo, str(fallo), 502)
+    except OSError as fallo:
+        return _de_disco(fallo)
+
+    if formato == "csv":
+        respuesta = HttpResponse(
+            terreno.csv_del_perfil(resultado), content_type="text/csv; charset=utf-8"
+        )
+        nombre = re.sub(r"[^A-Za-z0-9._-]+", "-", Path(origen.nombre).stem).strip("-") or "modelo"
+        respuesta["Content-Disposition"] = content_disposition_header(
+            True, f"perfil-{nombre[:60]}.csv"
+        )
+    else:
+        respuesta = JsonResponse(
+            terreno.a_dict(resultado), json_dumps_params={"ensure_ascii": False}
+        )
     respuesta["Cache-Control"] = "private, no-store"
     return respuesta

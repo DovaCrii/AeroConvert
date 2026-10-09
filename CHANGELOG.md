@@ -5,6 +5,34 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Sin publicar]
 
+### Añadido — «Ver en el mapa» con terreno: sombreado, cota y perfil (F19.4)
+
+- **Un DEM se ve como terreno.** Un GeoTIFF de una banda entera o flotante abre en «Ver en el mapa» con
+  el panel «Terreno»: imagen en grises, **sombreado** (`gdaldem hillshade`, con azimut, altura del sol y
+  exageración vertical a elegir) o **color por cota** (`gdaldem color-relief`, viridis, con su escala
+  escrita al lado: el color no va solo). El sombreado se calcula una vez de todo el modelo y se corta en
+  teselas; cada juego de parámetros tiene su propia clave y su `ETag`, y un valor fuera de rango es un
+  400 con su mensaje, no se recorta en silencio.
+- **La cota bajo el cursor** lleva su unidad y su referencia vertical **solo si el archivo las declara**;
+  si no, dice «unidad no declarada» y «referencia vertical no declarada» (nunca «sobre el nivel del mar»
+  por suponer). El «sin dato» del archivo sale como «sin dato», no como -9999.
+- **Perfil entre dos puntos** (`/mapa/perfil/`): se marcan A y B con el ratón, el dedo o Intro; se reparten
+  de 2 a 1000 muestras sobre la geodésica del elipsoide WGS84 (`pyproj.Geod`), se leen con una sola llamada
+  a `gdallocationinfo` y se dibujan en un SVG propio con ejes y unidades, con su tabla y su **CSV**
+  descargable. Lo que cae fuera del modelo o sin dato queda como **hueco**: no se une ni se interpola.
+  La unidad y la referencia que vienen del archivo se limpian antes de ir a pantalla y a CSV (no abren una
+  fórmula en una hoja de cálculo).
+- Sin `gdaldem` el sombreado y el color salen **apagados con motivo y alternativa** (`sin-gdaldem`); la
+  cota y el perfil siguen. Motivos nuevos: `sin-gdaldem`, `capa-no-es-dem`, `parametros-no-validos`.
+- La caché de teselas reconoce y barre lo del terreno (`sombra-<huella>.tif`, `cota-<huella>.txt` y las
+  teselas de cada modo); su versión sube a 2.
+- Oráculo (`@pytest.mark.oraculo`, GDAL 3.12.4, DEM sintético en UTM 19S): cota de cinco celdas y 51
+  muestras de un perfil que cruza un hueco, contra `gdallocationinfo -wgs84` y la fórmula del DEM; una
+  tesela de sombreado **idéntica** a la de otro `gdaldem hillshade` + `gdalwarp` (con dos soles) y a la
+  fórmula de Horn sobre un plano; el color de una cota conocida. **Hallazgo:** `gdaldem hillshade` con
+  `-co COMPRESS=DEFLATE -co TILED=YES` deja 24 celdas distintas junto a un hueco de «sin dato»; se usa
+  solo DEFLATE. Cifras en `docs/PRUEBAS_CON_ORACULO.md`.
+
 ### Añadido — «Ver en el mapa»: una ortofoto por teselas (F19.1 y F19.2)
 
 - Pantalla nueva `/mapa/` (app `apps/visor/`, enlace «Ver en el mapa» en el lateral y en la ficha de un GeoTIFF): se elige un GeoTIFF o un COG de la carpeta compartida, o la salida de un trabajo propio, y se **ve con zoom y paneo** (rueda, pellizco, `+` y `-`; arrastrar, flechas) sobre la retícula de coordenadas de la ficha. Muestra las coordenadas del cursor en EPSG:4326 y en el sistema del archivo, la columna y la fila del píxel y, al pinchar o con Intro, el valor de cada banda. Nada sale del equipo (D5): el JavaScript es propio (`static/js/visor.js`, sin biblioteca ni mapa base), la CSP sigue en `'self'` y no hay scripts ni estilos en línea.

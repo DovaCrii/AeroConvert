@@ -4550,6 +4550,158 @@ code {
   font-size: var(--av-fs-xs);
 }
 
+/* Terreno (F19.4): sombreado, color por cota y perfil. Todo con los tokens `--av-*`; el color nunca
+ * va solo (la rampa lleva sus valores escritos; el perfil, sus marcas A y B y su tabla). */
+@media (min-width: 992px) {
+  .visor-lateral {
+    overflow-y: auto;
+  }
+}
+
+.terreno-modos {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.terreno-leyenda-titulo {
+  float: none;
+  width: auto;
+  margin: 0 0 var(--av-s-1);
+  font-size: var(--av-fs-sm);
+  font-weight: 600;
+}
+
+.terreno-sol {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(6.5rem, 1fr));
+  gap: var(--av-s-2);
+  margin-top: var(--av-s-3);
+}
+
+.terreno-sol[hidden] {
+  display: none;
+}
+
+.perfil-controles .boton[aria-pressed="true"] {
+  border-color: var(--av-primary);
+  background: var(--av-primary-soft);
+  font-weight: 600;
+}
+
+.terreno-campo-rotulo {
+  display: block;
+  font-size: var(--av-fs-xs);
+  color: var(--av-text-secondary);
+}
+
+.terreno-leyenda {
+  margin-top: var(--av-s-3);
+  font-size: var(--av-fs-sm);
+}
+
+.terreno-leyenda:empty {
+  display: none;
+}
+
+.terreno-rampa {
+  height: 0.9rem;
+  border: 1px solid var(--av-border-control);
+  border-radius: var(--av-radius-xs);
+}
+
+.terreno-rampa-paradas {
+  display: grid;
+  gap: var(--av-s-1);
+  margin: var(--av-s-2) 0 0;
+  padding: 0;
+  list-style: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.terreno-rampa-paradas li {
+  display: flex;
+  align-items: center;
+  gap: var(--av-s-2);
+}
+
+.terreno-muestra {
+  flex: none;
+  width: 1rem;
+  height: 0.7rem;
+  border: 1px solid var(--av-border-control);
+}
+
+.perfil-controles {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--av-s-2);
+}
+
+.perfil-n {
+  width: auto;
+}
+
+.perfil-controles a[aria-disabled="true"] {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.perfil-grafico svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  background: var(--av-surface);
+  border: 1px solid var(--av-border);
+  border-radius: var(--av-radius-sm);
+}
+
+.perfil-tabla {
+  max-height: 18rem;
+  margin-top: var(--av-s-3);
+  overflow: auto;
+}
+
+.perfil-rejilla {
+  stroke: var(--av-border);
+  stroke-width: 1;
+}
+
+.perfil-eje {
+  stroke: var(--av-text-secondary);
+  stroke-width: 1;
+}
+
+.perfil-linea {
+  fill: none;
+  stroke: var(--av-primary);
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+
+.perfil-punto {
+  fill: var(--av-primary);
+}
+
+.perfil-hueco {
+  stroke: var(--av-text-secondary);
+  stroke-width: 2;
+}
+
+.perfil-texto {
+  fill: var(--av-text-secondary);
+  font-size: var(--av-fs-xs);
+  font-family: inherit;
+}
+
+.perfil-rotulo {
+  fill: var(--av-text);
+  font-size: var(--av-fs-sm);
+  font-weight: 600;
+  font-family: inherit;
+}
+
 /* --- Transiciones de estado y entrada suave (F13.13) ---------------------------------------
  * El estilo oscuro se siente vivo por cómo cambian las cosas, no porque se muevan: al pasar,
  * enfocar o desactivar, el **color, el fondo, el borde y la opacidad** cambian en 160 ms. (Con D8,

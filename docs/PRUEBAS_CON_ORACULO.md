@@ -730,6 +730,91 @@ lo que `gdalcompare` hace sin el informe.
 **Sin medir:** una ortofoto real de varios gigas (rendimiento de las teselas lejanas sin pirámide,
 tamaño de la caché en uso). Se anota aquí con fecha cuando se corra en `p340` con un COG del equipo.
 
+## Corrida del 2026-10-09 — terreno en «Ver en el mapa» contra GDAL (F19.4)
+
+GDAL 3.12.4 (QGIS 4.0.2), `uv run pytest -m oraculo apps/visor/test_terreno_oraculo.py` (24 pruebas).
+El archivo es un **DEM sintético** que crea la prueba (`apps/visor/testing.py::crear_dem_sintetico`):
+200 × 100 celdas de 2 m en EPSG:32719, `Float32`, unidad `m`, «sin dato» -9999, un plano
+(`500 + 0,2·col + 0,1·fila`) más una gaussiana de 80 m centrada en la celda (140, 40) y un hueco de
+«sin dato» en las columnas 60 a 69 y las filas 20 a 29. `cota_conocida(col, fila)` es **la fórmula** que
+lo creó: dice la cota de cada celda sin leer el archivo. Ningún dato real.
+
+### 1. La cota bajo el cursor
+
+Cinco celdas (el centro de cada una, llevado a EPSG:4326 con `gdaltransform`), contra `gdallocationinfo
+-valonly -wgs84` y contra la fórmula:
+
+| Celda (col, fila) | Cota propia | `gdallocationinfo` | Fórmula |
+| --- | --- | --- | --- |
+| (10, 10) | 503,0 | 503,0 | 503,0 |
+| (140, 40), la cima | 612,0 | 612,0 | 612,0 |
+| (0, 0), el borde | 500,0 | 500,0 | 500,0 |
+| (199, 99), la esquina | 549,7000 | 549,7000 | 549,70000 (3e-6) |
+| (65, 25), en el hueco | sin dato | -9999 → sin dato | sin dato |
+
+Diferencia máxima con `gdallocationinfo`: **0**. El hueco sale como «sin dato», no como -9999.
+
+### 2. El perfil
+
+Una fila de la rejilla, de la celda (40, 25) a la (90, 25): 51 muestras, una por celda, que cruzan el
+hueco. Cada muestra contra `gdallocationinfo -wgs84` con la longitud y la latitud que devolvió el propio
+perfil, y contra la fórmula: **diferencia máxima 3,1e-5 m** (el redondeo de un `Float32`); los **10
+huecos** son exactamente las columnas 60 a 69. La longitud geodésica es 100,0104 m, **1,00010** veces los
+100 m del plano de UTM, que es lo que da el factor de escala del lugar (a 1,67° del meridiano central,
+k ≈ 0,99989). La distancia geodésica de un grado de ecuador (111 319,4908 m) y de un grado de meridiano en
+el ecuador (110 574,3886 m) se prueba también en el CI, sin GDAL, contra esos valores conocidos.
+
+### 3. El sombreado
+
+Una tesela de nivel 17 cortada de `sombra-<huella>.tif`, contra **otro** `gdaldem hillshade -az 315 -alt 45
+-z 1 -compute_edges` y **otro** `gdalwarp` a GeoTIFF con la caja de una fórmula aparte:
+
+- Diferencia: **0** de 65 536 valores (mayor diferencia en un canal: 0). Con otro sol (`-az 90 -alt 25 -z
+  2.5`), también 0.
+- La fórmula analítica de Horn sobre el plano (a 255·[cos z·cos p + sen z·sen p·cos(az − as)]): la celda
+  (20, 80), lejos de la gaussiana, vale **198** en la tesela y **198,2** por la fórmula.
+- El hueco de «sin dato», transparente en el centro (alfa 0).
+- El sombreado **entero** de la caché es, celda a celda, el de otro `gdaldem` aparte (0 de 20 000).
+
+**Lo que atrapó el oráculo.** La primera versión escribía el sombreado con `-co COMPRESS=DEFLATE -co
+TILED=YES`: junto al hueco de «sin dato» dejaba **24 celdas distintas** (media 185,831 contra 185,919
+sin las opciones; el mismo resultado leído por Pillow y por `gdal_translate -of PNG`). Con solo DEFLATE
+(por franjas) da 0 diferencias. Se quitó `TILED=YES`, y la prueba del sombreado entero lo vigila.
+
+### 4. El color por cota
+
+Una tesela de color contra `gdalwarp -ot Float32 -dstnodata … ` + `gdaldem color-relief -alpha` aparte con
+una tabla de colores escrita en la prueba: mayor diferencia en un canal **0**. Y la celda (20, 80), de
+512 m: el color es (66, 37, 111) en la tesela y el de interpolar linealmente a mano entre las dos paradas
+de viridis que la rodean, (66,4; 37; 111,4).
+
+### 5. Lo que la ficha declara, y lo que no
+
+- `gdalinfo -json -stats`: tipo `Float32`, `unit: m`, `noDataValue: -9999`; las estadísticas **exactas**
+  (500,0 a 612,022) son las de la fórmula. El rango que usa la leyenda sale de `-approx_stats` (que lee una
+  muestra): **611,745 de máximo**, 0,28 m menos que el exacto (2026-10-09). Por eso la pantalla dice «rango
+  medido de forma aproximada»; con él, lo más alto satura en el color de la punta.
+- Sin unidad ni «sin dato» declarados (el archivo se crea sin ellos): la capa los deja vacíos, la cota
+  del hueco sale como **-9999** (una altura más: no se esconde lo que nadie declaró) y la pantalla dice
+  «unidad no declarada».
+- Un sistema compuesto (`EPSG:32719+5773`): la referencia vertical es la de `VERTCRS[...]` que imprime
+  `gdalsrsinfo -o wkt2`; uno solo horizontal no declara ninguna («referencia vertical no declarada»).
+
+### 6. El original quedó intacto
+
+`sha256`, `mtime` y la carpeta del original, sin ningún `.aux.xml` al lado, después de pedir una tesela
+de cada modo, un punto con valor y un perfil. Con `gdaldem` retirado (la prueba lo oculta), la tesela de
+sombra da 503 `sin-gdaldem` con alternativa y la cota y el perfil siguen contestando.
+
+### Lo que esta corrida **no** prueba
+
+- Un DEM real grande: el sombreado entero se calcula de una vez y el plazo es de 300 s. Hay que medir el
+  tiempo de uno de varios GB en `p340` (y, si no cabe, partirlo o pedir un COG con pirámide).
+- Un DEM en grados (EPSG:4326): la escala de 111 120 m por grado de `gdaldem` está en el código y se prueba
+  como cuenta, no contra GDAL.
+- La referencia vertical de `apps/formats/alturas.py` (F15.2, PR 107): no se usa todavía; cuando esté en
+  `main` podrá leerse de ahí (el geoide que declara el archivo contra el que dice el proyecto).
+
 ## Pendiente: «Hacer un libro EPUB» contra EPUBCheck (F14.22)
 
 EPUBCheck es el validador de referencia del W3C (BSD-3, Java 11+). En el CI no está; la prueba `test_epubcheck_lo_da_por_valido` lleva `@pytest.mark.oraculo` y se salta sin él.

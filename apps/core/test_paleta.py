@@ -471,6 +471,17 @@ PARES = [
         ("--av-danger", "--av-surface-alt"),
         GRAFICO,
     ),
+    # Terreno (F19.4). El perfil es un SVG sobre `--av-surface` (`.perfil-*` en `app.css`): línea,
+    # ejes y marcas de hueco son gráficos; los rótulos A y B y los números de los ejes, texto. Y
+    # sobre el mapa, las marcas de A y B llevan un borde `--av-surface` y la letra va en una caja
+    # opaca.
+    ("línea del perfil", ("--av-primary", "--av-surface"), GRAFICO),
+    ("ejes y marcas de hueco del perfil", ("--av-text-secondary", "--av-surface"), GRAFICO),
+    ("números y título de los ejes del perfil", ("--av-text-secondary", "--av-surface"), TEXTO),
+    ("rótulos A y B del perfil", ("--av-text", "--av-surface"), TEXTO),
+    ("marcas A y B sobre su borde claro", ("--av-primary", "--av-surface"), GRAFICO),
+    ("letra de A y B sobre su caja del mapa", ("--av-text", "--av-surface"), TEXTO),
+    ("rampa de color: su borde", ("--av-border-control", "--av-surface"), GRAFICO),
     ("borde del buscador, final de la barra", _sobre_el_final_de_la_barra(BLANCO, 0.45), GRAFICO),
     ("texto de la barra", (BLANCO, NAVY), TEXTO),
     ("texto de la barra, final del degradado", (BLANCO, "--av-barra-fin"), TEXTO),

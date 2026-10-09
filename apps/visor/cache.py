@@ -44,7 +44,7 @@ registro = logging.getLogger(__name__)
 
 #: Se cambia cuando cambia **lo que sale** (argumentos de `gdalwarp`, formato de la ficha): invalida
 #: toda la caché sin tener que borrarla a mano.
-VERSION = "1"
+VERSION = "2"  # 2: la ficha trae lo del terreno (F19.4); la «1» no sabía que un DEM lo es
 
 #: Hasta qué fracción del tope se baja al barrer. Bajar solo hasta el tope haría barrer en cada
 #: escritura.
@@ -90,6 +90,14 @@ def leer(ruta: Path) -> bytes | None:
     except OSError:
         return None
     return contenido
+
+
+def tocar(ruta: Path) -> None:
+    """Anota que se ha mirado un archivo de la caché (lo que ordena el barrido) sin leerlo."""
+    try:
+        os.utime(ruta, None)
+    except OSError:
+        pass
 
 
 def nombre_de_parcial(destino: Path) -> Path:
@@ -150,11 +158,16 @@ class Barrido:
         )
 
 
-#: Lo único que esta caché escribe: `<2 hex>/<32 hex>/<z-x-y.png | capa.json | fuente.vrt>` y sus
-#: parciales. **El barrido borra solo esto**: si `AEROCONVERT_VISOR_CACHE` apuntara por error a una
-#: carpeta con otras cosas, no se les toca.
+#: Lo único que esta caché escribe: `<2 hex>/<32 hex>/<z-x-y.png | capa.json | fuente.vrt>`, lo del
+#: terreno (F19.4: `sombra-<8 hex>-z-x-y.png`, `cota-<8 hex>-z-x-y.png`, el sombreado entero
+#: `sombra-<8 hex>.tif` y los colores `cota-<8 hex>.txt`) y sus parciales. **El barrido borra solo
+#: esto**: si `AEROCONVERT_VISOR_CACHE` apuntara por error a una carpeta con otras cosas, no se les
+#: toca.
 PATRON_PROPIO = re.compile(
-    r"^[0-9a-f]{2}[\\/][0-9a-f]{32}[\\/](\d+-\d+-\d+\.png|capa\.json|fuente\.vrt)"
+    r"^[0-9a-f]{2}[\\/][0-9a-f]{32}[\\/]"
+    r"((?:(?:sombra|cota)-[0-9a-f]{8}-)?\d+-\d+-\d+\.png"
+    r"|(?:sombra|cota)-[0-9a-f]{8}\.(?:tif|txt)"
+    r"|capa\.json|fuente\.vrt)"
     r"(\.parcial-[0-9a-f]{8})?$"
 )
 

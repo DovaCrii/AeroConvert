@@ -14,6 +14,14 @@
  * (con el mapa enfocado): las flechas mueven, `+` y `-` acercan y alejan, `0` o Inicio encuadra la
  * capa, Intro pide el valor del píxel del centro. **Nada depende de pasar el ratón por encima.**
  *
+ * ## Terreno (F19.4)
+ *
+ * Si la capa es un DEM (`capa.es_dem`), un panel deja elegir cómo se ve (grises, sombreado o color
+ * por cota; con su leyenda escrita), la cota bajo el cursor sale con su unidad y su referencia
+ * vertical **solo si el archivo las declara**, y «Marcar perfil» traza una línea entre dos puntos
+ * (A y B, con letra y forma) y dibuja su perfil en un SVG propio, con su tabla y su CSV. Lo que no
+ * tiene dato queda como hueco en la línea, nunca se une ni se interpola.
+ *
  * ## Qué no inventa
  *
  * El sistema del archivo y las coordenadas **en él** las dice el servidor (PROJ), no este archivo. Un
@@ -75,6 +83,11 @@
   let marca = null; // { mx, my } donde se pidió el valor del píxel
   let esperaPunto = 0;
   let controlPunto = null;
+
+  // Terreno (F19.4): solo lo usa un DEM. `modo` es lo que se pide en cada tesela.
+  let modo = { nombre: "gris", az: "315", alt: "45", zf: "1.0" };
+  // El perfil: los dos puntos (en metros de Web Mercator), el último resultado y su petición.
+  const perfil = { activo: false, a: null, b: null, datos: null, control: null };
 
   /* ---- Colores: de las variables de la hoja, no de aquí ---- */
 
@@ -138,7 +151,23 @@
   /* ---- Teselas ---- */
 
   function direccion(z, x, y) {
-    return capa.base + z + "/" + x + "/" + y + ".png?ruta=" + encodeURIComponent(capa.ruta);
+    return (
+      capa.base + z + "/" + x + "/" + y + ".png?ruta=" + encodeURIComponent(capa.ruta) + consultaDeTerreno()
+    );
+  }
+
+  /* El modo de un DEM va en la petición, con **todos** sus parámetros: el servidor los comprueba (un
+   * azimut de 400° es un error con su mensaje, no se recorta) y los pone en la clave de la tesela. */
+  function consultaDeTerreno() {
+    if (!capa.es_dem || modo.nombre === "gris") return "";
+    let consulta = "&modo=" + modo.nombre;
+    if (modo.nombre === "sombra") {
+      consulta +=
+        "&az=" + encodeURIComponent(modo.az) +
+        "&alt=" + encodeURIComponent(modo.alt) +
+        "&zf=" + encodeURIComponent(modo.zf);
+    }
+    return consulta;
   }
 
   function tesela(z, x, y) {
@@ -484,6 +513,66 @@
     contexto.restore();
   }
 
+  /* La línea del perfil y sus extremos A y B. Cada extremo lleva **forma y letra** (cuadrado «A»,
+   * rombo «B»), no solo color, y un borde claro: el fondo es una imagen cualquiera. */
+  function trazarPerfil() {
+    contexto.beginPath();
+    if (perfil.datos && perfil.datos.muestras.length) {
+      perfil.datos.muestras.forEach(function (m, i) {
+        const x = aPantallaX(deLon(m.lon));
+        const y = aPantallaY(deLat(m.lat));
+        if (i === 0) contexto.moveTo(x, y);
+        else contexto.lineTo(x, y);
+      });
+    } else if (perfil.a && perfil.b) {
+      contexto.moveTo(aPantallaX(perfil.a.mx), aPantallaY(perfil.a.my));
+      contexto.lineTo(aPantallaX(perfil.b.mx), aPantallaY(perfil.b.my));
+    }
+  }
+
+  function dibujarExtremo(punto, letra, rombo) {
+    const x = aPantallaX(punto.mx);
+    const y = aPantallaY(punto.my);
+    contexto.save();
+    contexto.translate(x, y);
+    if (rombo) contexto.rotate(Math.PI / 4);
+    contexto.fillStyle = colores.papel;
+    contexto.fillRect(-8, -8, 16, 16);
+    contexto.fillStyle = colores.contorno;
+    contexto.fillRect(-5, -5, 10, 10);
+    contexto.restore();
+    contexto.save();
+    contexto.font = "bold 12px system-ui, sans-serif";
+    contexto.textBaseline = "middle";
+    const ancha = contexto.measureText(letra).width + 8;
+    contexto.fillStyle = colores.papel;
+    contexto.fillRect(x + 12, y - 9, ancha, 18);
+    contexto.fillStyle = colores.escala;
+    contexto.fillText(letra, x + 16, y);
+    contexto.restore();
+  }
+
+  function dibujarPerfil() {
+    if (!capa.es_dem || !perfil.a) return;
+    if (perfil.b) {
+      contexto.save();
+      contexto.lineJoin = "round";
+      contexto.setLineDash([]);
+      trazarPerfil();
+      contexto.strokeStyle = colores.papel;
+      contexto.lineWidth = 5;
+      contexto.stroke();
+      trazarPerfil();
+      contexto.strokeStyle = colores.contorno;
+      contexto.lineWidth = 2.5;
+      contexto.setLineDash([7, 5]);
+      contexto.stroke();
+      contexto.restore();
+    }
+    dibujarExtremo(perfil.a, "A", false);
+    if (perfil.b) dibujarExtremo(perfil.b, "B", true);
+  }
+
   function dibujarCentro() {
     // Con el teclado no hay cursor: el centro es el «puntero», y se ve.
     if (cursor || document.activeElement !== lienzo) return;
@@ -508,6 +597,7 @@
     dibujarTeselas();
     dibujarContorno();
     dibujarEtiquetas();
+    dibujarPerfil();
     dibujarMarca();
     dibujarEscala();
     dibujarCentro();
@@ -567,7 +657,8 @@
       punto.lon.toFixed(9) +
       "&lat=" +
       punto.lat.toFixed(9) +
-      (conValor ? "&valor=1" : "");
+      // Un DEM pide el valor siempre: la cota bajo el cursor es lo que se quiere ver al pasar.
+      (conValor || capa.es_dem ? "&valor=1" : "");
     fetch(url, { credentials: "same-origin", signal: controlPunto.signal })
       .then(function (r) {
         return r.json().then(function (datos) {
@@ -604,6 +695,7 @@
       $("mapa-pixel").textContent =
         "columna " + Math.floor(d.columna) + ", fila " + Math.floor(d.fila);
     }
+    if (capa.es_dem) pintarCota(d);
     if (conValor) {
       let texto;
       if (!d.dentro) texto = "Ese punto cae fuera de la imagen.";
@@ -632,6 +724,404 @@
     actualizarLectura(true);
     preguntarPunto(lecturaDe(mx, my), true);
     pedir();
+  }
+
+  /* Un clic, un toque o Intro: con «Marcar perfil» activo pone un extremo; si no, lee el valor. */
+  function accionDePunto(mx, my) {
+    if (capa.es_dem && perfil.activo) marcarPerfil(mx, my);
+    else pedirValor(mx, my);
+  }
+
+  /* ---- Terreno: cómo se ve un DEM, su leyenda y la cota bajo el cursor ---- */
+
+  const unidadV = () => (capa.unidad_vertical ? " " + capa.unidad_vertical : "");
+
+  function pintarCota(d) {
+    const caja = $("terreno-cota");
+    if (!caja) return;
+    let texto;
+    if (d.columna === null || !d.dentro) texto = "Fuera del modelo.";
+    else if (!d.valores.length || d.valores[0] === null) texto = "Sin dato en esta celda.";
+    else {
+      // Solo lo que el archivo declara: sin unidad no se dice «metros», y sin referencia no se dice
+      // «sobre el nivel del mar».
+      texto =
+        formato(d.valores[0], 2) +
+        (capa.unidad_vertical ? " " + capa.unidad_vertical : " (unidad no declarada)") +
+        ", " +
+        (capa.referencia_vertical
+          ? "referencia vertical: " + capa.referencia_vertical
+          : "referencia vertical no declarada");
+    }
+    caja.textContent = texto;
+  }
+
+  function elemento(etiqueta, clase, texto) {
+    const e = document.createElement(etiqueta);
+    if (clase) e.className = clase;
+    if (texto !== undefined) e.textContent = texto;
+    return e;
+  }
+
+  function pintarLeyenda() {
+    const caja = $("terreno-leyenda");
+    if (!caja) return;
+    caja.replaceChildren();
+    const rango = capa.escala && capa.escala.length === 2 ? capa.escala : null;
+    if (modo.nombre === "gris") {
+      if (rango) {
+        caja.appendChild(
+          elemento(
+            "p",
+            "av-m-0",
+            "Más oscuro es más bajo (" + formato(rango[0], 1) + unidadV() + "); más claro, más alto (" +
+              formato(rango[1], 1) + unidadV() + "). Rango medido de forma aproximada."
+          )
+        );
+      }
+    } else if (modo.nombre === "sombra") {
+      caja.appendChild(
+        elemento(
+          "p",
+          "av-m-0",
+          "Más claro es la ladera que mira al sol; más oscuro, la que queda en sombra. Sol a " +
+            modo.az + "° de azimut y " + modo.alt + "° de altura, relieve exagerado " + modo.zf + " veces."
+        )
+      );
+    } else if (capa.rampa && capa.rampa.length) {
+      const primero = capa.rampa[0][0];
+      const ultimo = capa.rampa[capa.rampa.length - 1][0];
+      const rgb = (c) => "rgb(" + c[0] + ", " + c[1] + ", " + c[2] + ")";
+      const paradas = capa.rampa.map(function (p) {
+        return rgb(p[1]) + " " + (((p[0] - primero) / (ultimo - primero)) * 100).toFixed(1) + "%";
+      });
+      caja.appendChild(
+        elemento(
+          "p",
+          "av-mb-1",
+          "Cota" + (capa.unidad_vertical ? " (" + capa.unidad_vertical + ")" : " (unidad no declarada)")
+        )
+      );
+      const barra = elemento("div", "terreno-rampa");
+      barra.style.background = "linear-gradient(to right, " + paradas.join(", ") + ")";
+      barra.setAttribute("aria-hidden", "true");
+      caja.appendChild(barra);
+      // La escala **escrita**: el color nunca va solo.
+      const lista = elemento("ul", "terreno-rampa-paradas");
+      capa.rampa.forEach(function (p) {
+        const fila = elemento("li");
+        const muestra = elemento("i", "terreno-muestra");
+        muestra.style.background = rgb(p[1]);
+        muestra.setAttribute("aria-hidden", "true");
+        fila.appendChild(muestra);
+        fila.appendChild(elemento("span", "", formato(p[0], 1) + unidadV()));
+        lista.appendChild(fila);
+      });
+      caja.appendChild(lista);
+      caja.appendChild(
+        elemento("p", "tenue av-fs-xs av-mt-2 av-mb-0", "Rango medido de forma aproximada: fuera de él, el color de la punta.")
+      );
+    }
+  }
+
+  function reiniciarTeselas() {
+    cola.length = 0;
+    imagenes.forEach(function (r) {
+      if (r.img && r.img.close) r.img.close();
+    });
+    imagenes.clear();
+    falladas = 0;
+    avisados.clear();
+    if (claveDelAviso.indexOf("tesela:") === 0) quitarAviso(claveDelAviso);
+    estado();
+    pedir();
+  }
+
+  function leerModo() {
+    const marcado = document.querySelector('input[name="terreno-modo"]:checked');
+    modo = {
+      nombre: marcado ? marcado.value : "gris",
+      az: $("terreno-az").value,
+      alt: $("terreno-alt").value,
+      zf: $("terreno-zf").value,
+    };
+    $("terreno-sol").hidden = modo.nombre !== "sombra";
+    pintarLeyenda();
+  }
+
+  function iniciarTerreno() {
+    if (!capa.es_dem || !$("terreno")) return;
+    leerModo();
+    document.querySelectorAll('input[name="terreno-modo"]').forEach(function (e) {
+      e.addEventListener("change", function () {
+        leerModo();
+        reiniciarTeselas();
+      });
+    });
+    ["terreno-az", "terreno-alt", "terreno-zf"].forEach(function (id) {
+      $(id).addEventListener("change", function () {
+        leerModo();
+        if (modo.nombre === "sombra") reiniciarTeselas();
+      });
+    });
+  }
+
+  /* ---- Perfil entre dos puntos ---- */
+
+  // El espacio de nombres de SVG sale de un elemento `<svg>` de la plantilla, no de una dirección
+  // escrita aquí: este archivo no nombra ningún origen.
+  const SVG = $("perfil-ns") ? $("perfil-ns").namespaceURI : null;
+
+  function nodo(etiqueta, atributos, texto) {
+    const e = document.createElementNS(SVG, etiqueta);
+    Object.keys(atributos || {}).forEach(function (k) {
+      e.setAttribute(k, atributos[k]);
+    });
+    if (texto !== undefined) e.textContent = texto;
+    return e;
+  }
+
+  const decimalesDe = (paso) => Math.max(0, -Math.floor(Math.log10(paso) + 1e-9));
+
+  function textoDeCota(m) {
+    return m.cota === null ? "sin dato" : formato(m.cota, 2);
+  }
+
+  function dibujarGrafico(datos) {
+    const caja = $("perfil-grafico");
+    caja.replaceChildren();
+    const W = Math.max(caja.clientWidth, 260);
+    const H = 270;
+    const izq = 62;
+    const der = 14;
+    const arriba = 26;
+    const abajo = 56;
+    const ancho = W - izq - der;
+    const alto = H - arriba - abajo;
+    const valida = datos.muestras.filter((m) => m.cota !== null);
+    const km = datos.longitud_m >= 2000;
+    const divisor = km ? 1000 : 1;
+
+    const svg = nodo("svg", { viewBox: "0 0 " + W + " " + H, role: "img", "aria-labelledby": "perfil-svg-titulo perfil-svg-desc" });
+    svg.appendChild(nodo("title", { id: "perfil-svg-titulo" }, "Perfil de elevación entre A y B"));
+    svg.appendChild(
+      nodo(
+        "desc",
+        { id: "perfil-svg-desc" },
+        datos.n + " muestras en " + formato(datos.longitud_m, 1) + " m. " +
+          (valida.length
+            ? "Cota de " + formato(datos.minimo, 2) + " a " + formato(datos.maximo, 2) + unidadV() + "."
+            : "Ninguna muestra tiene cota.") +
+          " Los valores están en la tabla de abajo."
+      )
+    );
+
+    const minimo = valida.length ? datos.minimo : 0;
+    const maximo = valida.length ? datos.maximo : 1;
+    const holgura = (maximo - minimo) * 0.08 || 1;
+    const y0 = minimo - holgura;
+    const y1 = maximo + holgura;
+    const aX = (d) => izq + (d / datos.longitud_m) * ancho;
+    const aY = (v) => arriba + (1 - (v - y0) / (y1 - y0)) * alto;
+
+    // Rejilla y marcas de los dos ejes.
+    const pasoX = pasoRedondo(datos.longitud_m / divisor) * divisor;
+    const decX = decimalesDe(pasoX / divisor);
+    for (let d = 0; d <= datos.longitud_m + 1e-9; d += pasoX) {
+      const x = aX(d);
+      svg.appendChild(nodo("line", { class: "perfil-rejilla", x1: x, x2: x, y1: arriba, y2: arriba + alto }));
+      svg.appendChild(nodo("text", { class: "perfil-texto", x: x, y: arriba + alto + 14, "text-anchor": "middle" }, formato(d / divisor, decX)));
+    }
+    const pasoY = pasoRedondo(y1 - y0);
+    const decY = decimalesDe(pasoY);
+    for (let v = Math.ceil(y0 / pasoY) * pasoY; v <= y1; v += pasoY) {
+      const y = aY(v);
+      svg.appendChild(nodo("line", { class: "perfil-rejilla", x1: izq, x2: izq + ancho, y1: y, y2: y }));
+      svg.appendChild(nodo("text", { class: "perfil-texto", x: izq - 6, y: y + 4, "text-anchor": "end" }, formato(v, decY)));
+    }
+    svg.appendChild(nodo("line", { class: "perfil-eje", x1: izq, x2: izq, y1: arriba, y2: arriba + alto }));
+    svg.appendChild(nodo("line", { class: "perfil-eje", x1: izq, x2: izq + ancho, y1: arriba + alto, y2: arriba + alto }));
+    svg.appendChild(
+      nodo("text", { class: "perfil-texto", x: izq + ancho / 2, y: H - 22, "text-anchor": "middle" },
+        "Distancia desde A (" + (km ? "km" : "m") + ")")
+    );
+    const ejeY = nodo(
+      "text",
+      { class: "perfil-texto", x: 0, y: 0, "text-anchor": "middle", transform: "translate(13 " + (arriba + alto / 2) + ") rotate(-90)" },
+      "Cota (" + (capa.unidad_vertical || "unidad no declarada") + ")"
+    );
+    svg.appendChild(ejeY);
+    if (valida.length < datos.muestras.length) {
+      svg.appendChild(
+        nodo("text", { class: "perfil-texto", x: izq, y: H - 6 },
+          "Las barras en la base marcan huecos: sin dato o fuera del modelo.")
+      );
+    }
+    svg.appendChild(nodo("text", { class: "perfil-rotulo", x: izq, y: 14 }, "A"));
+    svg.appendChild(nodo("text", { class: "perfil-rotulo", x: izq + ancho, y: 14, "text-anchor": "end" }, "B"));
+
+    // La línea, **cortada** en cada hueco: lo que no se midió no se une ni se interpola.
+    let trazo = "";
+    let tramo = 0;
+    const cerrar = function (ultima) {
+      if (tramo === 1) svg.appendChild(nodo("circle", { class: "perfil-punto", cx: aX(ultima.d), cy: aY(ultima.cota), r: 3 }));
+      tramo = 0;
+    };
+    let previa = null;
+    datos.muestras.forEach(function (m) {
+      if (m.cota === null) {
+        if (previa) cerrar(previa);
+        previa = null;
+        trazo += " ";
+        // La marca del hueco es una barra en la base: forma, no solo color.
+        svg.appendChild(nodo("line", { class: "perfil-hueco", x1: aX(m.d), x2: aX(m.d), y1: arriba + alto - 10, y2: arriba + alto }));
+        return;
+      }
+      trazo += (tramo === 0 ? " M " : " L ") + aX(m.d).toFixed(1) + " " + aY(m.cota).toFixed(1);
+      tramo += 1;
+      previa = m;
+    });
+    if (previa) cerrar(previa);
+    if (valida.length) svg.appendChild(nodo("path", { class: "perfil-linea", d: trazo.trim() }));
+    caja.appendChild(svg);
+  }
+
+  function llenarTabla(datos) {
+    const cuerpo = $("perfil-filas");
+    cuerpo.replaceChildren();
+    $("perfil-col-cota").textContent = "Cota (" + (capa.unidad_vertical || "unidad no declarada") + ")";
+    datos.muestras.forEach(function (m) {
+      const fila = elemento("tr", "cifra");
+      fila.appendChild(elemento("td", "", String(m.i + 1)));
+      fila.appendChild(elemento("td", "", formato(m.d, 1)));
+      fila.appendChild(elemento("td", "", formato(m.lat, 6) + "°"));
+      fila.appendChild(elemento("td", "", formato(m.lon, 6) + "°"));
+      fila.appendChild(elemento("td", "", m.dentro ? textoDeCota(m) : "fuera del modelo"));
+      cuerpo.appendChild(fila);
+    });
+    $("perfil-tabla").hidden = false;
+  }
+
+  function urlDelPerfil(formatoSalida) {
+    const a = perfil.a;
+    const b = perfil.b;
+    return (
+      capa.perfilUrl +
+      "?ruta=" + encodeURIComponent(capa.ruta) +
+      "&lon1=" + aLon(a.mx).toFixed(9) + "&lat1=" + aLat(a.my).toFixed(9) +
+      "&lon2=" + aLon(b.mx).toFixed(9) + "&lat2=" + aLat(b.my).toFixed(9) +
+      "&n=" + encodeURIComponent($("perfil-n").value) +
+      (formatoSalida ? "&formato=" + formatoSalida : "")
+    );
+  }
+
+  function decirDelPerfil(texto) {
+    $("perfil-estado").textContent = texto;
+  }
+
+  function limpiarResultadoDelPerfil() {
+    perfil.datos = null;
+    $("perfil-grafico").replaceChildren();
+    $("perfil-tabla").hidden = true;
+    const enlace = $("perfil-csv");
+    enlace.setAttribute("aria-disabled", "true");
+    enlace.setAttribute("tabindex", "-1");
+    enlace.removeAttribute("href");
+  }
+
+  function pedirPerfil() {
+    if (perfil.control) perfil.control.abort();
+    perfil.control = new AbortController();
+    decirDelPerfil("Calculando el perfil…");
+    fetch(urlDelPerfil(""), { credentials: "same-origin", signal: perfil.control.signal })
+      .then(function (r) {
+        return r.json().then(function (datos) {
+          return { ok: r.ok, datos: datos };
+        });
+      })
+      .then(function (respuesta) {
+        if (!respuesta.ok) {
+          limpiarResultadoDelPerfil();
+          decirDelPerfil(respuesta.datos.mensaje || "No se pudo calcular el perfil.");
+          pedir();
+          return;
+        }
+        const d = respuesta.datos;
+        perfil.datos = d;
+        dibujarGrafico(d);
+        llenarTabla(d);
+        const enlace = $("perfil-csv");
+        enlace.href = urlDelPerfil("csv");
+        enlace.removeAttribute("aria-disabled");
+        enlace.removeAttribute("tabindex");
+        let texto =
+          "Perfil de " + formato(d.longitud_m, 1) + " m en " + d.n + " muestras" +
+          (d.minimo === null
+            ? ", sin ninguna cota."
+            : ": cota de " + formato(d.minimo, 2) + " a " + formato(d.maximo, 2) + unidadV() + ".");
+        if (d.sin_dato) texto += " " + d.sin_dato + " sin dato.";
+        if (d.fuera) texto += " " + d.fuera + " fuera del modelo.";
+        decirDelPerfil(texto);
+        pedir();
+      })
+      .catch(function (fallo) {
+        if (fallo && fallo.name === "AbortError") return;
+        limpiarResultadoDelPerfil();
+        decirDelPerfil("No se pudo calcular el perfil. Compruebe la conexión con el servidor.");
+      });
+  }
+
+  function marcarPerfil(mx, my) {
+    if (perfil.a && perfil.b) {
+      // Un tercer punto empieza otro perfil.
+      perfil.a = null;
+      perfil.b = null;
+      limpiarResultadoDelPerfil();
+    }
+    if (!perfil.a) {
+      perfil.a = { mx: mx, my: my };
+      decirDelPerfil("Punto A marcado. Marque el punto B.");
+      $("perfil-quitar").disabled = false;
+    } else {
+      perfil.b = { mx: mx, my: my };
+      pedirPerfil();
+    }
+    pedir();
+  }
+
+  function iniciarPerfil() {
+    if (!capa.es_dem || !$("perfil")) return;
+    $("perfil-marcar").addEventListener("click", function () {
+      perfil.activo = !perfil.activo;
+      this.setAttribute("aria-pressed", perfil.activo ? "true" : "false");
+      // El estado se **dice** en el botón (no solo se pinta): «Dejar de marcar» mientras está activo.
+      this.textContent = perfil.activo ? "Dejar de marcar" : "Marcar perfil";
+      if (perfil.activo && !perfil.a) decirDelPerfil("Marque el punto A: pinche, toque o pulse Intro en el centro del mapa.");
+      else if (!perfil.activo && !perfil.a) decirDelPerfil("Todavía no hay un perfil: marque los puntos A y B.");
+    });
+    $("perfil-quitar").addEventListener("click", function () {
+      perfil.a = null;
+      perfil.b = null;
+      if (perfil.control) perfil.control.abort();
+      limpiarResultadoDelPerfil();
+      decirDelPerfil(
+        perfil.activo
+          ? "Perfil quitado. Marque el punto A: pinche, toque o pulse Intro en el centro del mapa."
+          : "Perfil quitado. Active «Marcar perfil» para empezar otro."
+      );
+      this.disabled = true;
+      pedir();
+    });
+    $("perfil-n").addEventListener("change", function () {
+      if (perfil.a && perfil.b) pedirPerfil();
+    });
+    // El gráfico se dibuja a la medida del ancho de la tarjeta: al cambiarlo, se rehace.
+    let anchoAnterior = $("perfil-grafico").clientWidth;
+    new ResizeObserver(function () {
+      const ahora = $("perfil-grafico").clientWidth;
+      if (perfil.datos && Math.abs(ahora - anchoAnterior) > 2) dibujarGrafico(perfil.datos);
+      anchoAnterior = ahora;
+    }).observe($("perfil-grafico"));
   }
 
   /* ---- Zoom y paneo ---- */
@@ -707,7 +1197,7 @@
     const p = posicion(evento);
     const eraClic = arrastre && !arrastre.movido && punteros.size === 1;
     punteros.delete(evento.pointerId);
-    if (eraClic && evento.type === "pointerup") pedirValor(aMetrosX(p.x), aMetrosY(p.y));
+    if (eraClic && evento.type === "pointerup") accionDePunto(aMetrosX(p.x), aMetrosY(p.y));
     if (!punteros.size) arrastre = null;
   }
   lienzo.addEventListener("pointerup", soltar);
@@ -765,7 +1255,7 @@
         break;
       case "Enter":
       case " ":
-        pedirValor(vista.cx, vista.cy);
+        accionDePunto(vista.cx, vista.cy);
         break;
       default:
         return;
@@ -829,7 +1319,10 @@
         capa = respuesta.datos;
         capa.base = raiz.dataset.teselas.replace(/0\/0\/0\.png$/, "");
         capa.puntoUrl = raiz.dataset.punto;
+        capa.perfilUrl = raiz.dataset.perfil;
         capa.ruta = raiz.dataset.ruta;
+        iniciarTerreno();
+        iniciarPerfil();
         $("mapa-cargando").hidden = true;
         medir();
         encuadrar();

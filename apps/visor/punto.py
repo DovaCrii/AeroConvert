@@ -16,7 +16,7 @@ from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
 
-from . import motor
+from . import dem, motor
 from .capa import Capa
 
 
@@ -80,4 +80,10 @@ def con_valores(ruta: Path, capa: Capa, punto: Punto) -> Punto:
             valores.append(float(texto))
         except ValueError:
             valores.append(None)
+    # El «sin dato» del modelo de terreno no es una cota (-9999 no es una altura): sale como `None`.
+    if capa.es_dem and valores and valores[0] is not None:
+        if dem.es_sin_dato(valores[0], sin_dato=capa.nodata, es_nan=capa.nodata_es_nan):
+            valores[0] = None
+    # `NaN` e infinitos no viajan en JSON: tampoco son un valor.
+    valores = [v if v is None or math.isfinite(v) else None for v in valores]
     return Punto(**{**punto.__dict__, "valores": tuple(valores)})
