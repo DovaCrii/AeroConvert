@@ -442,6 +442,10 @@ class EntradaDeTrabajo(BaseModel):
     TRAYECTORIA = "trayectoria"
     DISPAROS = "disparos"
     REFERENCIA = "referencia"
+    #: Para el vuelo de dron con PPK (RTKLIB): los RINEX. Varias entradas pueden ser de navegación.
+    ROVER = "rover"
+    BASE = "base"
+    NAVEGACION = "navegacion"
     PAPELES = [
         ("", _("Input")),
         (HOJA, _("Sheet")),
@@ -449,6 +453,9 @@ class EntradaDeTrabajo(BaseModel):
         (TRAYECTORIA, _("Trajectory")),
         (DISPAROS, _("Camera events")),
         (REFERENCIA, _("Reference positions")),
+        (ROVER, _("Drone observations")),
+        (BASE, _("Base station observations")),
+        (NAVEGACION, _("Navigation ephemerides")),
     ]
 
     job = models.ForeignKey(ConversionJob, on_delete=models.CASCADE, related_name="entradas")

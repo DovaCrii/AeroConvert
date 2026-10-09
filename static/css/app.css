@@ -163,20 +163,58 @@
    * 3. **Spread negativo** (Polaris): recoge la sombra hacia dentro y evita el halo gris
    *    sucio. Y el desplazamiento apenas crece mientras el difuminado sí — en Material el
    *    offset va de 1 a 4 px y el blur de 3 a 12. La profundidad se gana con difusión. */
-  /* **F13.7 · plano con color.** Las superficies ya no flotan: todas se apoyan en un anillo de
-   * 1 px (`--av-elev-0` a `-2` son el mismo) y se distinguen por el cambio de superficie y por
-   * el color, no por una sombra. `--av-elev-3` es **la única sombra de verdad**, y solo para lo
-   * que flota encima de lo demás (menús y diálogos); `test_plano.py` lo vigila. */
+  /* **D8 · Plan de vuelo (F13.14).** Sustituye al «plano con color» de F13.7: la profundidad
+   * vuelve, pero **solo por estos tokens**. Cada nivel es el anillo de 1 px (el borde y la
+   * sombra son una sola decisión), una línea de luz de 1 px arriba (`--av-realce`) y una o dos
+   * sombras largas con extensión negativa, que recogen el halo gris. `--av-elev-0` es solo el
+   * anillo. `-1` es lo que está en la página, `-2` lo que se levanta al pasar por encima, `-3` lo
+   * que flota. `--av-elev-hover` es `-2` con el anillo en el color de acción, y
+   * `--av-elev-boton` el resplandor del botón principal. Ninguna regla escribe una sombra con
+   * difuminado a mano: `test_plano.py` lo vigila. Ver `docs/DISENO_PLAN_DE_VUELO.md`. */
   --av-anillo: rgb(18 34 59 / 12%);
+  --av-realce: rgb(255 255 255 / 85%);
+  --av-sombra-corta: rgb(18 34 59 / 10%);
+  --av-sombra-larga: rgb(45 60 110 / 30%);
   --av-elev-0: 0 0 0 1px var(--av-anillo);
-  --av-elev-1: 0 0 0 1px var(--av-anillo);
-  --av-elev-2: 0 0 0 1px var(--av-anillo);
+  --av-elev-1:
+    0 0 0 1px var(--av-anillo),
+    inset 0 1px 0 var(--av-realce),
+    0 1px 2px var(--av-sombra-corta),
+    0 12px 28px -14px var(--av-sombra-larga);
+  --av-elev-2:
+    0 0 0 1px var(--av-anillo),
+    inset 0 1px 0 var(--av-realce),
+    0 2px 4px var(--av-sombra-corta),
+    0 18px 34px -14px var(--av-sombra-larga);
   --av-elev-3:
     0 0 0 1px var(--av-anillo),
     0 8px 24px -8px rgb(18 34 59 / 22%);
+  --av-elev-hover:
+    0 0 0 1px var(--av-primary),
+    inset 0 1px 0 var(--av-realce),
+    0 2px 4px var(--av-sombra-corta),
+    0 18px 34px -14px var(--av-sombra-larga);
+  --av-elev-boton: 0 6px 16px -6px color-mix(in srgb, var(--av-primary) 55%, transparent);
 
-  /* Los dos de antes, conservados: `.tarjeta` los usa y el objetivo de esta
-   * tanda es no mover nada todavía. Se retiran en la siguiente, al aplicar la elevación. */
+  /* El **plan de vuelo**: la ruta (el cielo del filete de la barra y la línea punteada entre
+   * pasos), el halo del paso actual, el resplandor de la portada y las curvas de nivel de la
+   * zona de soltar. Todos decorativos: lo que informa lleva además número, borde y texto. */
+  --av-ruta: oklch(0.4500 0.1000 235.00);
+  --av-ruta-barra: oklch(0.8200 0.1000 220.00);
+  --av-halo: oklch(0.8800 0.0800 345.00);
+  --av-resplandor: oklch(0.9300 0.0500 345.00);
+  --av-curvas: oklch(0.6000 0.0900 262.00);
+  /* El final del degradado de la barra: del navy a un violeta frío. El texto blanco, el foco
+   * magenta y el borde del buscador se miden también contra este extremo (`test_paleta.py`). */
+  --av-barra-fin: oklch(0.3200 0.0750 272.00);
+
+  /* Tipografía. **Sin descargar nada:** pilas del sistema, con el nombre de la familia OFL por
+   * delante (Space Grotesk, Inter, JetBrains Mono) para que el día que la persona autorice
+   * vendorizarlas con SRI baste un `@font-face`. Mientras tanto cae a Bahnschrift, a Segoe UI
+   * Variable y a Cascadia Mono, que ya vienen con Windows. */
+  --av-fuente-texto: Inter, "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+  --av-fuente-titulos: "Space Grotesk", Bahnschrift, "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+  --av-fuente-cifras: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
 
   /* --- Tipografía ----------------------------------------------------------
    *
@@ -281,12 +319,35 @@
    * **sube**. Con solo una de las tres, un panel flotante sobre una tarjeta oscura se ve
    * exactamente igual que la tarjeta. */
   --av-anillo: rgb(255 255 255 / 14%);
+  --av-realce: rgb(255 255 255 / 9%);
+  --av-sombra-corta: rgb(0 0 0 / 40%);
+  --av-sombra-larga: rgb(0 0 0 / 60%);
   --av-elev-0: 0 0 0 1px var(--av-anillo);
-  --av-elev-1: 0 0 0 1px var(--av-anillo);
-  --av-elev-2: 0 0 0 1px var(--av-anillo);
+  --av-elev-1:
+    0 0 0 1px var(--av-anillo),
+    inset 0 1px 0 var(--av-realce),
+    0 1px 2px var(--av-sombra-corta),
+    0 12px 28px -14px var(--av-sombra-larga);
+  --av-elev-2:
+    0 0 0 1px var(--av-anillo),
+    inset 0 1px 0 var(--av-realce),
+    0 2px 4px var(--av-sombra-corta),
+    0 18px 34px -14px var(--av-sombra-larga);
   --av-elev-3:
     0 0 0 1px rgb(255 255 255 / 22%),
     0 8px 24px -8px rgb(0 0 0 / 60%);
+  --av-elev-hover:
+    0 0 0 1px var(--av-primary),
+    inset 0 1px 0 var(--av-realce),
+    0 2px 4px var(--av-sombra-corta),
+    0 18px 34px -14px var(--av-sombra-larga);
+  --av-elev-boton: 0 6px 16px -6px color-mix(in srgb, var(--av-primary) 45%, transparent);
+
+  --av-ruta: oklch(0.8200 0.1000 220.00);
+  --av-ruta-barra: oklch(0.8200 0.1000 220.00);
+  --av-halo: oklch(0.4000 0.1400 348.00);
+  --av-resplandor: oklch(0.2600 0.0800 335.00);
+  --av-curvas: oklch(0.5600 0.0800 262.00);
 }
 
 /* Sin `data-theme`, se sigue al sistema. El selector `:not([data-theme="light"])` es lo que
@@ -349,12 +410,35 @@
      * de familia faltaban aquí y se heredaban los del tema claro, o sea baldosas casi blancas
      * sobre tarjetas oscuras. */
     --av-anillo: rgb(255 255 255 / 14%);
+    --av-realce: rgb(255 255 255 / 9%);
+    --av-sombra-corta: rgb(0 0 0 / 40%);
+    --av-sombra-larga: rgb(0 0 0 / 60%);
     --av-elev-0: 0 0 0 1px var(--av-anillo);
-    --av-elev-1: 0 0 0 1px var(--av-anillo);
-    --av-elev-2: 0 0 0 1px var(--av-anillo);
+    --av-elev-1:
+      0 0 0 1px var(--av-anillo),
+      inset 0 1px 0 var(--av-realce),
+      0 1px 2px var(--av-sombra-corta),
+      0 12px 28px -14px var(--av-sombra-larga);
+    --av-elev-2:
+      0 0 0 1px var(--av-anillo),
+      inset 0 1px 0 var(--av-realce),
+      0 2px 4px var(--av-sombra-corta),
+      0 18px 34px -14px var(--av-sombra-larga);
     --av-elev-3:
-    0 0 0 1px rgb(255 255 255 / 22%),
-    0 8px 24px -8px rgb(0 0 0 / 60%);
+      0 0 0 1px rgb(255 255 255 / 22%),
+      0 8px 24px -8px rgb(0 0 0 / 60%);
+    --av-elev-hover:
+      0 0 0 1px var(--av-primary),
+      inset 0 1px 0 var(--av-realce),
+      0 2px 4px var(--av-sombra-corta),
+      0 18px 34px -14px var(--av-sombra-larga);
+    --av-elev-boton: 0 6px 16px -6px color-mix(in srgb, var(--av-primary) 45%, transparent);
+
+    --av-ruta: oklch(0.8200 0.1000 220.00);
+    --av-ruta-barra: oklch(0.8200 0.1000 220.00);
+    --av-halo: oklch(0.4000 0.1400 348.00);
+    --av-resplandor: oklch(0.2600 0.0800 335.00);
+    --av-curvas: oklch(0.5600 0.0800 262.00);
   }
 }
 
@@ -4011,7 +4095,8 @@ code {
 /* --- Corregir un vuelo de dron: los pasos y el visor (F18.4) --------------------------------
  * La disposición de Emlid Studio, que es la que ya conoce quien procesa vuelos: a la izquierda los
  * pasos en orden, a la derecha qué va a pasar; y, al terminar, el mapa con el recorrido y la foto
- * elegida. Plano con color: bordes y superficies, sin sombras ni degradados.
+ * elegida. Su profundidad y la línea de ruta entre pasos están en la sección «Plan de vuelo» del
+ * final de esta hoja.
  */
 .vuelo-layout {
   display: grid;
@@ -4088,6 +4173,32 @@ code {
 
 .vuelo-accion {
   padding-top: var(--av-s-2);
+}
+
+/* Los números de los pasos los cuenta el CSS: los pasos de una entrada o de la otra se ocultan
+ * (F18.7) y un número escrito a mano dejaría huecos (1, 2, 6, 7…). Un paso oculto no cuenta. */
+.vuelo-pasos {
+  counter-reset: vuelo-paso;
+}
+
+.vuelo-paso {
+  counter-increment: vuelo-paso;
+}
+
+.vuelo-paso-numero::before {
+  content: counter(vuelo-paso);
+}
+
+.vuelo-grupo {
+  display: grid;
+  gap: var(--av-s-3);
+}
+
+/* La segunda entrada: solo se ve la que está elegida. Sin `:has()` (navegadores viejos) se ven las
+ * dos, que es feo pero no esconde nada. */
+.vuelo-layout:has(#id_origen_rinex:checked) .vuelo-solo-trimble,
+.vuelo-layout:not(:has(#id_origen_rinex:checked)) .vuelo-solo-rinex {
+  display: none;
 }
 
 .vuelo-etapas,
@@ -4441,14 +4552,15 @@ code {
 
 /* --- Transiciones de estado y entrada suave (F13.13) ---------------------------------------
  * El estilo oscuro se siente vivo por cómo cambian las cosas, no porque se muevan: al pasar,
- * enfocar o desactivar, el **color, el fondo, el borde y la opacidad** cambian en 160 ms. Nada
- * se desplaza (sin `transform` al pasar, F13.7), nada proyecta sombra y no hay degradados.
+ * enfocar o desactivar, el **color, el fondo, el borde y la opacidad** cambian en 160 ms. (Con D8,
+ * «Plan de vuelo», lo que se levanta al pasar lo declara la sección de más abajo, con su propia
+ * transición de 250 ms y un máximo de 3 px.)
  * Las páginas y lo que htmx pinta **aparecen** (opacidad), no entran de ningún lado. `backwards`
  * y no `both`: al terminar, el elemento vuelve a ser normal y no queda un contexto de apilado
  * por una animación ya terminada. El bloque `prefers-reduced-motion` de abajo lo apaga todo. */
 :root {
   --av-estado: 0.16s ease;
-  --av-aparecer: 0.22s ease-out;
+  --av-aparecer: 0.45s cubic-bezier(0.2, 0.7, 0.2, 1);
 }
 
 .boton,
@@ -4470,12 +4582,15 @@ code {
 }
 
 @keyframes av-aparecer {
+  /* D8: el contenido aparece y sube 8 px (ver `docs/DISENO_PLAN_DE_VUELO.md`). */
   from {
     opacity: 0;
+    transform: translateY(8px);
   }
 
   to {
     opacity: 1;
+    transform: none;
   }
 }
 
@@ -4889,4 +5004,510 @@ code {
 .paso-equipo {
   white-space: normal;
   overflow-wrap: anywhere;
+}
+
+/* === D8 · Plan de vuelo (F13.14) ===================================================================
+ * La dirección visual de toda la app (decisión D8, 2026-10-09; sustituye al «plano con color» de
+ * F13.7). El archivo hace un vuelo: soltarlo es el despegue, los pasos numerados son puntos de ruta
+ * unidos por una trayectoria, y la verificación y la descarga son el aterrizaje.
+ *
+ * Todo lo de aquí es **capa sobre lo anterior**: los tokens `--av-*` siguen siendo los mismos y la
+ * estructura no cambia. Los límites los vigila `apps/core/test_plano.py`:
+ *   - degradados solo en la barra, el lateral y el fondo de la portada;
+ *   - sombras solo con los tokens `--av-elev-*`;
+ *   - al pasar el ratón, como mucho `translateY(-3px)`, y siempre con transición de 150 a 300 ms;
+ *   - todo movimiento se apaga con `prefers-reduced-motion` (último bloque de esta sección).
+ * Préstamos: de «Instrumento», las esquinas de encuadre y las cifras en monoespaciada; de «Mesa
+ * de luz», las curvas de nivel, **solo** como textura de la zona de soltar.
+ */
+
+body {
+  font-family: var(--av-fuente-texto);
+}
+
+h1,
+h2,
+h3,
+.marca,
+.grupo-titulo,
+.soltar-titulo,
+.herramienta-texto strong,
+.origen-titulo {
+  font-family: var(--av-fuente-titulos);
+}
+
+/* --- La barra: degradado frío y filete magenta-cielo ----------------------------------------- */
+.barra {
+  z-index: 5;
+  border-bottom: 0;
+  background: linear-gradient(100deg, var(--av-navy), var(--av-barra-fin));
+}
+
+.barra::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 -1px;
+  height: 2px;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, var(--av-magenta), var(--av-ruta-barra), transparent);
+  opacity: 0.85;
+}
+
+/* --- El lateral: vidrio, solo aquí. Un degradado de la superficie al fondo, sin desenfoque ---- */
+.lateral {
+  background: linear-gradient(180deg, var(--av-surface), var(--av-bg));
+}
+
+.lateral-cuenta,
+.grupo-cuenta {
+  font-family: var(--av-fuente-cifras);
+}
+
+/* --- Las cifras, en monoespaciada: lecturas, versiones, coordenadas ------------------------- */
+.cifra,
+td.cifra,
+.tira-cifra,
+.tira-de,
+.motor-version,
+.ficha dd,
+.recibo dd,
+.recibo-ruta,
+.visor-ficha dd,
+.crs-codigo,
+.avance-texto,
+.limite-subida strong,
+.paso-numero,
+.vuelo-paso-numero {
+  font-family: var(--av-fuente-cifras);
+}
+
+.recibo dd,
+.ficha dd,
+.visor-ficha dd {
+  font-size: 0.92em;
+  overflow-wrap: anywhere;
+}
+
+.matriz thead th,
+.historial-sondas .cifra {
+  font-family: var(--av-fuente-cifras);
+  font-size: var(--av-fs-xs);
+  letter-spacing: 0.04em;
+}
+
+/* --- La portada: resplandor de fondo y zona de soltar con curvas de nivel y trayectoria ------- */
+/* El resplandor va en el fondo de la página entera (no en un recuadro, que dejaría cantos). */
+.cuerpo-app:has(.portada-soltar) {
+  background: radial-gradient(60rem 24rem at 80% 0%, var(--av-resplandor), transparent 70%) no-repeat;
+}
+
+.soltar {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+/* Las curvas de nivel: una máscara de SVG pintada con `--av-curvas`, así siguen al tema. */
+.soltar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-color: var(--av-curvas);
+  opacity: 0.35;
+  -webkit-mask: url("../img/curvas-de-nivel.svg") center / cover no-repeat;
+  mask: url("../img/curvas-de-nivel.svg") center / cover no-repeat;
+}
+
+/* La trayectoria del vuelo: punteada, avanza despacio. Solo adorno (`aria-hidden`). */
+.soltar-ruta {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+  pointer-events: none;
+  color: var(--av-ruta);
+  opacity: 0.55;
+  fill: currentcolor;
+}
+
+.soltar-ruta-linea {
+  fill: none;
+  stroke: currentcolor;
+  stroke-width: 2;
+  stroke-dasharray: 6 8;
+  vector-effect: non-scaling-stroke;
+  animation: av-ruta 14s linear infinite;
+}
+
+@keyframes av-ruta {
+  to {
+    stroke-dashoffset: -280;
+  }
+}
+
+/* --- Lo que se levanta: tarjetas del catálogo, destinos y el botón principal ----------------- */
+.herramienta,
+.destino,
+.boton {
+  transition:
+    transform 250ms ease,
+    box-shadow 250ms ease,
+    color var(--av-estado),
+    background-color var(--av-estado),
+    border-color var(--av-estado),
+    opacity var(--av-estado);
+}
+
+.herramienta:hover,
+.herramienta:focus-visible {
+  transform: translateY(-3px);
+  box-shadow: var(--av-elev-hover);
+}
+
+.herramienta-apagada:hover {
+  transform: none;
+  box-shadow: var(--av-elev-1);
+}
+
+.destino:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: var(--av-elev-hover);
+}
+
+.boton:not(.boton-suave) {
+  box-shadow: var(--av-elev-boton);
+}
+
+.boton:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.boton:disabled {
+  box-shadow: none;
+}
+
+/* --- Campos: un filo de sombra arriba, como un hueco; el borde de control sigue a 3:1 -------- */
+.form-control,
+.form-select {
+  box-shadow: inset 0 1px 0 var(--av-sombra-corta);
+}
+
+.form-control:focus,
+.form-select:focus {
+  box-shadow: none;
+}
+
+/* --- Mensajes y píldoras ------------------------------------------------------------------- */
+.mensaje {
+  box-shadow: var(--av-elev-1);
+}
+
+.pildora {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+}
+
+/* --- Los pasos como puntos de ruta -------------------------------------------------------------
+ * Una línea punteada baja por detrás de las tarjetas, a la altura del centro de cada número: se ve
+ * en los huecos y las une. El paso actual (el primero que aún no tiene lo que pide) lleva un halo,
+ * **y además** el número en el color de acción y el borde: el halo no es el único indicador. El
+ * paso hecho cambia el número por una marca ✓ (forma, no solo color). */
+.vuelo-pasos {
+  position: relative;
+  gap: var(--av-s-5);
+}
+
+.vuelo-pasos::before {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  top: 2rem;
+  bottom: 2rem;
+  left: calc(var(--av-s-4) + 0.95rem - 1px);
+  border-left: 2px dashed var(--av-ruta);
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.vuelo-paso {
+  position: relative;
+  z-index: 1;
+  border: 0;
+  box-shadow: var(--av-elev-1);
+}
+
+.vuelo-paso-numero {
+  position: relative;
+  z-index: 1;
+  background: var(--av-surface-alt);
+  color: var(--av-text);
+  box-shadow: 0 0 0 2px var(--av-border-control);
+}
+
+.vuelo-paso:has(.vuelo-paso-elegido:not([hidden])) .vuelo-paso-numero {
+  background: var(--av-ok-soft);
+  box-shadow: 0 0 0 2px var(--av-ok);
+  color: var(--av-ok);
+}
+
+/* La marca de hecho: una insignia con ✓ en la esquina del número. Forma, no solo color. */
+.vuelo-paso:has(.vuelo-paso-elegido:not([hidden])) .vuelo-paso-numero::after {
+  content: "\2713";
+  position: absolute;
+  right: -7px;
+  bottom: -7px;
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid var(--av-surface);
+  border-radius: 50%;
+  background: var(--av-ok);
+  color: var(--av-surface);
+  font-size: var(--av-fs-xs);
+  line-height: 0.8rem;
+  text-align: center;
+  box-sizing: content-box;
+}
+
+.vuelo-pasos > .vuelo-paso:nth-child(1 of .vuelo-paso:not(:has(.vuelo-paso-elegido:not([hidden])))) {
+  box-shadow: var(--av-elev-hover);
+}
+
+.vuelo-pasos
+  > .vuelo-paso:nth-child(1 of .vuelo-paso:not(:has(.vuelo-paso-elegido:not([hidden]))))
+  .vuelo-paso-numero {
+  background: var(--av-primary);
+  color: var(--av-sobre-accion);
+  box-shadow:
+    0 0 0 2px var(--av-primary),
+    0 0 0 6px var(--av-halo);
+}
+
+/* --- Esquinas de encuadre (de «Instrumento»): Compatibilidad, lecturas y recibos ------------- */
+.tira-dato,
+.faltas,
+.motores .motor,
+.listas-compactas,
+.recibo,
+.grupo-herramientas > .tarjeta {
+  position: relative;
+}
+
+:is(.tira-dato, .faltas, .motores .motor, .listas-compactas, .recibo, .grupo-herramientas > .tarjeta)::before,
+:is(.tira-dato, .faltas, .motores .motor, .listas-compactas, .recibo, .grupo-herramientas > .tarjeta)::after {
+  content: "";
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border: 2px solid var(--av-primary);
+  pointer-events: none;
+}
+
+:is(.tira-dato, .faltas, .motores .motor, .listas-compactas, .recibo, .grupo-herramientas > .tarjeta)::before {
+  top: -1px;
+  left: -1px;
+  border-right: 0;
+  border-bottom: 0;
+}
+
+:is(.tira-dato, .faltas, .motores .motor, .listas-compactas, .recibo, .grupo-herramientas > .tarjeta)::after {
+  right: -1px;
+  bottom: -1px;
+  border-top: 0;
+  border-left: 0;
+}
+
+.recibo {
+  box-shadow: var(--av-elev-1);
+  border: 0;
+  border-left: 4px solid var(--av-ok);
+}
+
+/* --- La pantalla de entrada (D8): capacidades y la escena del vuelo ----------------------------
+ * Dos mitades como siempre (qué es esto, y entrar), más una escena **propia** debajo: un dron sobre
+ * un mosaico de ortofoto estilizado, con curvas de nivel, una nube de puntos, una lámina CAD y la
+ * trayectoria punteada con sus puntos de ruta. Ilustración SVG en la plantilla (sin fotos, sin
+ * internet, sin datos de nadie), `aria-hidden`, y los colores salen de los tokens, así que sigue al
+ * tema. A 375 px el formulario va arriba y la escena baja y se reduce. */
+.portada-capacidades {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--av-s-2);
+  margin: 0 0 var(--av-s-4);
+  padding: 0;
+  list-style: none;
+}
+
+.portada-capacidades li {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--av-s-2);
+  padding: 4px var(--av-s-3);
+  border-radius: var(--av-radius-pill);
+  background: var(--av-surface);
+  box-shadow: var(--av-elev-1);
+  color: var(--av-text);
+  font-size: var(--av-fs-sm);
+  font-weight: var(--av-peso-medio);
+}
+
+.portada-capacidades .nav-icono {
+  color: var(--av-primary);
+}
+
+.portada-privacidad {
+  display: flex;
+  align-items: center;
+  gap: var(--av-s-2);
+  margin: 0 0 var(--av-s-3);
+  color: var(--av-text);
+  font-weight: var(--av-peso-medio);
+}
+
+.portada-privacidad .nav-icono {
+  flex: none;
+  color: var(--av-ok);
+}
+
+.portada-escena {
+  grid-column: 1 / -1;
+  position: relative;
+  border-radius: var(--av-radius);
+  background: var(--av-surface);
+  box-shadow: var(--av-elev-1);
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.portada-escena::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-color: var(--av-curvas);
+  opacity: 0.18;
+  -webkit-mask: url("../img/curvas-de-nivel.svg") center / cover no-repeat;
+  mask: url("../img/curvas-de-nivel.svg") center / cover no-repeat;
+}
+
+.escena {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 20rem;
+}
+
+.escena-teja {
+  stroke: var(--av-border-control);
+  stroke-width: 1;
+}
+
+.escena-teja-a {
+  fill: var(--av-fam-imagen-soft);
+}
+
+.escena-teja-b {
+  fill: var(--av-fam-gnss-soft);
+}
+
+.escena-teja-c {
+  fill: var(--av-fam-planta-soft);
+}
+
+.escena-curvas ellipse {
+  fill: none;
+  stroke: var(--av-curvas);
+  stroke-width: 1.25;
+}
+
+.escena-puntos circle {
+  fill: var(--av-fam-destino);
+}
+
+.escena-lamina rect {
+  fill: var(--av-surface-alt);
+  stroke: var(--av-border-control);
+  stroke-width: 1.5;
+}
+
+.escena-lamina path {
+  fill: none;
+  stroke: var(--av-border-control);
+  stroke-width: 1;
+}
+
+.escena-lamina .escena-trazo {
+  stroke: var(--av-fam-texto);
+  stroke-width: 2.5;
+}
+
+.escena-ruta {
+  fill: none;
+  stroke: var(--av-ruta);
+  stroke-width: 2.5;
+  stroke-dasharray: 7 9;
+  animation: av-ruta 16s linear infinite;
+}
+
+.escena-hito {
+  fill: var(--av-surface);
+  stroke: var(--av-primary);
+  stroke-width: 3;
+}
+
+.escena-dron path {
+  fill: none;
+  stroke: var(--av-text);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+}
+
+.escena-dron rect {
+  fill: var(--av-primary);
+}
+
+.escena-dron circle {
+  fill: var(--av-text);
+}
+
+.escena-dron {
+  animation: av-flota 5s ease-in-out infinite;
+}
+
+@keyframes av-flota {
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+@media (max-width: 860px) {
+  /* El formulario, que es la acción principal, arriba; la presentación y la escena, después. */
+  .portada-acceso {
+    order: -1;
+  }
+
+  .escena {
+    max-height: 11rem;
+  }
+}
+
+/* --- Con movimiento reducido, nada se mueve ---------------------------------------------------
+ * El bloque de F13.13 ya deja las transiciones y las animaciones en 0,01 ms. Aquí se añade lo que
+ * ese no cubre: la trayectoria infinita se detiene y lo que sube al pasar el ratón se queda quieto. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+
+  .herramienta:hover,
+  .herramienta:focus-visible,
+  .destino:hover:not(:disabled),
+  .boton:hover:not(:disabled) {
+    transform: none !important;
+  }
 }

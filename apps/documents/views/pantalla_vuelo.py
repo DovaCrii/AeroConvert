@@ -15,6 +15,8 @@ from __future__ import annotations
 
 import io
 import json
+import math
+import re
 import zipfile
 from pathlib import Path
 
@@ -27,7 +29,7 @@ from django.views.decorators.http import require_GET
 from apps.core import modo as modo_mod
 
 from .. import cola as cola_mod
-from .. import vuelo_proceso, vuelo_trimble
+from .. import vuelo_ppk, vuelo_proceso, vuelo_trimble
 from ..composicion import ComposicionInvalida
 from ._comun import _origen_del_formulario
 
@@ -52,10 +54,89 @@ def _hay(request, campo: str, subida: str) -> bool:
     return bool(request.FILES.get(subida) or (request.POST.get(campo) or "").strip())
 
 
-@login_required
-def vuelo_dron_vista(request):
-    """Los tres archivos de Trimble y las fotos, y el proceso que los junta."""
-    contexto = {
+#: Los marcos en que puede estar la coordenada de la base. **No hay uno elegido por omisión**: el
+#: sistema no se adivina (regla 3 de `AGENTS.md`).
+SISTEMAS_DE_LA_BASE = (
+    "SIRGAS-Chile 2002",
+    "SIRGAS 2000",
+    "WGS84",
+    "ITRF2014",
+    "ITRF2008",
+    "ITRF2005",
+    "ITRF2000",
+)
+
+#: RINEX de observación y de navegación, por extensión: `.obs`, `.rnx`, `.25o`, `.25n`, `.25g`…
+_OBSERVACION = re.compile(r"\.(obs|rnx|o|\d{2}o)$", re.IGNORECASE)
+_NAVEGACION = re.compile(r"\.(nav|rnx|n|g|l|p|\d{2}[nglhpqc])$", re.IGNORECASE)
+
+#: Lo que se muestra de las opciones de RTKLIB, con su valor por omisión a la vista.
+MASCARA_POR_OMISION = 15
+UMBRAL_POR_OMISION = 3
+SISTEMAS_POR_OMISION = ("G", "R", "E", "C")
+
+#: Los campos de archivo de la segunda entrada: (campo de la carpeta compartida, campo de subida).
+_RINEX = (
+    ("rover_obs", "rover_obs_subida"),
+    ("navegacion", "navegacion_subida"),
+    ("navegacion_extra", "navegacion_extra_subida"),
+    ("base_obs", "base_obs_subida"),
+)
+
+
+def _numero(request, campo: str, que: str) -> float:
+    """Un número del formulario, con coma o con punto. Sin valor no hay número: no se supone."""
+    crudo = (request.POST.get(campo) or "").strip().replace(",", ".")
+    if not crudo:
+        raise ComposicionInvalida(f"Falta {que}.")
+    try:
+        valor = float(crudo)
+    except ValueError as fallo:
+        raise ComposicionInvalida(
+            f"{que[0].upper()}{que[1:]} no es un número: «{crudo}»."
+        ) from fallo
+    if not math.isfinite(valor):
+        raise ComposicionInvalida(f"{que[0].upper()}{que[1:]} no es un número: «{crudo}».")
+    return valor
+
+
+def _opciones_de_rtklib(request, contexto: dict) -> vuelo_ppk.Opciones:
+    """Las opciones de RTKLIB que pide la pantalla, validadas por `vuelo_ppk.Opciones`."""
+    try:
+        crudo = float((request.POST.get("ppk_mascara_elevacion_deg") or "").replace(",", "."))
+        umbral = float((request.POST.get("ppk_umbral_ambiguedad") or "").replace(",", "."))
+    except ValueError as fallo:
+        raise ComposicionInvalida(
+            "La máscara de elevación y el umbral de ambigüedades son números."
+        ) from fallo
+    if not math.isfinite(crudo) or crudo != int(crudo):
+        raise ComposicionInvalida(
+            "La máscara de elevación va en grados enteros (por omisión, 15): no se redondea."
+        )
+    mascara = int(crudo)
+    sistemas = request.POST.getlist("ppk_sistemas")
+    desconocidos = [s for s in sistemas if s not in vuelo_ppk.SISTEMAS]
+    if desconocidos:
+        raise ComposicionInvalida(
+            f"«{', '.join(desconocidos)}» no es un sistema satelital de los que se ofrecen."
+        )
+    contexto["ppk_mascara"] = mascara
+    contexto["ppk_umbral"] = umbral
+    contexto["ppk_sistemas"] = sistemas
+    contexto["ppk_modo"] = request.POST.get("ppk_modo") or "cinematico"
+    opciones = vuelo_ppk.Opciones(
+        modo=contexto["ppk_modo"],
+        mascara_elevacion_deg=mascara,
+        sistemas=",".join(sistemas),
+        umbral_ambiguedad=umbral,
+    )
+    opciones.validar()
+    return opciones
+
+
+def _contexto_inicial() -> dict:
+    estado = vuelo_ppk.sondar()
+    return {
         "seccion": "pdf",
         "etiqueta_seccion": "Vuelos de dron",
         "titulo_pagina": "Corregir un vuelo de dron",
@@ -70,25 +151,137 @@ def vuelo_dron_vista(request):
         "disparos_texto": "",
         "referencia_texto": "",
         "carpeta_texto": "",
+        # La segunda entrada: la trayectoria se calcula aquí con RTKLIB.
+        "origen": "trimble",
+        "ppk_disponible": bool(estado),
+        "ppk_motivo": estado.motivo,
+        "ppk_sugerencia": estado.sugerencia,
+        "ppk_codigo": "" if estado else "sin-rnx2rtkp",
+        "rover_obs_texto": "",
+        "navegacion_texto": "",
+        "navegacion_extra_texto": "",
+        "base_obs_texto": "",
+        "base_lat": "",
+        "base_lon": "",
+        "base_alt": "",
+        "base_sistema": "",
+        "sistemas_de_la_base": SISTEMAS_DE_LA_BASE,
+        "sistemas_satelitales": vuelo_ppk.SISTEMAS,
+        "ppk_mascara": MASCARA_POR_OMISION,
+        "ppk_umbral": UMBRAL_POR_OMISION,
+        "ppk_sistemas": list(SISTEMAS_POR_OMISION),
+        "ppk_modo": "cinematico",
     }
+
+
+def _revisar_el_ppk(request, contexto: dict) -> dict:
+    """Todo lo de la segunda entrada, **antes** de encolar: con el formulario delante se dice qué
+    falta, y no en una ficha roja de la cola. Devuelve lo que viaja en las opciones del trabajo."""
+    from ..motor import disponibilidad
+
+    estado = disponibilidad("vuelo_dron", {"origen": "rinex"})
+    if not estado.disponible:
+        raise ComposicionInvalida(
+            f"{estado.mensaje} {estado.sugerencia}".strip()
+            + " Mientras tanto sirve la trayectoria que exportó Trimble Business Center."
+        )
+    base = {
+        "base_lat": _numero(request, "base_lat", "la latitud de la base"),
+        "base_lon": _numero(request, "base_lon", "la longitud de la base"),
+        "base_alt_elipsoidal_m": _numero(
+            request, "base_alt", "la altura elipsoidal de la base (en metros)"
+        ),
+    }
+    sistema = (request.POST.get("base_sistema") or "").strip()
+    if not sistema:
+        raise ComposicionInvalida(
+            "Elija el sistema de las coordenadas de la base: no se supone, y uno equivocado "
+            "corre toda la trayectoria."
+        )
+    if sistema not in SISTEMAS_DE_LA_BASE:
+        raise ComposicionInvalida("Ese sistema de la base no es de los que se ofrecen.")
+    contexto["base_sistema"] = sistema
+    # `Base` valida los rangos (latitud, longitud, altura creíble).
+    declarada = vuelo_ppk.Base(
+        base["base_lat"], base["base_lon"], base["base_alt_elipsoidal_m"], sistema
+    )
+    ajustes = _opciones_de_rtklib(request, contexto)
+
+    for campo, subida in _RINEX:
+        if campo == "navegacion_extra":
+            continue
+        if not _hay(request, campo, subida):
+            raise ComposicionInvalida(
+                {
+                    "rover_obs": "Falta el RINEX de observación del dron (el «…_PPKOBS.obs»).",
+                    "navegacion": "Falta el RINEX de navegación (las efemérides).",
+                    "base_obs": "Falta el RINEX de observación de la base.",
+                }[campo]
+            )
+    origenes = {}
+    for campo, subida in _RINEX:
+        if _hay(request, campo, subida):
+            origenes[campo] = _origen_del_formulario(request, campo=campo, archivo=subida)
+    for campo, patron, que in (
+        ("rover_obs", _OBSERVACION, "un RINEX de observación"),
+        ("base_obs", _OBSERVACION, "un RINEX de observación"),
+        ("navegacion", _NAVEGACION, "un RINEX de navegación"),
+        ("navegacion_extra", _NAVEGACION, "un RINEX de navegación"),
+    ):
+        if campo in origenes and not patron.search(origenes[campo].nombre):
+            raise ComposicionInvalida(f"{origenes[campo].nombre} no parece {que}.")
+
+    # Lo barato se mira ya: que sean lo que dicen ser y que la base declarada no esté a kilómetros
+    # de la que dice el RINEX. Lo caro, RTKLIB, corre en la cola.
+    navegacion = [origenes[c].ruta for c in ("navegacion", "navegacion_extra") if c in origenes]
+    vuelo_ppk.revisar(origenes["rover_obs"].ruta, origenes["base_obs"].ruta, navegacion, declarada)
+
+    return {
+        "origenes": origenes,
+        "opciones": {
+            "origen": "rinex",
+            **base,
+            "base_sistema": sistema,
+            "ppk_modo": ajustes.modo,
+            "ppk_mascara_elevacion_deg": ajustes.mascara_elevacion_deg,
+            "ppk_sistemas": ajustes.sistemas,
+            "ppk_umbral_ambiguedad": ajustes.umbral_ambiguedad,
+        },
+    }
+
+
+@login_required
+def vuelo_dron_vista(request):
+    """Los archivos del vuelo y el proceso que los junta, con la trayectoria **de dos orígenes**:
+    la que ya calculó Trimble Business Center, o la que se calcula aquí con RTKLIB (PPK)."""
+    contexto = _contexto_inicial()
     if request.method != "POST":
         return render(request, "documents/vuelo_dron.html", contexto)
 
-    contexto["escala"] = request.POST.get("escala_de_tiempo") or ""
+    con_rtklib = request.POST.get("origen") == "rinex"
+    contexto["origen"] = "rinex" if con_rtklib else "trimble"
+    contexto["escala"] = request.POST.get("escala_de_tiempo") or ("GPST" if con_rtklib else "")
     contexto["sistema"] = request.POST.get("sistema") or "medir"
     contexto["aplicar_desfase"] = request.POST.get("aplicar_desfase") == "on"
     contexto["escribir_en_fotos"] = request.POST.get("escribir_en_fotos") == "on"
     for campo in ("trayectoria", "disparos", "referencia"):
         contexto[f"{campo}_texto"] = (request.POST.get(campo) or "").strip()
+    for campo, _subida in _RINEX:
+        contexto[f"{campo}_texto"] = (request.POST.get(campo) or "").strip()
+    for campo in ("base_lat", "base_lon", "base_alt"):
+        contexto[campo] = (request.POST.get(campo) or "").strip()
+    contexto["base_sistema"] = (request.POST.get("base_sistema") or "").strip()
     contexto["carpeta_texto"] = (request.POST.get("carpeta_de_fotos") or "").strip()
 
     try:
-        if not _hay(request, "trayectoria", "trayectoria_subida"):
+        if not con_rtklib and not _hay(request, "trayectoria", "trayectoria_subida"):
             raise ComposicionInvalida("Falta la trayectoria: el CSV que exportó Trimble.")
         if not _hay(request, "disparos", "disparos_subida"):
             raise ComposicionInvalida("Faltan los disparos de la cámara: el archivo .MRK del dron.")
-        trayectoria = _origen_del_formulario(
-            request, campo="trayectoria", archivo="trayectoria_subida"
+        trayectoria = (
+            None
+            if con_rtklib
+            else _origen_del_formulario(request, campo="trayectoria", archivo="trayectoria_subida")
         )
         disparos = _origen_del_formulario(request, campo="disparos", archivo="disparos_subida")
         referencia = (
@@ -96,11 +289,13 @@ def vuelo_dron_vista(request):
             if _hay(request, "referencia", "referencia_subida")
             else None
         )
-        if Path(trayectoria.nombre).suffix.lower() not in EXTENSIONES_DE_TRAYECTORIA:
+        if trayectoria is not None and (
+            Path(trayectoria.nombre).suffix.lower() not in EXTENSIONES_DE_TRAYECTORIA
+        ):
             raise ComposicionInvalida(f"{trayectoria.nombre} no es un CSV de trayectoria.")
         if Path(disparos.nombre).suffix.lower() not in EXTENSIONES_DE_DISPAROS:
             raise ComposicionInvalida(f"{disparos.nombre} no es un .MRK ni una lista de tiempos.")
-        if contexto["escala"] not in ESCALAS:
+        if not con_rtklib and contexto["escala"] not in ESCALAS:
             raise ComposicionInvalida(
                 "Elija la escala de tiempo de la trayectoria: no se supone."
                 if not contexto["escala"]
@@ -119,6 +314,8 @@ def vuelo_dron_vista(request):
                 "Para escribir la posición en las fotos hay que elegir la carpeta donde están."
             )
 
+        ppk = _revisar_el_ppk(request, contexto) if con_rtklib else None
+
         # El sistema se mide (o se comprueba) **aquí**, con el formulario delante: un sistema que no
         # coincide se dice ahora y no en una ficha roja de la cola.
         posiciones = (
@@ -133,8 +330,17 @@ def vuelo_dron_vista(request):
 
     from apps.jobs.models import EntradaDeTrabajo
 
-    entradas = [trayectoria, disparos]
-    papeles = [EntradaDeTrabajo.TRAYECTORIA, EntradaDeTrabajo.DISPAROS]
+    if ppk is None:
+        entradas = [trayectoria, disparos]
+        papeles = [EntradaDeTrabajo.TRAYECTORIA, EntradaDeTrabajo.DISPAROS]
+    else:
+        origenes = ppk["origenes"]
+        entradas = [disparos, origenes["rover_obs"], origenes["base_obs"]]
+        papeles = [EntradaDeTrabajo.DISPAROS, EntradaDeTrabajo.ROVER, EntradaDeTrabajo.BASE]
+        for campo in ("navegacion", "navegacion_extra"):
+            if campo in origenes:
+                entradas.append(origenes[campo])
+                papeles.append(EntradaDeTrabajo.NAVEGACION)
     if referencia:
         entradas.append(referencia)
         papeles.append(EntradaDeTrabajo.REFERENCIA)
@@ -143,13 +349,15 @@ def vuelo_dron_vista(request):
         "vuelo_dron",
         entradas,
         {
-            "escala_de_tiempo": contexto["escala"],
+            # La hora de un `.pos` de RTKLIB es siempre GPST: no se pregunta.
+            "escala_de_tiempo": "GPST" if con_rtklib else contexto["escala"],
             # Lo que se pidió, no lo que salió: el hijo repite la medición (es barata) y así el
             # recibo dice «medido» o «declarado y comprobado», que es lo que pasó.
             "sistema": contexto["sistema"],
             "aplicar_desfase": contexto["aplicar_desfase"],
             "carpeta_de_fotos": carpeta,
             "escribir_en_fotos": contexto["escribir_en_fotos"],
+            **(ppk["opciones"] if ppk else {}),
         },
         sufijo="_vuelo.zip",
         papeles=papeles,

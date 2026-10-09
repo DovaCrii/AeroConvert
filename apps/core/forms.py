@@ -36,7 +36,7 @@ class FormularioDeEntrada(AuthenticationForm):
                 # autorrelleno del móvil ofrezcan lo correcto.
                 "autocomplete": "email",
                 "inputmode": "email",
-                "placeholder": "tu.nombre@jej.cl",
+                "placeholder": "nombre.apellido@jej.cl",
             }
         ),
     )

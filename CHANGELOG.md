@@ -13,6 +13,38 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 - **Lo que no se adivina ni se esconde.** Sin sistema de referencia (o uno local de obra), sin matriz de transformación o fuera de lo que Web Mercator dibuja, la pantalla lo dice y no pinta (`capa-sin-crs`, `capa-sin-georreferencia`, `capa-fuera-del-mapa`); sin GDAL sale apagada con `sin-gdal` y la ficha de «Convertir» como alternativa, y el botón de la ficha, deshabilitado y con su motivo. Todas las vistas piden sesión; lo que está fuera de las carpetas permitidas o es de otra persona da 403 con su código.
 - Oráculo (`@pytest.mark.oraculo`, GDAL 3.12.4, sobre un GeoTIFF sintético en UTM 19S): las esquinas coinciden con `wgs84Extent` de `gdalinfo` a 4,4e-8° y el centro con `gdaltransform` a 4e-14°; columna, fila y valores de cinco píxeles son los de `gdallocationinfo -wgs84` y `-geoloc`; una tesela es **idéntica** a la de otro `gdalwarp` (0 de 65 536 píxeles distintos) y a GeoTIFF difiere en ±1 nivel en 240 (0,37 %); el color de cinco píxeles del tablero está en su sitio, o sea, el norte arriba y el este a la derecha. Cifras en `docs/PRUEBAS_CON_ORACULO.md`.
 
+### Añadido — «Corregir un vuelo de dron» calcula la trayectoria con RTKLIB (F18.7)
+
+- **La segunda entrada de la pantalla.** Una elección visible, «¿De dónde sale la trayectoria?»: la que
+  exportó Trimble Business Center (lo de siempre) o «Calcularla aquí con RTKLIB (PPK)». Con RTKLIB se
+  piden el RINEX del dron, uno o dos de navegación y el de la base, y **la coordenada de la base**:
+  latitud y longitud en grados decimales, altura **elipsoidal** y el sistema (SIRGAS-Chile 2002, SIRGAS
+  2000, WGS84, ITRF…) en un selector **sin valor elegido**: el sistema no se supone. Las opciones de
+  RTKLIB (modo, máscara de elevación 15°, sistemas G, R, E y C, umbral de ambigüedades 3) están
+  plegadas, con su valor a la vista.
+- **Se revisa antes de encolar:** que los RINEX sean lo que dicen ser y que la base declarada no esté a más
+  de 1 km de la que dice su RINEX (un error de signo, de zona o de estación sale en kilómetros).
+- **Sin `rnx2rtkp` la opción sale apagada**, no oculta, con el motivo estable `sin-rnx2rtkp` y cómo
+  instalarlo; la de Trimble sigue encendida. El corredor le pasa al hijo la ruta del programa.
+- **El zip lleva `trayectoria.pos`** (lo que escribió RTKLIB, tal cual), `trayectoria.md` (calidad, huecos y
+  lo declarado: la base, su sistema y las opciones) y los entregables de siempre. La calidad de cada foto
+  es la de las épocas vecinas (fija, flotante, simple), y lo que no es fijo se avisa. La altura es la
+  elipsoidal, y el contraste con Trimble juzga solo el plano.
+- **Barra de avance leída de RTKLIB:** `rnx2rtkp` se lee mientras corre y, con la primera y la última
+  observación del dron (`TIME OF FIRST/LAST OBS`), sale la fracción; sin hora de fin queda solo la
+  etiqueta. El código de salida sigue sin ser la prueba: lo es el `.pos` leído.
+- Tres papeles nuevos para las entradas de un trabajo (`rover`, `base`, `navegacion`) y un lector del
+  `.pos` en la verificación del zip que cuenta las épocas aparte.
+
+### Cambiado — dirección visual «Plan de vuelo» en toda la app (D8, F13.14)
+
+- La persona eligió «A · Plan de vuelo» entre tres direcciones; **sustituye al «plano con color» de F13.7**. El archivo hace un vuelo: soltarlo es el despegue, los pasos son puntos de ruta unidos por una trayectoria punteada (con halo en el paso actual y una marca ✓ en el hecho), y la verificación y la descarga son el aterrizaje.
+- **Barra** con degradado frío y filete magenta-cielo; **lateral** de vidrio (degradado, sin desenfoque); **portada** con resplandor de fondo y zona de soltar con **curvas de nivel** (`static/img/curvas-de-nivel.svg`, como máscara) y la trayectoria que avanza; tarjetas, baldosas y pasos con profundidad (`--av-elev-*`); el catálogo sube hasta 3 px al pasar (250 ms). Esquinas de encuadre y cifras en monoespaciada en Compatibilidad, recibos y lecturas.
+- **Pantalla de entrada rediseñada:** seis fichas con lo que hace la app (ortofotos, nubes de puntos, planos CAD, GNSS, vuelos de dron con PPK, PDF y documentos), la frase de que los archivos no salen del equipo y una escena propia en SVG (un dron sobre un mosaico de ortofoto estilizado, con curvas de nivel, una nube de puntos, una lámina CAD y la ruta con sus puntos). Sin fotos ni datos de nadie. A 375 px el formulario queda arriba. La autenticación y los campos no cambian.
+- **Tipografías:** no se descargó ninguna; pilas del sistema (Bahnschrift para titulares, Cascadia Mono para cifras). Space Grotesk, Inter y JetBrains Mono (OFL) se vendorizarían con SRI cuando la persona lo autorice.
+- Todo movimiento se apaga con `prefers-reduced-motion`. El contraste WCAG AA y el foco no cambian y se miden también contra el segundo extremo del degradado de la barra.
+- Pruebas: `test_plano.py` se **reescribió** para las reglas nuevas (degradados solo en barra, lateral y fondo de portada; sombras solo con `--av-elev-*`; `translateY(-3px)` como máximo con transición de 150 a 300 ms; movimiento reducido; ninguna descarga); `test_paleta.py` añade los pares de la barra, la ruta y la marca de hecho; `test_escalas.py` y `test_iconos.py` se ajustaron a la nueva elevación y a los dos adornos SVG. Ver `docs/DISENO_PLAN_DE_VUELO.md`.
+
 ### Añadido — Hacer un libro EPUB (F14.22)
 
 - De un PDF con texto, un Word, una página web, una hoja o un Markdown, un **EPUB 3** que se lee en el teléfono o en un lector: un capítulo por título de primer nivel, índice del lector, título y autor opcionales. Pasa por `a_markdown` (la lectura ya probada) y se escribe sin dependencia nueva (`apps/documents/a_epub.py`). Un escaneo sin texto lo dice y no deja libro. Son ya **cuarenta y una** herramientas de documentos.

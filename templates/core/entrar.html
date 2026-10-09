@@ -38,6 +38,20 @@
       </li>
     </ul>
 
+    {# D8: lo que hace la app, en seis fichas con su icono y su texto (el color nunca va solo). #}
+    <ul class="portada-capacidades" aria-label="Lo que puede hacer">
+      <li><svg class="nav-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-destino-capas"></use></svg>Ortofotos</li>
+      <li><svg class="nav-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-destino-cubo"></use></svg>Nubes de puntos</li>
+      <li><svg class="nav-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-lamina-dxf"></use></svg>Planos CAD</li>
+      <li><svg class="nav-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-destino-satelite"></use></svg>GNSS</li>
+      <li><svg class="nav-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-dron"></use></svg>Vuelos de dron con PPK</li>
+      <li><svg class="nav-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-pdf-archivo"></use></svg>PDF y documentos</li>
+    </ul>
+    <p class="portada-privacidad">
+      <svg class="nav-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-equipo"></use></svg>
+      Todo se hace en su equipo: los archivos no salen de él.
+    </p>
+
     <p class="portada-familia">
       Aplicación hermana de AeroBim, AeroControl, AeroPlanner y AeroLink.
     </p>
@@ -85,5 +99,45 @@
       {% endif %}
     </div>
   </section>
+  {# D8: la escena del vuelo. Ilustración propia (sin fotos ni datos de nadie), solo adorno. #}
+  <div class="portada-escena" aria-hidden="true">
+    <svg class="escena" viewBox="0 0 640 300" focusable="false">
+      <g class="escena-mosaico">
+        <path class="escena-teja escena-teja-a" d="M60 210 L190 160 L290 190 L160 245 Z"/>
+        <path class="escena-teja escena-teja-b" d="M190 160 L320 112 L420 142 L290 190 Z"/>
+        <path class="escena-teja escena-teja-c" d="M320 112 L450 66 L550 94 L420 142 Z"/>
+        <path class="escena-teja escena-teja-c" d="M160 245 L290 190 L390 222 L260 275 Z"/>
+        <path class="escena-teja escena-teja-a" d="M290 190 L420 142 L520 174 L390 222 Z"/>
+        <path class="escena-teja escena-teja-b" d="M420 142 L550 94 L600 110 L520 174 Z"/>
+      </g>
+      <g class="escena-curvas">
+        <ellipse cx="330" cy="168" rx="30" ry="13"/>
+        <ellipse cx="330" cy="168" rx="68" ry="29"/>
+        <ellipse cx="326" cy="166" rx="112" ry="47"/>
+      </g>
+      <g class="escena-puntos">
+        <circle cx="92" cy="96" r="3"/><circle cx="108" cy="84" r="3"/><circle cx="124" cy="92" r="3"/>
+        <circle cx="140" cy="76" r="3"/><circle cx="116" cy="106" r="3"/><circle cx="148" cy="98" r="3"/>
+        <circle cx="132" cy="68" r="3"/><circle cx="164" cy="86" r="3"/><circle cx="100" cy="112" r="3"/>
+        <circle cx="156" cy="112" r="3"/><circle cx="124" cy="120" r="3"/><circle cx="172" cy="104" r="3"/>
+      </g>
+      <g class="escena-lamina">
+        <rect x="486" y="188" width="116" height="84" rx="4"/>
+        <path d="M486 216 H602 M486 244 H602 M525 188 V272 M564 188 V272"/>
+        <path class="escena-trazo" d="M498 262 L520 232 L548 246 L588 204"/>
+      </g>
+      <path class="escena-ruta" d="M30 120 C 120 40, 200 130, 300 90 S 470 30, 600 60"/>
+      <circle class="escena-hito" cx="120" cy="82" r="5"/>
+      <circle class="escena-hito" cx="300" cy="90" r="5"/>
+      <circle class="escena-hito" cx="470" cy="50" r="5"/>
+      <g transform="translate(300 66) scale(1.6)">
+        <g class="escena-dron">
+          <path d="M-16 0 H16 M-16 0 V-6 M16 0 V-6 M-20 -6 H-12 M12 -6 H20"/>
+          <rect x="-7" y="-3" width="14" height="8" rx="3"/>
+          <circle cx="0" cy="9" r="2"/>
+        </g>
+      </g>
+    </svg>
+  </div>
 </div>
 {% endblock %}
