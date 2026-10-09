@@ -339,6 +339,8 @@
   {% endcomment %}
   <script src="{% static 'js/respuestas.js' %}"></script>
   <script src="{% static 'js/crs.js' %}"></script>
+  {# Ver una página en grande desde su miniatura. Sin él, se abre en otra pestaña. #}
+  <script src="{% static 'js/ampliar.js' %}"></script>
   {% block scripts %}{% endblock %}
 </body>
 </html>

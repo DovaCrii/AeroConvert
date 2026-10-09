@@ -28,9 +28,12 @@
         <div class="tira">
           {% for pagina in cabecera.paginas|slice:":12" %}
             <figure class="tira-hoja">
+              <a target="_blank" rel="noopener" data-ampliar="Página {{ pagina.numero }}"
+                 href="{% url 'documents:miniatura' %}?ruta={{ ruta|urlencode }}&amp;pagina={{ pagina.numero }}&amp;ancho=1400">
               <img loading="lazy" decoding="async"
-                   alt="Página {{ pagina.numero }}"
+                   alt="Página {{ pagina.numero }}, ver en grande"
                    src="{% url 'documents:miniatura' %}?ruta={{ ruta|urlencode }}&amp;pagina={{ pagina.numero }}&amp;ancho=120">
+              </a>
               <figcaption>{{ pagina.numero }}</figcaption>
             </figure>
           {% endfor %}

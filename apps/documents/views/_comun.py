@@ -132,7 +132,7 @@ def _contexto(origenes: list, entradas, extra: dict | None = None) -> dict:
     contexto = {
         "seccion": "pdf",
         "etiqueta_seccion": "PDF",
-        "titulo_pagina": "Junta varios PDF en uno",
+        "titulo_pagina": "Juntar varios PDF en uno",
         "proposito": (
             "Elija qué páginas entran, en qué orden, y gire las láminas que lo necesiten."
         ),

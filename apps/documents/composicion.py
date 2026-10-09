@@ -31,6 +31,8 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
 
+from apps.formats import pdf as _pdf_lectura
+
 #: Los giros que se pueden pedir. Cualquier otro valor es un error del formulario, no una
 #: rotación rara: un PDF solo admite múltiplos de 90.
 GIROS = (0, 90, 180, 270)
@@ -84,7 +86,7 @@ def componer(receta: Iterable[PaginaElegida], destino: str | Path) -> Resultado:
     Los archivos de origen **se abren y no se tocan**: pypdf lee y escribe en un documento
     nuevo.
     """
-    from pypdf import PdfReader, PdfWriter
+    from pypdf import PdfWriter
 
     receta = list(receta)
     if not receta:
@@ -106,7 +108,7 @@ def componer(receta: Iterable[PaginaElegida], destino: str | Path) -> Resultado:
             if not ruta.is_file():
                 raise ComposicionInvalida(f"No hay ningún archivo en {ruta}.")
             try:
-                lectores[ruta] = PdfReader(str(ruta))
+                lectores[ruta] = _pdf_lectura.abrir_lector(ruta)
             except Exception as fallo:
                 raise ComposicionInvalida(f"No se pudo leer {ruta.name}: {fallo}") from fallo
 

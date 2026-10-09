@@ -29,8 +29,12 @@ from pathlib import Path
 #: derecha; muy por debajo de lo que costaría leerla, que no es lo que se pide aquí.
 ANCHO = 220
 
+#: El ancho de «ver en grande»: una A4 a 1400 px se lee entera (unos 170 ppp), que es lo que
+#: se pidió en p340 (2026-10-09) para saber qué dice una hoja antes de quitarla o moverla.
+ANCHO_GRANDE = 1400
+
 #: Tope de seguridad. Una petición manipulada no puede pedir una imagen de 20.000 px.
-ANCHO_MAXIMO = 600
+ANCHO_MAXIMO = ANCHO_GRANDE
 
 
 class NoSePudoDibujar(Exception):

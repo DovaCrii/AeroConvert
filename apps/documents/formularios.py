@@ -23,6 +23,8 @@ import io
 from dataclasses import dataclass
 from pathlib import Path
 
+from apps.formats import pdf as _pdf_lectura
+
 from .composicion import ComposicionInvalida
 
 #: Bits de `/Ff` de un botón (ISO 32000-1, tabla 226): 16 es «opción» y 17 «botón de acción».
@@ -60,7 +62,7 @@ def _abrir(ruta: Path):
         lector = PdfReader(str(ruta))
     except (PyPdfError, OSError) as fallo:
         raise ComposicionInvalida(f"No se pudo abrir {ruta.name}: {fallo}") from fallo
-    if lector.is_encrypted:
+    if _pdf_lectura.pide_clave(lector):
         raise ComposicionInvalida(f"{ruta.name} pide contraseña, así que no se puede rellenar.")
     return lector
 
