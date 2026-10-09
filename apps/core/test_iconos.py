@@ -150,8 +150,15 @@ def test_ninguna_plantilla_dibuja_un_svg_suelto():
         texto = ruta.read_text(encoding="utf-8")
         for m in re.finditer(r"<svg\b([^>]*)>(.*?)</svg>", texto, re.DOTALL):
             # `dibujo-puntos` (los puntos de una libreta) y `mapa-svg` (la huella sobre la
-            # retícula) son gráficos de datos, no iconos.
-            if "dibujo-" in m.group(1) or "mapa-svg" in m.group(1):
+            # retícula) son gráficos de datos, no iconos. `soltar-ruta` (D8, Plan de vuelo) es
+            # la trayectoria punteada de la zona de soltar: un adorno animado por CSS, `aria-hidden`
+            # y sin texto, que no puede ir al sprite porque se anima por trazo.
+            if (
+                "dibujo-" in m.group(1)
+                or "mapa-svg" in m.group(1)
+                or "soltar-ruta" in m.group(1)
+                or 'class="escena"' in m.group(1)
+            ):
                 continue
             if re.search(r"<(path|circle|rect|line|polyline|polygon|ellipse)\b", m.group(2)):
                 sueltos.append(ruta.relative_to(RAIZ).as_posix())

@@ -5,6 +5,15 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Sin publicar]
 
+### Cambiado — dirección visual «Plan de vuelo» en toda la app (D8, F13.14)
+
+- La persona eligió «A · Plan de vuelo» entre tres direcciones; **sustituye al «plano con color» de F13.7**. El archivo hace un vuelo: soltarlo es el despegue, los pasos son puntos de ruta unidos por una trayectoria punteada (con halo en el paso actual y una marca ✓ en el hecho), y la verificación y la descarga son el aterrizaje.
+- **Barra** con degradado frío y filete magenta-cielo; **lateral** de vidrio (degradado, sin desenfoque); **portada** con resplandor de fondo y zona de soltar con **curvas de nivel** (`static/img/curvas-de-nivel.svg`, como máscara) y la trayectoria que avanza; tarjetas, baldosas y pasos con profundidad (`--av-elev-*`); el catálogo sube hasta 3 px al pasar (250 ms). Esquinas de encuadre y cifras en monoespaciada en Compatibilidad, recibos y lecturas.
+- **Pantalla de entrada rediseñada:** seis fichas con lo que hace la app (ortofotos, nubes de puntos, planos CAD, GNSS, vuelos de dron con PPK, PDF y documentos), la frase de que los archivos no salen del equipo y una escena propia en SVG (un dron sobre un mosaico de ortofoto estilizado, con curvas de nivel, una nube de puntos, una lámina CAD y la ruta con sus puntos). Sin fotos ni datos de nadie. A 375 px el formulario queda arriba. La autenticación y los campos no cambian.
+- **Tipografías:** no se descargó ninguna; pilas del sistema (Bahnschrift para titulares, Cascadia Mono para cifras). Space Grotesk, Inter y JetBrains Mono (OFL) se vendorizarían con SRI cuando la persona lo autorice.
+- Todo movimiento se apaga con `prefers-reduced-motion`. El contraste WCAG AA y el foco no cambian y se miden también contra el segundo extremo del degradado de la barra.
+- Pruebas: `test_plano.py` se **reescribió** para las reglas nuevas (degradados solo en barra, lateral y fondo de portada; sombras solo con `--av-elev-*`; `translateY(-3px)` como máximo con transición de 150 a 300 ms; movimiento reducido; ninguna descarga); `test_paleta.py` añade los pares de la barra, la ruta y la marca de hecho; `test_escalas.py` y `test_iconos.py` se ajustaron a la nueva elevación y a los dos adornos SVG. Ver `docs/DISENO_PLAN_DE_VUELO.md`.
+
 ### Añadido — Hacer un libro EPUB (F14.22)
 
 - De un PDF con texto, un Word, una página web, una hoja o un Markdown, un **EPUB 3** que se lee en el teléfono o en un lector: un capítulo por título de primer nivel, índice del lector, título y autor opcionales. Pasa por `a_markdown` (la lectura ya probada) y se escribe sin dependencia nueva (`apps/documents/a_epub.py`). Un escaneo sin texto lo dice y no deja libro. Son ya **cuarenta y una** herramientas de documentos.

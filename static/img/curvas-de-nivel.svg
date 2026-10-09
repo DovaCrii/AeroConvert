@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="240" viewBox="0 0 800 240" preserveAspectRatio="xMidYMid slice" fill="none" stroke="#000" stroke-width="1.25">
+  <!-- Curvas de nivel: solo la textura de la zona de soltar (D8). Se usa como mascara
+       (mask-image en app.css) y el color lo pone la variable av-curvas, asi que sigue al tema. -->
+  <g>
+    <ellipse cx="650" cy="120" rx="46" ry="22"/>
+    <ellipse cx="650" cy="120" rx="104" ry="48"/>
+    <ellipse cx="644" cy="118" rx="168" ry="76"/>
+    <ellipse cx="636" cy="116" rx="236" ry="106"/>
+    <ellipse cx="628" cy="114" rx="310" ry="138"/>
+    <ellipse cx="150" cy="190" rx="60" ry="26"/>
+    <ellipse cx="150" cy="190" rx="132" ry="58"/>
+    <ellipse cx="146" cy="188" rx="214" ry="92"/>
+  </g>
+</svg>
