@@ -60,9 +60,9 @@ motivo; con `instalar_faltantes.sh` casi ninguna hace falta porque los programas
 
 | Abierto | Qué falta | Quién |
 | --- | --- | --- |
-| F14.9 ⚠ · F14.17 ⚠ · F17.1 ⚠ · F17.2 ⚠ | Hechos; se miden en `p340` con el programa real (veraPDF no está) | Usted despliega; Claude anota |
+| F14.9 ⚠ · F14.12 ⚠ · F14.17 ⚠ · F17.1 ⚠ · F17.2 ⚠ | Hechos; se miden en `p340` con el programa real (veraPDF no está) | Usted despliega; Claude anota |
 | F14.11 | Visor PDF.js | Espera P11 |
-| F14.12 · F14.15 · F14.16 (SVG) | Escanear, quitar fondo, SVG con Inkscape | Claude |
+| F14.15 · F14.16 (SVG) | Quitar fondo, SVG con Inkscape | Claude |
 | F15.1 a F15.4 · F15.8 · F15.6 (DWG) | Datums, calibración, perfiles mineros, ODA | Esperan P5, P6, P7 |
 | F15.2 · F15.5 · F15.7 · F16.5 | Alturas con geoide, más perfiles, TIN, AeroBim | Claude (F16.5 con AeroBim) |
 | F18.3 ⚠ · F18.7 ⚠ | PPK real | F18.7 (pantalla con RTKLIB) hecha el 2026-10-09 con un `rnx2rtkp` de mentira; la corrida real espera la altura elipsoidal de la base (P18) y P16 (RTKLIB ya lo instala el guion) |
