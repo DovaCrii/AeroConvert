@@ -14,6 +14,7 @@ argumentos, sin `shell=True` y con plazo; nada que escribe la persona llega a un
 
 from __future__ import annotations
 
+import logging
 import os
 import subprocess
 from dataclasses import dataclass
@@ -23,6 +24,8 @@ from django.conf import settings
 from apps.engines import sondas
 from apps.engines.base import Disponibilidad
 from apps.engines.entorno import entorno_de_gdal
+
+registro = logging.getLogger(__name__)
 
 #: Lo que el visor lanza. `gdalinfo` lee, `gdalwarp` corta y reproyecta, `gdal_translate` prepara
 #: lo que no es de 8 bits, y `gdallocationinfo` lee el píxel bajo el cursor.
@@ -86,6 +89,18 @@ class Resultado:
     errores: str
 
 
+def _sin_rutas(texto: str, argumentos: list[str]) -> str:
+    """Quita del mensaje de GDAL las rutas del servidor que lo acompañan: queda solo el nombre.
+
+    El mensaje llega a la pantalla; la carpeta de la obra, la caché o la de trabajo no son de
+    nadie más. El detalle completo, si hace falta, se saca del registro del servidor.
+    """
+    for argumento in argumentos:
+        if os.sep in argumento or "/" in argumento:
+            texto = texto.replace(argumento, os.path.basename(argumento))
+    return texto
+
+
 def correr(nombre: str, argumentos: list[str], *, plazo_s: int) -> Resultado:
     """Lanza una herramienta de GDAL y devuelve lo que escribió.
 
@@ -120,8 +135,7 @@ def correr(nombre: str, argumentos: list[str], *, plazo_s: int) -> Resultado:
         raise ErrorDeGdal(f"No se pudo lanzar {nombre}: {fallo}", "error-del-motor") from fallo
     if hecho.returncode != 0:
         detalle = (hecho.stderr or hecho.stdout or "").strip().splitlines()
-        raise ErrorDeGdal(
-            f"{nombre} terminó con error: {detalle[-1] if detalle else 'sin mensaje'}",
-            "error-del-motor",
-        )
+        registro.warning("%s salió con %s: %s", nombre, hecho.returncode, "\n".join(detalle[-5:]))
+        ultima = _sin_rutas(detalle[-1], argumentos) if detalle else "sin mensaje"
+        raise ErrorDeGdal(f"{nombre} terminó con error: {ultima}", "error-del-motor")
     return Resultado(salida=hecho.stdout or "", errores=hecho.stderr or "")

@@ -449,6 +449,21 @@ PARES = [
     ("foco sobre la barra", ("--av-foco-barra", NAVY), GRAFICO),
     ("foco sobre lo alto de la barra", ("--av-foco-barra", NAVY_ARRIBA), GRAFICO),
     ("borde del buscador de la barra", _sobre_barra(BLANCO, 0.45), GRAFICO),
+    # El canvas de «Ver en el mapa» (`static/js/visor.js`): sus etiquetas y su escala se pintan con
+    # estos tokens sobre un fondo **opaco** `--av-surface`; el contorno y la marca, sobre el fondo
+    # del mapa. Texto de las etiquetas: `--av-text-secondary`; escala: `--av-text`.
+    ("etiquetas del mapa", ("--av-text-secondary", "--av-surface"), TEXTO),
+    ("escala del mapa", ("--av-text", "--av-surface"), TEXTO),
+    (
+        "contorno de la imagen sobre el fondo del mapa",
+        ("--av-primary", "--av-surface-alt"),
+        GRAFICO,
+    ),
+    (
+        "marca del punto elegido sobre el fondo del mapa",
+        ("--av-danger", "--av-surface-alt"),
+        GRAFICO,
+    ),
     # La barra de progreso: el relleno es lo que informa, contra la pista y la tarjeta.
     ("relleno del progreso sobre su pista", ("--av-primary", "--av-border"), GRAFICO),
 ]

@@ -216,6 +216,11 @@ MOTIVOS: dict[str, Motivo] = dict(
             "La ficha del archivo en «Convertir» la sitúa sobre una retícula de coordenadas.",
         ),
         _m("tesela-fuera-de-la-cuadricula", "Esa tesela no existe o no tiene más detalle."),
+        _m(
+            "cache-no-disponible",
+            "La caché de teselas no se pudo leer o escribir.",
+            "Avise a quien administra el equipo para que revise el disco.",
+        ),
         _m("coordenadas-no-validas", "La longitud o la latitud están fuera de rango."),
     ]
 )

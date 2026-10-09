@@ -93,6 +93,12 @@
       </p>
     {% endif %}
 
+    {# Lo que el servidor o el mapa dicen de pronto (una tesela que no sale, demasiadas teselas): a la vista y leído en voz alta. #}
+    <p class="mensaje mensaje-aviso" id="mapa-aviso" role="status" aria-live="polite" hidden>
+      <svg class="mensaje-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-veredicto-reparos"></use></svg>
+      <span><span class="visually-hidden">Aviso: </span><span id="mapa-aviso-texto"></span></span>
+    </p>
+
     <div class="visor-cuerpo">
       <div class="visor-mapa">
         <canvas id="mapa-lienzo" tabindex="0" role="application"

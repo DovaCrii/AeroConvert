@@ -219,6 +219,159 @@ class TestSoloImagenesLlegaAGdal:
         assert "must-revalidate" in cabecera and "max-age=0" in cabecera
 
 
+class TestUnFalloDeDiscoNoFiltraRutas:
+    """Un `OSError` de la caché lleva la ruta del servidor: a la persona, un mensaje fijo y un
+    código estable; el detalle, solo al registro."""
+
+    SECRETO = r"C:\servidor\carpeta-privada\cache-visor\ab\0123"
+
+    @pytest.fixture
+    def disco_roto(self, monkeypatch):
+        def falla(*_a, **_k):
+            raise PermissionError(13, "Acceso denegado", self.SECRETO)
+
+        monkeypatch.setattr(cache, "escribir", falla)
+
+    def _sin_filtrar(self, respuesta):
+        cuerpo = respuesta.content.decode()
+        assert "carpeta-privada" not in cuerpo and "Acceso denegado" not in cuerpo
+        assert respuesta.status_code == 500
+
+    def test_la_ficha(self, sesion, falso, original, disco_roto, caplog):
+        respuesta = sesion.get(reverse("visor:capa"), {"ruta": str(original)})
+        self._sin_filtrar(respuesta)
+        assert respuesta.json()["codigo"] == "cache-no-disponible"
+        assert "carpeta-privada" in caplog.text, "el detalle sí queda en el registro"
+
+    def test_la_tesela(self, sesion, falso, original, monkeypatch):
+        _, ficha = _tesela_de_la_capa(sesion, original)  # la ficha queda en la caché
+        z = ficha["zoom_maximo"]
+        x, y = mercator.tesela_de_lonlat(*ficha["centro_4326"], z)
+
+        def falla(*_a, **_k):
+            raise OSError(28, "No space left on device", self.SECRETO)
+
+        monkeypatch.setattr(cache, "reemplazar", falla)
+        respuesta = sesion.get(_url_de_tesela(z, x, y), {"ruta": str(original)})
+        self._sin_filtrar(respuesta)
+        assert respuesta.json()["codigo"] == "cache-no-disponible"
+
+    def test_el_punto(self, sesion, falso, original, disco_roto):
+        respuesta = sesion.get(
+            reverse("visor:punto"), {"ruta": str(original), "lon": -70.66, "lat": -33.47}
+        )
+        self._sin_filtrar(respuesta)
+
+    def test_la_pantalla(self, sesion, falso, original, disco_roto):
+        respuesta = sesion.get(reverse("visor:inicio"), {"ruta": str(original)})
+        self._sin_filtrar(respuesta)
+        assert "no se pudo leer o escribir" in respuesta.content.decode()
+
+    def test_un_archivo_que_desaparece_sigue_siendo_404(self, sesion, falso, original, monkeypatch):
+        def sin_archivo(_ruta):
+            raise FileNotFoundError(2, "No existe", self.SECRETO)
+
+        monkeypatch.setattr(cache, "clave_de", sin_archivo)
+        for nombre in ("visor:capa", "visor:punto"):
+            respuesta = sesion.get(reverse(nombre), {"ruta": str(original), "lon": 0, "lat": 0})
+            assert respuesta.status_code == 404
+            assert "carpeta-privada" not in respuesta.content.decode()
+
+    def test_el_codigo_esta_en_el_catalogo(self):
+        from apps.jobs.motivos import MOTIVOS
+
+        assert "cache-no-disponible" in MOTIVOS
+
+    def test_el_mensaje_de_gdal_no_trae_la_carpeta_del_servidor(self):
+        ruta = r"C:\obra\privada\ortofoto.tif"
+        texto = motor._sin_rutas(f"ERROR 4: {ruta}: not recognized", ["-json", ruta])
+        assert "privada" not in texto and "ortofoto.tif" in texto
+
+
+class TestUnArchivoQueNoAbreSeRecuerda:
+    def test_cinco_teselas_de_un_archivo_roto_preguntan_a_gdal_una_vez(
+        self, sesion, falso, original
+    ):
+        falso.fallar_con = motor.ErrorDeGdal("ERROR 4: no es un raster", "error-del-motor")
+        for x in range(5):
+            respuesta = sesion.get(_url_de_tesela(10, 300 + x, 600), {"ruta": str(original)})
+            assert respuesta.status_code == 502 or respuesta.status_code == 422
+        assert falso.contar("gdalinfo") == 1
+
+    def test_si_el_archivo_cambia_se_vuelve_a_intentar(self, sesion, falso, original):
+        falso.fallar_con = motor.ErrorDeGdal("roto", "error-del-motor")
+        sesion.get(reverse("visor:capa"), {"ruta": str(original)})
+        sesion.get(reverse("visor:capa"), {"ruta": str(original)})
+        assert falso.contar("gdalinfo") == 1
+        falso.fallar_con = None
+        original.write_bytes(b"II*\x00" + b"arreglado y mas largo" * 30)
+        assert sesion.get(reverse("visor:capa"), {"ruta": str(original)}).status_code == 200
+        assert falso.contar("gdalinfo") == 2
+
+
+class TestElVisorDiceElMotivoDeUnaTeselaFallida:
+    JS = (RAIZ / "static" / "js" / "visor.js").read_text(encoding="utf-8")
+
+    def test_pide_las_teselas_con_fetch_para_leer_el_motivo(self):
+        assert "fetch(direccion(" in self.JS
+        assert "new Image" not in self.JS, "una imagen que falla no dice por qué"
+        assert "datos.mensaje" in self.JS and "datos.codigo" in self.JS
+
+    def test_el_aviso_va_a_la_vista_y_se_lee_en_voz_alta(self, sesion, falso, original):
+        cuerpo = sesion.get(reverse("visor:inicio"), {"ruta": str(original)}).content.decode()
+        aviso = re.search(r'<p[^>]*id="mapa-aviso"[^>]*>', cuerpo).group(0)
+        assert 'role="status"' in aviso and 'aria-live="polite"' in aviso
+        assert "icon-veredicto-reparos" in cuerpo, "el aviso lleva su forma además del color"
+        assert "Aviso: " in cuerpo, "y su palabra para quien no ve el color ni el dibujo"
+
+    def test_un_codigo_se_avisa_una_sola_vez(self):
+        assert "avisados.has(codigo)" in self.JS and "avisados.add(codigo)" in self.JS
+
+    def test_la_respuesta_de_un_504_trae_lo_que_se_va_a_mostrar(self, sesion, falso, original):
+        url, _ = _tesela_de_la_capa(sesion, original)
+        falso.fallar_con = motor.ErrorDeGdal(
+            "gdalwarp tardó más de 90 s. Conviértala a COG.", "tardo-demasiado"
+        )
+        datos = sesion.get(url, {"ruta": str(original)}).json()
+        assert datos["codigo"] == "tardo-demasiado" and "COG" in datos["mensaje"]
+
+
+class TestDemasiadasTeselas:
+    JS = (RAIZ / "static" / "js" / "visor.js").read_text(encoding="utf-8")
+
+    def test_el_tope_es_120_y_dice_que_hay_que_acercarse(self):
+        assert "MAXIMO_VISIBLES = 120" in self.JS
+        assert "lista.length > MAXIMO_VISIBLES" in self.JS
+        assert "demasiadas para pedirlas todas. Acerque el mapa" in self.JS
+
+    def test_el_aviso_se_quita_cuando_deja_de_haber_demasiadas(self):
+        assert 'quitarAviso("demasiadas")' in self.JS
+
+    def test_pasado_el_tope_no_se_piden(self):
+        """El `return` va antes de `pedirTesela`, dentro de la rama del aviso."""
+        rama = self.JS[self.JS.index("lista.length > MAXIMO_VISIBLES") :]
+        assert rama.index("return;") < rama.index("pedirTesela(")
+
+
+class TestLasEtiquetasDelCanvasSeMiden:
+    """Texto sobre una imagen cualquiera no se mide; sobre un fondo **opaco** del token, sí."""
+
+    JS = (RAIZ / "static" / "js" / "visor.js").read_text(encoding="utf-8")
+
+    def test_los_colores_son_tokens_de_la_hoja(self):
+        for token in ("--av-text-secondary", "--av-surface", "--av-text"):
+            assert f'"{token}"' in self.JS
+        assert not re.search(r"colores\.(texto|papel|escala)\s*=\s*[\"']#", self.JS)
+
+    def test_el_fondo_de_las_etiquetas_y_de_la_escala_es_opaco(self):
+        assert "globalAlpha" not in self.JS
+
+    def test_las_etiquetas_se_pintan_sobre_el_fondo_del_token(self):
+        cuerpo = self.JS[self.JS.index("function dibujarEtiquetas") :]
+        cuerpo = cuerpo[: cuerpo.index("restore()")]
+        assert cuerpo.index("colores.papel") < cuerpo.index("colores.texto")
+
+
 class TestLaPantalla:
     def test_sin_ruta_ofrece_la_carpeta_y_los_trabajos_propios(self, sesion, falso):
         cuerpo = sesion.get(reverse("visor:inicio")).content.decode()

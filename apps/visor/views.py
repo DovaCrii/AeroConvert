@@ -16,6 +16,7 @@ JavaScript (`static/js/visor.js`) es propio y se sirve de `'self'`.
 
 from __future__ import annotations
 
+import logging
 import math
 from pathlib import Path
 
@@ -32,6 +33,8 @@ from apps.jobs.motivos import MOTIVOS
 from . import cache, mercator, motor, teselas
 from . import capa as capa_mod
 from . import punto as punto_mod
+
+registro = logging.getLogger(__name__)
 
 #: Cuánto vive una tesela en el navegador antes de preguntar si cambió. El `ETag` hace barata la
 #: pregunta (304 sin cortar nada) y el original que cambia cambia también la clave.
@@ -79,6 +82,23 @@ def _es_imagen(ruta) -> bool:
     """Solo `.tif` y `.tiff` llegan a GDAL: un `.vrt` o un `.xml` pueden apuntar a otro archivo o a
     una dirección de internet, y abrirlos saltaría las raíces permitidas y la regla D5."""
     return Path(ruta).suffix.lower() in EXTENSIONES_DE_IMAGEN
+
+
+CODIGO_DE_DISCO = "cache-no-disponible"
+MENSAJE_DE_DISCO = (
+    "La caché de teselas no se pudo leer o escribir. Avise a quien administra el equipo para que "
+    "revise el disco."
+)
+
+
+def _anotar_fallo_de_disco(fallo: OSError) -> None:
+    """El detalle (con rutas del servidor) va al registro; a la persona, solo el mensaje fijo."""
+    registro.error("Fallo de disco en el visor: %s", fallo, exc_info=True)
+
+
+def _de_disco(fallo: OSError) -> JsonResponse:
+    _anotar_fallo_de_disco(fallo)
+    return _error(CODIGO_DE_DISCO, MENSAJE_DE_DISCO, 500)
 
 
 def _con_gdal():
@@ -160,15 +180,26 @@ def inicio(request):
     try:
         if not _es_imagen(origen.ruta):
             raise motor.ErrorDeGdal(_SOLO_TIFF, "formato-no-reconocido")
-        clave = cache.clave_de(origen.ruta)
+        try:
+            clave = cache.clave_de(origen.ruta)
+        except OSError as fallo:
+            raise motor.ErrorDeGdal("Ese archivo ya no está.", "origen-no-legible") from fallo
         capa = capa_mod.con_cache(origen.ruta, clave)
-    except (OSError, motor.ErrorDeGdal) as fallo:
+    except motor.ErrorDeGdal as fallo:
         contexto.update(
             error=str(fallo),
-            codigo_error=getattr(fallo, "codigo", "origen-no-legible"),
+            codigo_error=fallo.codigo,
             propios=_resultados_propios(request.user),
         )
         return render(request, "visor/inicio.html", contexto, status=422)
+    except OSError as fallo:
+        _anotar_fallo_de_disco(fallo)
+        contexto.update(
+            error=MENSAJE_DE_DISCO,
+            codigo_error=CODIGO_DE_DISCO,
+            propios=_resultados_propios(request.user),
+        )
+        return render(request, "visor/inicio.html", contexto, status=500)
 
     contexto["capa"] = capa
     contexto["nombre_origen"] = origen.nombre
@@ -204,9 +235,15 @@ def capa(request):
     if error is not None:
         return error
     try:
-        ficha = capa_mod.con_cache(origen.ruta, cache.clave_de(origen.ruta))
-    except (OSError, motor.ErrorDeGdal) as fallo:
-        return _error(getattr(fallo, "codigo", "origen-no-legible"), str(fallo), 422)
+        clave = cache.clave_de(origen.ruta)
+    except OSError:
+        return _error("origen-no-legible", "Ese archivo ya no está.", 404)
+    try:
+        ficha = capa_mod.con_cache(origen.ruta, clave)
+    except motor.ErrorDeGdal as fallo:
+        return _error(fallo.codigo, str(fallo), 422)
+    except OSError as fallo:
+        return _de_disco(fallo)
 
     datos = ficha.a_dict()
     datos.pop("wkt", None)  # pesa y el navegador no lo usa
@@ -261,7 +298,7 @@ def tesela(request, z: int, x: int, y: int):
         estado = 504 if fallo.codigo == "tardo-demasiado" else 502
         return _error(fallo.codigo, str(fallo), estado)
     except OSError as fallo:
-        return _error("origen-no-legible", str(fallo), 404)
+        return _de_disco(fallo)
 
     respuesta = HttpResponse(contenido, content_type="image/png")
     respuesta["ETag"] = etiqueta
@@ -293,7 +330,11 @@ def punto(request):
         return _error("coordenadas-no-validas", "Longitud o latitud fuera de rango.", 400)
 
     try:
-        ficha = capa_mod.con_cache(origen.ruta, cache.clave_de(origen.ruta))
+        clave = cache.clave_de(origen.ruta)
+    except OSError:
+        return _error("origen-no-legible", "Ese archivo ya no está.", 404)
+    try:
+        ficha = capa_mod.con_cache(origen.ruta, clave)
         if not ficha.dibujable:
             return _error(ficha.motivo, ficha.detalle, 409)
         encontrado = punto_mod.localizar(ficha, lon, lat)
@@ -302,7 +343,7 @@ def punto(request):
     except motor.ErrorDeGdal as fallo:
         return _error(fallo.codigo, str(fallo), 502)
     except OSError as fallo:
-        return _error("origen-no-legible", str(fallo), 404)
+        return _de_disco(fallo)
 
     def cifra(valor: float) -> float | None:
         return round(valor, 4) if math.isfinite(valor) else None

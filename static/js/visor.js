@@ -51,6 +51,7 @@
 
   const MAXIMO_EN_VUELO = 6;
   const MAXIMO_EN_MEMORIA = 400;
+  const MAXIMO_VISIBLES = 120;
   const ESPERA_DEL_PUNTO_MS = 150;
   const REINTENTO_DE_ERROR_MS = 8000;
 
@@ -148,12 +149,14 @@
     const clave = z + "/" + x + "/" + y;
     const previa = imagenes.get(clave);
     if (previa && (!previa.error || Date.now() < previa.hasta)) return;
-    const registro = { img: new Image(), listo: false, error: false, hasta: 0 };
+    const registro = { img: null, listo: false, error: false, hasta: 0 };
     imagenes.set(clave, registro);
     cola.push({ clave: clave, z: z, x: x, y: y, registro: registro });
     // La memoria acotada: se suelta lo que hace más tiempo que se pidió.
     if (imagenes.size > MAXIMO_EN_MEMORIA) {
       const primera = imagenes.keys().next().value;
+      const suelta = imagenes.get(primera);
+      if (suelta && suelta.img && suelta.img.close) suelta.img.close();
       imagenes.delete(primera);
     }
     sacarDeLaCola();
@@ -178,24 +181,80 @@
       const t = cola.splice(mejor, 1)[0];
       if (imagenes.get(t.clave) !== t.registro) continue; // ya se soltó de la memoria
       enVuelo++;
-      t.registro.img.onload = function () {
+      cargarTesela(t);
+    }
+    estado();
+  }
+
+  /* Con `fetch` y no con `<img>`: una imagen que falla no dice por qué, y la respuesta del servidor
+   * trae el motivo (`codigo` y `mensaje`, p. ej. el 504 «conviértala a COG»). */
+  function cargarTesela(t) {
+    const registro = t.registro;
+    fetch(direccion(t.z, t.x, t.y), { credentials: "same-origin" })
+      .then(function (r) {
+        if (r.ok) return r.blob();
+        return r
+          .json()
+          .catch(function () {
+            return {};
+          })
+          .then(function (datos) {
+            throw { datos: datos, estado: r.status };
+          });
+      })
+      .then(function (blob) {
+        return createImageBitmap(blob);
+      })
+      .then(function (imagen) {
+        registro.img = imagen;
+        registro.listo = true;
         enVuelo--;
-        t.registro.listo = true;
         estado();
         pedir();
         sacarDeLaCola();
-      };
-      t.registro.img.onerror = function () {
+      })
+      .catch(function (fallo) {
         enVuelo--;
-        t.registro.error = true;
-        t.registro.hasta = Date.now() + REINTENTO_DE_ERROR_MS;
+        registro.error = true;
+        registro.hasta = Date.now() + REINTENTO_DE_ERROR_MS;
         falladas++;
+        const datos = (fallo && fallo.datos) || {};
+        avisarDeLaTesela(datos.codigo || "tesela-sin-respuesta", datos.mensaje);
         estado();
         sacarDeLaCola();
-      };
-      t.registro.img.src = direccion(t.z, t.x, t.y);
-    }
-    estado();
+      });
+  }
+
+  /* ---- Avisos: una sola vez, a la vista y leídos en voz alta ---- */
+
+  let claveDelAviso = "";
+  const avisados = new Set();
+
+  function mostrarAviso(clave, texto) {
+    const caja = $("mapa-aviso");
+    if (!caja) return;
+    claveDelAviso = clave;
+    $("mapa-aviso-texto").textContent = texto;
+    caja.hidden = false;
+  }
+
+  function quitarAviso(clave) {
+    if (claveDelAviso !== clave) return;
+    claveDelAviso = "";
+    $("mapa-aviso").hidden = true;
+  }
+
+  /* Un motivo de tesela se dice **una vez** (por código): decenas de teselas con el mismo fallo no
+   * son decenas de avisos. */
+  function avisarDeLaTesela(codigo, mensaje) {
+    if (avisados.has(codigo)) return;
+    avisados.add(codigo);
+    mostrarAviso(
+      "tesela:" + codigo,
+      mensaje ||
+        "No se pudo cortar una tesela y el servidor no dijo por qué. Si la imagen es muy grande, " +
+          "conviértala a COG."
+    );
   }
 
   function estado() {
@@ -281,10 +340,8 @@
     for (const e of etiquetas) {
       const ancha = contexto.measureText(e.texto).width + 8;
       const izq = e.alinear === "centro" ? e.x - ancha / 2 : e.x;
-      contexto.globalAlpha = 0.85;
       contexto.fillStyle = colores.papel;
       contexto.fillRect(izq, e.y - 2, ancha, 17);
-      contexto.globalAlpha = 1;
       contexto.fillStyle = colores.texto;
       contexto.fillText(e.texto, izq + 4, e.y);
     }
@@ -314,7 +371,17 @@
     const zt = Math.min(Math.max(Math.round(vista.z + sesgo), capa.zoom_minimo), capa.zoom_maximo);
     const lado = (2 * ORIGEN) / Math.pow(2, zt);
     const lista = teselasVisibles(zt);
-    if (lista.length > 120) return; // un encuadre absurdo: no se piden cientos de teselas
+    if (lista.length > MAXIMO_VISIBLES) {
+      // Un encuadre así pediría cientos de teselas: no se piden, y se dice qué hacer.
+      mostrarAviso(
+        "demasiadas",
+        "Hay " +
+          lista.length +
+          " teselas a la vista, demasiadas para pedirlas todas. Acerque el mapa para verlas."
+      );
+      return;
+    }
+    quitarAviso("demasiadas");
     const ampliada = resolucion(zt) / resolucion(vista.z) > 1.5;
     contexto.imageSmoothingEnabled = !ampliada; // acercado, el píxel se ve cuadrado y se puede contar
 
@@ -384,9 +451,7 @@
     const y = alto - 30;
     contexto.save();
     contexto.fillStyle = colores.papel;
-    contexto.globalAlpha = 0.85;
     contexto.fillRect(x - 6, y - 18, largo + 12, 36);
-    contexto.globalAlpha = 1;
     contexto.strokeStyle = colores.escala;
     contexto.fillStyle = colores.escala;
     contexto.lineWidth = 2;

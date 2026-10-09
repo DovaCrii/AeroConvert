@@ -29,12 +29,21 @@ from __future__ import annotations
 import json
 import logging
 import math
+import time
+from collections import OrderedDict
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
 from . import cache, mercator, motor
 
 registro = logging.getLogger(__name__)
+
+#: Los archivos que GDAL no abrió, por clave (ruta + tamaño + mtime):
+#: `(código, mensaje, instante)`. En memoria y acotado; vive lo que el proceso. Diez minutos: un
+#: fallo de plazo o de un disco de red puede arreglarse solo, y no debe quedar para siempre.
+_fallos: OrderedDict[str, tuple[str, str, float]] = OrderedDict()
+MAXIMO_DE_FALLOS_RECORDADOS = 256
+SEGUNDOS_QUE_SE_RECUERDA_UN_FALLO = 600
 
 #: Metros por grado de un meridiano (o de un paralelo en el ecuador) en la esfera de Web Mercator.
 METROS_POR_GRADO = mercator.RADIO_M * math.pi / 180
@@ -310,6 +319,22 @@ def con_cache(ruta: Path, clave: str) -> Capa:
             return Capa.de_dict(json.loads(guardada))
         except (json.JSONDecodeError, TypeError):
             registro.info("La ficha guardada de %s no se lee; se rehace.", ruta.name)
-    capa = leer(ruta)
+    recordado = _fallos.get(clave)
+    if (
+        recordado is not None
+        and time.monotonic() - recordado[2] < SEGUNDOS_QUE_SE_RECUERDA_UN_FALLO
+    ):
+        raise motor.ErrorDeGdal(recordado[1], recordado[0])
+    try:
+        capa = leer(ruta)
+    except motor.ErrorDeGdal as fallo:
+        # Sin esto, cada tesela que pide el navegador volvería a lanzar `gdalinfo` (hasta 120 s)
+        # sobre un archivo que ya se sabe que no abre. La clave lleva ruta, tamaño y mtime: si el
+        # archivo cambia, se vuelve a intentar.
+        _fallos[clave] = (fallo.codigo, str(fallo), time.monotonic())
+        while len(_fallos) > MAXIMO_DE_FALLOS_RECORDADOS:
+            _fallos.popitem(last=False)
+        raise
+    _fallos.pop(clave, None)
     cache.escribir(ficha, json.dumps(capa.a_dict()).encode("utf-8"))
     return capa
