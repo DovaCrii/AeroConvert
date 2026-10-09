@@ -5,7 +5,7 @@
 > Quién hace qué: **Claude** hace ramas, PR, revisión y fusiones; **la persona solo despliega en la
 > VM, al final de todo**.
 
-**Actualizado:** 2026-10-08 · **`main` en:** `996dbf2` · **PR sin desplegar:** #21 a #87
+**Actualizado:** 2026-10-08 · **`main` en:** versión `0.12.0` · **PR sin desplegar:** #21 a #97
 
 ## Pedidos a la persona
 
@@ -42,13 +42,13 @@ Estados: ✅ hecho · 🟨 en curso · ⬜ por hacer · ⏸ espera un pedido · 
 | **B3 · Iconos y color** | F13.4 ✅ · F13.5 ✅ · F13.6 ✅ | ✅ 2026-10-07 | #61 | — |
 | **B4 · Plano con color** | F13.7 ✅ | ✅ 2026-10-07 | #62 | — |
 | **B5 · Barra, portada y mapa** | F13.9 ✅ · F13.8 ✅ · F13.11 ✅ · F13.12 ✅ · F13.13 ✅ (cierra F13; versión `0.11.0`) | ✅ 2026-10-07 | #63, #64 | — |
-| **B6 · Suite PDF** | F14.0 ✅ · F14.1 ✅ · F14.2 ✅ · F14.3 ✅ · F14.4 ✅ · F14.5 ✅ · F14.6 ✅ · F14.7 ✅ · F14.8 ✅ · F14.9 · F14.11 ⏸ · F14.20 ✅ | 🟨 | #65 a #71, #78 | P11 para F14.11 |
-| **B7 · Imagen, dron, video y vector** | F14.12 · F14.13 ✅ · F14.14 ✅ · F14.15 · F14.16 🟨 (falta SVG, Inkscape) · F14.17 · F14.18 ✅ · F14.19 ✅ | 🟨 | #72, #73, #75, #76 | D1 (FFmpeg, Inkscape) |
+| **B6 · Suite PDF** | F14.0 ✅ · F14.1 ✅ · F14.2 ✅ · F14.3 ✅ · F14.4 ✅ · F14.5 ✅ · F14.6 ✅ · F14.7 ✅ · F14.8 ✅ · F14.9 ⚠ (sin veraPDF) · F14.11 ⏸ · F14.20 ✅ | 🟨 | #65 a #71, #78, #93 | P11 para F14.11 |
+| **B7 · Imagen, dron, video y vector** | F14.12 · F14.13 ✅ · F14.14 ✅ · F14.15 · F14.16 🟨 (falta SVG, Inkscape) · F14.17 ⚠ (FFmpeg real en `p340`) · F14.18 ✅ · F14.19 ✅ | 🟨 | #72, #73, #75, #76, #94 | D1 (Inkscape) |
 | **B8 · Geoespacial** | F15.1 ⏸ · F15.2 · F15.3 ⏸ · F15.4 ⏸ · F15.5 · F15.6 ◐ (falta DWG) · F15.7 · F15.8 ⏸ | 🟨 | #86 | P5 · P6 · P7 |
-| **B9 · Plataforma** | F16.1 ✅ · F16.2 ✅ · F16.3 ✅ · F16.4 · F16.5 · F16.6 ✅ | 🟨 | #79, #80, #87 | — |
-| **B11 · Poner en marcha lo apagado** | F17.1 a F17.4 (`docs/PUESTA_EN_MARCHA_DE_LO_APAGADO.md`) | ⬜ | — | P7 · P10 · P11 · P12 · P13 para lo que es de la persona |
+| **B9 · Plataforma** | F16.1 ✅ · F16.2 ✅ · F16.3 ✅ · F16.4 ✅ · F16.5 · F16.6 ✅ | 🟨 | #79, #80, #87, #92 | F16.5 necesita a AeroBim |
+| **B11 · Poner en marcha lo apagado** | F17.1 ⚠ · F17.2 ⚠ · F17.3 ✅ · F17.4 ✅ (`docs/PUESTA_EN_MARCHA_DE_LO_APAGADO.md`) | ✅ en código; los ⚠ se miden en `p340` | #89, #90, #91, #95 | P7 · P10 · P11 · P12 · P13 para lo que es de la persona |
 | **B12 · Vuelos de dron: PPK y sincronía** | F18.1 ✅ · F18.2 ✅ · F18.3 ⚠ · F18.4 ✅ · F18.5 ✅ · F18.6 ✅ · F18.7 ⏸ (`docs/VUELOS_DE_DRON_Y_PPK.md`) | 🟨 | #81 a #85 | P15 y P16 para la corrida real |
-| **B10 · Cierre y despliegue** | Versión (`0.11.0` al cerrar F13, `0.12.0` con las firmas), `HANDOFF.md` con los pasos de la VM, lista para desplegar | ⬜ | — | Todo lo anterior |
+| **B10 · Cierre y despliegue** | Versión `0.12.0` ✅, `HANDOFF.md` con los pasos de la VM ✅ | ✅ 2026-10-08 · **falta desplegar (la persona)** | #97 | — |
 
 **Orden de trabajo:** B1 → B2 → B3 → B4 → B5 (esto cierra F13 y la versión `0.11.0`); B6 con
 las firmas (`0.12.0`); B7 y B8 según los pedidos que lleguen; B9; B10. Un bloque con un pedido
