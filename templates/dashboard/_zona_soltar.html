@@ -28,6 +28,12 @@
     {% if destino_preferido %}<input type="hidden" name="destino" value="{{ destino_preferido }}">{% endif %}
     {% if formato_preferido %}<input type="hidden" name="formato" value="{{ formato_preferido }}">{% endif %}
     <div class="soltar soltar-compacto">
+      {# D8: la trayectoria del vuelo, de punta a punta de la zona. Solo adorno: sin texto. #}
+      <svg class="soltar-ruta" viewBox="0 0 800 160" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
+        <path class="soltar-ruta-linea" d="M-10 130 C 120 130, 160 40, 280 60 S 460 140, 560 80 S 720 20, 820 40"/>
+        <circle cx="280" cy="60" r="4"/>
+        <circle cx="560" cy="80" r="4"/>
+      </svg>
       <svg class="soltar-icono" aria-hidden="true">
         <use href="{% static 'img/icons.svg' %}#icon-soltar"></use>
       </svg>

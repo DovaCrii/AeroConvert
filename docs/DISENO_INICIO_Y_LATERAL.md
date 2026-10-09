@@ -1,5 +1,11 @@
 # Cómo es y cómo será el inicio y el lateral
 
+> **Actualización del 2026-10-09 (D8, F13.14).** La dirección visual de toda la app es ahora
+> **«Plan de vuelo»** y **sustituye al «plano con color»** de F13.7 que se describe abajo: la
+> profundidad (tokens `--av-elev-*`), el degradado de la barra y el lateral y el movimiento al
+> pasar (hasta 3 px) **vuelven, con límites medidos**. La estructura de la portada y del lateral
+> no cambia. El sistema completo está en [`DISENO_PLAN_DE_VUELO.md`](DISENO_PLAN_DE_VUELO.md).
+
 Este es el diseño **acordado** (F13, 2026-10-07 y 2026-10-08). Quien toque la portada o el lateral
 parte de aquí y no lo cambia sin que la persona lo pida. Lo que se ve hoy en `p340` es la interfaz
 **anterior a F13** (todavía dice «¿Qué necesitas…?», sin zona de soltar y con el lateral largo):
@@ -20,8 +26,10 @@ se actualiza en el despliegue final. La implementación vive en `templates/dashb
    con su icono, su frase y la cifra de herramientas. Las baldosas dicen **qué entregan**
    («Sale: un PDF») y llevan el color de su familia.
 4. **Trato de usted** en todo el texto («¿Qué necesita hacer?»).
-5. **Diseño plano con color:** sin degradados, sin sombras, sin movimiento al pasar; borde y
-   superficie. Las baldosas conservan un color de familia fuerte, también en oscuro (no gris).
+5. **Diseño «Plan de vuelo» (D8, antes «plano con color»):** el catálogo son tarjetas con
+   profundidad que suben hasta 3 px al pasar; la zona de soltar lleva curvas de nivel y una
+   trayectoria punteada. Las baldosas conservan un color de familia fuerte, también en oscuro
+   (no gris).
 6. Sin nada que solo aparezca al pasar el ratón; el color nunca va solo (icono + texto).
 
 ## Lateral
@@ -40,7 +48,9 @@ se actualiza en el despliegue final. La implementación vive en `templates/dashb
 
 ## Lo que se mide
 
-`test_plano` (0 degradados), `test_trato`, `test_estilo`, `test_iconos`, `test_taxonomia`,
+`test_plano` (degradados solo en barra, lateral y fondo de portada; sombras solo con
+`--av-elev-*`; `translateY(-3px)` como máximo; movimiento apagado con `prefers-reduced-motion`),
+`test_trato`, `test_estilo`, `test_iconos`, `test_taxonomia`,
 `test_lateral_compacto`, `test_portada_archivo` y el contraste WCAG de cada familia en los dos
 temas. Una pantalla nueva se mira en claro y oscuro, a 1440 y a 375 px, sin desborde horizontal.
 
@@ -58,11 +68,13 @@ usa, ver `DECISION_ARTCRAFT.md`). Lo que se ve y lo que sirve:
 - **Etiquetas de navegación en mayúsculas con tipografía monoespaciada**, muy pequeñas: da
   carácter técnico. Candidato para los rótulos del lateral («Herramientas») si se quiere.
 - Lo que **no** conviene copiar: el mosaico animado de miniaturas y el degradado de la portada
-  (F13.7 prohíbe degradados y movimiento al pasar).
+  (F13.7 lo prohibía; con D8 el movimiento vuelve, con límites, pero un mosaico animado sigue
+  sin ser el estilo de la casa).
 
 **Lo que la persona dijo que le gusta (2026-10-08):** el diseño, la página, **las transiciones y el
-estilo oscuro**. Dirección acordada, compatible con F13.7 (plano, sin degradados, sin sombras, sin
-movimiento al pasar el cursor):
+estilo oscuro**. Dirección acordada entonces, compatible con F13.7 (plano, sin degradados, sin
+sombras, sin movimiento al pasar el cursor). **El 2026-10-09 la decisión D8 la amplió:** las
+transiciones de estado y el oscuro siguen; el plano sin sombras ni movimiento ya no rige:
 
 - **Oscuro primero:** tema oscuro neutro (casi negro, gris frío) como el que se ve por omisión, con
   un solo acento y un solo botón principal por pantalla. El claro sigue existiendo.

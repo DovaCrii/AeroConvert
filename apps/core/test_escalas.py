@@ -76,15 +76,21 @@ class TestLaEscalaDeElevacion:
         bloque = css[css.index("--av-elev-1:") : css.index("--av-elev-2:")]
         assert "0 0 0 1px" in bloque
 
-    def test_los_tres_primeros_niveles_son_solo_el_anillo(self, css):
-        """F13.7, plano con color: las superficies no flotan. Se distinguen por el anillo de
-        1 px, el cambio de superficie y el color, no por una sombra. (Antes llevaban dos capas
-        de alfa baja, a la manera de Primer; `test_plano.py` vigila que no vuelvan.)"""
-        for nivel in ("--av-elev-0", "--av-elev-1", "--av-elev-2"):
-            inicio = css.index(f"{nivel}:")
-            bloque = css[inicio : css.index(";", inicio)]
-            assert "," not in bloque, f"{nivel} lleva más de una capa"
-            assert "0 0 0 1px" in bloque
+    def test_el_nivel_0_es_solo_el_anillo_y_en_los_demas_el_anillo_va_primero(self, css):
+        """D8 (Plan de vuelo) devolvió la profundidad a los niveles 1 y 2, y sustituyó al «plano con
+        color» de F13.7 que los dejaba en un anillo. **Lo que no cambia:** el 0 sigue siendo solo el
+        anillo, y en los demás el anillo es la primera capa (el borde y la sombra, una decisión).
+        La forma de las sombras la vigila `test_plano.py`."""
+
+        def valor(nivel: str) -> str:
+            inicio = css.index(f"{nivel}:") + len(nivel) + 1
+            return css[inicio : css.index(";", inicio)].strip()
+
+        assert "," not in valor("--av-elev-0")
+        assert valor("--av-elev-0").startswith("0 0 0 1px")
+        for nivel in ("--av-elev-1", "--av-elev-2"):
+            assert valor(nivel).startswith("0 0 0 1px var(--av-anillo)"), nivel
+            assert valor(nivel).count(",") >= 2, f"{nivel}: anillo, línea de luz y sombras"
 
     def test_el_ultimo_nivel_es_la_unica_sombra_y_recoge_hacia_dentro(self, css):
         """Una sola capa que proyecta, para lo que flota, con spread negativo: recoge la sombra
