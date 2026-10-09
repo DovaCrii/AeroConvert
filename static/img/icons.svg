@@ -723,4 +723,12 @@
     <path d="M5 9v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9"/>
     <path d="M10 13h4"/>
   </symbol>
+
+  <symbol id="icon-mapa" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Un mapa plegado con su punto: ver una ortofoto sobre la retícula de coordenadas. -->
+    <path d="M3.5 6.5 9 4.5l6 2 5.5-2v13l-5.5 2-6-2-5.5 2z"/>
+    <path d="M9 4.5v13M15 6.5v13"/>
+    <circle cx="12" cy="11.5" r="1.4" fill="currentColor" fill-opacity=".2"/>
+  </symbol>
 </svg>

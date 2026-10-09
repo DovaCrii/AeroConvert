@@ -4505,6 +4505,51 @@ code {
   font-size: var(--av-fs-xs);
 }
 
+/* Ver en el mapa (F19): lo propio de la pantalla que se suma al visor del vuelo. */
+
+/* Un enlace con aspecto de botón: sin subrayado y con el texto centrado en su caja. */
+.visor-enlace {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--av-s-2);
+  text-decoration: none;
+}
+
+.visor-contorno {
+  display: inline-block;
+  flex: none;
+  width: 1rem;
+  height: 0.7rem;
+  border: 2px solid var(--av-primary);
+  border-radius: 0;
+}
+
+.visor-estado-error {
+  color: var(--av-danger);
+}
+
+.visor-valor {
+  font-size: var(--av-fs-sm);
+  overflow-wrap: anywhere;
+}
+
+.visor-teclas {
+  margin: 0;
+  padding-left: 1.1rem;
+  display: grid;
+  gap: var(--av-s-1);
+  font-size: var(--av-fs-sm);
+}
+
+.visor-teclas kbd {
+  padding: 0 var(--av-s-1);
+  border: 1px solid var(--av-border-control);
+  border-radius: var(--av-radius-xs);
+  background: var(--av-surface-alt);
+  color: var(--av-text);
+  font-size: var(--av-fs-xs);
+}
+
 /* --- Transiciones de estado y entrada suave (F13.13) ---------------------------------------
  * El estilo oscuro se siente vivo por cómo cambian las cosas, no porque se muevan: al pasar,
  * enfocar o desactivar, el **color, el fondo, el borde y la opacidad** cambian en 160 ms. (Con D8,

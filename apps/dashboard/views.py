@@ -15,6 +15,8 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
 from django.shortcuts import redirect, render
+from django.urls import reverse
+from django.utils.http import urlencode
 from django.views.decorators.http import require_POST
 
 from apps.core import entrada as entrada_mod
@@ -36,6 +38,7 @@ from apps.jobs import estimacion as estimacion_mod
 from apps.jobs.models import ConversionJob
 from apps.presets.models import ConversionPreset
 from apps.targets import perfiles as perfiles_mod
+from apps.visor import motor as visor_motor_mod
 
 
 @dataclass(frozen=True)
@@ -374,6 +377,21 @@ def _mapa_de(inspeccion) -> dict:
     return {"mapa": mapa_mod.dibujo(huella.en_grados), "huella": huella}
 
 
+def _enlace_al_visor(inspeccion, origen) -> dict | None:
+    """El enlace a «Ver en el mapa», o `None` si el archivo no es una imagen georreferenciada.
+
+    Sin GDAL el enlace **no se esconde** (regla 4): sale apagado con su motivo.
+    """
+    if inspeccion.tiff is None:
+        return None
+    disponibilidad = visor_motor_mod.disponibilidad()
+    return {
+        "url": f"{reverse('visor:inicio')}?{urlencode({'ruta': origen.token})}",
+        "disponible": disponibilidad.disponible,
+        "motivo": disponibilidad.mensaje,
+    }
+
+
 def _contexto_de_ficha(request, inspeccion, origen, formato_pedido: str = "") -> dict:
     """Lo que pinta la ficha de un archivo ya inspeccionado.
 
@@ -387,6 +405,7 @@ def _contexto_de_ficha(request, inspeccion, origen, formato_pedido: str = "") ->
         experto = escribibles[0].codigo if escribibles else ""
 
     _, campos = _formulario_experto(inspeccion, experto) if experto else (None, None)
+    mapa_de_la_ficha = _mapa_de(inspeccion)
 
     return {
         "i": inspeccion,
@@ -403,7 +422,9 @@ def _contexto_de_ficha(request, inspeccion, origen, formato_pedido: str = "") ->
         "veredictos": perfiles_mod.veredictos(inspeccion),
         # Dónde cae el archivo (F13.11): solo con sistema de referencia conocido y lo que la
         # cabecera asegura. Sin mapa base: una retícula de coordenadas y la huella encima.
-        **_mapa_de(inspeccion),
+        **mapa_de_la_ficha,
+        # El mismo archivo en el visor de teselas (F19.1): solo una imagen con huella.
+        "ver_en_el_mapa": _enlace_al_visor(inspeccion, origen) if mapa_de_la_ficha else None,
         "perfiles": _destinos_para(inspeccion),
         # **La elección que se hizo en el catálogo, traída hasta aquí.**
         #

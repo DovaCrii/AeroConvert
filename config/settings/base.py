@@ -84,6 +84,13 @@ RETENCION_HORAS = config("AEROCONVERT_RETENCION_HORAS", default=24, cast=int)
 #: de llenar el volumen. Un servidor sin disco no da un error: deja de funcionar entero.
 PRESUPUESTO_GB = config("AEROCONVERT_PRESUPUESTO_GB", default=20, cast=int)
 
+#: La caché de teselas del visor (F19.2). **Carpeta aparte de la de trabajo**: las teselas son
+#: prescindibles y se rehacen, y contarlas en `PRESUPUESTO_GB` le quitaría sitio a un trabajo de
+#: verdad. Vacío = `cache-visor/` junto al código. Acotada: pasado el tope se borran las que hace
+#: más tiempo que nadie mira (ver `apps/visor/cache.py`).
+VISOR_CACHE = config("AEROCONVERT_VISOR_CACHE", default="")
+VISOR_CACHE_MAX_MB = config("AEROCONVERT_VISOR_CACHE_MAX_MB", default=512, cast=int)
+
 #: Donde van las copias de la base, y cuantos dias se guardan. Fuera del arbol de codigo en
 #: la VM, y **con al menos una copia fuera de la maquina**: un respaldo en el mismo disco
 #: que la base no protege del escenario que mas importa, que es que se muera el disco.
@@ -213,6 +220,7 @@ INSTALLED_APPS = [
     "apps.documents",
     "apps.vuelos",
     "apps.dashboard",
+    "apps.visor",
     # Tino contesta con lo que las de arriba ya saben, asi que va detras de todas.
     "apps.tino",
 ]

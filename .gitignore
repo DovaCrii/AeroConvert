@@ -65,3 +65,6 @@ htmlcov/
 # Windows
 Thumbs.db
 desktop.ini
+
+# La caché de teselas del visor (F19.2): se rehace sola.
+/cache-visor/
