@@ -189,6 +189,34 @@ MOTIVOS: dict[str, Motivo] = dict(
             "Esta máquina no tiene Tesseract, que es lo que reconoce el texto.",
             "sudo apt install tesseract-ocr tesseract-ocr-spa",
         ),
+        # --- Ver en el mapa (F19) --------------------------------------------------------------
+        #
+        # «No se dibuja» es **una negativa con motivo**, no un error: el archivo existe y es
+        # legible, pero ponerlo sobre un mapa sin saber dónde está sería inventarlo (regla 3).
+        _m(
+            "sin-gdal",
+            "Esta máquina no tiene GDAL, que es lo que corta la imagen en teselas.",
+            "Instale GDAL (QGIS lo trae) y apunte AEROCONVERT_GDAL_BIN a su carpeta bin.",
+        ),
+        _m(
+            "capa-sin-crs",
+            "El archivo no declara un sistema de referencia que lo ubique en la Tierra, así que "
+            "no se dibuja sobre el mapa.",
+            "Si conoce el sistema, declárelo al convertirlo. Adivinarlo es peor que no tenerlo.",
+        ),
+        _m(
+            "capa-sin-georreferencia",
+            "El archivo no trae su matriz de transformación: es una imagen, no una capa.",
+            "Georreferéncielo en QGIS o con el programa que lo hizo y vuelva a abrirlo.",
+        ),
+        _m(
+            "capa-fuera-del-mapa",
+            "La capa queda fuera de lo que Web Mercator puede dibujar (pasa de los 85,05° de "
+            "latitud o cruza el antimeridiano).",
+            "La ficha del archivo en «Convertir» la sitúa sobre una retícula de coordenadas.",
+        ),
+        _m("tesela-fuera-de-la-cuadricula", "Esa tesela no existe o no tiene más detalle."),
+        _m("coordenadas-no-validas", "La longitud o la latitud están fuera de rango."),
     ]
 )
 

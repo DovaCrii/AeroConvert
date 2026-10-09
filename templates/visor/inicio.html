@@ -1,0 +1,238 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block titulo %}Ver en el mapa · AeroConvert{% endblock %}
+
+{% block contenido %}
+
+{% comment %}
+  **Ver en el mapa (F19.1 y F19.2).** Una ortofoto o una imagen georreferenciada, con zoom y paneo
+  por teselas que corta el servidor del propio archivo con GDAL. Sin mapa base y sin teselas de
+  internet (D5): el fondo es la retícula de coordenadas de la ficha del archivo (F13.11).
+
+  Cuatro estados, y los cuatro dicen por qué:
+    1. GDAL no está: apagada, con su motivo y su alternativa (regla 4).
+    2. No se pudo abrir el archivo, o está fuera de las carpetas permitidas: el motivo.
+    3. El archivo no se puede dibujar (sin sistema de referencia, sin georreferencia, fuera del
+       alcance de Web Mercator): el motivo, **sin sugerir «el más probable»** (regla 3).
+    4. Se dibuja.
+{% endcomment %}
+
+{% if not gdal.disponible %}
+  <div class="tarjeta">
+    <div class="eyebrow">Ahora mismo no se puede</div>
+    <h2 class="av-fs-md">{{ gdal.mensaje }}</h2>
+    <p class="tenue av-mt-2 av-mb-3">{{ gdal.sugerencia }}</p>
+    <a class="boton boton-suave visor-enlace" href="{% url 'dashboard:convertir' %}">Ver dónde cae un archivo en «Convertir»</a>
+  </div>
+
+{% elif error %}
+  <div class="tarjeta" role="alert">
+    <div class="eyebrow">No se pudo abrir</div>
+    <h2 class="av-fs-md">{{ error }}</h2>
+    <p class="tenue av-mt-2 av-mb-3">Elija otro archivo de la carpeta compartida o de un trabajo suyo.</p>
+    <a class="boton visor-enlace" href="{% url 'visor:inicio' %}">Elegir otro archivo</a>
+  </div>
+
+{% elif capa and not capa.dibujable %}
+  <div class="tarjeta" role="alert">
+    <div class="eyebrow">Este archivo no se dibuja en el mapa</div>
+    <h2 class="av-fs-md">{{ nombre_origen }}</h2>
+    <p class="av-mt-2">{% if motivo %}{{ motivo.mensaje }}{% else %}{{ capa.detalle }}{% endif %}</p>
+    {% if motivo.sugerencia %}<p class="tenue av-mb-3">{{ motivo.sugerencia }}</p>{% endif %}
+    <a class="boton visor-enlace" href="{% url 'visor:inicio' %}">Elegir otro archivo</a>
+  </div>
+
+{% elif capa %}
+  <div class="visor" id="mapa-visor"
+       data-capa="{% url 'visor:capa' %}?ruta={{ token|urlencode }}"
+       data-teselas="{% url 'visor:tesela' 0 0 0 %}"
+       data-punto="{% url 'visor:punto' %}"
+       data-ruta="{{ token }}">
+
+    <header class="visor-barra">
+      <div class="visor-datos">
+        <span class="visor-chip">
+          <span class="visor-chip-rotulo">Archivo</span>
+          <span class="visor-chip-texto" title="{{ nombre_origen }}">{{ nombre_origen }}</span>
+        </span>
+        <span class="visor-chip visor-chip-sistema">
+          <span class="visor-chip-rotulo">Sistema</span>
+          <strong>{{ capa.sistema }}</strong>
+          {% if capa.epsg %}<span class="cifra tenue">EPSG:{{ capa.epsg }}</span>{% endif %}
+        </span>
+        <span class="visor-chip">
+          <span class="visor-chip-rotulo">Tamaño</span>
+          <span class="cifra">{{ capa.ancho_px }} × {{ capa.alto_px }} px · {{ capa.bandas }} {% if capa.bandas == 1 %}banda{% else %}bandas{% endif %}</span>
+        </span>
+        {% if gsd_cm %}
+          <span class="visor-chip">
+            <span class="visor-chip-rotulo">Píxel</span>
+            <span class="cifra">{{ gsd_cm|floatformat:2 }} cm</span>
+          </span>
+        {% endif %}
+      </div>
+      <div class="visor-acciones">
+        <button type="button" class="boton boton-suave boton-pequeno" id="mapa-ajustar">Encuadrar</button>
+        <button type="button" class="boton boton-suave boton-pequeno" id="mapa-menos" aria-label="Alejar">−</button>
+        <button type="button" class="boton boton-suave boton-pequeno" id="mapa-mas" aria-label="Acercar">+</button>
+        <a class="boton boton-suave boton-pequeno visor-enlace" href="{% url 'visor:inicio' %}">Elegir otro archivo</a>
+      </div>
+    </header>
+
+    {% if capa.sin_piramide %}
+      <p class="mensaje mensaje-aviso" role="note">
+        <svg class="mensaje-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-veredicto-reparos"></use></svg>
+        <span><span class="visually-hidden">Aviso: </span>Esta imagen es grande y no trae pirámide de vistas previas: las teselas lejanas pueden tardar. Convertida a COG se ve al instante.</span>
+      </p>
+    {% endif %}
+    {% if capa.tipo != "Byte" or capa.paleta %}
+      <p class="mensaje mensaje-info" role="note">
+        <svg class="mensaje-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-info"></use></svg>
+        <span><span class="visually-hidden">Información: </span>{% if capa.paleta %}Imagen con paleta de colores: se muestra con sus colores.{% else %}Imagen de {{ capa.tipo }}: se muestra escalada a 8 bits con el rango medido; los valores de abajo son los reales.{% endif %}</span>
+      </p>
+    {% endif %}
+
+    <div class="visor-cuerpo">
+      <div class="visor-mapa">
+        <canvas id="mapa-lienzo" tabindex="0" role="application"
+                aria-label="Mapa de {{ nombre_origen }}"
+                aria-describedby="mapa-ayuda"></canvas>
+        <p class="visor-cargando" id="mapa-cargando" role="status">Cargando el mapa…</p>
+        <div class="visor-leyenda" aria-label="Qué se ve en el mapa">
+          <span class="visor-leyenda-item"><i class="visor-contorno" aria-hidden="true"></i> Contorno de la imagen</span>
+          <span class="visor-leyenda-item">Nivel <span class="cifra" id="mapa-nivel">—</span></span>
+          <span class="visor-leyenda-item">Norte arriba</span>
+          <p class="visor-pie tenue" id="mapa-estado" role="status" aria-live="polite"></p>
+        </div>
+      </div>
+
+      <aside class="visor-lateral">
+        <section class="visor-foto" aria-labelledby="mapa-lectura-titulo">
+          <h2 class="visor-foto-titulo" id="mapa-lectura-titulo">Coordenadas <span id="mapa-origen">del centro del mapa</span></h2>
+          <dl class="visor-ficha">
+            <dt>EPSG:4326</dt>
+            <dd id="mapa-lon-lat">—</dd>
+            <dt>{% if capa.epsg %}EPSG:{{ capa.epsg }}{% else %}Sistema del archivo{% endif %}</dt>
+            <dd id="mapa-en-su-sistema">—</dd>
+            <dt>Píxel</dt>
+            <dd id="mapa-pixel">—</dd>
+          </dl>
+          <div class="av-mt-3">
+            <button type="button" class="boton boton-suave boton-pequeno" id="mapa-valor-centro">Valor del píxel del centro</button>
+          </div>
+          <p class="visor-valor cifra av-mt-2 av-mb-0" id="mapa-valor" role="status" aria-live="polite">Pinche un punto del mapa para ver el valor de sus bandas.</p>
+        </section>
+
+        <section class="visor-foto" aria-labelledby="mapa-teclas-titulo">
+          <h2 class="visor-foto-titulo" id="mapa-teclas-titulo">Con el teclado</h2>
+          <ul class="visor-teclas av-mb-0" id="mapa-ayuda">
+            <li><kbd>←</kbd> <kbd>↑</kbd> <kbd>→</kbd> <kbd>↓</kbd> mueven el mapa (con <kbd>Mayús</kbd>, cuatro veces más).</li>
+            <li><kbd>+</kbd> y <kbd>−</kbd> acercan y alejan.</li>
+            <li><kbd>0</kbd> encuadra la imagen entera.</li>
+            <li><kbd>Intro</kbd> lee el valor del píxel del centro.</li>
+          </ul>
+        </section>
+      </aside>
+    </div>
+
+    <section class="tarjeta" aria-labelledby="mapa-esquinas-titulo">
+      <div class="eyebrow" id="mapa-esquinas-titulo">Esquinas y centro</div>
+      <p class="tenue av-mt-1 av-mb-2 av-fs-sm">
+        En grados (EPSG:4326) y en el sistema del archivo{% if capa.unidad %} (en {{ capa.unidad }}){% endif %}. Las esquinas son las de la imagen, no las del norte verdadero.
+      </p>
+      <div class="table-responsive">
+        <table class="table table-sm av-m-0">
+          <thead>
+            <tr>
+              <th scope="col">Punto</th>
+              <th scope="col">Latitud</th>
+              <th scope="col">Longitud</th>
+              <th scope="col">X</th>
+              <th scope="col">Y</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for e in esquinas %}
+              <tr class="cifra">
+                <th scope="row">{{ e.nombre|capfirst }}</th>
+                <td>{{ e.lat|floatformat:7 }}°</td>
+                <td>{{ e.lon|floatformat:7 }}°</td>
+                <td>{{ e.x|floatformat:3 }}</td>
+                <td>{{ e.y|floatformat:3 }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+{% else %}
+  <form id="forma-mapa" method="get" action="{% url 'visor:inicio' %}">
+    <input type="hidden" name="ruta" value="">
+
+    <div class="tarjeta tarjeta-acento">
+      <div class="eyebrow">La imagen</div>
+      <h2 class="origen-titulo av-mt-1 av-mb-3">¿Qué ortofoto o imagen georreferenciada?</h2>
+      <p class="tenue av-fs-sm av-mb-3">
+        GeoTIFF o COG con su sistema de referencia. Se lee en solo lectura: el original no se toca.
+      </p>
+
+      <div class="origenes origenes-pdf">
+        <div class="origen">
+          <div class="origen-cabeza">
+            <span class="origen-marca fam-proteger" aria-hidden="true">
+              <svg class="origen-icono"><use href="{% static 'img/icons.svg' %}#icon-carpeta"></use></svg>
+            </span>
+            <div>
+              <h3 class="origen-titulo">De la carpeta compartida</h3>
+              <p class="origen-nota">Lo que ve todo el equipo. Pinche para entrar y elegir.</p>
+            </div>
+          </div>
+          <div class="explorador" data-destino="[name='ruta']" data-enviar="#forma-mapa"
+               hx-get="{% url 'dashboard:explorar' %}?ext=.tif,.tiff"
+               hx-trigger="load"
+               hx-swap="innerHTML">
+            <p class="tenue av-m-0">Abriendo la carpeta…</p>
+          </div>
+        </div>
+
+        <div class="origen">
+          <div class="origen-cabeza">
+            <span class="origen-marca fam-transformar" aria-hidden="true">
+              <svg class="origen-icono"><use href="{% static 'img/icons.svg' %}#icon-historial"></use></svg>
+            </span>
+            <div>
+              <h3 class="origen-titulo">De un trabajo suyo</h3>
+              <p class="origen-nota">La salida de una conversión que ya terminó.</p>
+            </div>
+          </div>
+          {% if propios %}
+            <ul class="listado">
+              {% for p in propios %}
+                <li>
+                  <a class="linea linea-archivo" href="{% url 'visor:inicio' %}?ruta={{ p.token|urlencode }}">
+                    <svg class="linea-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-archivo"></use></svg>
+                    <span class="linea-nombre">{{ p.nombre }}</span>
+                    <span class="linea-peso cifra">{{ p.fecha|date:"d/m/Y H:i" }}</span>
+                  </a>
+                </li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <p class="tenue av-m-0">Todavía no hay ninguna salida GeoTIFF o COG de un trabajo suyo.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </form>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+{% if capa and capa.dibujable and not error %}
+<script src="{% static 'js/visor.js' %}"></script>
+{% endif %}
+{% endblock %}

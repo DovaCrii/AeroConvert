@@ -333,6 +333,26 @@
       Retícula de longitud y latitud, sin mapa base: sirve para ver dónde cae y con qué forma, no
       para medir. Sistema del archivo: <strong>{{ huella.sistema }}</strong>.
     </p>
+    {% if ver_en_el_mapa %}
+      {% comment %}
+        F19.1: la misma imagen, con zoom y paneo por teselas. Sin GDAL no se esconde (regla 4):
+        sale apagado y dice por qué.
+      {% endcomment %}
+      <div class="av-mb-3">
+        {% if ver_en_el_mapa.disponible %}
+          <a class="boton boton-suave boton-pequeno visor-enlace" href="{{ ver_en_el_mapa.url }}">
+            <svg class="linea-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-mapa"></use></svg>
+            Ver en el mapa
+          </a>
+        {% else %}
+          <button type="button" class="boton boton-suave boton-pequeno" disabled aria-describedby="sin-mapa-motivo">
+            <svg class="linea-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-mapa"></use></svg>
+            Ver en el mapa
+          </button>
+          <p class="tenue av-fs-sm av-mt-1 av-mb-0" id="sin-mapa-motivo">Ahora mismo no se puede: {{ ver_en_el_mapa.motivo }}</p>
+        {% endif %}
+      </div>
+    {% endif %}
     <table class="table table-sm av-m-0">
       <thead><tr><th scope="col">Esquina</th><th scope="col">Longitud</th><th scope="col">Latitud</th></tr></thead>
       <tbody>
