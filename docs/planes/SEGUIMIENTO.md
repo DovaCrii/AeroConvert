@@ -5,7 +5,7 @@
 > Quién hace qué: **Claude** hace ramas, PR, revisión y fusiones; **la persona solo despliega en la
 > VM, al final de todo**.
 
-**Actualizado:** 2026-10-09 · **`main` en:** versión `0.12.0` · **PR sin desplegar:** #21 a #97
+**Actualizado:** 2026-10-09 · **`main` en:** versión `0.13.0` · **PR sin desplegar:** #99 a #113 (desplegado hasta el #98, `4321107`)
 
 ## Pedidos a la persona
 
@@ -33,6 +33,7 @@ Lo que Claude necesita para avanzar y no tiene. **Sin él, la fila espera (⏸) 
 | P18 | **La altura elipsoidal de la base `AUX_01`** del vuelo de Baquedano. Los datos llegaron (2026-10-09): RINEX del dron, `.MRK`, el `.T04` de la base (R12i, 15:34–16:56 GPST, antena 1,374 m) y `Baquedano_PC.csv` con `AUX_01` en UTM, pero con altura **ortométrica** (1037,918; 35,6 m bajo la elipsoidal). RTKLIB pide la elipsoidal | F18.3 (corrida real) y F18.7 | Latitud, longitud y altura elipsoidal de `AUX_01` exportadas de TBC, o el nombre del modelo de geoide del proyecto | La pantalla de PPK se hace igual (con pruebas de RTKLIB falso); la comparación real contra TBC espera. **Dato informativo, no es la altura de la base** (F15.2, 2026-10-09, `manage.py convertir_altura`, `AUX_01` E 414790,476 N 7418959,900 UTM 19S, H = 1037,918): con **EGM96** N = 31,820 m, o sea 1069,738 m elipsoidal; con **EGM2008** no se pudo calcular (falta `us_nga_egm08_25.tif` en esta máquina). Los «35,6 m» de arriba no cuadran con EGM96 (3,8 m de diferencia), lo que sugiere otro modelo: **qué modelo usó TBC lo tiene que confirmar la persona** |
 | P19 | **Un archivo DC** (calibración local de Trimble) de un proyecto real | F18.11 (coordenadas locales, como UAS Sync 4.1) | Archivo en OneDrive | F18.12 ⏸ |
 | P20 | **Un vuelo RTK real**: las fotos de un vuelo con RTK en el aire (bandera 34 o 50) y su exportación de UAS Sync o de TBC, fuera del repositorio | F18.8 (vuelos RTK) | Carpeta en OneDrive | F18.8 queda ⚠: la bandera 16 se vio en un vuelo PPK; 50 y 34 son las que publica DJI, sin contrastar |
+| P21 | **Permiso para bajar la grilla EGM2008** (`us_nga_egm08_25.tif`, de PROJ-data) y dejarla en `AEROCONVERT_PROJ_GRILLAS` | F15.2 (EGM2008) | Un sí | F15.2 queda ⚠: solo EGM96 medido |
 
 ## Bloques
 
@@ -47,14 +48,14 @@ Estados: ✅ hecho · 🟨 en curso · ⬜ por hacer · ⏸ espera un pedido · 
 | **B4 · Plano con color** | F13.7 ✅ | ✅ 2026-10-07 | #62 | — |
 | **B5 · Barra, portada y mapa** | F13.9 ✅ · F13.8 ✅ · F13.11 ✅ · F13.12 ✅ · F13.13 ✅ (cierra F13; versión `0.11.0`) | ✅ 2026-10-07 | #63, #64 | — |
 | **B6 · Suite PDF** | F14.0 ✅ · F14.1 ✅ · F14.2 ✅ · F14.3 ✅ · F14.4 ✅ · F14.5 ✅ · F14.6 ✅ · F14.7 ✅ · F14.8 ✅ · F14.9 ⚠ (sin veraPDF) · F14.11 ⏸ · F14.20 ✅ | 🟨 | #65 a #71, #78, #93 | P11 para F14.11 |
-| **B7 · Imagen, dron, video y vector** | F14.12 ⚠ (Tesseract real en `p340`) · F14.13 ✅ · F14.14 ✅ · F14.15 · F14.16 🟨 (falta SVG, Inkscape) · F14.17 ⚠ (FFmpeg real en `p340`) · F14.18 ✅ · F14.19 ✅ | 🟨 | #72, #73, #75, #76, #94 | D1 (Inkscape) |
-| **B8 · Geoespacial** | F15.1 ⏸ · F15.2 ⚠ (EGM96 medido; EGM2008 espera su grilla) · F15.3 ⏸ · F15.4 ⏸ · F15.5 · F15.6 ◐ (falta DWG) · F15.7 · F15.8 ⏸ | 🟨 | #86 | P5 · P6 · P7 |
-| **B9 · Plataforma** | F16.1 ✅ · F16.2 ✅ · F16.3 ✅ · F16.4 ✅ · F16.5 · F16.6 ✅ | 🟨 | #79, #80, #87, #92 | F16.5 necesita a AeroBim |
+| **B7 · Imagen, dron, video y vector** | F14.12 ⚠ (Tesseract real en `p340`) · F14.13 ✅ · F14.14 ✅ · F14.15 · F14.16 🟨 (falta SVG, Inkscape) · F14.17 ⚠ (FFmpeg real en `p340`) · F14.18 ✅ · F14.19 ✅ | 🟨 | #72, #73, #75, #76, #94, #108 | D1 (Inkscape) |
+| **B8 · Geoespacial** | F15.1 ⏸ · F15.2 ⚠ (EGM96 medido; EGM2008 espera su grilla) · F15.3 ⏸ · F15.4 ⏸ · F15.5 · F15.6 ◐ (falta DWG) · F15.7 · F15.8 ⏸ | 🟨 | #86, #107 | P5 · P6 · P7 |
+| **B9 · Plataforma** | F16.1 ✅ · F16.2 ✅ · F16.3 ✅ · F16.4 ✅ · F16.5 · F16.6 ✅ · F11.8 ◐ (2026-10-09: `runner.py` partido y sus defectos; queda `dashboard/acciones`) | 🟨 | #79, #80, #87, #92, #111, #113 | F16.5 necesita a AeroBim |
 | **B11 · Poner en marcha lo apagado** | F17.1 ⚠ · F17.2 ⚠ · F17.3 ✅ · F17.4 ✅ (`docs/PUESTA_EN_MARCHA_DE_LO_APAGADO.md`) | ✅ en código; los ⚠ se miden en `p340` | #89, #90, #91, #95 | P7 · P10 · P11 · P12 · P13 para lo que es de la persona |
-| **B12 · Vuelos de dron: PPK y sincronía** | F18.1 ✅ · F18.2 ✅ · F18.3 ⚠ · F18.4 ✅ · F18.5 ✅ · F18.6 ✅ · F18.7 ⏸ (`docs/VUELOS_DE_DRON_Y_PPK.md`) | 🟨 | #81 a #85 | P15 y P16 para la corrida real |
-| **B13 · Pedidos tras el despliegue (2026-10-09)** | Lateral que cuenta lo que enseña, chapa y Compatibilidad ✅ #100 · PDF restringido y «ver en grande» ✅ #101 · F14.22 EPUB ⚠ (P17) · F18.7 PPK desde RINEX en pantalla · F18.8 vuelos RTK ⚠ 2026-10-09 (P20) · F18.9 ficha EXIF por foto en el visor ✅ 2026-10-09 · F18.10 orientación de cámara en el CSV ✅ 2026-10-09 · F18.11 coordenadas locales con DC ⏸ (P19) · F18.12 aspecto propio de la sección de drones · F18.13 mover los vuelos a `apps/vuelos/` (después de F18.7 y D8) | 🟨 | #100, #101 | P17 · P18 · P19 · P20 |
-| **B14 · Visor geoespacial (D7)** | F19.1 ✅ · F19.2 ✅ (2026-10-09, `/mapa/`, `apps/visor/`) · F19.3 ✅ (2026-10-09, varias capas, vuelos propios y su orden; ⚠ puntos de control sin fuente) · F19.4 ✅ (2026-10-09, terreno: sombreado, cota y perfil) · F19.5 ✅ (2026-10-09, mapa base propio de la casa, nunca teselas de internet) · F19.6 contrato con AeroBim. Ortofotos, imágenes, mapas base propios y terreno aquí; el 2D de planos sigue en AeroBim | 🟨 | — | F19.6 necesita a AeroBim · medir una ortofoto real de varios GB en `p340` |
-| **B10 · Cierre y despliegue** | Versión `0.12.0` ✅, `HANDOFF.md` con los pasos de la VM ✅ | ✅ 2026-10-08 · **falta desplegar (la persona)** | #97 | — |
+| **B12 · Vuelos de dron: PPK y sincronía** | F18.1 ✅ · F18.2 ✅ · F18.3 ⚠ · F18.4 ✅ · F18.5 ✅ · F18.6 ✅ · F18.7 ⚠ (`docs/VUELOS_DE_DRON_Y_PPK.md`) | 🟨 | #81 a #85, #104 | P15 y P16 para la corrida real |
+| **B13 · Pedidos tras el despliegue (2026-10-09)** | Aceptación desde la interfaz ✅ #99 · Lateral que cuenta lo que enseña, chapa y Compatibilidad ✅ #100 · PDF restringido y «ver en grande» ✅ #101 · F14.22 EPUB ⚠ #102 (P17) · D8 «Plan de vuelo» (F13.14) ✅ #103 · F18.7 PPK desde RINEX en pantalla ⚠ #104 (P18) · F18.13 los vuelos en `apps/vuelos/` ✅ #105 · F18.8 vuelos RTK ⚠ #109 (P20) · F18.9 ficha EXIF por foto ✅ #109 · F18.10 orientación de cámara en el CSV ✅ #109 · F18.11 coordenadas locales con DC ⏸ (P19) · F18.12 aspecto propio de la sección de drones ⬜ · F18.14 puntos de control en `vuelo.json` ⬜ | 🟨 | #99 a #105, #109 | P17 · P18 · P19 · P20 |
+| **B14 · Visor geoespacial (D7)** | F19.1 ✅ · F19.2 ✅ (2026-10-09, `/mapa/`, `apps/visor/`) · F19.3 ✅ (2026-10-09, varias capas, vuelos propios y su orden; ⚠ puntos de control sin fuente hasta F18.14) · F19.4 ✅ (2026-10-09, terreno: sombreado, cota y perfil) · F19.5 ✅ (2026-10-09, mapa base propio de la casa, nunca teselas de internet) · F19.6 contrato con AeroBim. Ortofotos, imágenes, mapas base propios y terreno aquí; el 2D de planos sigue en AeroBim | 🟨 | #106 (F19.1, F19.2), #110 (F19.4), #112 (F19.3, F19.5) | F19.6 necesita a AeroBim · medir una ortofoto real de varios GB en `p340` |
+| **B10 · Cierre y despliegue** | Versión `0.12.0` ✅ (2026-10-08, #97) · versión `0.13.0` ✅ (2026-10-09, cierra B13 y B14 hasta el #113), `HANDOFF.md` con los pasos de la VM ✅ | ✅ 2026-10-09 · **falta desplegar (la persona)** | #97, el del cierre `0.13.0` | — |
 
 **Orden de trabajo:** B1 → B2 → B3 → B4 → B5 (esto cierra F13 y la versión `0.11.0`); B6 con
 las firmas (`0.12.0`); B7 y B8 según los pedidos que lleguen; B9; B10. Un bloque con un pedido

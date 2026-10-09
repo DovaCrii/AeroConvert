@@ -5,6 +5,10 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Sin publicar]
 
+## [0.13.0] — 2026-10-09
+
+Mapa en `/mapa/` con ortofotos por teselas, terreno, varias capas y mapa base de la casa; vuelos de dron con RTK, ficha EXIF y trayectoria con RTKLIB, en su propia app; alturas elipsoidal y ortométrica con geoide declarado; escanear con el teléfono y libro EPUB; dirección visual «Plan de vuelo»; el corredor de trabajos partido sin cambiar comportamiento, y un original que cambia durante el trabajo lo deja en error. Los pasos del despliegue están en `HANDOFF.md`.
+
 ### Añadido — «Ver en el mapa» con un mapa base propio, nunca de internet (F19.5)
 
 - **Un fondo de la casa**: `AEROCONVERT_VISOR_MAPA_BASE` lleva una o varias ortofotos o mosaicos COG
@@ -62,52 +66,6 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
   `gdaltransform` a ≤ 0,45 mm (≤ 0,003 px al nivel 20), la trayectoria igual, y cuatro disparos
   construidos sobre píxeles conocidos de la ortofoto con el color de su casilla bajo la marca. Cifras en
   `docs/PRUEBAS_CON_ORACULO.md`.
-
-### Cambiado — `runner.py` y las funciones de más de 140 líneas, partidas sin cambiar comportamiento (F11.8)
-
-- **`apps/jobs/runner.py`** (1.105 líneas) conserva la orquestación (`reclamar`, `ejecutar`,
-  `_ejecutar`, `_ejecutar_documento`) y re-exporta todo lo demás, así que ningún importador cambia.
-  Lo que salió, **sin tocar una línea** (se comprobó por AST): `fallos.py` (`TrabajoFallido`),
-  `exigencias.py` (memoria, crudo entero, CRS, metros), `salidas.py` (destino libre, reserva,
-  espacio, borrado y renombrado atómico) y `procesos.py` (el hijo, su avance, el plazo, el atasco y
-  matar el árbol).
-- **`_ejecutar_documento`** y **`_lanzar`** quedan en pasos con nombre
-  (`_entradas_del_documento`, `_preparar_documento`, `_cerrar_documento`, `_abrir_proceso`,
-  `_vigilar_al_hijo`, `_exigir_codigo_de_salida`…). Mismos códigos de motivo y mismos mensajes.
-- **`deteccion.inspeccionar`** (247 líneas) pasa a un lector por formato (`_leer_tiff`, `_leer_las`,
-  `_leer_libreta`…); **`tiff._leer_cabecera_de`** a marca, recorrido y armado; **`informe.construir`**
-  a una función por sección; **`markdown_a_pdf`** a lectura, piezas y escritura.
-- **Antes de mover nada**, pruebas de caracterización que fijan lo que hace hoy cada camino:
-  `test_runner_caracterizacion.py` (feliz y de fallo, con el `sha256` y el `mtime` del original
-  comprobados en cada fallo), `test_informe_caracterizacion.py`, `test_inspeccionar_caracterizacion.py`,
-  `test_tiff_caracterizacion.py` y `test_desde_markdown_caracterizacion.py`.
-- **Quedó sin partir**: `vuelos/vuelo_proceso.procesar` (otra rama toca `apps/vuelos/`) y
-  `dashboard/acciones._de_los_documentos` (195 de sus 216 líneas son el diccionario de sinónimos).
-- **Defectos hallados y no tocados** (cada uno con una prueba `xfail(strict=True)` que lo demuestra):
-  sin filas de entrada, el corredor de documentos revienta con `IntegrityError` en vez de usar
-  `source_path`; el informe de verificación nunca imprime los avisos de la bitácora (filtra por
-  `'warning'` y el nivel real es `'warn'`); y los bloques de código de «Markdown a PDF» pierden sus
-  saltos de línea.
-
-### Corregido — los defectos que dejó el refactor del corredor (F11.8) y la regla 5 del original
-
-- **Un trabajo de documentos sin filas de entrada** usa `source_path` en vez de caer en
-  `IntegrityError`: la entrada sintética no se guarda (`_state.adding`, no `pk`, que es un UUID).
-- **El informe de verificación imprime los avisos de la bitácora**: filtraba `'warning'` y el nivel real
-  es `JobEvent.AVISO` (`'warn'`). La prueba que pasaba creaba el evento con el nivel inventado; ahora usa
-  la constante.
-- **«Markdown a PDF» conserva las líneas de los bloques de código** (`Preformatted`), con `<` y `&` como
-  texto; comprobado con PDFium además de pypdf. Su parcial pasa a `ruta_parcial` (`doc.parcial.pdf`).
-- **Las pruebas del corredor miraban un parcial que no existe** (`salida.tif.parcial`; el real es
-  `salida.parcial.tif`): ahora usan `ruta_parcial`.
-- **Los pasos posteriores de un trabajo decodifican la salida del hijo como UTF-8** (en Windows salía
-  «pirÃ¡mides»).
-- **Un original que cambia durante el trabajo ya no termina en «hecho».** El corredor compara fecha y
-  tamaño **antes de renombrar**; si difieren, el trabajo termina en error con el motivo
-  **`original-modificado`** (nuevo en el catálogo), el parcial se borra, no se entrega salida y la
-  bitácora lleva el `sha256`, la fecha y el tamaño de antes y de después. Vale para el geoespacial y para
-  documentos (en cada entrada, y también en un «hecho» sin archivo). El informe lo cuenta así, y la frase
-  «si hubiera cambiado, el trabajo habría fallado» pasa a ser cierta.
 
 ### Añadido — «Ver en el mapa» con terreno: sombreado, cota y perfil (F19.4)
 
@@ -230,19 +188,6 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
   con de dónde salió y cuántas fotos la traen; Metashape y Pix4D tienen la suya y hay que mapear las
   columnas al importar. El XMP no dice si el norte es el magnético o el geográfico: tampoco se afirma.
 
-### Cambiado — los vuelos de dron en su propia app, `apps/vuelos/` (F18.13)
-
-- Salen de `apps/documents/` los motores (`vuelo_pos`, `vuelo_sync`, `vuelo_ppk`, `vuelo_proceso`,
-  `vuelo_trimble`, `vuelo_exif`, `fotos_dron`, `telemetria`, `video`), sus cuatro pantallas y el índice
-  «Vuelos de dron», las plantillas (`templates/vuelos/`) y sus pruebas. Movimiento con `git mv`, sin
-  cambio de comportamiento: **las direcciones públicas, los nombres de ruta (`documents:vuelo_dron`…) y los
-  identificadores de herramienta (`vuelo_dron`, `fotos_dron`, `telemetria`, `video`) no cambian**, así que
-  marcadores, historial de trabajos, acciones rápidas y Tino siguen igual.
-- `apps.vuelos` solo importa de `apps.documents` la cola, la entrada de archivos, `ComposicionInvalida` y
-  `motor.disponibilidad`; `apps/vuelos/test_independencia.py` lo vigila con una lista blanca.
-- `_paso_vuelo.html` se queda en `templates/documents/` porque «Paquetes» también lo usa, y
-  `test_criterio.py` mira ahora las carpetas de las dos apps para que las pantallas movidas sigan sujetas
-  a la misma regla.
 ### Añadido — «Corregir un vuelo de dron» calcula la trayectoria con RTKLIB (F18.7)
 
 - **La segunda entrada de la pantalla.** Una elección visible, «¿De dónde sale la trayectoria?»: la que
@@ -266,6 +211,54 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 - Tres papeles nuevos para las entradas de un trabajo (`rover`, `base`, `navegacion`) y un lector del
   `.pos` en la verificación del zip que cuenta las épocas aparte.
 
+### Añadido — Hacer un libro EPUB (F14.22)
+
+- De un PDF con texto, un Word, una página web, una hoja o un Markdown, un **EPUB 3** que se lee en el teléfono o en un lector: un capítulo por título de primer nivel, índice del lector, título y autor opcionales. Pasa por `a_markdown` (la lectura ya probada) y se escribe sin dependencia nueva (`apps/documents/a_epub.py`). Un escaneo sin texto lo dice y no deja libro. Son ya **cuarenta y una** herramientas de documentos.
+
+### Añadido — ver una página en grande
+
+- En «Organizar páginas», «Unir PDF», «Dividir PDF» y «PDF a imágenes», cada miniatura lleva «Ver en grande»: la hoja a 1400 px en un diálogo con anterior, siguiente y Escape (`static/js/ampliar.js`); sin JavaScript se abre en otra pestaña.
+
+### Cambiado — `runner.py` y las funciones de más de 140 líneas, partidas sin cambiar comportamiento (F11.8)
+
+- **`apps/jobs/runner.py`** (1.105 líneas) conserva la orquestación (`reclamar`, `ejecutar`,
+  `_ejecutar`, `_ejecutar_documento`) y re-exporta todo lo demás, así que ningún importador cambia.
+  Lo que salió, **sin tocar una línea** (se comprobó por AST): `fallos.py` (`TrabajoFallido`),
+  `exigencias.py` (memoria, crudo entero, CRS, metros), `salidas.py` (destino libre, reserva,
+  espacio, borrado y renombrado atómico) y `procesos.py` (el hijo, su avance, el plazo, el atasco y
+  matar el árbol).
+- **`_ejecutar_documento`** y **`_lanzar`** quedan en pasos con nombre
+  (`_entradas_del_documento`, `_preparar_documento`, `_cerrar_documento`, `_abrir_proceso`,
+  `_vigilar_al_hijo`, `_exigir_codigo_de_salida`…). Mismos códigos de motivo y mismos mensajes.
+- **`deteccion.inspeccionar`** (247 líneas) pasa a un lector por formato (`_leer_tiff`, `_leer_las`,
+  `_leer_libreta`…); **`tiff._leer_cabecera_de`** a marca, recorrido y armado; **`informe.construir`**
+  a una función por sección; **`markdown_a_pdf`** a lectura, piezas y escritura.
+- **Antes de mover nada**, pruebas de caracterización que fijan lo que hace hoy cada camino:
+  `test_runner_caracterizacion.py` (feliz y de fallo, con el `sha256` y el `mtime` del original
+  comprobados en cada fallo), `test_informe_caracterizacion.py`, `test_inspeccionar_caracterizacion.py`,
+  `test_tiff_caracterizacion.py` y `test_desde_markdown_caracterizacion.py`.
+- **Quedó sin partir**: `vuelos/vuelo_proceso.procesar` (otra rama toca `apps/vuelos/`) y
+  `dashboard/acciones._de_los_documentos` (195 de sus 216 líneas son el diccionario de sinónimos).
+- **Defectos hallados y no tocados** (cada uno con una prueba `xfail(strict=True)` que lo demuestra):
+  sin filas de entrada, el corredor de documentos revienta con `IntegrityError` en vez de usar
+  `source_path`; el informe de verificación nunca imprime los avisos de la bitácora (filtra por
+  `'warning'` y el nivel real es `'warn'`); y los bloques de código de «Markdown a PDF» pierden sus
+  saltos de línea.
+
+### Cambiado — los vuelos de dron en su propia app, `apps/vuelos/` (F18.13)
+
+- Salen de `apps/documents/` los motores (`vuelo_pos`, `vuelo_sync`, `vuelo_ppk`, `vuelo_proceso`,
+  `vuelo_trimble`, `vuelo_exif`, `fotos_dron`, `telemetria`, `video`), sus cuatro pantallas y el índice
+  «Vuelos de dron», las plantillas (`templates/vuelos/`) y sus pruebas. Movimiento con `git mv`, sin
+  cambio de comportamiento: **las direcciones públicas, los nombres de ruta (`documents:vuelo_dron`…) y los
+  identificadores de herramienta (`vuelo_dron`, `fotos_dron`, `telemetria`, `video`) no cambian**, así que
+  marcadores, historial de trabajos, acciones rápidas y Tino siguen igual.
+- `apps.vuelos` solo importa de `apps.documents` la cola, la entrada de archivos, `ComposicionInvalida` y
+  `motor.disponibilidad`; `apps/vuelos/test_independencia.py` lo vigila con una lista blanca.
+- `_paso_vuelo.html` se queda en `templates/documents/` porque «Paquetes» también lo usa, y
+  `test_criterio.py` mira ahora las carpetas de las dos apps para que las pantallas movidas sigan sujetas
+  a la misma regla.
+
 ### Cambiado — dirección visual «Plan de vuelo» en toda la app (D8, F13.14)
 
 - La persona eligió «A · Plan de vuelo» entre tres direcciones; **sustituye al «plano con color» de F13.7**. El archivo hace un vuelo: soltarlo es el despegue, los pasos son puntos de ruta unidos por una trayectoria punteada (con halo en el paso actual y una marca ✓ en el hecho), y la verificación y la descarga son el aterrizaje.
@@ -275,29 +268,41 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 - Todo movimiento se apaga con `prefers-reduced-motion`. El contraste WCAG AA y el foco no cambian y se miden también contra el segundo extremo del degradado de la barra.
 - Pruebas: `test_plano.py` se **reescribió** para las reglas nuevas (degradados solo en barra, lateral y fondo de portada; sombras solo con `--av-elev-*`; `translateY(-3px)` como máximo con transición de 150 a 300 ms; movimiento reducido; ninguna descarga); `test_paleta.py` añade los pares de la barra, la ruta y la marca de hecho; `test_escalas.py` y `test_iconos.py` se ajustaron a la nueva elevación y a los dos adornos SVG. Ver `docs/DISENO_PLAN_DE_VUELO.md`.
 
-### Añadido — Hacer un libro EPUB (F14.22)
+### Cambiado — lateral, chapa del modo y Compatibilidad
 
-- De un PDF con texto, un Word, una página web, una hoja o un Markdown, un **EPUB 3** que se lee en el teléfono o en un lector: un capítulo por título de primer nivel, índice del lector, título y autor opcionales. Pasa por `a_markdown` (la lectura ya probada) y se escribe sin dependencia nueva (`apps/documents/a_epub.py`). Un escaneo sin texto lo dice y no deja libro. Son ya **cuarenta y una** herramientas de documentos.
+- **Lateral:** la herramienta donde se está queda marcada (`aria-current`, fondo y barra) y su grupo se abre solo, sin cambiar lo que la persona dejó guardado; barra de desplazamiento fina y del color del tema; el grupo abierto lleva su símbolo en el color de acción.
+- **Chapa del modo** («Equipo», «Taller», «Nube»): con su símbolo delante (la forma dice el modo sin depender del color) y, al pie del lateral, en los colores del tema: el verde de la barra sobre fondo claro no se leía.
+- **Compatibilidad:** lo apagado (motores y herramientas de documentos) en **una sola lista**, una fila por cosa con «Por qué», «Qué hace falta» y «Mientras tanto» escritos; lo que funciona, en una línea por motor; la matriz y el historial, plegados y recordados. En el teléfono, las cifras del resumen van de dos en dos.
+
+### Corregido — los defectos que dejó el refactor del corredor (F11.8) y la regla 5 del original
+
+- **Un trabajo de documentos sin filas de entrada** usa `source_path` en vez de caer en
+  `IntegrityError`: la entrada sintética no se guarda (`_state.adding`, no `pk`, que es un UUID).
+- **El informe de verificación imprime los avisos de la bitácora**: filtraba `'warning'` y el nivel real
+  es `JobEvent.AVISO` (`'warn'`). La prueba que pasaba creaba el evento con el nivel inventado; ahora usa
+  la constante.
+- **«Markdown a PDF» conserva las líneas de los bloques de código** (`Preformatted`), con `<` y `&` como
+  texto; comprobado con PDFium además de pypdf. Su parcial pasa a `ruta_parcial` (`doc.parcial.pdf`).
+- **Las pruebas del corredor miraban un parcial que no existe** (`salida.tif.parcial`; el real es
+  `salida.parcial.tif`): ahora usan `ruta_parcial`.
+- **Los pasos posteriores de un trabajo decodifican la salida del hijo como UTF-8** (en Windows salía
+  «pirÃ¡mides»).
+- **Un original que cambia durante el trabajo ya no termina en «hecho».** El corredor compara fecha y
+  tamaño **antes de renombrar**; si difieren, el trabajo termina en error con el motivo
+  **`original-modificado`** (nuevo en el catálogo), el parcial se borra, no se entrega salida y la
+  bitácora lleva el `sha256`, la fecha y el tamaño de antes y de después. Vale para el geoespacial y para
+  documentos (en cada entrada, y también en un «hecho» sin archivo). El informe lo cuenta así, y la frase
+  «si hubiera cambiado, el trabajo habría fallado» pasa a ser cierta.
 
 ### Corregido — un PDF que abre en cualquier visor salía con «pide contraseña»
 
 - Muchos PDF (certificados, informes de un sistema) van cifrados solo para restringir imprimir o copiar, con la contraseña de apertura **vacía**. `is_encrypted` no distingue ese caso, y en p340 un certificado salió rechazado en «Organizar páginas». Ahora `apps/formats/pdf.py` prueba la contraseña vacía, como hace un visor (`abre_sin_clave`, `abrir_lector`, `pide_clave`), y las doce lecturas con pypdf lo usan. Uno con contraseña de verdad se sigue parando. Oráculo: PDFium (`test_pdf_restringido.py`).
 - Títulos en usted: «Organizar las páginas de un PDF» y «Juntar varios PDF en uno».
 
-### Añadido — ver una página en grande
-
-- En «Organizar páginas», «Unir PDF», «Dividir PDF» y «PDF a imágenes», cada miniatura lleva «Ver en grande»: la hoja a 1400 px en un diálogo con anterior, siguiente y Escape (`static/js/ampliar.js`); sin JavaScript se abre en otra pestaña.
-
 ### Corregido — el lateral contaba herramientas que no enseñaba
 
 - «Imagen, video y planta» decía 2 y enseñaba 1 en p340: la cifra contaba también la apagada. Ahora cada grupo cuenta solo las disponibles, y un grupo sin ninguna no sale en el menú (las apagadas siguen, con su motivo, en la portada y en Compatibilidad).
 - Trato de usted: «lo que conviertas» (la chapa del modo, en todas las pantallas), «las elijas» y «Lo que sueles hacer». La prueba de trato vigila ahora también el subjuntivo de tú.
-
-### Cambiado — lateral, chapa del modo y Compatibilidad
-
-- **Lateral:** la herramienta donde se está queda marcada (`aria-current`, fondo y barra) y su grupo se abre solo, sin cambiar lo que la persona dejó guardado; barra de desplazamiento fina y del color del tema; el grupo abierto lleva su símbolo en el color de acción.
-- **Chapa del modo** («Equipo», «Taller», «Nube»): con su símbolo delante (la forma dice el modo sin depender del color) y, al pie del lateral, en los colores del tema: el verde de la barra sobre fondo claro no se leía.
-- **Compatibilidad:** lo apagado (motores y herramientas de documentos) en **una sola lista**, una fila por cosa con «Por qué», «Qué hace falta» y «Mientras tanto» escritos; lo que funciona, en una línea por motor; la matriz y el historial, plegados y recordados. En el teléfono, las cifras del resumen van de dos en dos.
 
 ### Corregido — `instalar_faltantes.sh` daba todo por ausente en un servidor en español
 
