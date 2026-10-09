@@ -89,7 +89,9 @@ class TestLaPantalla:
 
     def test_las_dos_vias_de_cada_paso_y_ninguna_pide_teclear_una_ruta(self, sesion):
         cuerpo = sesion.get(reverse("documents:vuelo_dron")).content.decode()
-        assert cuerpo.count('type="file"') == 3  # las fotos se eligen por carpeta
+        # Los tres de Trimble y los cuatro de RINEX de la segunda entrada (F18.7), que están en
+        # la página aunque se muestre solo una; las fotos se eligen por carpeta.
+        assert cuerpo.count('type="file"') == 3 + 4
         assert cuerpo.count("de la carpeta compartida") >= 3
         assert 'type="text"' not in cuerpo
 

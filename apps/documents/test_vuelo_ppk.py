@@ -266,6 +266,10 @@ FALSO = textwrap.dedent(
     salida = args[args.index("-o") + 1]
     if config.get("duerme"):
         time.sleep(config["duerme"])
+    for linea in config.get("progreso", []):
+        # Como RTKLIB: una línea por época, separadas por retorno de carro y sin salto de línea.
+        sys.stderr.write(linea + chr(13))
+        sys.stderr.flush()
     if config.get("mensaje"):
         print(config["mensaje"], file=sys.stderr)
     if config.get("escribe") is not None:
@@ -398,6 +402,95 @@ class TestCorrer:
         with pytest.raises(ComposicionInvalida):
             self._correr(falso(escribe="basura\n"), archivos, tmp_path)
         assert huella() == antes
+
+
+def _con_horas(carpeta: Path, nombre: str, primera: str, ultima: str | None) -> Path:
+    """Un RINEX del dron con `TIME OF FIRST OBS` y, si se pide, `TIME OF LAST OBS`."""
+
+    def linea(hora: str, etiqueta: str) -> str:
+        y, mo, d, h, mi, s = hora.split()
+        campos = f"{int(y):6d}{int(mo):6d}{int(d):6d}{int(h):6d}{int(mi):6d}{float(s):13.7f}"
+        return (campos + "     GPS").ljust(60) + etiqueta
+
+    extra = linea(primera, "TIME OF FIRST OBS")
+    if ultima:
+        extra += "\n" + linea(ultima, "TIME OF LAST OBS")
+    return _rinex(carpeta, nombre, "O", xyz=(0.0, 0.0, 0.0), extra=extra)
+
+
+def _avance(minuto_s: list[tuple[int, int]]) -> list[str]:
+    return [f"processing : 2025/12/29 15:{m:02d}:{s:02d}.0 Q=1 ns=14" for m, s in minuto_s]
+
+
+class TestElAvanceLeidoDeRtklib:
+    """`rnx2rtkp` dice dónde va en stderr; con la primera y la última observación sale la barra."""
+
+    def test_la_cabecera_trae_la_primera_y_la_ultima_observacion(self, tmp_path):
+        ruta = _con_horas(tmp_path, "d.obs", "2025 12 29 15 40 0", "2025 12 29 15 50 30")
+        c = vuelo_ppk.leer_cabecera(ruta)
+        assert c.desde.isoformat() == "2025-12-29T15:40:00"
+        assert c.hasta.isoformat() == "2025-12-29T15:50:30"
+
+    def test_sin_hora_de_fin_la_cabecera_no_la_inventa(self, tmp_path):
+        c = vuelo_ppk.leer_cabecera(_con_horas(tmp_path, "d.obs", "2025 12 29 15 40 0", None))
+        assert c.hasta is None and c.ultima_observacion == ""
+
+    def test_las_fracciones_crecen_y_van_de_cero_a_uno(self, falso, archivos, tmp_path):
+        rover = _con_horas(tmp_path, "d.obs", "2025 12 29 15 40 0", "2025 12 29 15 50 0")
+        # Los minutos 40 a 50 son diez minutos: cada 30 s es el 5 %. Una época repetida no suma.
+        horas = [(40 + s // 60, s % 60) for s in range(0, 601, 30)]
+        programa = falso(escribe=_pos([1, 1]), progreso=_avance(horas + [horas[-1]]))
+        avances: list[tuple[float | None, str]] = []
+        vuelo_ppk.correr(
+            programa,
+            rover=rover,
+            base_obs=archivos["base"],
+            navegacion=[archivos["nav"]],
+            destino=tmp_path / "s.pos",
+            base=BASE,
+            progreso=lambda f, e: avances.append((f, e)),
+        )
+        fracciones = [f for f, _ in avances]
+        assert fracciones and None not in fracciones
+        assert fracciones == sorted(fracciones) and len(set(fracciones)) == len(fracciones)
+        assert fracciones[0] == pytest.approx(0.0, abs=1e-9) and fracciones[-1] == pytest.approx(
+            1.0
+        )
+        assert 0.49 < fracciones[len(fracciones) // 2] < 0.56  # hacia la mitad, a las 15:45
+        assert all("RTKLIB va en 2025-12-29 15:" in e and "GPST" in e for _, e in avances)
+        assert "fija" in avances[0][1]
+
+    def test_sin_hora_de_fin_solo_va_la_etiqueta(self, falso, archivos, tmp_path):
+        rover = _con_horas(tmp_path, "d.obs", "2025 12 29 15 40 0", None)
+        programa = falso(escribe=_pos([1]), progreso=_avance([(41, 0), (42, 0)]))
+        avances = []
+        vuelo_ppk.correr(
+            programa,
+            rover=rover,
+            base_obs=archivos["base"],
+            navegacion=[archivos["nav"]],
+            destino=tmp_path / "s.pos",
+            base=BASE,
+            progreso=lambda f, e: avances.append((f, e)),
+        )
+        assert [f for f, _ in avances] == [None, None]
+        assert avances[-1][1].startswith("RTKLIB va en 2025-12-29 15:42:00")
+
+    def test_la_barra_no_ensucia_los_mensajes_de_error(self, falso, archivos, tmp_path):
+        rover = _con_horas(tmp_path, "d.obs", "2025 12 29 15 40 0", "2025 12 29 15 50 0")
+        programa = falso(
+            codigo=0, progreso=_avance([(41, 0), (42, 0)]), mensaje="error: no common satellites"
+        )
+        with pytest.raises(ComposicionInvalida, match="no escribió ninguna posición") as e:
+            vuelo_ppk.correr(
+                programa,
+                rover=rover,
+                base_obs=archivos["base"],
+                navegacion=[archivos["nav"]],
+                destino=tmp_path / "s.pos",
+                base=BASE,
+            )
+        assert "no common satellites" in str(e.value) and "processing" not in str(e.value)
 
 
 class TestSonda:

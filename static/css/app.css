@@ -4023,6 +4023,32 @@ code {
   padding-top: var(--av-s-2);
 }
 
+/* Los números de los pasos los cuenta el CSS: los pasos de una entrada o de la otra se ocultan
+ * (F18.7) y un número escrito a mano dejaría huecos (1, 2, 6, 7…). Un paso oculto no cuenta. */
+.vuelo-pasos {
+  counter-reset: vuelo-paso;
+}
+
+.vuelo-paso {
+  counter-increment: vuelo-paso;
+}
+
+.vuelo-paso-numero::before {
+  content: counter(vuelo-paso);
+}
+
+.vuelo-grupo {
+  display: grid;
+  gap: var(--av-s-3);
+}
+
+/* La segunda entrada: solo se ve la que está elegida. Sin `:has()` (navegadores viejos) se ven las
+ * dos, que es feo pero no esconde nada. */
+.vuelo-layout:has(#id_origen_rinex:checked) .vuelo-solo-trimble,
+.vuelo-layout:not(:has(#id_origen_rinex:checked)) .vuelo-solo-rinex {
+  display: none;
+}
+
 .vuelo-etapas,
 .vuelo-sale {
   margin: 0 0 var(--av-s-3);

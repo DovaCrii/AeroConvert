@@ -32,7 +32,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from . import vuelo_sync, vuelo_trimble
+from . import vuelo_pos, vuelo_sync, vuelo_trimble
 from .composicion import ComposicionInvalida
 
 #: Con cuántos metros de diferencia contra las posiciones de Trimble se avisa. El vuelo real
@@ -182,17 +182,32 @@ def _contraste(fotos, referencia, transformador) -> dict | None:
 
 def procesar(
     *,
-    trayectoria: bytes,
+    trayectoria: bytes | None = None,
     disparos: bytes,
     nombre_de_disparos: str,
     referencia: bytes | None = None,
     nombres_en_carpeta: list[str] | None = None,
-    escala_de_tiempo: str,
+    escala_de_tiempo: str | None = None,
     sistema: str = "medir",
     aplicar_desfase: bool = True,
     progreso: Callable[[float, str], None] | None = None,
+    trayectoria_ppk: vuelo_pos.Trayectoria | None = None,
 ) -> Entregables:
-    """Todo el proceso. Levanta `ComposicionInvalida` con el motivo, y no deja nada a medias."""
+    """Todo el proceso. Levanta `ComposicionInvalida` con el motivo, y no deja nada a medias.
+
+    La trayectoria es **una de dos**: el CSV que exportó Trimble (`trayectoria` y su
+    `escala_de_tiempo`, que no se supone) o la que calculó RTKLIB (`trayectoria_ppk`, ya en
+    latitud, longitud y altura elipsoidal, y en GPST porque `vuelo_pos.leer` no admite otra). Con
+    la de RTKLIB la calidad de cada foto sale de la de sus épocas, y `sistema` solo dice en qué
+    se proyectan los puntos del visor.
+    """
+    if (trayectoria is None) == (trayectoria_ppk is None):
+        raise ComposicionInvalida(
+            "Hace falta una trayectoria, y solo una: la que exportó Trimble o la que calculó "
+            "RTKLIB."
+        )
+    if trayectoria_ppk is None and not escala_de_tiempo:
+        raise ComposicionInvalida("Falta la escala de tiempo de la trayectoria: no se supone.")
 
     def avance(fraccion: float, etiqueta: str) -> None:
         if progreso is not None:
@@ -204,7 +219,11 @@ def procesar(
     eventos = _leer_disparos(disparos, nombre_de_disparos)
 
     avance(0.10, "Leyendo la trayectoria")
-    puntos = vuelo_trimble.leer_trayectoria(trayectoria, escala_de_tiempo=escala_de_tiempo)
+    puntos = (
+        vuelo_trimble.leer_trayectoria(trayectoria, escala_de_tiempo=escala_de_tiempo)
+        if trayectoria_ppk is None
+        else None
+    )
 
     avance(0.22, "Leyendo las posiciones de las fotos de Trimble" if referencia else "Preparando")
     ref = vuelo_trimble.leer_posiciones_por_foto(referencia) if referencia else None
@@ -212,7 +231,7 @@ def procesar(
     avance(0.30, "Midiendo el sistema de coordenadas")
     elegido, candidatos = elegir_sistema(sistema, ref)
     avisos_de_escala: list[str] = []
-    if ref is None:
+    if ref is None and trayectoria_ppk is None:
         # La escala de tiempo no se puede comprobar sin las posiciones de Trimble: con una
         # trayectoria en UTC leída como GPST las fotos quedan 18 s corridas (cientos de metros) y
         # el resultado parece correcto. Se dice en el informe y en el aviso del trabajo.
@@ -241,8 +260,14 @@ def procesar(
         nombres = vuelo_sync.emparejar(eventos, nombres_en_carpeta)
         de_donde = "la carpeta de fotos, por orden de nombre"
 
-    avance(0.42, "Pasando la trayectoria a latitud y longitud")
-    tray = vuelo_trimble.a_trayectoria(puntos, elegido.epsg)
+    a_proyectado = Transformer.from_crs("EPSG:4326", f"EPSG:{elegido.epsg}", always_xy=True)
+    if trayectoria_ppk is None:
+        avance(0.42, "Pasando la trayectoria a latitud y longitud")
+        tray = vuelo_trimble.a_trayectoria(puntos, elegido.epsg)
+    else:
+        avance(0.42, "Proyectando la trayectoria de RTKLIB para el visor")
+        tray = trayectoria_ppk
+        puntos = _puntos_proyectados(tray, a_proyectado)
     if tray.huecos():
         avisos.append(
             f"La trayectoria tiene {len(tray.huecos())} hueco(s): las fotos que caen en ellos "
@@ -261,16 +286,25 @@ def procesar(
         )
 
     avance(0.68, "Contrastando con las posiciones de Trimble")
-    a_proyectado = Transformer.from_crs("EPSG:4326", f"EPSG:{elegido.epsg}", always_xy=True)
     contraste = _contraste(fotos, ref, a_proyectado)
+    # La altura de Trimble no es la elipsoidal de RTKLIB (en el vuelo real, 35 m de diferencia):
+    # con RTKLIB solo el plano decide si coinciden, y la altura se muestra sin juzgarla.
+    componentes = ("norte", "este") if trayectoria_ppk is not None else ("norte", "este", "altura")
     if contraste:
-        peor = max(contraste[c]["maximo_mm"] for c in ("norte", "este", "altura"))
+        peor = max(contraste[c]["maximo_mm"] for c in componentes)
         if peor / 1000 > UMBRAL_DE_CONTRASTE_M:
+            revisar = (
+                "el desfase de la antena y que la trayectoria sea la de este vuelo."
+                if trayectoria_ppk is not None
+                else "la escala de tiempo, el desfase de la antena y que la trayectoria sea la "
+                "de este vuelo."
+            )
             avisos.append(
                 f"Las posiciones no coinciden con las de Trimble: la diferencia llega a "
-                f"{peor:.1f} mm. Revise la escala de tiempo, el desfase de la antena y que la "
-                "trayectoria sea la de este vuelo."
+                f"{peor:.1f} mm. Revise {revisar}"
             )
+    if trayectoria_ppk is not None:
+        avisos.extend(_avisos_de_calidad(fotos))
 
     avance(0.80, "Escribiendo los entregables")
     resumen_sync = vuelo_sync.resumen(fotos)
@@ -289,12 +323,22 @@ def procesar(
         salida.archivos["fotos.kml"] = vuelo_sync.a_kml(fotos, elegido.geografico).encode("utf-8")
     salida.archivos["calidad.md"] = _informe(
         elegido, candidatos, tray, fotos, resumen_sync, contraste, avisos, de_donde, ref_altura,
-        aplicar_desfase, ref,
+        aplicar_desfase, ref, trayectoria_ppk is not None,
     ).encode("utf-8")  # fmt: skip
 
     avance(0.92, "Preparando el visor")
     salida.archivos["vuelo.json"] = json.dumps(
-        _datos_del_visor(elegido, puntos, fotos, ref, a_proyectado, ref_altura, nombres_en_carpeta),
+        # Con RTKLIB la calidad de cada foto es la suya, no la que dice Trimble (`ref` es solo para
+        # contrastar): por eso al visor no se le pasa.
+        _datos_del_visor(
+            elegido,
+            puntos,
+            fotos,
+            ref if trayectoria_ppk is None else None,
+            a_proyectado,
+            ref_altura,
+            nombres_en_carpeta,
+        ),
         ensure_ascii=False,
         separators=(",", ":"),
     ).encode("utf-8")
@@ -308,14 +352,17 @@ def procesar(
         "sin_posicion": resumen_sync["sin_posicion"],
         "puntos_de_trayectoria": len(puntos),
         "contraste_maximo_mm": (
-            round(max(contraste[c]["maximo_mm"] for c in ("norte", "este", "altura")), 2)
-            if contraste
-            else None
+            round(max(contraste[c]["maximo_mm"] for c in componentes), 2) if contraste else None
         ),
         "desfase_aplicado": sum(1 for f in fotos if f.desfase_aplicado),
         # La lista, no la cuenta: el corredor la recorre para dejar cada aviso en la bitácora.
         "avisos": list(avisos),
     }
+    if trayectoria_ppk is not None:
+        salida.resumen["trayectoria_de"] = "RTKLIB (PPK)"
+        salida.resumen["fotos_con_posicion_fija"] = sum(
+            1 for f in fotos if f.con_posicion and f.q == 1
+        )
     avance(1.0, "Listo")
     return salida
 
@@ -323,8 +370,57 @@ def procesar(
 # --- El informe -------------------------------------------------------------------------------
 
 
+def _puntos_proyectados(tray: vuelo_pos.Trayectoria, a_proyectado) -> list:
+    """Las épocas de RTKLIB en Este y Norte del sistema elegido: lo que dibuja el visor."""
+    puntos = []
+    for e in tray.epocas:
+        este, norte = a_proyectado.transform(e.lon, e.lat)
+        puntos.append(vuelo_trimble.PuntoDeTrayectoria("", este, norte, e.alt_m, e.t_gps_s))
+    return puntos
+
+
+def _porcentajes(tray: vuelo_pos.Trayectoria) -> dict[str, float]:
+    return {
+        vuelo_pos.CALIDADES.get(q, f"código {q}"): tray.porcentaje(q)
+        for q in sorted({e.q for e in tray.epocas})
+    }
+
+
+def _calidades_de_las_fotos(fotos) -> dict[str, int]:
+    cuentas: dict[str, int] = {}
+    for f in fotos:
+        if f.con_posicion:
+            nombre = vuelo_sync.CALIDADES.get(f.q, f"código {f.q}")
+            cuentas[nombre] = cuentas.get(nombre, 0) + 1
+    return cuentas
+
+
+def _avisos_de_calidad(fotos) -> list[str]:
+    """Con RTKLIB la calidad **sí** se informa, y lo que no es fijo se dice."""
+    cuentas = _calidades_de_las_fotos(fotos)
+    no_fijas = sum(n for nombre, n in cuentas.items() if nombre != "fija")
+    if not no_fijas:
+        return []
+    detalle = ", ".join(f"{n} {nombre}" for nombre, n in cuentas.items() if nombre != "fija")
+    return [
+        f"{no_fijas} foto(s) no tienen posición fija ({detalle}): su error es mayor que el de "
+        "centímetro de una solución fija."
+    ]
+
+
 def _informe(
-    elegido, candidatos, tray, fotos, resumen, contraste, avisos, de_donde, ref_altura, desfase, ref
+    elegido,
+    candidatos,
+    tray,
+    fotos,
+    resumen,
+    contraste,
+    avisos,
+    de_donde,
+    ref_altura,
+    desfase,
+    ref,
+    desde_ppk=False,
 ):
     lineas = ["# Vuelo de dron: cómo salió", ""]
     lineas += [
@@ -351,7 +447,18 @@ def _informe(
     )
     huecos = tray.huecos()
     lineas.append(f"- Huecos: {len(huecos)}." if huecos else "- Sin huecos.")
-    lineas.append("- La calidad de cada punto **no la informa** el archivo de Trimble.")
+    if desde_ppk:
+        lineas.append(
+            "- Calculada con **RTKLIB** (PPK, hora GPST): la calidad de cada punto es la que "
+            "informa RTKLIB."
+        )
+        lineas.append(
+            "- Calidad de los puntos: "
+            + ", ".join(f"{p:.1f} % {n}" for n, p in _porcentajes(tray).items())
+            + "."
+        )
+    else:
+        lineas.append("- La calidad de cada punto **no la informa** el archivo de Trimble.")
 
     lineas += ["", "## Las fotos", ""]
     lineas.append(
@@ -360,7 +467,15 @@ def _informe(
     )
     if de_donde:
         lineas.append(f"- Los nombres salen de {de_donde}.")
-    if ref:
+    if desde_ppk:
+        cuentas = _calidades_de_las_fotos(fotos)
+        if cuentas:
+            lineas.append(
+                "- Calidad de las fotos (la peor de las dos épocas vecinas): "
+                + ", ".join(f"{n} {nombre}" for nombre, n in cuentas.items())
+                + "."
+            )
+    elif ref:
         calidades = sorted({r.calidad for r in ref if r.calidad})
         if calidades:
             lineas.append(f"- Calidad según Trimble: {', '.join(calidades)}.")
@@ -384,6 +499,13 @@ def _informe(
                 f"| {nombre} | {d['media_mm']:+.2f} mm | {d['desviacion_mm']:.2f} mm | "
                 f"{d['maximo_mm']:.2f} mm |"
             )
+        if desde_ppk:
+            lineas += [
+                "",
+                "La altura de RTKLIB es **elipsoidal** y la de Trimble no lo es (suele ser sobre "
+                "el nivel del mar): una diferencia de decenas de metros ahí es la ondulación del "
+                "geoide, no un error. Solo el plano decide si coinciden.",
+            ]
     else:
         lineas.append(
             "No se hizo: sin las posiciones de las fotos de Trimble no hay contra qué contrastar."

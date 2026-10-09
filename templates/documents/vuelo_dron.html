@@ -9,23 +9,167 @@
   **La disposición que trae Emlid Studio**, que es la que ya conoce quien procesa vuelos: a la
   izquierda los pasos en orden, a la derecha qué va a pasar con ellos. Aquí no hay mapa todavía
   porque no hay datos: el recorrido aparece al terminar, en el visor.
+
+  **Dos entradas** (F18.7): la trayectoria que ya calculó Trimble Business Center, o la que se
+  calcula aquí con RTKLIB (PPK). Los pasos de cada una están siempre en la página, y la elección
+  de arriba muestra solo los de la que toca (`.vuelo-solo-trimble` y `.vuelo-solo-rinex`, con
+  `:has()` en `app.css`). Los números de los pasos los pone el CSS, así que no se cuentan a mano.
 {% endcomment %}
 <form method="post" id="forma-documento" enctype="multipart/form-data" autocomplete="off"
       class="vuelo-layout">
   {% csrf_token %}
 
   <div class="vuelo-pasos">
-    {% include "documents/_paso_vuelo.html" with numero="1" titulo="La trayectoria" ayuda="El CSV que exportó Trimble Business Center con el recorrido del dron, un punto cada 0,2 s. Sin cabecera." campo="trayectoria" subida="trayectoria_subida" acepta=".csv,.txt" ext=".csv,.txt" texto=trayectoria_texto obligatorio=True %}
+    <section class="vuelo-paso" aria-labelledby="paso-origen">
+      <header class="vuelo-paso-cabeza">
+        <span class="vuelo-paso-numero" aria-hidden="true"></span>
+        <div><h2 class="vuelo-paso-titulo" id="paso-origen">¿De dónde sale la trayectoria?</h2></div>
+      </header>
 
-    {% include "documents/_paso_vuelo.html" with numero="2" titulo="Los disparos de la cámara" ayuda="El archivo .MRK que graba el dron en la tarjeta (termina en «Timestamp.MRK»). Trae el instante de cada foto y el desfase entre la antena y la cámara." campo="disparos" subida="disparos_subida" acepta=".mrk,.txt,.csv" ext=".mrk,.txt,.csv" texto=disparos_texto obligatorio=True %}
+      <fieldset>
+        <legend class="visually-hidden">Origen de la trayectoria</legend>
 
-    {% include "documents/_paso_vuelo.html" with numero="3" titulo="Las posiciones de Trimble" ayuda="El CSV ampliado de las fotos («… export_extended»). Con él se mide en qué sistema de coordenadas están Este y Norte, se ponen los nombres de las fotos y se contrasta el resultado con lo que calculó Trimble." campo="referencia" subida="referencia_subida" acepta=".csv" ext=".csv" texto=referencia_texto obligatorio=False %}
+        <label class="opcion">
+          <input type="radio" name="origen" value="trimble" id="id_origen_trimble"
+                 {% if origen != "rinex" %}checked{% endif %}>
+          <span>
+            <strong>La exportó Trimble Business Center</strong>
+            <span class="tenue">
+              Usted ya hizo el PPK en Trimble y tiene el CSV con el recorrido del dron.
+            </span>
+          </span>
+        </label>
 
-    {% include "documents/_paso_vuelo.html" with numero="4" titulo="La carpeta de fotos" ayuda="La carpeta con los JPG del vuelo. Sirve para ver cada foto en el mapa y, si no hay posiciones de Trimble, para ponerles nombre." campo="carpeta_de_fotos" subida="" acepta="" ext=".jpg,.jpeg" texto=carpeta_texto obligatorio=False carpeta=True %}
+        <label class="opcion">
+          <input type="radio" name="origen" value="rinex" id="id_origen_rinex"
+                 {% if origen == "rinex" %}checked{% endif %}
+                 {% if not ppk_disponible %}disabled aria-describedby="motivo-rtklib"{% endif %}>
+          <span>
+            <strong>Calcularla aquí con RTKLIB (PPK)</strong>
+            <span class="tenue">
+              A partir de los RINEX del dron y de la base, y de la coordenada conocida de la base.
+              Puede tardar varios minutos.
+            </span>
+            {% if not ppk_disponible %}
+              <span class="tenue" id="motivo-rtklib" data-motivo="{{ ppk_codigo }}">
+                <strong>No disponible en esta máquina.</strong> {{ ppk_motivo }} {{ ppk_sugerencia }}
+                Mientras tanto sirve la primera opción.
+              </span>
+            {% endif %}
+          </span>
+        </label>
+      </fieldset>
+    </section>
+
+    <div class="vuelo-grupo vuelo-solo-trimble">
+      {% include "documents/_paso_vuelo.html" with numero="" titulo="La trayectoria" ayuda="El CSV que exportó Trimble Business Center con el recorrido del dron, un punto cada 0,2 s. Sin cabecera." campo="trayectoria" subida="trayectoria_subida" acepta=".csv,.txt" ext=".csv,.txt" texto=trayectoria_texto obligatorio=True %}
+    </div>
+
+    <div class="vuelo-grupo vuelo-solo-rinex">
+      {% include "documents/_paso_vuelo.html" with numero="" titulo="El RINEX del dron" ayuda="El archivo de observación que graba el dron (termina en «PPKOBS.obs»). RINEX 2.10 a 4.00." campo="rover_obs" subida="rover_obs_subida" acepta=".obs,.rnx,.o,.24o,.25o,.26o" ext=".obs,.rnx,.25o,.24o,.26o" texto=rover_obs_texto obligatorio=True %}
+
+      {% include "documents/_paso_vuelo.html" with numero="" titulo="Las efemérides de navegación" ayuda="El RINEX de navegación del vuelo (termina en «PPKNAV.nav», o «.25n», «.25g», «.25l»). Hace falta uno; el segundo es opcional y sirve para sumar otro sistema satelital." campo="navegacion" subida="navegacion_subida" acepta=".nav,.rnx,.n,.g,.l,.p,.24n,.25n,.26n,.24g,.25g,.26g,.24l,.25l,.26l" ext=".nav,.rnx,.25n,.25g,.25l,.24n,.24g,.24l" texto=navegacion_texto obligatorio=True %}
+
+      {% include "documents/_paso_vuelo.html" with numero="" titulo="Más efemérides" ayuda="Otro RINEX de navegación, por ejemplo el de GLONASS o el de Galileo si vienen en archivos aparte." campo="navegacion_extra" subida="navegacion_extra_subida" acepta=".nav,.rnx,.n,.g,.l,.p,.24n,.25n,.26n,.24g,.25g,.26g,.24l,.25l,.26l" ext=".nav,.rnx,.25n,.25g,.25l,.24n,.24g,.24l" texto=navegacion_extra_texto obligatorio=False %}
+
+      {% include "documents/_paso_vuelo.html" with numero="" titulo="El RINEX de la base" ayuda="El archivo de observación de la estación base que midió durante el vuelo. Si viene de un receptor, pásele antes por «Datos de un receptor GNSS a RINEX»." campo="base_obs" subida="base_obs_subida" acepta=".obs,.rnx,.o,.24o,.25o,.26o" ext=".obs,.rnx,.25o,.24o,.26o" texto=base_obs_texto obligatorio=True %}
+
+      <section class="vuelo-paso" aria-labelledby="paso-base">
+        <header class="vuelo-paso-cabeza">
+          <span class="vuelo-paso-numero" aria-hidden="true"></span>
+          <div>
+            <h2 class="vuelo-paso-titulo" id="paso-base">La coordenada de la base</h2>
+            <p class="vuelo-paso-estado"><span class="pildora pildora-running">hace falta</span></p>
+          </div>
+        </header>
+        <p class="tenue vuelo-paso-ayuda">
+          La coordenada <strong>conocida</strong> de la antena de la base, no la aproximada del
+          RINEX (esa está a metros y correría toda la trayectoria). Hace falta la altura
+          <strong>elipsoidal</strong>, no la que está sobre el nivel del mar. Si la base está a más de
+          1 km de la posición que dice su RINEX, no se procesa.
+        </p>
+
+        <div class="av-mb-3 av-mw-38">
+          <label class="fw-semibold" for="id_base_lat">Latitud (grados decimales)</label>
+          <input type="number" step="any" min="-90" max="90" inputmode="decimal" name="base_lat"
+                 id="id_base_lat" class="form-control" value="{{ base_lat }}">
+        </div>
+        <div class="av-mb-3 av-mw-38">
+          <label class="fw-semibold" for="id_base_lon">Longitud (grados decimales)</label>
+          <input type="number" step="any" min="-180" max="180" inputmode="decimal" name="base_lon"
+                 id="id_base_lon" class="form-control" value="{{ base_lon }}">
+        </div>
+        <div class="av-mb-3 av-mw-38">
+          <label class="fw-semibold" for="id_base_alt">Altura elipsoidal (metros)</label>
+          <input type="number" step="any" inputmode="decimal" name="base_alt" id="id_base_alt"
+                 class="form-control" value="{{ base_alt }}">
+        </div>
+        <div class="av-mb-0 av-mw-38">
+          <label class="fw-semibold" for="id_base_sistema">Sistema de esas coordenadas</label>
+          <select id="id_base_sistema" name="base_sistema" class="form-select">
+            <option value="" {% if not base_sistema %}selected{% endif %}>Elija el sistema…</option>
+            {% for nombre in sistemas_de_la_base %}
+              <option value="{{ nombre }}" {% if base_sistema == nombre %}selected{% endif %}>{{ nombre }}</option>
+            {% endfor %}
+          </select>
+          <p class="tenue av-mt-1 av-mb-0 av-fs-sm">
+            No hay uno elegido: el sistema no se supone, y uno equivocado corre toda la
+            trayectoria. Queda anotado en el informe.
+          </p>
+        </div>
+
+        <details class="buscador av-mt-3">
+          <summary class="buscador-resumen">Opciones de RTKLIB (con su valor por omisión)</summary>
+          <div class="av-mt-2">
+            <div class="av-mb-3 av-mw-38">
+              <label class="fw-semibold" for="id_ppk_modo">Modo</label>
+              <select id="id_ppk_modo" name="ppk_modo" class="form-select">
+                <option value="cinematico" {% if ppk_modo != "estatico" %}selected{% endif %}>Cinemático (el dron se mueve)</option>
+                <option value="estatico" {% if ppk_modo == "estatico" %}selected{% endif %}>Estático</option>
+              </select>
+            </div>
+            <div class="av-mb-3 av-mw-38">
+              <label class="fw-semibold" for="id_ppk_mascara_elevacion_deg">Máscara de elevación (grados)</label>
+              <input type="number" min="0" max="45" step="1" name="ppk_mascara_elevacion_deg"
+                     id="id_ppk_mascara_elevacion_deg" class="form-control" value="{{ ppk_mascara }}">
+              <p class="tenue av-mt-1 av-mb-0 av-fs-sm">
+                Los satélites bajo este ángulo no se usan. Por omisión, 15.
+              </p>
+            </div>
+            <fieldset class="av-mb-3">
+              <legend class="fw-semibold av-fs-md">Sistemas satelitales</legend>
+              {% for letra, nombre in sistemas_satelitales.items %}
+                <div class="form-check form-check-inline">
+                  <input class="form-check-input" type="checkbox" name="ppk_sistemas"
+                         id="id_ppk_sistemas_{{ letra }}" value="{{ letra }}"
+                         {% if letra in ppk_sistemas %}checked{% endif %}>
+                  <label class="form-check-label" for="id_ppk_sistemas_{{ letra }}">{{ nombre }} ({{ letra }})</label>
+                </div>
+              {% endfor %}
+              <p class="tenue av-mt-1 av-mb-0 av-fs-sm">Por omisión, GPS, GLONASS, Galileo y BeiDou.</p>
+            </fieldset>
+            <div class="av-mb-0 av-mw-38">
+              <label class="fw-semibold" for="id_ppk_umbral_ambiguedad">Umbral de resolución de ambigüedades</label>
+              <input type="number" min="0" max="20" step="0.1" name="ppk_umbral_ambiguedad"
+                     id="id_ppk_umbral_ambiguedad" class="form-control" value="{{ ppk_umbral }}">
+              <p class="tenue av-mt-1 av-mb-0 av-fs-sm">
+                Con cuánta confianza se da una solución por fija. Por omisión, 3.
+              </p>
+            </div>
+          </div>
+        </details>
+      </section>
+    </div>
+
+    {% include "documents/_paso_vuelo.html" with numero="" titulo="Los disparos de la cámara" ayuda="El archivo .MRK que graba el dron en la tarjeta (termina en «Timestamp.MRK»). Trae el instante de cada foto y el desfase entre la antena y la cámara." campo="disparos" subida="disparos_subida" acepta=".mrk,.txt,.csv" ext=".mrk,.txt,.csv" texto=disparos_texto obligatorio=True %}
+
+    {% include "documents/_paso_vuelo.html" with numero="" titulo="Las posiciones de Trimble" ayuda="El CSV ampliado de las fotos («… export_extended»). Con él se mide en qué sistema de coordenadas están Este y Norte, se ponen los nombres de las fotos y se contrasta el resultado con lo que calculó Trimble. Con RTKLIB solo se contrasta el plano: la altura de Trimble no es elipsoidal." campo="referencia" subida="referencia_subida" acepta=".csv" ext=".csv" texto=referencia_texto obligatorio=False %}
+
+    {% include "documents/_paso_vuelo.html" with numero="" titulo="La carpeta de fotos" ayuda="La carpeta con los JPG del vuelo. Sirve para ver cada foto en el mapa y, si no hay posiciones de Trimble, para ponerles nombre." campo="carpeta_de_fotos" subida="" acepta="" ext=".jpg,.jpeg" texto=carpeta_texto obligatorio=False carpeta=True %}
 
     <section class="vuelo-paso" aria-labelledby="paso-ajustes">
       <header class="vuelo-paso-cabeza">
-        <span class="vuelo-paso-numero" aria-hidden="true">5</span>
+        <span class="vuelo-paso-numero" aria-hidden="true"></span>
         <div><h2 class="vuelo-paso-titulo" id="paso-ajustes">Cómo procesarlo</h2></div>
       </header>
 
@@ -40,10 +184,12 @@
         <p class="tenue av-mt-1 av-mb-0 av-fs-sm">
           Trimble exporta Este y Norte sin decir en qué sistema están. Medirlo lo prueba contra la
           latitud y longitud que trae el mismo archivo; si declara uno, se comprueba igual.
+          <span class="vuelo-solo-rinex">Con RTKLIB solo sirve para dibujar el visor: las
+          coordenadas del CSV salen en latitud y longitud, en el marco que usted declaró para la base.</span>
         </p>
       </div>
 
-      <div class="av-mb-3 av-mw-38">
+      <div class="av-mb-3 av-mw-38 vuelo-solo-trimble">
         <label class="fw-semibold" for="id_escala_de_tiempo">Hora de la trayectoria</label>
         <select id="id_escala_de_tiempo" name="escala_de_tiempo" class="form-select">
           {% for valor, texto in escalas.items %}
@@ -52,7 +198,7 @@
         </select>
         <p class="tenue av-mt-1 av-mb-0 av-fs-sm">
           En el vuelo con que se probó, Trimble la exportó en GPST. Con otra escala las posiciones
-          quedan a metros. <strong>Con las posiciones de Trimble (paso 3) se comprueba</strong>: si no
+          quedan a metros. <strong>Con las posiciones de Trimble se comprueba</strong>: si no
           coinciden, el informe avisa. Sin ellas no hay con qué comprobarla, y también se avisa.
         </p>
       </div>
@@ -96,6 +242,7 @@
     <div class="tarjeta">
       <div class="eyebrow">Qué va a pasar</div>
       <ol class="vuelo-etapas">
+        <li class="vuelo-solo-rinex"><strong>Calcula</strong> la trayectoria con RTKLIB, los RINEX y la coordenada de la base. Es lo que más tarda.</li>
         <li><strong>Lee</strong> la trayectoria y los disparos de la cámara.</li>
         <li><strong>Mide el sistema</strong> de coordenadas contra la latitud y longitud de Trimble.</li>
         <li><strong>Sincroniza</strong>: la posición de cada foto, interpolada en la trayectoria.</li>
@@ -110,11 +257,15 @@
         <li><strong>fotos.csv</strong> para Pix4D, Metashape o QGIS.</li>
         <li><strong>fotos.geojson</strong> y <strong>fotos.kml</strong> para verlas en un mapa.</li>
         <li><strong>calidad.md</strong>: cómo salió y a cuántos milímetros coincide.</li>
+        <li class="vuelo-solo-rinex"><strong>trayectoria.pos</strong> y <strong>trayectoria.md</strong>: lo que calculó RTKLIB y cuántas posiciones son fijas.</li>
         <li><strong>El visor</strong>: el recorrido, los puntos de cada foto y las fotos mismas.</li>
       </ul>
-      <p class="tenue av-mb-0 av-fs-sm">
+      <p class="tenue av-mb-0 av-fs-sm vuelo-solo-trimble">
         Lo que Trimble no informa (la calidad de cada punto) queda sin dato y se dice así: no se
         inventa. La altura es la de Trimble y no se llama elipsoidal.
+      </p>
+      <p class="tenue av-mb-0 av-fs-sm vuelo-solo-rinex">
+        La calidad de cada foto es la de RTKLIB (fija, flotante, simple). La altura es elipsoidal.
       </p>
     </div>
   </aside>

@@ -202,6 +202,14 @@ def disponibilidad(herramienta: str, opciones: dict | None = None) -> Disponibil
     espec = ESPECIFICACIONES.get(herramienta)
     if espec is None:
         return Disponibilidad.no("sin-motor", f"«{herramienta}» no se ejecuta desde la cola.")
+    if herramienta == "vuelo_dron" and (opciones or {}).get("origen") == "rinex":
+        # Solo la trayectoria calculada aquí necesita RTKLIB; la que exportó Trimble no.
+        from . import vuelo_ppk
+
+        estado = vuelo_ppk.sondar()
+        if not estado:
+            return Disponibilidad.no("sin-rnx2rtkp", estado.motivo, sugerencia=estado.sugerencia)
+        return Disponibilidad.si("documentos:vuelo_dron con RTKLIB (rnx2rtkp)")
     if not espec.exige:
         return Disponibilidad.si(f"documentos:{herramienta}")
 
@@ -294,6 +302,12 @@ def plan(job) -> PlanDeEjecucion:
         estado = video.sondar()
         entorno[VARIABLE_FFMPEG] = estado.ffmpeg
         entorno[VARIABLE_FFPROBE] = estado.ffprobe
+    if job.herramienta == "vuelo_dron" and (job.options or {}).get("origen") == "rinex":
+        from . import vuelo_ppk
+        from .tarea import VARIABLE_RNX2RTKP
+
+        # Como Tesseract y FFmpeg: el hijo no tiene Django y no puede sondear.
+        entorno[VARIABLE_RNX2RTKP] = vuelo_ppk.sondar().programa
     if espec.exige == "ghostscript":
         from . import pdfa
         from .tarea import VARIABLE_GHOSTSCRIPT, VARIABLE_VERAPDF
@@ -727,6 +741,27 @@ def _problema_en_la_posicion(nombre: str, datos: bytes, pieza: dict) -> str:
     return ""
 
 
+def _problema_en_el_pos(nombre: str, datos: bytes, pieza: dict) -> str:
+    """El `.pos` que escribió RTKLIB se lee y trae las épocas que se dijeron. Vacío si está bien.
+
+    Las épocas se cuentan aparte, línea a línea (las que no son cabecera), para no darse la razón
+    con el propio lector.
+    """
+    from .composicion import ComposicionInvalida
+    from .vuelo_pos import leer
+
+    texto = datos.decode("utf-8", errors="replace")
+    try:
+        leida = leer(texto)
+    except ComposicionInvalida as fallo:
+        return f"{nombre} no se lee como un .pos: {fallo}"
+    lineas = [x for x in texto.splitlines() if x.strip() and not x.lstrip().startswith("%")]
+    dicho = pieza.get("epocas")
+    if dicho is not None and (int(dicho) != leida.n or leida.n != len(lineas)):
+        return f"{nombre} debía traer {dicho} época(s) y trae {len(lineas)}."
+    return ""
+
+
 def _problema_en_texto(nombre: str, datos: bytes, pieza: dict) -> str:
     """Una pieza de texto del zip abre, y trae tantas filas, puntos o fotos como se dijo.
 
@@ -867,6 +902,11 @@ def _verificar_zip(parcial: Path, detalles: dict) -> Verificacion:
                     if problema:
                         return Verificacion(False, problema, "salida-invalida")
                     lectores.add("lectura del texto")
+                elif nombre.lower().endswith(".pos"):
+                    problema = _problema_en_el_pos(nombre, datos, esperadas.get(nombre) or {})
+                    if problema:
+                        return Verificacion(False, problema, "salida-invalida")
+                    lectores.add("lectura del .pos")
                 elif nombre.lower().endswith((".geojson", ".kmz")):
                     problema = _problema_en_posiciones(nombre, datos, esperadas.get(nombre) or {})
                     if problema:

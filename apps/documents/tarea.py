@@ -428,20 +428,130 @@ def _dxf_lamina(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
     return informe
 
 
+#: `rnx2rtkp`, sondeado por el padre (el hijo no tiene Django para sondear). Ver `motor.plan`.
+VARIABLE_RNX2RTKP = "AEROCONVERT_RNX2RTKP_HIJO"
+
+#: En «Corregir un vuelo de dron» con RTKLIB, esta parte de la barra es la de RTKLIB y el resto es
+#: lo que viene después (sincronizar, contrastar, escribir). RTKLIB es con mucho lo que más tarda.
+FRACCION_DE_RTKLIB = (0.02, 0.70)
+
+
+def _calcular_con_rtklib(entradas: list[dict], opciones: dict):
+    """Corre `rnx2rtkp` con los RINEX del trabajo. Devuelve el `Resultado` y el texto del `.pos`.
+
+    La base **se declara**: sin su sistema no hay trabajo (regla 3), y `vuelo_ppk.Base` lo exige.
+    El código de salida de RTKLIB no prueba nada: `vuelo_ppk.correr` lee el `.pos` que dejó.
+    """
+    import os
+    import tempfile
+
+    from apps.documents import vuelo_ppk
+
+    programa = os.environ.get(VARIABLE_RNX2RTKP, "")
+    if not programa:
+        raise FalloDeTarea("sin-rnx2rtkp", "No llegó la ruta de RTKLIB (rnx2rtkp) del corredor.")
+    rutas = {
+        papel: [e["ruta"] for e in entradas if e.get("papel") == papel]
+        for papel in ("rover", "base", "navegacion")
+    }
+    if len(rutas["rover"]) != 1 or len(rutas["base"]) != 1 or not rutas["navegacion"]:
+        raise FalloDeTarea(
+            "documento-invalido",
+            "Hacen falta el RINEX de observación del dron, el de la base y al menos uno de "
+            "navegación.",
+        )
+    try:
+        base = vuelo_ppk.Base(
+            lat=float(opciones["base_lat"]),
+            lon=float(opciones["base_lon"]),
+            alt_elipsoidal_m=float(opciones["base_alt_elipsoidal_m"]),
+            sistema=str(opciones.get("base_sistema") or ""),
+        )
+    except (KeyError, TypeError, ValueError) as fallo:
+        raise FalloDeTarea(
+            "documento-invalido",
+            f"La coordenada de la base está incompleta o no es un número: {fallo}",
+        ) from fallo
+    ajustes = vuelo_ppk.Opciones(
+        modo=str(opciones.get("ppk_modo") or "cinematico"),
+        mascara_elevacion_deg=int(opciones.get("ppk_mascara_elevacion_deg", 15)),
+        sistemas=str(opciones.get("ppk_sistemas") or "G,R,E,C"),
+        umbral_ambiguedad=float(opciones.get("ppk_umbral_ambiguedad", 3.0)),
+    )
+
+    desde, hasta = FRACCION_DE_RTKLIB
+    ultima = [desde]
+
+    def avance(fraccion: float | None, etiqueta: str) -> None:
+        # Sin hora de fin en el RINEX no hay fracción: se dice dónde va y la barra se queda.
+        if fraccion is not None:
+            ultima[0] = max(ultima[0], desde + (hasta - desde) * fraccion)
+        progreso(ultima[0], etiqueta)
+
+    progreso(desde, "Revisando los RINEX y lanzando RTKLIB")
+    with tempfile.TemporaryDirectory(prefix="ppk_trabajo_") as carpeta:
+        destino = Path(carpeta) / "trayectoria.pos"
+        resultado = vuelo_ppk.correr(
+            programa,
+            rover=rutas["rover"][0],
+            base_obs=rutas["base"][0],
+            navegacion=rutas["navegacion"],
+            destino=destino,
+            base=base,
+            opciones=ajustes,
+            progreso=avance,
+        )
+        texto = destino.read_text(encoding="utf-8")
+    return resultado, texto, base
+
+
+def _lo_declarado(base, calculo, opciones: dict) -> str:
+    """Con qué base y con qué opciones salió la trayectoria: sin esto no se puede repetir."""
+    lineas = [
+        "",
+        "## Lo que se declaró para calcularla",
+        "",
+        f"- Base: latitud {base.lat:.9f}, longitud {base.lon:.9f}, altura elipsoidal "
+        f"{base.alt_elipsoidal_m:.4f} m, en **{base.sistema}** (declarado por quien procesó, "
+        "no tomado del RINEX).",
+    ]
+    distancia = calculo.revision.distancia_base_m
+    lineas.append(
+        f"- Distancia entre esa coordenada y la posición aproximada del RINEX de la base: "
+        f"{distancia:.1f} m."
+        if distancia is not None
+        else "- El RINEX de la base no trae su posición aproximada: no se pudo comprobar."
+    )
+    lineas.append(
+        f"- RTKLIB: modo {opciones.get('ppk_modo') or 'cinematico'}, máscara de elevación "
+        f"{opciones.get('ppk_mascara_elevacion_deg', 15)}°, sistemas "
+        f"{opciones.get('ppk_sistemas') or 'G,R,E,C'}, umbral de ambigüedades "
+        f"{opciones.get('ppk_umbral_ambiguedad', 3.0):g}."
+    )
+    for aviso in calculo.revision.avisos:
+        lineas.append(f"- Aviso: {aviso}")
+    return "\n".join(lineas) + "\n"
+
+
 def _vuelo_dron(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
     import zipfile
 
-    from apps.documents import vuelo_proceso
+    from apps.documents import vuelo_pos, vuelo_proceso
 
     por_papel = {e.get("papel"): e["ruta"] for e in entradas}
-    if not opciones.get("escala_de_tiempo"):
-        raise FalloDeTarea(
-            "documento-invalido", "Falta la escala de tiempo de la trayectoria: no se supone."
-        )
-    if not por_papel.get("trayectoria") or not por_papel.get("disparos"):
-        raise FalloDeTarea(
-            "documento-invalido", "Hacen falta la trayectoria y los disparos de la cámara."
-        )
+    con_rtklib = opciones.get("origen") == "rinex"
+    if con_rtklib:
+        if not por_papel.get("disparos"):
+            raise FalloDeTarea("documento-invalido", "Hacen falta los disparos de la cámara.")
+    else:
+        if not opciones.get("escala_de_tiempo"):
+            raise FalloDeTarea(
+                "documento-invalido", "Falta la escala de tiempo de la trayectoria: no se supone."
+            )
+        if not por_papel.get("trayectoria") or not por_papel.get("disparos"):
+            raise FalloDeTarea(
+                "documento-invalido", "Hacen falta la trayectoria y los disparos de la cámara."
+            )
     nombres = None
     carpeta = (opciones.get("carpeta_de_fotos") or "").strip()
     if carpeta:
@@ -449,17 +559,49 @@ def _vuelo_dron(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
         print(f"Carpeta de fotos: {len(nombres)} imágenes", flush=True)
     referencia = por_papel.get("referencia")
 
+    calculo = texto_pos = base = None
+    avance = progreso
+    if con_rtklib:
+        calculo, texto_pos, base = _calcular_con_rtklib(entradas, opciones)
+        desde_proceso = FRACCION_DE_RTKLIB[1]
+
+        def lo_que_queda(fraccion: float, etiqueta: str) -> None:
+            progreso(desde_proceso + (0.98 - desde_proceso) * fraccion, etiqueta)
+
+        avance = lo_que_queda
+
     hecho = vuelo_proceso.procesar(
-        trayectoria=Path(por_papel["trayectoria"]).read_bytes(),
+        trayectoria=None if con_rtklib else Path(por_papel["trayectoria"]).read_bytes(),
+        trayectoria_ppk=calculo.trayectoria if calculo else None,
         disparos=Path(por_papel["disparos"]).read_bytes(),
         nombre_de_disparos=Path(por_papel["disparos"]).name,
         referencia=Path(referencia).read_bytes() if referencia else None,
         nombres_en_carpeta=nombres,
-        escala_de_tiempo=opciones["escala_de_tiempo"],
+        # La hora de un `.pos` de RTKLIB es GPST (`vuelo_pos.leer` no admite otra): no se pregunta.
+        escala_de_tiempo=None if con_rtklib else opciones["escala_de_tiempo"],
         sistema=str(opciones.get("sistema", "medir")),
         aplicar_desfase=bool(opciones.get("aplicar_desfase", True)),
-        progreso=progreso,
+        progreso=avance,
     )
+    piezas_de_rtklib: list[dict] = []
+    if calculo is not None:
+        # Lo que dijo RTKLIB queda en el recibo: la calidad, la distancia de la base al RINEX, los
+        # avisos de la revisión.
+        hecho.resumen["porcentaje_fijo"] = round(calculo.porcentaje_fijo, 1)
+        hecho.resumen["epocas_de_rtklib"] = calculo.trayectoria.n
+        hecho.resumen["base_sistema"] = base.sistema
+        if calculo.revision.distancia_base_m is not None:
+            hecho.resumen["base_a_su_rinex_m"] = round(calculo.revision.distancia_base_m, 1)
+        hecho.resumen["avisos"] = [*calculo.revision.avisos, *hecho.resumen["avisos"]]
+        hecho.archivos["trayectoria.pos"] = texto_pos.encode("utf-8")
+        hecho.archivos["trayectoria.md"] = (
+            vuelo_pos.a_markdown(calculo.trayectoria, "RTKLIB")
+            + _lo_declarado(base, calculo, opciones)
+        ).encode("utf-8")
+        piezas_de_rtklib = [
+            {"nombre": "trayectoria.pos", "epocas": calculo.trayectoria.n},
+            {"nombre": "trayectoria.md"},
+        ]
     corregidas: list[dict] = []
     with zipfile.ZipFile(parcial, "w", zipfile.ZIP_DEFLATED) as paquete:
         for nombre, datos in hecho.archivos.items():
@@ -487,6 +629,7 @@ def _vuelo_dron(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
             ),
             {"nombre": "calidad.md"},
             {"nombre": "vuelo.json", "fotos": fotos},
+            *piezas_de_rtklib,
             *corregidas,
         ],
     }

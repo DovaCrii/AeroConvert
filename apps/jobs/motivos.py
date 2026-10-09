@@ -131,6 +131,13 @@ MOTIVOS: dict[str, Motivo] = dict(
             "o AEROCONVERT_RTKLIB_CONVBIN.",
         ),
         _m(
+            "sin-rnx2rtkp",
+            "No hay RTKLIB (rnx2rtkp) en esta máquina, que es lo que corrige la trayectoria.",
+            "Es de código abierto. En Ubuntu: sudo apt install rtklib, "
+            "o AEROCONVERT_RTKLIB_RNX2RTKP. Mientras tanto sirve la trayectoria que exportó "
+            "Trimble Business Center.",
+        ),
+        _m(
             "sin-wine",
             "El convertidor de Trimble es de Windows y aquí no hay Wine para correrlo.",
             "sudo apt install wine, y un prefijo propio en AEROCONVERT_WINEPREFIX.",
