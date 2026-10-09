@@ -601,10 +601,13 @@ def _vuelo_dron(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
                 "documento-invalido", "Hacen falta la trayectoria y los disparos de la cámara."
             )
     nombres = None
+    fichas = None
     carpeta = (opciones.get("carpeta_de_fotos") or "").strip()
     if carpeta:
         nombres = vuelo_proceso.nombres_de_fotos(Path(carpeta))
         print(f"Carpeta de fotos: {len(nombres)} imágenes", flush=True)
+        # La orientación del gimbal de cada foto (F18.10) sale de su XMP; solo se lee la cabecera.
+        fichas = vuelo_proceso.fichas_de_la_carpeta(Path(carpeta))
     referencia = por_papel.get("referencia")
 
     calculo = texto_pos = base = None
@@ -630,6 +633,7 @@ def _vuelo_dron(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
         sistema=str(opciones.get("sistema", "medir")),
         aplicar_desfase=bool(opciones.get("aplicar_desfase", True)),
         progreso=avance,
+        fichas=fichas,
     )
     piezas_de_rtklib: list[dict] = []
     if calculo is not None:

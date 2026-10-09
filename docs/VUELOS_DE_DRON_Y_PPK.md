@@ -126,6 +126,11 @@ Trimble, copias con la posición) se ocultan y se muestra el sistema del visor s
 del archivo (solo la cabecera), o, si la foto no está en la carpeta, del `export_extended` de Trimble.
 Funciona igual en los tres orígenes.
 
+**Orientación de la cámara (F18.10).** `fotos.csv` trae `gimbal_guinada_deg`, `gimbal_cabeceo_deg` y
+`gimbal_alabeo_deg` en los tres orígenes: del XMP de las fotos de la carpeta o, si no, del archivo de
+Trimble. Es la convención de DJI **sin convertir** (cabeceo −90° = nadir): los ejes de Metashape y de
+Pix4D son otros y se mapean al importar.
+
 **Qué se comprobó:** cifras con las 2 505 fotos del vuelo de Baquedano en `docs/PRUEBAS_CON_ORACULO.md`
 (2026-10-09). Ese vuelo fue PPK y no RTK: solo se vio la bandera 16; **las 50 y 34 esperan un vuelo RTK
 real (P20)**.

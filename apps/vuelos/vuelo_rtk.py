@@ -221,6 +221,9 @@ def procesar(
         )
 
     avisos = _avisos(fichas, fotos, eventos, elegido, medida, aplicar_desfase)
+    fichas_por_nombre = {f.nombre.lower(): f for f in fichas}
+    orientaciones, orientacion = vuelo_proceso.orientaciones_de(fotos, fichas_por_nombre, None)
+    avisos.extend(orientacion.avisos)
 
     avance(0.80, "Escribiendo los entregables")
     resumen_sync = vuelo_sync.resumen(fotos)
@@ -230,14 +233,17 @@ def procesar(
         geografico=elegido.geografico,
         referencia_de_altura=ref_altura,
     )
-    salida.archivos["fotos.csv"] = vuelo_sync.a_csv(fotos, ref_altura).encode("utf-8")
+    salida.archivos["fotos.csv"] = vuelo_sync.a_csv(fotos, ref_altura, orientaciones).encode(
+        "utf-8"
+    )
     salida.archivos["fotos.geojson"] = vuelo_sync.a_geojson(fotos, elegido.geografico).encode(
         "utf-8"
     )
     if resumen_sync["con_posicion"]:
         salida.archivos["fotos.kml"] = vuelo_sync.a_kml(fotos, elegido.geografico).encode("utf-8")
     salida.archivos["calidad.md"] = _informe(
-        elegido, fichas, fotos, resumen_sync, medida, ref_altura, aplicar_desfase, avisos,
+        elegido, fichas, fotos, resumen_sync, medida, ref_altura, aplicar_desfase, orientacion,
+        avisos,
     ).encode("utf-8")  # fmt: skip
 
     avance(0.92, "Preparando el visor")
@@ -260,6 +266,8 @@ def procesar(
         "puntos_de_trayectoria": 0,
         "contraste_maximo_mm": None,
         "desfase_aplicado": sum(1 for f in fotos if f.desfase_aplicado),
+        "con_orientacion": orientacion.con_orientacion,
+        "orientacion_de": orientacion.de_donde,
         "avisos": list(avisos),
         "trayectoria_de": "las fotos (posición RTK del dron)",
         "fotos_con_posicion_fija": sum(1 for f in fotos if f.con_posicion and f.q == 1),
@@ -307,7 +315,9 @@ def _avisos(fichas, fotos, eventos, elegido, medida, aplicar_desfase) -> list[st
     return avisos
 
 
-def _informe(elegido, fichas, fotos, resumen, medida, ref_altura, desfase, avisos) -> str:
+def _informe(
+    elegido, fichas, fotos, resumen, medida, ref_altura, desfase, orientacion, avisos
+) -> str:
     n = len(fichas)
     lineas = ["# Vuelo de dron con RTK: cómo salió", ""]
     lineas += [
@@ -397,6 +407,7 @@ def _informe(elegido, fichas, fotos, resumen, medida, ref_altura, desfase, aviso
         if desfase
         else "- Posición de la **antena** (sin el desfase del `.MRK`)."
     )
+    lineas += vuelo_proceso._lineas_de_orientacion(orientacion)
     if avisos:
         lineas += ["", "## Avisos", ""] + [f"- {a}" for a in avisos]
     return "\n".join(lineas) + "\n"

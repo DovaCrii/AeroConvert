@@ -76,6 +76,21 @@ class SistemaElegido:
         return "WGS84"
 
 
+def fichas_de_la_carpeta(carpeta: Path) -> dict[str, ficha_foto.FichaFoto]:
+    """La ficha de cada JPG de la carpeta, por nombre en minúsculas. Solo lee las cabeceras.
+
+    Una foto que no se puede leer **se omite** (aquí la ficha solo da la orientación del gimbal;
+    quien la necesite entera, como `vuelo_rtk.leer_carpeta`, se detiene).
+    """
+    fichas = {}
+    for nombre in nombres_de_fotos(carpeta):
+        try:
+            fichas[nombre.lower()] = ficha_foto.leer_ficha(carpeta / nombre)
+        except ComposicionInvalida:
+            continue
+    return fichas
+
+
 def nombres_de_fotos(carpeta: Path) -> list[str]:
     """Los JPG de una carpeta, ordenados por nombre (en un DJI, el nombre ordena por disparo)."""
     return sorted(
@@ -193,6 +208,7 @@ def procesar(
     aplicar_desfase: bool = True,
     progreso: Callable[[float, str], None] | None = None,
     trayectoria_ppk: vuelo_pos.Trayectoria | None = None,
+    fichas: dict[str, ficha_foto.FichaFoto] | None = None,
 ) -> Entregables:
     """Todo el proceso. Levanta `ComposicionInvalida` con el motivo, y no deja nada a medias.
 
@@ -201,6 +217,9 @@ def procesar(
     latitud, longitud y altura elipsoidal, y en GPST porque `vuelo_pos.leer` no admite otra). Con
     la de RTKLIB la calidad de cada foto sale de la de sus épocas, y `sistema` solo dice en qué
     se proyectan los puntos del visor.
+
+    `fichas` (nombre de la foto en minúsculas → su ficha, leída de la carpeta) da la orientación del
+    gimbal para las columnas del CSV (F18.10); sin ella se toma del archivo de Trimble si lo trae.
     """
     if (trayectoria is None) == (trayectoria_ppk is None):
         raise ComposicionInvalida(
@@ -307,6 +326,9 @@ def procesar(
     if trayectoria_ppk is not None:
         avisos.extend(_avisos_de_calidad(fotos))
 
+    orientaciones, orientacion = orientaciones_de(fotos, fichas, ref)
+    avisos.extend(orientacion.avisos)
+
     avance(0.80, "Escribiendo los entregables")
     resumen_sync = vuelo_sync.resumen(fotos)
     salida = Entregables(
@@ -316,7 +338,9 @@ def procesar(
         referencia_de_altura=tray.referencia_de_altura,
     )
     ref_altura = tray.referencia_de_altura
-    salida.archivos["fotos.csv"] = vuelo_sync.a_csv(fotos, ref_altura).encode("utf-8")
+    salida.archivos["fotos.csv"] = vuelo_sync.a_csv(fotos, ref_altura, orientaciones).encode(
+        "utf-8"
+    )
     salida.archivos["fotos.geojson"] = vuelo_sync.a_geojson(fotos, elegido.geografico).encode(
         "utf-8"
     )
@@ -324,7 +348,7 @@ def procesar(
         salida.archivos["fotos.kml"] = vuelo_sync.a_kml(fotos, elegido.geografico).encode("utf-8")
     salida.archivos["calidad.md"] = _informe(
         elegido, candidatos, tray, fotos, resumen_sync, contraste, avisos, de_donde, ref_altura,
-        aplicar_desfase, ref, trayectoria_ppk is not None,
+        aplicar_desfase, ref, trayectoria_ppk is not None, orientacion,
     ).encode("utf-8")  # fmt: skip
 
     avance(0.92, "Preparando el visor")
@@ -357,6 +381,8 @@ def procesar(
             round(max(contraste[c]["maximo_mm"] for c in componentes), 2) if contraste else None
         ),
         "desfase_aplicado": sum(1 for f in fotos if f.desfase_aplicado),
+        "con_orientacion": orientacion.con_orientacion,
+        "orientacion_de": orientacion.de_donde,
         # La lista, no la cuenta: el corredor la recorre para dejar cada aviso en la bitácora.
         "avisos": list(avisos),
     }
@@ -367,6 +393,90 @@ def procesar(
         )
     avance(1.0, "Listo")
     return salida
+
+
+# --- La orientación de la cámara (F18.10) -----------------------------------------------------
+
+
+@dataclass
+class ResumenDeOrientacion:
+    de_las_fotos: int = 0
+    de_trimble: int = 0
+    total: int = 0
+    avisos: list[str] = field(default_factory=list)
+
+    @property
+    def con_orientacion(self) -> int:
+        return self.de_las_fotos + self.de_trimble
+
+    @property
+    def de_donde(self) -> str:
+        partes = []
+        if self.de_las_fotos:
+            partes.append("el XMP de las fotos")
+        if self.de_trimble:
+            partes.append("el archivo de Trimble")
+        return " y ".join(partes)
+
+
+def orientaciones_de(
+    fotos, fichas: dict[str, ficha_foto.FichaFoto] | None, ref
+) -> tuple[dict[str, vuelo_sync.Orientacion], ResumenDeOrientacion]:
+    """La guiñada, el cabeceo y el alabeo del gimbal de cada foto, y de dónde salió cada uno.
+
+    **El XMP de la foto manda**: es el dato del propio dron. El archivo de Trimble es el respaldo
+    (trae las mismas columnas, y se comprobó que coinciden). Una foto que no está en ninguno de los
+    dos queda sin orientación: vacía en el CSV, no en cero.
+    """
+    de_trimble = {r.nombre.lower(): r for r in (ref or [])}
+    resultado: dict[str, vuelo_sync.Orientacion] = {}
+    resumen = ResumenDeOrientacion(total=len(fotos))
+    for f in fotos:
+        clave = f.nombre.lower()
+        ficha = (fichas or {}).get(clave)
+        fuente = "foto"
+        if (ficha is None or not ficha.con_orientacion) and clave in de_trimble:
+            ficha = ficha_foto.ficha_de_trimble(f.nombre, de_trimble[clave].extras)
+            fuente = "trimble"
+        if ficha is not None and ficha.con_orientacion:
+            resultado[clave] = (
+                ficha.gimbal_guinada_deg,
+                ficha.gimbal_cabeceo_deg,
+                ficha.gimbal_alabeo_deg,
+            )
+            if fuente == "foto":
+                resumen.de_las_fotos += 1
+            else:
+                resumen.de_trimble += 1
+    sin = resumen.total - resumen.con_orientacion
+    if sin and resumen.con_orientacion:
+        resumen.avisos.append(
+            f"{sin} foto(s) quedan sin orientación de la cámara: su XMP no la trae y Trimble "
+            "tampoco."
+        )
+    return resultado, resumen
+
+
+def _lineas_de_orientacion(orientacion: ResumenDeOrientacion) -> list[str]:
+    lineas = ["", "## Orientación de la cámara", ""]
+    if not orientacion.con_orientacion:
+        lineas.append(
+            "- Las columnas `gimbal_guinada_deg`, `gimbal_cabeceo_deg` y `gimbal_alabeo_deg` de "
+            "`fotos.csv` van **vacías**: no hay de dónde leerlas. Elija la carpeta de fotos (su "
+            "XMP de DJI las trae) o suba el archivo ampliado de Trimble."
+        )
+        return lineas
+    lineas += [
+        f"- Columnas `gimbal_guinada_deg`, `gimbal_cabeceo_deg` y `gimbal_alabeo_deg` de "
+        f"`fotos.csv`: {orientacion.con_orientacion} de {orientacion.total} fotos, leídas de "
+        f"{orientacion.de_donde}.",
+        "- Es la convención de DJI, **sin convertir**: cabeceo −90° = cámara mirando al nadir, "
+        "0° = "
+        "horizontal; guiñada en grados respecto del norte. Los ejes de Metashape y de Pix4D "
+        "tienen su propia convención: al importar, mapee las columnas y compruebe una cámara.",
+        "- El XMP no dice si ese norte es el magnético o el geográfico: no se afirma uno.",
+    ]
+    return lineas
 
 
 # --- El informe -------------------------------------------------------------------------------
@@ -423,6 +533,7 @@ def _informe(
     desfase,
     ref,
     desde_ppk=False,
+    orientacion=None,
 ):
     lineas = ["# Vuelo de dron: cómo salió", ""]
     lineas += [
@@ -486,6 +597,9 @@ def _informe(
         if desfase
         else "- Posición de la **antena** (sin el desfase del `.MRK`)."
     )
+
+    if orientacion is not None:
+        lineas += _lineas_de_orientacion(orientacion)
 
     lineas += ["", "## Contraste con las posiciones de Trimble", ""]
     if contraste:

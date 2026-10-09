@@ -656,6 +656,7 @@ sintéticas, `exifread` y un analizador de XML.
 | Velocidades X, Y, Z | `V. UAV X`, `Y`, `Z` | diferencia **0** |
 | Focal, apertura, exposición, ISO, dimensiones, modelo | `Focal`, `F Number`, `Tiempo exp.`, `ISO Speed`, `Dimensiones`, `Modelo` | diferencia **0**; 5280 × 3956, M3E |
 | Altura del XMP y altura sobre el despegue | `Alt. abs. vuelo` y `Alt.rel.vuelo` | diferencia **0** |
+| Columnas `gimbal_*` del CSV de `vuelo_rtk.procesar` | las mismas de Trimble | diferencia **0°**; el cabeceo es −80° y la guiñada cambia de una pasada a otra |
 
 **Lo que dice esta corrida de la altura.** La `AbsoluteAltitude` de DJI coincide con la «Ellh» que el propio
 `.MRK` llama elipsoidal, y es la misma que Trimble copia en su columna `Alt. abs. vuelo` (diferencia 0). **No** es la

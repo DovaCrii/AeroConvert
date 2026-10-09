@@ -282,3 +282,26 @@ def test_la_ficha_del_vuelo_real_coincide_con_el_export_extended_de_trimble(mues
             )
         assert f"{ficha.ancho_px} x {ficha.alto_px}" == r.extras["Dimensiones"]
         assert ficha.modelo in r.extras["Modelo"]
+
+
+def test_las_columnas_de_orientacion_del_vuelo_real_coinciden_con_trimble(muestra):
+    """F18.10: `gimbal_*` del CSV contra `Gimbal Yaw`, `Pitch` y `Roll` de Trimble.
+
+    Medido el 2026-10-09: diferencia máxima 0 grados en las 102 fotos. En este vuelo el cabeceo es
+    −80° (cámara casi al nadir) y la guiñada cambia de una pasada a otra.
+    """
+    from apps.vuelos import vuelo_rtk
+
+    r = vuelo_rtk.procesar(
+        fichas=muestra["fichas"],
+        disparos=muestra["mrk"],
+        nombre_de_disparos="vuelo_Timestamp.MRK",
+        sistema="32719",
+    )
+    filas = list(csv.DictReader(io.StringIO(r.archivos["fotos.csv"].decode())))
+    assert len(filas) == len(muestra["referencia"])
+    for fila, ref in zip(filas, muestra["referencia"], strict=True):
+        assert float(fila["gimbal_guinada_deg"]) == float(ref.extras["Gimbal Yaw"])
+        assert float(fila["gimbal_cabeceo_deg"]) == float(ref.extras["Gimbal Pitch"])
+        assert float(fila["gimbal_alabeo_deg"]) == float(ref.extras["Gimbal Roll"])
+    assert len({f["gimbal_guinada_deg"] for f in filas}) > 5, "no es la misma guiñada repetida"

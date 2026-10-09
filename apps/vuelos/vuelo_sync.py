@@ -347,8 +347,16 @@ COLUMNAS_CSV = (
     "desfase_antena_e_mm",
     "desfase_antena_v_mm",
     "desfase_aplicado",
+    # La orientación del gimbal, tal como la escribe DJI (F18.10): cabeceo −90 = nadir. Vacías si
+    # no hay de dónde leerla (ni las fotos ni el archivo de Trimble).
+    "gimbal_guinada_deg",
+    "gimbal_cabeceo_deg",
+    "gimbal_alabeo_deg",
     "motivo",
 )
+
+#: La orientación del gimbal de una foto: guiñada, cabeceo y alabeo, en grados y como la da DJI.
+Orientacion = tuple[float | None, float | None, float | None]
 
 
 def _numero(valor, decimales: int) -> str:
@@ -360,13 +368,23 @@ def _o_nada(valor):
     return None if valor is None or math.isnan(valor) else valor
 
 
-def a_csv(fotos: list[FotoSincronizada], referencia_de_altura: str = "elipsoidal") -> str:
-    """El CSV para Pix4D, Metashape o QGIS. Las fotos sin posición van, con su motivo."""
+def a_csv(
+    fotos: list[FotoSincronizada],
+    referencia_de_altura: str = "elipsoidal",
+    orientaciones: dict[str, Orientacion] | None = None,
+) -> str:
+    """El CSV para Pix4D, Metashape o QGIS. Las fotos sin posición van, con su motivo.
+
+    `orientaciones` (nombre de la foto en minúsculas → guiñada, cabeceo y alabeo del gimbal) llena
+    las tres columnas de orientación; la foto que no está queda con ellas **vacías**, no en cero.
+    """
+    orientaciones = orientaciones or {}
     salida = io.StringIO()
     escritor = csv.writer(salida, lineterminator="\n")
     escritor.writerow(COLUMNAS_CSV)
     for f in fotos:
         d = f.disparo
+        guinada, cabeceo, alabeo = orientaciones.get(f.nombre.lower(), (None, None, None))
         escritor.writerow(
             [
                 f.nombre,
@@ -384,6 +402,9 @@ def a_csv(fotos: list[FotoSincronizada], referencia_de_altura: str = "elipsoidal
                 _numero(d.desfase_e_mm, 1),
                 _numero(d.desfase_v_mm, 1),
                 "si" if f.desfase_aplicado else "no",
+                _numero(guinada, 2),
+                _numero(cabeceo, 2),
+                _numero(alabeo, 2),
                 f.motivo,
             ]
         )

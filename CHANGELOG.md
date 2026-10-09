@@ -48,6 +48,15 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
   foto; si ya no está, del `export_extended` de Trimble que el trabajo guardó en su `vuelo.json`, y la
   respuesta dice de cuál.
 
+### Añadido — la orientación de la cámara en el CSV (F18.10)
+
+- `fotos.csv` trae `gimbal_guinada_deg`, `gimbal_cabeceo_deg` y `gimbal_alabeo_deg`, con la unidad en el
+  nombre, para Metashape y Pix4D (y los vuelos oblicuos). Salen del XMP de las fotos de la carpeta; si no
+  hay carpeta, del archivo ampliado de Trimble. Sin ninguno quedan **vacías**, nunca en cero.
+- **Se informa la convención de DJI, sin convertir** (cabeceo −90° = cámara al nadir), y `calidad.md` lo dice
+  con de dónde salió y cuántas fotos la traen; Metashape y Pix4D tienen la suya y hay que mapear las
+  columnas al importar. El XMP no dice si el norte es el magnético o el geográfico: tampoco se afirma.
+
 ### Cambiado — los vuelos de dron en su propia app, `apps/vuelos/` (F18.13)
 
 - Salen de `apps/documents/` los motores (`vuelo_pos`, `vuelo_sync`, `vuelo_ppk`, `vuelo_proceso`,
