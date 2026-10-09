@@ -32,7 +32,13 @@ from pathlib import Path
 import pytest
 from django.conf import settings
 
-PANTALLAS = Path(settings.BASE_DIR) / "templates" / "documents"
+#: Las pantallas de documentos y las de vuelos de dron (F18.13: salieron a `templates/vuelos/`, pero
+#: la regla es la misma y no se debilita porque cambien de carpeta).
+CARPETAS = (
+    Path(settings.BASE_DIR) / "templates" / "documents",
+    Path(settings.BASE_DIR) / "templates" / "vuelos",
+)
+PANTALLAS = [p for carpeta in CARPETAS for p in sorted(carpeta.glob("*.html"))]
 
 #: Las que llevan formulario de archivo. `_origen.html` es el trozo compartido y se mira aparte;
 #: `descargar` y `miniatura` no tienen pantalla.
@@ -41,15 +47,13 @@ PANTALLAS = Path(settings.BASE_DIR) / "templates" / "documents"
 SIN_ARCHIVO = frozenset({"inicio.html", "portada.html", "vuelo_visor.html"})
 
 CON_ARCHIVO = sorted(
-    p.name
-    for p in PANTALLAS.glob("*.html")
-    if not p.name.startswith("_") and p.name not in SIN_ARCHIVO
+    p.name for p in PANTALLAS if not p.name.startswith("_") and p.name not in SIN_ARCHIVO
 )
 
 
 @pytest.fixture(scope="module")
 def textos() -> dict[str, str]:
-    return {p.name: p.read_text(encoding="utf-8") for p in PANTALLAS.glob("*.html")}
+    return {p.name: p.read_text(encoding="utf-8") for p in PANTALLAS}
 
 
 def _sin_comentarios(html: str) -> str:

@@ -580,7 +580,7 @@ y `templates/500.html`, que no carga el CSS. No se tocan: no son paleta.
 Baquedano. El `.MRK` del dron (2 505 disparos), la trayectoria que sacó Trimble Business Center
 (7 519 puntos a 5 Hz, sin huecos, de 15:38:13 a 16:03:16 GPST) y las posiciones PPK de las 2 505
 fotos que sacó su UAS sync. Pasan con `AEROCONVERT_VUELO_DE_PRUEBA=<carpeta>` y
-`pytest -m oraculo apps/documents/test_vuelo_real.py`.
+`pytest -m oraculo apps/vuelos/test_vuelo_real.py`.
 
 **Qué se compara:** la posición de cada foto que calcula `vuelo_sync` (interpolar la trayectoria
 en el instante del disparo y aplicar el desfase de la antena) contra la que entregó Trimble.

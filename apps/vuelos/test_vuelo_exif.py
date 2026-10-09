@@ -12,8 +12,8 @@ import exifread
 import pytest
 from PIL import Image
 
-from apps.documents import fotos_dron, vuelo_exif
 from apps.documents.composicion import ComposicionInvalida
+from apps.vuelos import fotos_dron, vuelo_exif
 
 NOTA = bytes(range(200, 240)) * 3  # un MakerNote con forma de dato opaco
 

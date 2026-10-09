@@ -17,6 +17,8 @@ verde** (el agente `fusionador-de-pr` espera el CI). **Usted despliega en p340.*
 - **Desplegado (2026-10-05):** hasta el #20. **En `main` sin desplegar: #21 a #97.**
 - **Dirección visual (D8, 2026-10-09):** «Plan de vuelo» en toda la app, también la entrada; sustituye al
   plano con color de F13.7. Sistema y límites en `docs/DISENO_PLAN_DE_VUELO.md` (F13.14).
+- **Los vuelos de dron viven en pps/vuelos/** (F18.13): motores, vistas, plantillas y pruebas; la cola, la
+  entrada y las URL documents:… siguen en pps/documents/. 	est_independencia.py vigila el límite.
 - 40 herramientas de documentos en nueve grupos; ~4.400 pruebas verdes sin GDAL ni PDAL.
 - Lo de esta tanda: vuelos de dron con PPK y visor, curvas de nivel, paquetes y lotes, API con token,
   firma con sello de tiempo, PDF/A, video de dron, LibreOffice y `mdbtools` donde no hay Office ni

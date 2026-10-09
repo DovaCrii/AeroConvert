@@ -13,6 +13,20 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 - **Lo que no se adivina ni se esconde.** Sin sistema de referencia (o uno local de obra), sin matriz de transformación o fuera de lo que Web Mercator dibuja, la pantalla lo dice y no pinta (`capa-sin-crs`, `capa-sin-georreferencia`, `capa-fuera-del-mapa`); sin GDAL sale apagada con `sin-gdal` y la ficha de «Convertir» como alternativa, y el botón de la ficha, deshabilitado y con su motivo. Todas las vistas piden sesión; lo que está fuera de las carpetas permitidas o es de otra persona da 403 con su código.
 - Oráculo (`@pytest.mark.oraculo`, GDAL 3.12.4, sobre un GeoTIFF sintético en UTM 19S): las esquinas coinciden con `wgs84Extent` de `gdalinfo` a 4,4e-8° y el centro con `gdaltransform` a 4e-14°; columna, fila y valores de cinco píxeles son los de `gdallocationinfo -wgs84` y `-geoloc`; una tesela es **idéntica** a la de otro `gdalwarp` (0 de 65 536 píxeles distintos) y a GeoTIFF difiere en ±1 nivel en 240 (0,37 %); el color de cinco píxeles del tablero está en su sitio, o sea, el norte arriba y el este a la derecha. Cifras en `docs/PRUEBAS_CON_ORACULO.md`.
 
+
+### Cambiado — los vuelos de dron en su propia app, `apps/vuelos/` (F18.13)
+
+- Salen de `apps/documents/` los motores (`vuelo_pos`, `vuelo_sync`, `vuelo_ppk`, `vuelo_proceso`,
+  `vuelo_trimble`, `vuelo_exif`, `fotos_dron`, `telemetria`, `video`), sus cuatro pantallas y el índice
+  «Vuelos de dron», las plantillas (`templates/vuelos/`) y sus pruebas. Movimiento con `git mv`, sin
+  cambio de comportamiento: **las direcciones públicas, los nombres de ruta (`documents:vuelo_dron`…) y los
+  identificadores de herramienta (`vuelo_dron`, `fotos_dron`, `telemetria`, `video`) no cambian**, así que
+  marcadores, historial de trabajos, acciones rápidas y Tino siguen igual.
+- `apps.vuelos` solo importa de `apps.documents` la cola, la entrada de archivos, `ComposicionInvalida` y
+  `motor.disponibilidad`; `apps/vuelos/test_independencia.py` lo vigila con una lista blanca.
+- `_paso_vuelo.html` se queda en `templates/documents/` porque «Paquetes» también lo usa, y
+  `test_criterio.py` mira ahora las carpetas de las dos apps para que las pantallas movidas sigan sujetas
+  a la misma regla.
 ### Añadido — «Corregir un vuelo de dron» calcula la trayectoria con RTKLIB (F18.7)
 
 - **La segunda entrada de la pantalla.** Una elección visible, «¿De dónde sale la trayectoria?»: la que

@@ -74,9 +74,6 @@ from .pantalla_firma_digital import (  # noqa: F401
     firmar_vista,
     verificar_firmas_vista,
 )
-from .pantalla_fotos_dron import (  # noqa: F401
-    fotos_dron_vista,
-)
 from .pantalla_imagenes import (  # noqa: F401
     a_imagenes_vista,
     extraer_imagenes_vista,
@@ -88,7 +85,6 @@ from .pantalla_imagenes_lote import (  # noqa: F401
 from .pantalla_inicio import (  # noqa: F401
     inicio,
     texto,
-    vuelos,
 )
 from .pantalla_markdown import (  # noqa: F401
     EXTENSIONES_DE_EPUB,
@@ -128,9 +124,6 @@ from .pantalla_reparar import (  # noqa: F401
 from .pantalla_tamano import (  # noqa: F401
     tamano_vista,
 )
-from .pantalla_telemetria import (  # noqa: F401
-    telemetria_vista,
-)
 from .pantalla_unir import (  # noqa: F401
     _generar,
     _receta_inicial,
@@ -139,13 +132,4 @@ from .pantalla_unir import (  # noqa: F401
     miniatura,
     organizar,
     unir,
-)
-from .pantalla_video import (  # noqa: F401
-    video_vista,
-)
-from .pantalla_vuelo import (  # noqa: F401
-    vuelo_datos,
-    vuelo_dron_vista,
-    vuelo_miniatura,
-    vuelo_ver,
 )

@@ -11,8 +11,8 @@ import math
 import pytest
 from pyproj import Transformer
 
-from apps.documents import vuelo_sync, vuelo_trimble
 from apps.documents.composicion import ComposicionInvalida
+from apps.vuelos import vuelo_sync, vuelo_trimble
 
 TRAYECTORIA = (
     "C1-0,414782.387,7418966.067,1039.022,,2025-12-29 15:38:13.0000000\n"

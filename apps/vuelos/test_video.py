@@ -24,8 +24,9 @@ import pytest
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 
-from apps.documents import motor, telemetria, video
+from apps.documents import motor
 from apps.documents.composicion import ComposicionInvalida
+from apps.vuelos import telemetria, video
 
 # Un vuelo hacia el norte: 1e-4° de latitud por segundo (≈ 11,1 m/s), treinta segundos.
 LAT0, LON0 = -33.40, -70.60

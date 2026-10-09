@@ -1,5 +1,7 @@
 from django.urls import path
 
+from apps.vuelos.urls import urlpatterns as urls_de_vuelos
+
 from . import views
 
 app_name = "documents"
@@ -14,7 +16,6 @@ urlpatterns = [
     path("organizar/", views.organizar, name="organizar"),
     path("organizar/componer/", views.componer_organizar_vista, name="componer_organizar"),
     path("dividir/", views.dividir_vista, name="dividir"),
-    path("telemetria/", views.telemetria_vista, name="telemetria"),
     path("reparar/", views.reparar_vista, name="reparar"),
     path("html-a-pdf/", views.html_a_pdf_vista, name="html_a_pdf"),
     path("tamano/", views.tamano_vista, name="tamano"),
@@ -22,11 +23,6 @@ urlpatterns = [
     path("extraer-imagenes/", views.extraer_imagenes_vista, name="extraer_imagenes"),
     path("imagenes/", views.imagenes_vista, name="imagenes"),
     path("imagenes-lote/", views.imagenes_lote_vista, name="imagenes_lote"),
-    path("fotos-dron/", views.fotos_dron_vista, name="fotos_dron"),
-    path("vuelo-dron/", views.vuelo_dron_vista, name="vuelo_dron"),
-    path("vuelo/<uuid:pk>/", views.vuelo_ver, name="vuelo_ver"),
-    path("vuelo/<uuid:pk>/datos/", views.vuelo_datos, name="vuelo_datos"),
-    path("vuelo/<uuid:pk>/foto/<int:n>/", views.vuelo_miniatura, name="vuelo_miniatura"),
     path("plano-dxf/", views.dxf_lamina_vista, name="dxf_lamina"),
     path("a-imagenes/", views.a_imagenes_vista, name="a_imagenes"),
     path("numerar/", views.numerar_vista, name="numerar"),
@@ -45,12 +41,10 @@ urlpatterns = [
     # Reconocer el texto de un escaneo. Necesita Tesseract, que se sondea: donde no esta, la
     # pantalla existe igual y dice como ponerlo, como las de Office.
     path("ocr/", views.ocr_vista, name="ocr"),
-    path("video/", views.video_vista, name="video"),
     path("pdf-a/", views.pdf_a_vista, name="pdf_a"),
     # «Texto y tablas» tiene su propio índice. Compartía el de PDF, y entonces el desplegable
     # ofrecía dos columnas distintas que llevaban al mismo sitio.
     path("texto/", views.texto, name="texto"),
-    path("vuelos/", views.vuelos, name="vuelos"),
     # Una pantalla para los seis orígenes: lo que cambia por dentro lo decide la extensión, y
     # seis pantallas idénticas salvo por el título serían seis sitios donde arreglar el mismo
     # fallo. El catálogo sí las lista por separado, con `?de=`.
@@ -64,3 +58,7 @@ urlpatterns = [
     path("miniatura/", views.miniatura, name="miniatura"),
     # Por identificador y **nunca por ruta**: ver el docstring de la vista.
 ]
+
+# Los vuelos de dron viven en `apps/vuelos/`, pero conservan este espacio de nombres y estas
+# direcciones (F18.13): `documents:vuelo_dron` y `/documentos/vuelo-dron/` no cambian.
+urlpatterns += urls_de_vuelos

@@ -336,7 +336,7 @@ def _firma_visible(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
 
 
 def _telemetria(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
-    from apps.documents import telemetria
+    from apps.vuelos import telemetria
 
     desfase = opciones.get("desfase_h")
     lectura, puntos = telemetria.convertir(
@@ -445,7 +445,7 @@ def _calcular_con_rtklib(entradas: list[dict], opciones: dict):
     import os
     import tempfile
 
-    from apps.documents import vuelo_ppk
+    from apps.vuelos import vuelo_ppk
 
     programa = os.environ.get(VARIABLE_RNX2RTKP, "")
     if not programa:
@@ -536,7 +536,7 @@ def _lo_declarado(base, calculo, opciones: dict) -> str:
 def _vuelo_dron(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
     import zipfile
 
-    from apps.documents import vuelo_pos, vuelo_proceso
+    from apps.vuelos import vuelo_pos, vuelo_proceso
 
     por_papel = {e.get("papel"): e["ruta"] for e in entradas}
     con_rtklib = opciones.get("origen") == "rinex"
@@ -650,8 +650,8 @@ def _fotos_corregidas(
     import struct
     import zipfile
 
-    from apps.documents import vuelo_exif
     from apps.documents.composicion import ComposicionInvalida
+    from apps.vuelos import vuelo_exif
 
     if carpeta is None:
         raise FalloDeTarea(
@@ -727,7 +727,7 @@ def _fotos_corregidas(
 def _fotos_dron(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
     import shutil
 
-    from apps.documents import fotos_dron
+    from apps.vuelos import fotos_dron
 
     carpeta = carpeta_de_piezas(parcial)
     carpeta.mkdir(parents=True, exist_ok=True)
@@ -952,7 +952,7 @@ def _video(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
     import shutil
     import zipfile
 
-    from apps.documents import telemetria, video
+    from apps.vuelos import telemetria, video
 
     ffmpeg = os.environ.get(VARIABLE_FFMPEG, "")
     ffprobe = os.environ.get(VARIABLE_FFPROBE, "")

@@ -218,6 +218,7 @@ INSTALLED_APPS = [
     "apps.mesh",
     "apps.gnss",
     "apps.documents",
+    "apps.vuelos",
     "apps.dashboard",
     "apps.visor",
     # Tino contesta con lo que las de arriba ya saben, asi que va detras de todas.

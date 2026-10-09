@@ -25,8 +25,8 @@ from unittest import mock
 import pytest
 from django.test import override_settings
 
-from apps.documents import vuelo_pos, vuelo_ppk
 from apps.documents.composicion import ComposicionInvalida
+from apps.vuelos import vuelo_pos, vuelo_ppk
 
 # --- La geodesia, escrita aparte para no repetir al implementado ---------------------------------
 
