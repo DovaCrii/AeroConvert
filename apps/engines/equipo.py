@@ -93,6 +93,14 @@ PASOS: dict[str, Paso] = {
         "Lo trae Trimble Business Center: ponga AEROCONVERT_TRIMBLE_RINEX apuntando a "
         "convertToRinex.exe.",
     ),
+    "sin-grilla-geoide": Paso(
+        PERSONA,
+        "Copie us_nga_egm08_25.tif y us_nga_egm96_15.tif (del directorio de datos de PROJ, "
+        "cdn.proj.org) a una carpeta y ponga su ruta en AEROCONVERT_PROJ_GRILLAS en el .env. "
+        "AeroConvert no las descarga.",
+        "Lo mismo: las grillas de PROJ en una carpeta y AEROCONVERT_PROJ_GRILLAS en el .env.",
+        "Mientras tanto, exporte la altura elipsoidal desde el programa que la calculó.",
+    ),
     "sin-rtklib": Paso(
         GUION,
         f"{INSTALAR_FALTANTES} (instala rtklib; convbin y rnx2rtkp quedan en el PATH).",

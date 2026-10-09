@@ -157,7 +157,37 @@ MOTIVOS: dict[str, Motivo] = dict(
             "El RINEX salió sin una sola época de observación.",
             "Suele ser un archivo que no es de un receptor, o uno vacío por dentro.",
         ),
-        # --- Documentos ------------------------------------------------------
+        # --- Alturas (F15.2) --------------------------------------------------
+        #
+        # La referencia vertical, como el CRS, no se adivina: el modelo de geoide se declara.
+        _m(
+            "geoide-no-declarado",
+            "No se declaró el modelo de geoide, y sin él una altura ortométrica no se puede "
+            "pasar a elipsoidal ni al revés.",
+            "Declare cuál usó quien midió (EGM2008, EGM96…). No hay uno por omisión: la diferencia "
+            "entre modelos pasa de un metro en algunos lugares.",
+        ),
+        _m(
+            "geoide-desconocido",
+            "Ese modelo de geoide no está en el catálogo de AeroConvert.",
+            "Los modelos que se saben usar son EGM2008 y EGM96.",
+        ),
+        _m(
+            "sin-grilla-geoide",
+            "No hay en esta máquina la grilla del modelo de geoide pedido.",
+            "Ponga la grilla de PROJ (us_nga_egm08_25.tif o us_nga_egm96_15.tif) en una carpeta y "
+            "AEROCONVERT_PROJ_GRILLAS en el .env. Mientras tanto, exporte la altura elipsoidal "
+            "desde el programa que la calculó.",
+        ),
+        _m(
+            "altura-ausente",
+            "La posición no trae altura que convertir.",
+        ),
+        _m(
+            "fuera-de-la-grilla",
+            "La posición cae fuera de la cobertura de la grilla del geoide.",
+            "Compruebe que las coordenadas y su sistema de referencia son los correctos.",
+        ),  # --- Documentos ------------------------------------------------------
         #
         # Las herramientas de PDF pasan por la cola desde la fase 9 y traen sus propios
         # motivos. Los tres de «sin-» son **la herramienta de fuera que falta**, con el mismo

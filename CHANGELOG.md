@@ -5,6 +5,24 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Sin publicar]
 
+### Añadido — alturas elipsoidal ↔ ortométrica con geoide declarado (F15.2)
+
+- **`apps/formats/alturas.py`**: `convertir(punto, modelo=…, sentido=…)` pasa la `z_m` de un
+  `PuntoConCrs` entre altura elipsoidal y ortométrica (`h = H + N`, con `+proj=vgridshift` de PROJ).
+  Modelos: EGM2008 y EGM96 (PROJ no trae un geoide propio de Chile). **El modelo no tiene valor por
+  omisión** (`geoide-no-declarado`) y la posición lleva su CRS: sin él se detiene (`crs-ausente`).
+- **Las grillas se sondean, no se descargan** (`AEROCONVERT_PROJ_GRILLAS`, directorio de pyproj, QGIS,
+  `PROJ_DATA`) y a PROJ se le pasa la ruta exacta, así que no puede bajar otra. Sin la grilla queda
+  apagado con motivo `sin-grilla-geoide` y su paso en «Cómo dejar listo el equipo». Motivos nuevos:
+  `geoide-no-declarado`, `geoide-desconocido`, `sin-grilla-geoide`, `fuera-de-la-grilla`, `altura-ausente`.
+- **El recibo dice el modelo, la grilla (nombre, ruta y SHA-256) y el método**, la ondulación `N` y las dos
+  alturas.
+- **`manage.py convertir_altura`** (`--este --norte --crs --altura --sentido --modelo`): para la base de un
+  PPK, que TBC exporta con altura ortométrica y RTKLIB pide elipsoidal.
+- **Oráculo `cs2cs`** por la ruta de códigos EPSG (`EPSG:4979` ↔ `EPSG:4326+5773`/`+3855`): EGM96 coincide a
+  4·10⁻⁷ m en cinco puntos; EGM2008 sin medir por falta de grilla (⚠). Detalle en
+  `docs/PRUEBAS_CON_ORACULO.md`.
+
 ### Cambiado — los vuelos de dron en su propia app, `apps/vuelos/` (F18.13)
 
 - Salen de `apps/documents/` los motores (`vuelo_pos`, `vuelo_sync`, `vuelo_ppk`, `vuelo_proceso`,

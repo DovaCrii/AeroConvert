@@ -704,6 +704,36 @@ una segunda lectura de GDAL: la curva de cota `L` tiene que ser una circunferenc
 - **No medido:** DWG (espera a ODA, F15.8); un DEM real de la faena; rendimiento con un modelo de varios
   gigabytes.
 
+## Corrida del 2026-10-09 — alturas con geoide contra `cs2cs` (F15.2)
+
+Oráculo: `cs2cs` de PROJ (QGIS 4.0.2) por la ruta de **códigos EPSG**, `EPSG:4979` → `EPSG:4326+5773`
+(EGM96 height) con `PROJ_DATA` apuntando a la carpeta de la grilla y `PROJ_NETWORK=OFF`. Nuestro código
+usa otra ruta: `+proj=vgridshift +grids="<archivo>"` con pyproj 3.8.0. Misma grilla, dos caminos.
+
+Grilla usada: `us_nga_egm96_15.tif`, 3 462 098 bytes, SHA-256
+`67ba9175a290ba4a7d82498bab182818876e3802c1415907998813ffa51132ab`. **Es la copia que trae Agisoft
+Metashape** (`geoids\egm96-15.tif`), copiada con el nombre de PROJ a una carpeta de trabajo: su
+metadato dice `VERT_DATUM["EGM96 geoid"]` (EPSG:5171) y su ondulación en (0, 0) es 17,162 m, el valor
+publicado de EGM96.
+
+| lon, lat | N (m) | H de nuestro código (z = 1000) | H de `cs2cs` |
+| --- | ---: | ---: | ---: |
+| −68,9 ; −23,0 | 36,7372 | 963,2628 | 963,2628 |
+| −70,65 ; −33,45 | 26,9438 | 973,0562 | 973,05616 |
+| 0 ; 0 | 17,1620 | 982,838 | 982,837999 |
+| 2,35 ; 48,85 | 44,5670 | 955,433 | 955,43296 |
+| 139,7 ; 35,7 | 36,8014 | 963,1986 | 963,19856 |
+
+Diferencia máxima: **4,05·10⁻⁷ m** (`cs2cs` imprime 6 decimales); el criterio es < 1 mm. La base `AUX_01`
+de Baquedano, en UTM 19S (para comprobar también la reproyección), pasa la ida y vuelta contra el oráculo
+con la misma tolerancia.
+
+**EGM2008: sin medir.** No hay `us_nga_egm08_25.tif` en esta máquina ni en las carpetas de PROJ de
+pyproj o QGIS, y descargarla exige permiso de la persona. Las pruebas de oráculo de EGM2008 se saltan
+con ese motivo. Procedimiento: copiar la grilla (cdn.proj.org) a una carpeta, poner
+`AEROCONVERT_PROJ_GRILLAS` en el `.env` y correr
+`uv run pytest -m oraculo apps/formats/test_alturas.py`; anotar aquí fecha, grilla y SHA-256.
+
 ## Pendiente: «Hacer un libro EPUB» contra EPUBCheck (F14.22)
 
 EPUBCheck es el validador de referencia del W3C (BSD-3, Java 11+). En el CI no está; la prueba `test_epubcheck_lo_da_por_valido` lleva `@pytest.mark.oraculo` y se salta sin él.
