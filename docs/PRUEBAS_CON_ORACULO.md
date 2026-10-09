@@ -632,6 +632,68 @@ mostraba los CSV).
 RINEX 3.05, 35 MB) y el crudo de la base (`13933630.T04`), pero no hay RTKLIB en esta estación ni
 se conoce la coordenada de la base (pedidos P16 y P15).
 
+## Corrida del 2026-10-09 — las fotos del vuelo de Baquedano: posición, ficha y orientación (F18.8 a F18.10)
+
+**Datos** (fuera del repositorio): las 2 505 fotos del vuelo de la Matrice 3E del 2025-12-29, su `.MRK`
+y el `export_extended` de Trimble. Pasan con `AEROCONVERT_VUELO_DE_PRUEBA=<carpeta>` y
+`pytest -m oraculo apps/vuelos/test_vuelo_real.py`.
+
+**Cómo se midió.** Las fotos están en una carpeta de OneDrive (marcadores de posición que bajan al abrirlas,
+unos 7 MB cada una, 17 GB en total): se leyó **una de cada 25 y la última, 102 fotos**, a 0,36 s cada una
+(37 s). Solo se lee la cabecera (192 kB). Los lectores de contraste son otros que el código: el `.MRK`
+(texto del dron), el `export_extended` de Trimble (otro programa, leído con `csv`) y, en las pruebas
+sintéticas, `exifread` y un analizador de XML.
+
+| Qué | Contra qué | Resultado (102 fotos) |
+| --- | --- | --- |
+| Posición del XMP (`GpsLatitude`, `GpsLongitude`) | Lat y Lon del `.MRK` del mismo disparo | **0,69 mm** como máximo en horizontal (el `.MRK` redondea a 1 mm). Es la posición de la **antena**: el desfase no está aplicado |
+| `AbsoluteAltitude` del XMP | «Ellh» del `.MRK` | diferencia **0,000 mm** en todas |
+| Bandera `RtkFlag` | Columna `Q` del `.MRK` (las 2 505 líneas) | **16** en las 102 y en las 2 505 líneas del `.MRK`: coinciden |
+| Estado `GpsStatus` | — | «RTK» en las 102, con la bandera en 16 |
+| `AltitudeType`, datum del EXIF | — | «RtkAlt» y «WGS-84» en las 102 |
+| Gimbal (guiñada, cabeceo, alabeo) | `Gimbal Yaw`, `Pitch`, `Roll` de Trimble | diferencia **0** |
+| Actitud del dron | `UAV Yaw`, `Pitch`, `Roll` | diferencia **0** |
+| Velocidades X, Y, Z | `V. UAV X`, `Y`, `Z` | diferencia **0** |
+| Focal, apertura, exposición, ISO, dimensiones, modelo | `Focal`, `F Number`, `Tiempo exp.`, `ISO Speed`, `Dimensiones`, `Modelo` | diferencia **0**; 5280 × 3956, M3E |
+| Altura del XMP y altura sobre el despegue | `Alt. abs. vuelo` y `Alt.rel.vuelo` | diferencia **0** |
+| Columnas `gimbal_*` del CSV de `vuelo_rtk.procesar` | las mismas de Trimble | diferencia **0°**; el cabeceo es −80° y la guiñada cambia de una pasada a otra |
+
+**Lo que dice esta corrida de la altura.** La `AbsoluteAltitude` de DJI coincide con la «Ellh» que el propio
+`.MRK` llama elipsoidal, y es la misma que Trimble copia en su columna `Alt. abs. vuelo` (diferencia 0). **No** es la
+altura que Trimble entrega como posición de la foto (columna `Elevación`), que difiere unos 35 m (el geoide, ya
+medido el 2026-10-08). Por eso `vuelo_rtk.py` solo la llama elipsoidal **si coincide con la `Ellh` del `.MRK`**:
+la etiqueta la pone DJI en el `.MRK`, y esa es la comprobación. Sin `.MRK` no se afirma.
+
+**Lo que esta corrida destapó.**
+
+- **`GpsStatus` no es la calidad:** dice «RTK» en las 102 fotos de un vuelo que fue PPK, sin corrección en
+  el aire, con `RtkFlag` y la columna `Q` del `.MRK` en 16. La calidad sale de la bandera.
+- **El XMP lleva la posición de la antena**, no la de la cámara: coincide con la del `.MRK` sin aplicar su
+  desfase. Si un dron la dejara ya con el desfase aplicado, sumarlo otra vez correría la foto: por eso se
+  rechaza todo cuando la posición de una foto y la de su disparo difieren más de 2 cm.
+- En la primera foto, `UTCAtExposure` del XMP (15:39:10,934) es la hora **GPST** del disparo del `.MRK`
+  (semana 2399, segundo 142 750,934), no el UTC, que sería 18 s menos (15:38:52, lo que dice la hora local
+  de la foto, 12:38:52 −03:00). Solo se miró en la primera foto y **no se usa**: la hora de cada disparo
+  sale del `.MRK`.
+
+**Lo que no se midió, y queda ⚠ (F18.8).** El vuelo fue PPK: **no hay un vuelo con RTK en el aire**, así
+que solo se vio la bandera 16. Las banderas 50 (fija) y 34 (flotante) son las que publica DJI y no se han
+contrastado con un archivo real. Hace falta (pedido P20) una carpeta de fotos de un vuelo con RTK y su
+exportación de UAS Sync o de TBC.
+
+### Procedimiento manual con un vuelo RTK real, pendiente
+
+1. Fotos de un vuelo RTK (bandera 34 o 50) y su `.MRK`, fuera del repositorio.
+2. «Corregir un vuelo de dron» → «Las fotos ya traen la posición RTK»: carpeta de fotos, `.MRK` y el
+   sistema del visor.
+3. Contar con `exifread` (o con el `.MRK`: columna `Q`) cuántas fotos traen cada bandera y comparar con la
+   tabla de `calidad.md`: **fijas contra `50`, flotantes contra `34`**, una por una. Anotar aquí la fecha y
+   las cuentas.
+4. Comprobar que la altura sale «elipsoidal» (coincide con la «Ellh» del `.MRK`) y contrastar la posición
+   de cinco fotos con la de UAS Sync o TBC (el contraste es del plano: la altura de Trimble no es la
+   elipsoidal).
+5. Si alguna cifra no coincide, **no** ajustar la tabla de banderas a ojo: anotar el código que apareció.
+
 ## Lo que sigue sin oráculo, y se dice
 
 **ECW no se puede verificar aquí.** El GDAL de QGIS 4.0.2 **no trae el controlador ECW**, ni

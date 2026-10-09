@@ -21,6 +21,7 @@ from .pantalla_video import (  # noqa: F401
 from .pantalla_vuelo import (  # noqa: F401
     vuelo_datos,
     vuelo_dron_vista,
+    vuelo_ficha,
     vuelo_miniatura,
     vuelo_ver,
 )

@@ -232,16 +232,21 @@ class TestLaEleccionDeOrigen:
         assert client.get(reverse("documents:vuelo_dron")).status_code == 302
         assert client.post(reverse("documents:vuelo_dron"), {"origen": "rinex"}).status_code == 302
 
-    def test_la_pregunta_y_sus_dos_respuestas_estan_a_la_vista(self, sesion, rtklib_falso):
+    def test_la_pregunta_y_sus_tres_respuestas_estan_a_la_vista(self, sesion, rtklib_falso):
         cuerpo = sesion.get(reverse("documents:vuelo_dron")).content.decode()
-        assert "¿De dónde sale la trayectoria?" in cuerpo
+        assert "¿De dónde sale la posición precisa?" in cuerpo
         assert "La exportó Trimble Business Center" in cuerpo
         assert "Calcularla aquí con RTKLIB (PPK)" in cuerpo
-        assert 'value="trimble"' in cuerpo and 'value="rinex"' in cuerpo
+        assert "Las fotos ya traen la posición RTK" in cuerpo
+        for valor in ("trimble", "rinex", "fotos"):
+            assert f'value="{valor}"' in cuerpo
         # Por omisión, lo de hoy.
         assert "checked" in _etiqueta(cuerpo, "id_origen_trimble")
         assert "checked" not in _etiqueta(cuerpo, "id_origen_rinex")
+        assert "checked" not in _etiqueta(cuerpo, "id_origen_fotos")
         assert "disabled" not in _etiqueta(cuerpo, "id_origen_rinex")
+        # Las fotos RTK no necesitan ninguna herramienta externa: nunca salen apagadas.
+        assert "disabled" not in _etiqueta(cuerpo, "id_origen_fotos")
 
     def test_los_pasos_de_rinex_piden_lo_que_hace_falta(self, sesion, rtklib_falso):
         cuerpo = sesion.get(reverse("documents:vuelo_dron")).content.decode()
