@@ -31,6 +31,11 @@
 #
 set -euo pipefail
 
+# **apt habla el idioma del servidor**: en p340 (español) `apt-cache policy` dice «Candidato:» y no
+# «Candidate:», y la primera corrida (2026-10-09) dio todos los paquetes por ausentes. Las órdenes
+# de apt se leen siempre en inglés.
+export LC_ALL=C LANG=C
+
 PAQUETES=(
     tesseract-ocr
     tesseract-ocr-spa
