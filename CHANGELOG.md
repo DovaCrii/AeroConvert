@@ -5,6 +5,10 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Sin publicar]
 
+### Añadido — Hacer un libro EPUB (F14.22)
+
+- De un PDF con texto, un Word, una página web, una hoja o un Markdown, un **EPUB 3** que se lee en el teléfono o en un lector: un capítulo por título de primer nivel, índice del lector, título y autor opcionales. Pasa por `a_markdown` (la lectura ya probada) y se escribe sin dependencia nueva (`apps/documents/a_epub.py`). Un escaneo sin texto lo dice y no deja libro. Son ya **cuarenta y una** herramientas de documentos.
+
 ### Corregido — `instalar_faltantes.sh` daba todo por ausente en un servidor en español
 
 - `apt-cache policy` contesta en el idioma del sistema («Candidato:» en p340) y el guion buscaba «Candidate:»: en la primera corrida (2026-10-09) dijo que no había ninguno de los doce paquetes. Ahora fija `LC_ALL=C` antes de hablar con apt, y una prueba lo vigila.

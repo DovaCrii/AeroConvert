@@ -968,6 +968,35 @@ def _markdown_a_pdf(entradas: list[dict], opciones: dict, parcial: Path) -> dict
     return {}
 
 
+def _a_epub(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
+    """Cualquier origen que `a_markdown` lea, a Markdown, y de ahí al libro."""
+    import tempfile
+
+    from apps.documents import a_epub, a_markdown
+
+    origen = Path(entradas[0]["ruta"])
+    if origen.suffix.lower() in (".md", ".markdown", ".txt"):
+        try:
+            texto = origen.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            texto = origen.read_text(encoding="latin-1")
+    else:
+        with tempfile.TemporaryDirectory() as carpeta:
+            try:
+                escrito = a_markdown.a_markdown(origen, destino=Path(carpeta) / "libro.md")
+            except a_markdown.SinTextoQueSacar as nada:
+                # Un escaneo no tiene texto: un EPUB vacío parecería que funcionó.
+                raise SinArchivo("sin-texto-que-sacar", {"motivo": str(nada)}) from nada
+            texto = Path(escrito).read_text(encoding="utf-8")
+    hecho = a_epub.markdown_a_epub(
+        texto,
+        parcial,
+        titulo=(opciones.get("titulo") or "").strip() or origen.stem,
+        autor=(opciones.get("autor") or "").strip(),
+    )
+    return {"capitulos": hecho["capitulos"]}
+
+
 #: Qué función hace cada herramienta. Están todas menos Office y PDF a Word, cuyo hijo es
 #: pwsh y no este módulo (ver `motor._plan_de_office`). Un id que no esté aquí es un error
 #: del corredor, no de la persona; `test_office_y_catalogos_en_cola.py` cierra la lista.
@@ -981,6 +1010,7 @@ TAREAS = {
     "md_epub": _a_markdown,
     "md_html": _a_markdown,
     "md_a_pdf": _markdown_a_pdf,
+    "a_epub": _a_epub,
     "html_a_pdf": _html_a_pdf,
     "reparar": _reparar,
     "comprimir": _comprimir,
