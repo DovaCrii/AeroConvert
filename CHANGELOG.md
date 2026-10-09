@@ -33,6 +33,24 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
   `-co COMPRESS=DEFLATE -co TILED=YES` deja 24 celdas distintas junto a un hueco de «sin dato»; se usa
   solo DEFLATE. Cifras en `docs/PRUEBAS_CON_ORACULO.md`.
 
+### Añadido — alturas elipsoidal ↔ ortométrica con geoide declarado (F15.2)
+
+- **`apps/formats/alturas.py`**: `convertir(punto, modelo=…, sentido=…)` pasa la `z_m` de un
+  `PuntoConCrs` entre altura elipsoidal y ortométrica (`h = H + N`, con `+proj=vgridshift` de PROJ).
+  Modelos: EGM2008 y EGM96 (PROJ no trae un geoide propio de Chile). **El modelo no tiene valor por
+  omisión** (`geoide-no-declarado`) y la posición lleva su CRS: sin él se detiene (`crs-ausente`).
+- **Las grillas se sondean, no se descargan** (`AEROCONVERT_PROJ_GRILLAS`, directorio de pyproj, QGIS,
+  `PROJ_DATA`) y a PROJ se le pasa la ruta exacta, así que no puede bajar otra. Sin la grilla queda
+  apagado con motivo `sin-grilla-geoide` y su paso en «Cómo dejar listo el equipo». Motivos nuevos:
+  `geoide-no-declarado`, `geoide-desconocido`, `sin-grilla-geoide`, `fuera-de-la-grilla`, `altura-ausente`.
+- **El recibo dice el modelo, la grilla (nombre, ruta y SHA-256) y el método**, la ondulación `N` y las dos
+  alturas.
+- **`manage.py convertir_altura`** (`--este --norte --crs --altura --sentido --modelo`): para la base de un
+  PPK, que TBC exporta con altura ortométrica y RTKLIB pide elipsoidal.
+- **Oráculo `cs2cs`** por la ruta de códigos EPSG (`EPSG:4979` ↔ `EPSG:4326+5773`/`+3855`): EGM96 coincide a
+  4·10⁻⁷ m en cinco puntos; EGM2008 sin medir por falta de grilla (⚠). Detalle en
+  `docs/PRUEBAS_CON_ORACULO.md`.
+
 ### Añadido — «Ver en el mapa»: una ortofoto por teselas (F19.1 y F19.2)
 
 - Pantalla nueva `/mapa/` (app `apps/visor/`, enlace «Ver en el mapa» en el lateral y en la ficha de un GeoTIFF): se elige un GeoTIFF o un COG de la carpeta compartida, o la salida de un trabajo propio, y se **ve con zoom y paneo** (rueda, pellizco, `+` y `-`; arrastrar, flechas) sobre la retícula de coordenadas de la ficha. Muestra las coordenadas del cursor en EPSG:4326 y en el sistema del archivo, la columna y la fila del píxel y, al pinchar o con Intro, el valor de cada banda. Nada sale del equipo (D5): el JavaScript es propio (`static/js/visor.js`, sin biblioteca ni mapa base), la CSP sigue en `'self'` y no hay scripts ni estilos en línea.

@@ -127,6 +127,10 @@ RTKLIB_CONVBIN = config("AEROCONVERT_RTKLIB_CONVBIN", default="")
 # RTKLIB `rnx2rtkp`, el que corrige la trayectoria de un vuelo con la base (PPK). Vacio, se busca
 # junto a `convbin` y luego en el PATH (viene en el mismo paquete: `apt install rtklib`).
 RTKLIB_RNX2RTKP = config("AEROCONVERT_RTKLIB_RNX2RTKP", default="")
+# Carpetas con las grillas de geoide de PROJ (us_nga_egm08_25.tif, us_nga_egm96_15.tif),
+# separadas por `;` en Windows o `:` en Linux (F15.2). **Se sondean, no se descargan.** Vacio,
+# se buscan en el directorio de datos de pyproj, en el de QGIS y en `PROJ_DATA`.
+PROJ_GRILLAS = config("AEROCONVERT_PROJ_GRILLAS", default="")
 
 # Las firmas digitales (F14.5). **Se leen aquí y no con `os.environ` en el hijo:** `python-decouple`
 # lee el `.env` pero no lo copia al entorno del proceso, y el servicio no tiene `EnvironmentFile`.
