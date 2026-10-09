@@ -60,7 +60,7 @@ apps/targets    ¿dónde va a abrir?         perfiles de destino · veredictos
       ↓
 apps/engines    ¿puedo hacerlo aquí?       contrato · registro · sondas · matriz
       ↓
-apps/jobs       hazlo y demuéstralo        trabajo · runner · despachador · bitácora
+apps/jobs       hazlo y demuéstralo        trabajo · runner (+ fallos, exigencias, salidas, procesos) · despachador · bitácora
       ↓
 apps/{raster,pointcloud,vector,mesh}       los motores de cada familia
 ```

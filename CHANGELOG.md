@@ -63,6 +63,32 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
   construidos sobre píxeles conocidos de la ortofoto con el color de su casilla bajo la marca. Cifras en
   `docs/PRUEBAS_CON_ORACULO.md`.
 
+### Cambiado — `runner.py` y las funciones de más de 140 líneas, partidas sin cambiar comportamiento (F11.8)
+
+- **`apps/jobs/runner.py`** (1.105 líneas) conserva la orquestación (`reclamar`, `ejecutar`,
+  `_ejecutar`, `_ejecutar_documento`) y re-exporta todo lo demás, así que ningún importador cambia.
+  Lo que salió, **sin tocar una línea** (se comprobó por AST): `fallos.py` (`TrabajoFallido`),
+  `exigencias.py` (memoria, crudo entero, CRS, metros), `salidas.py` (destino libre, reserva,
+  espacio, borrado y renombrado atómico) y `procesos.py` (el hijo, su avance, el plazo, el atasco y
+  matar el árbol).
+- **`_ejecutar_documento`** y **`_lanzar`** quedan en pasos con nombre
+  (`_entradas_del_documento`, `_preparar_documento`, `_cerrar_documento`, `_abrir_proceso`,
+  `_vigilar_al_hijo`, `_exigir_codigo_de_salida`…). Mismos códigos de motivo y mismos mensajes.
+- **`deteccion.inspeccionar`** (247 líneas) pasa a un lector por formato (`_leer_tiff`, `_leer_las`,
+  `_leer_libreta`…); **`tiff._leer_cabecera_de`** a marca, recorrido y armado; **`informe.construir`**
+  a una función por sección; **`markdown_a_pdf`** a lectura, piezas y escritura.
+- **Antes de mover nada**, pruebas de caracterización que fijan lo que hace hoy cada camino:
+  `test_runner_caracterizacion.py` (feliz y de fallo, con el `sha256` y el `mtime` del original
+  comprobados en cada fallo), `test_informe_caracterizacion.py`, `test_inspeccionar_caracterizacion.py`,
+  `test_tiff_caracterizacion.py` y `test_desde_markdown_caracterizacion.py`.
+- **Quedó sin partir**: `vuelos/vuelo_proceso.procesar` (otra rama toca `apps/vuelos/`) y
+  `dashboard/acciones._de_los_documentos` (195 de sus 216 líneas son el diccionario de sinónimos).
+- **Defectos hallados y no tocados** (cada uno con una prueba `xfail(strict=True)` que lo demuestra):
+  sin filas de entrada, el corredor de documentos revienta con `IntegrityError` en vez de usar
+  `source_path`; el informe de verificación nunca imprime los avisos de la bitácora (filtra por
+  `'warning'` y el nivel real es `'warn'`); y los bloques de código de «Markdown a PDF» pierden sus
+  saltos de línea.
+
 ### Añadido — «Ver en el mapa» con terreno: sombreado, cota y perfil (F19.4)
 
 - **Un DEM se ve como terreno.** Un GeoTIFF de una banda entera o flotante abre en «Ver en el mapa» con

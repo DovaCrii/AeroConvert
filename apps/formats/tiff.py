@@ -278,6 +278,32 @@ def leer_cabecera(ruta: Path) -> CabeceraTiff:
         return _leer_cabecera_de(archivo)
 
 
+@dataclass(frozen=True)
+class _Anchos:
+    """Los anchos de campo de un TIFF: cambian entre el clásico y el BigTIFF."""
+
+    es_big: bool
+    tam_entrada: int
+    tam_num_entradas: int
+    fmt_num_entradas: str
+    tam_cuenta: int
+    fmt_cuenta: str
+    hueco: int
+    fmt_desplazamiento: str
+
+
+@dataclass
+class _Recorrido:
+    """Lo que deja recorrer la cadena de directorios."""
+
+    #: Los campos del IFD0, completos. De los demás directorios no se guarda ninguno.
+    campos: dict[int, tuple]
+    directorios: int = 0
+    reducciones: int = 0
+    mascaras: int = 0
+    menores: int = 0
+
+
 def _leer_cabecera_de(archivo) -> CabeceraTiff:
     def leer(desplazamiento: int, cuenta: int) -> bytes:
         if desplazamiento < 0 or cuenta <= 0:
@@ -288,6 +314,13 @@ def _leer_cabecera_de(archivo) -> CabeceraTiff:
         except OSError:
             return b""
 
+    orden, anchos, desplazamiento_ifd = _reconocer_la_marca(leer)
+    recorrido = _recorrer_directorios(leer, orden, anchos, desplazamiento_ifd)
+    return _armar_la_cabecera(orden, anchos, recorrido)
+
+
+def _reconocer_la_marca(leer) -> tuple[str, _Anchos, int]:
+    """Orden de bytes, versión y dónde empieza el primer directorio."""
     datos = leer(0, 16)
     if len(datos) < 8:
         raise NoEsTiff("El archivo tiene menos de 8 bytes.")
@@ -309,104 +342,147 @@ def _leer_cabecera_de(archivo) -> CabeceraTiff:
     # En BigTIFF los tres valen 8, asi que un error aca pasa desapercibido con BigTIFF y
     # revienta con el TIFF clasico. Por eso hay una prueba de cada variante.
     if version == VERSION_CLASICA:
-        es_big = False
         desplazamiento_ifd = struct.unpack(f"{orden}I", datos[4:8])[0]
-        tam_entrada = 12
-        tam_num_entradas, fmt_num_entradas = 2, "H"
-        tam_cuenta, fmt_cuenta = 4, "I"
-        hueco, fmt_desplazamiento = 4, "I"
+        anchos = _Anchos(
+            es_big=False,
+            tam_entrada=12,
+            tam_num_entradas=2,
+            fmt_num_entradas="H",
+            tam_cuenta=4,
+            fmt_cuenta="I",
+            hueco=4,
+            fmt_desplazamiento="I",
+        )
     elif version == VERSION_BIG:
-        es_big = True
         # En BigTIFF los bytes 4-5 dicen el tamano de los desplazamientos (siempre 8) y
         # 6-7 son cero. El desplazamiento al IFD0 empieza en el byte 8.
         tamano_offset = struct.unpack(f"{orden}H", datos[4:6])[0]
         if tamano_offset != 8:
             raise NoEsTiff(f"BigTIFF con desplazamientos de {tamano_offset} bytes: no soportado.")
         desplazamiento_ifd = struct.unpack(f"{orden}Q", datos[8:16])[0]
-        tam_entrada = 20
-        tam_num_entradas, fmt_num_entradas = 8, "Q"
-        tam_cuenta, fmt_cuenta = 8, "Q"
-        hueco, fmt_desplazamiento = 8, "Q"
+        anchos = _Anchos(
+            es_big=True,
+            tam_entrada=20,
+            tam_num_entradas=8,
+            fmt_num_entradas="Q",
+            tam_cuenta=8,
+            fmt_cuenta="Q",
+            hueco=8,
+            fmt_desplazamiento="Q",
+        )
     else:
         raise NoEsTiff(f"Marca de version {version}: no es 42 (clasico) ni 43 (BigTIFF).")
+    return orden, anchos, desplazamiento_ifd
 
-    campos: dict[int, tuple] = {}
-    directorios = 0
-    reducciones = 0
-    mascaras = 0
-    menores = 0
+
+def _recorrer_directorios(leer, orden: str, a: _Anchos, desplazamiento_ifd: int) -> _Recorrido:
+    """Sigue la cadena de IFD con sus topes y cuenta pirámides, máscaras y menores."""
+    recorrido = _Recorrido(campos={})
     visitados: set[int] = set()
 
     while desplazamiento_ifd and desplazamiento_ifd not in visitados:
-        if directorios >= MAXIMO_DIRECTORIOS:
+        if recorrido.directorios >= MAXIMO_DIRECTORIOS:
             break
         visitados.add(desplazamiento_ifd)
 
-        crudo_cuenta = leer(desplazamiento_ifd, tam_num_entradas)
-        if len(crudo_cuenta) < tam_num_entradas:
+        crudo_cuenta = leer(desplazamiento_ifd, a.tam_num_entradas)
+        if len(crudo_cuenta) < a.tam_num_entradas:
             break
-        cuenta_entradas = struct.unpack(f"{orden}{fmt_num_entradas}", crudo_cuenta)[0]
+        cuenta_entradas = struct.unpack(f"{orden}{a.fmt_num_entradas}", crudo_cuenta)[0]
         if cuenta_entradas == 0 or cuenta_entradas > MAXIMO_ENTRADAS:
             break
 
-        inicio = desplazamiento_ifd + tam_num_entradas
-        bloque = leer(inicio, cuenta_entradas * tam_entrada + hueco)
-        if len(bloque) < cuenta_entradas * tam_entrada + hueco:
+        inicio = desplazamiento_ifd + a.tam_num_entradas
+        bloque = leer(inicio, cuenta_entradas * a.tam_entrada + a.hueco)
+        if len(bloque) < cuenta_entradas * a.tam_entrada + a.hueco:
             # El directorio esta truncado. Se cuenta como visto -- existe -- y se corta.
-            directorios += 1
+            recorrido.directorios += 1
             break
 
         # Del IFD0 se leen todos los campos. De los demas, solo dos: `NewSubfileType`, que
         # dice si es piramide o mascara, y el ancho, que hace de respaldo cuando el
         # escritor no puso el primero. Leer el resto multiplicaria las lecturas por nada.
-        bandera: int | None = None
-        ancho_de_este: int | None = None
+        bandera, ancho_de_este = _leer_las_entradas(
+            leer, orden, a, bloque, cuenta_entradas, recorrido
+        )
 
-        for indice in range(cuenta_entradas):
-            base = indice * tam_entrada
-            etiqueta, tipo = struct.unpack(f"{orden}HH", bloque[base : base + 4])
-            if directorios > 0 and etiqueta not in (TAG_TIPO_SUBARCHIVO, TAG_ANCHO):
-                continue
-            cuenta = struct.unpack(
-                f"{orden}{fmt_cuenta}", bloque[base + 4 : base + 4 + tam_cuenta]
-            )[0]
-            hueco_valor = bloque[base + 4 + tam_cuenta : base + tam_entrada]
-            desplazamiento_valor = struct.unpack(f"{orden}{fmt_desplazamiento}", hueco_valor)[0]
-            valores = _valores(leer, orden, tipo, cuenta, hueco_valor, desplazamiento_valor)
-            if directorios == 0:
-                campos[etiqueta] = valores
-            elif valores:
-                if etiqueta == TAG_TIPO_SUBARCHIVO:
-                    bandera = int(valores[0])
-                else:
-                    ancho_de_este = int(valores[0])
+        if recorrido.directorios > 0:
+            ancho_principal = recorrido.campos.get(TAG_ANCHO, (0,))[0]
+            clase = _clase_de_directorio(bandera, ancho_de_este, ancho_principal)
+            if clase == "mascara":
+                recorrido.mascaras += 1
+            elif clase == "reduccion":
+                recorrido.reducciones += 1
+            elif clase == "menor":
+                recorrido.menores += 1
 
-        if directorios > 0:
-            ancho_principal = campos.get(TAG_ANCHO, (0,))[0]
-            if bandera is not None and bandera & SUBARCHIVO_MASCARA:
-                mascaras += 1
-            elif bandera is not None and bandera & SUBARCHIVO_REDUCIDO:
-                reducciones += 1
-            elif ancho_de_este and ancho_principal and ancho_de_este < ancho_principal:
-                # Un IFD mas estrecho que el principal y **sin** `NewSubfileType`.
-                #
-                # La tentacion es contarlo como piramide: es mas pequeno, tiene toda la
-                # pinta. Pero se contrasto con el oraculo y no: sobre un DEM de Metashape
-                # con cuatro IFD asi, `gdalinfo` reporta **cero** overviews. Sin la
-                # etiqueta, GDAL no los usa -- y por tanto QGIS tampoco, ni nada que se
-                # apoye en GDAL. Decir "tiene piramides" seria prometer un zoom rapido que
-                # ningun programa va a dar.
-                #
-                # Asi que se cuentan aparte y no suman a `reducciones`. Es la diferencia
-                # entre lo que el archivo contiene y lo que el software va a aprovechar, y
-                # aca lo que importa es lo segundo.
-                menores += 1
-
-        directorios += 1
-        fin = cuenta_entradas * tam_entrada
+        recorrido.directorios += 1
+        fin = cuenta_entradas * a.tam_entrada
         desplazamiento_ifd = struct.unpack(
-            f"{orden}{fmt_desplazamiento}", bloque[fin : fin + hueco]
+            f"{orden}{a.fmt_desplazamiento}", bloque[fin : fin + a.hueco]
         )[0]
+    return recorrido
+
+
+def _leer_las_entradas(
+    leer, orden: str, a: _Anchos, bloque: bytes, cuenta_entradas: int, recorrido: _Recorrido
+) -> tuple[int | None, int | None]:
+    """Lee las entradas de un directorio. Devuelve `(bandera, ancho)` de los posteriores.
+
+    En el IFD0 deja todos los campos en `recorrido.campos`; en los demás solo mira el tipo de
+    subarchivo y el ancho.
+    """
+    bandera: int | None = None
+    ancho_de_este: int | None = None
+
+    for indice in range(cuenta_entradas):
+        base = indice * a.tam_entrada
+        etiqueta, tipo = struct.unpack(f"{orden}HH", bloque[base : base + 4])
+        if recorrido.directorios > 0 and etiqueta not in (TAG_TIPO_SUBARCHIVO, TAG_ANCHO):
+            continue
+        cuenta = struct.unpack(
+            f"{orden}{a.fmt_cuenta}", bloque[base + 4 : base + 4 + a.tam_cuenta]
+        )[0]
+        hueco_valor = bloque[base + 4 + a.tam_cuenta : base + a.tam_entrada]
+        desplazamiento_valor = struct.unpack(f"{orden}{a.fmt_desplazamiento}", hueco_valor)[0]
+        valores = _valores(leer, orden, tipo, cuenta, hueco_valor, desplazamiento_valor)
+        if recorrido.directorios == 0:
+            recorrido.campos[etiqueta] = valores
+        elif valores:
+            if etiqueta == TAG_TIPO_SUBARCHIVO:
+                bandera = int(valores[0])
+            else:
+                ancho_de_este = int(valores[0])
+    return bandera, ancho_de_este
+
+
+def _clase_de_directorio(
+    bandera: int | None, ancho_de_este: int | None, ancho_principal: int
+) -> str | None:
+    """Qué es un directorio posterior: `mascara`, `reduccion`, `menor` o ninguna de las tres."""
+    if bandera is not None and bandera & SUBARCHIVO_MASCARA:
+        return "mascara"
+    if bandera is not None and bandera & SUBARCHIVO_REDUCIDO:
+        return "reduccion"
+    if ancho_de_este and ancho_principal and ancho_de_este < ancho_principal:
+        # Un IFD mas estrecho que el principal y **sin** `NewSubfileType`.
+        #
+        # La tentacion es contarlo como piramide: es mas pequeno, tiene toda la
+        # pinta. Pero se contrasto con el oraculo y no: sobre un DEM de Metashape
+        # con cuatro IFD asi, `gdalinfo` reporta **cero** overviews. Sin la
+        # etiqueta, GDAL no los usa -- y por tanto QGIS tampoco, ni nada que se
+        # apoye en GDAL. Decir "tiene piramides" seria prometer un zoom rapido que
+        # ningun programa va a dar.
+        #
+        # Asi que se cuentan aparte y no suman a `reducciones`. Es la diferencia
+        # entre lo que el archivo contiene y lo que el software va a aprovechar, y
+        # aca lo que importa es lo segundo.
+        return "menor"
+    return None
+
+
+def _armar_la_cabecera(orden: str, a: _Anchos, recorrido: _Recorrido) -> CabeceraTiff:
+    campos = recorrido.campos
 
     def primero(etiqueta: int, por_defecto=None):
         valores = campos.get(etiqueta)
@@ -427,7 +503,7 @@ def _leer_cabecera_de(archivo) -> CabeceraTiff:
         origen = (float(atadura[3]), float(atadura[4]))
 
     return CabeceraTiff(
-        es_bigtiff=es_big,
+        es_bigtiff=a.es_big,
         little_endian=(orden == "<"),
         ancho_px=int(ancho),
         alto_px=int(alto),
@@ -444,10 +520,10 @@ def _leer_cabecera_de(archivo) -> CabeceraTiff:
         origen=origen,
         epsg=_epsg_de_geoclaves(campos.get(TAG_DIRECTORIO_GEOCLAVES, ())),
         software=str(primero(TAG_SOFTWARE, "") or ""),
-        directorios=directorios,
-        reducciones=reducciones,
-        mascaras=mascaras,
-        menores_sin_declarar=menores,
+        directorios=recorrido.directorios,
+        reducciones=recorrido.reducciones,
+        mascaras=recorrido.mascaras,
+        menores_sin_declarar=recorrido.menores,
     )
 
 
