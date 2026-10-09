@@ -103,6 +103,7 @@ class TestLasHerramientasDelArchivo:
         assert {a.id for a in acciones.para_el_archivo("foto.jpg")} == {
             "pdf-imagenes",
             "pdf-imagenes_lote",
+            "pdf-escanear",
         }
         assert acciones.para_el_archivo("sin_extension") == []
 

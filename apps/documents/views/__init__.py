@@ -1,4 +1,4 @@
-"""Las pantallas de las cuarenta y una herramientas de documentos.
+"""Las pantallas de las cuarenta y dos herramientas de documentos.
 
 ## Mirar aquí, hacer en la cola
 
@@ -69,6 +69,10 @@ from .pantalla_dividir import (  # noqa: F401
 )
 from .pantalla_dxf_lamina import (  # noqa: F401
     dxf_lamina_vista,
+)
+from .pantalla_escanear import (  # noqa: F401
+    escanear_foto,
+    escanear_vista,
 )
 from .pantalla_firma_digital import (  # noqa: F401
     firmar_vista,

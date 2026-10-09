@@ -3,7 +3,7 @@
 ## Por qué se vigila
 
 Los vuelos de dron salieron de `apps/documents/` para poder crecer a su ritmo y alimentar al visor
-(F19) sin arrastrar las cuarenta y una herramientas de documentos. Esa separación dura **mientras
+(F19) sin arrastrar las cuarenta y dos herramientas de documentos. Esa separación dura **mientras
 nadie importe por comodidad** una función de PDF desde un módulo de vuelos: basta una, y el día que
 se quiera mover o probar aparte vuelve a estar pegado.
 
