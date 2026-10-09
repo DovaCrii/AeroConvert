@@ -63,7 +63,7 @@ motivo; con `instalar_faltantes.sh` casi ninguna hace falta porque los programas
 | F14.12 · F14.15 · F14.16 (SVG) | Escanear, quitar fondo, SVG con Inkscape | Claude |
 | F15.1 a F15.4 · F15.8 · F15.6 (DWG) | Datums, calibración, perfiles mineros, ODA | Esperan P5, P6, P7 |
 | F15.2 · F15.5 · F15.7 · F16.5 | Alturas con geoide, más perfiles, TIN, AeroBim | Claude (F16.5 con AeroBim) |
-| F18.3 ⚠ · F18.7 | PPK real | Esperan P15 y P16 (RTKLIB ya lo instala el guion) |
+| F18.3 ⚠ · F18.7 ⚠ | PPK real | F18.7 (pantalla con RTKLIB) hecha el 2026-10-09 con un `rnx2rtkp` de mentira; la corrida real espera la altura elipsoidal de la base (P18) y P16 (RTKLIB ya lo instala el guion) |
 | F10.5 | Trimble bajo Wine | Usted (pasos en `docs/historial/HANDOFF-hasta-2026-10-07.md`) |
 | F1.6 · F2.6 · F4.1 · F4.2 · F11.8 | ECW, 3D Tiles, IFC, AeroBim por archivo, partir `runner.py` | Sin fecha |
 

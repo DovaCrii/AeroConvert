@@ -99,6 +99,12 @@ PASOS: dict[str, Paso] = {
         "Descargue RTKLIB (BSD-2) y ponga AEROCONVERT_RTKLIB_CONVBIN y "
         "AEROCONVERT_RTKLIB_RNX2RTKP en el .env.",
     ),
+    "sin-rnx2rtkp": Paso(
+        GUION,
+        f"{INSTALAR_FALTANTES} (instala rtklib; rnx2rtkp queda en el PATH).",
+        "Descargue RTKLIB (BSD-2) y ponga AEROCONVERT_RTKLIB_RNX2RTKP en el .env.",
+        "Mientras tanto sirve la trayectoria que exportó Trimble Business Center.",
+    ),
     "sin-wine": Paso(
         PERSONA,
         "sudo apt install wine, y un prefijo propio en AEROCONVERT_WINEPREFIX (F10.5).",

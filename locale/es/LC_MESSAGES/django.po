@@ -125,3 +125,13 @@ msgstr "Inglés"
 msgid "Spanish"
 msgstr "Español"
 
+
+# --- Papeles de las entradas de un vuelo de dron con PPK ---------------------
+msgid "Drone observations"
+msgstr "Observaciones del dron"
+
+msgid "Base station observations"
+msgstr "Observaciones de la estación base"
+
+msgid "Navigation ephemerides"
+msgstr "Efemérides de navegación"

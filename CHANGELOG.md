@@ -5,6 +5,29 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Sin publicar]
 
+### Añadido — «Corregir un vuelo de dron» calcula la trayectoria con RTKLIB (F18.7)
+
+- **La segunda entrada de la pantalla.** Una elección visible, «¿De dónde sale la trayectoria?»: la que
+  exportó Trimble Business Center (lo de siempre) o «Calcularla aquí con RTKLIB (PPK)». Con RTKLIB se
+  piden el RINEX del dron, uno o dos de navegación y el de la base, y **la coordenada de la base**:
+  latitud y longitud en grados decimales, altura **elipsoidal** y el sistema (SIRGAS-Chile 2002, SIRGAS
+  2000, WGS84, ITRF…) en un selector **sin valor elegido**: el sistema no se supone. Las opciones de
+  RTKLIB (modo, máscara de elevación 15°, sistemas G, R, E y C, umbral de ambigüedades 3) están
+  plegadas, con su valor a la vista.
+- **Se revisa antes de encolar:** que los RINEX sean lo que dicen ser y que la base declarada no esté a más
+  de 1 km de la que dice su RINEX (un error de signo, de zona o de estación sale en kilómetros).
+- **Sin `rnx2rtkp` la opción sale apagada**, no oculta, con el motivo estable `sin-rnx2rtkp` y cómo
+  instalarlo; la de Trimble sigue encendida. El corredor le pasa al hijo la ruta del programa.
+- **El zip lleva `trayectoria.pos`** (lo que escribió RTKLIB, tal cual), `trayectoria.md` (calidad, huecos y
+  lo declarado: la base, su sistema y las opciones) y los entregables de siempre. La calidad de cada foto
+  es la de las épocas vecinas (fija, flotante, simple), y lo que no es fijo se avisa. La altura es la
+  elipsoidal, y el contraste con Trimble juzga solo el plano.
+- **Barra de avance leída de RTKLIB:** `rnx2rtkp` se lee mientras corre y, con la primera y la última
+  observación del dron (`TIME OF FIRST/LAST OBS`), sale la fracción; sin hora de fin queda solo la
+  etiqueta. El código de salida sigue sin ser la prueba: lo es el `.pos` leído.
+- Tres papeles nuevos para las entradas de un trabajo (`rover`, `base`, `navegacion`) y un lector del
+  `.pos` en la verificación del zip que cuenta las épocas aparte.
+
 ### Cambiado — dirección visual «Plan de vuelo» en toda la app (D8, F13.14)
 
 - La persona eligió «A · Plan de vuelo» entre tres direcciones; **sustituye al «plano con color» de F13.7**. El archivo hace un vuelo: soltarlo es el despegue, los pasos son puntos de ruta unidos por una trayectoria punteada (con halo en el paso actual y una marca ✓ en el hecho), y la verificación y la descarga son el aterrizaje.

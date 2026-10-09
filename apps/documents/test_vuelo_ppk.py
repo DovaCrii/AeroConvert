@@ -14,9 +14,13 @@ from __future__ import annotations
 
 import json
 import math
+import os
+import subprocess
 import sys
 import textwrap
+import time
 from pathlib import Path
+from unittest import mock
 
 import pytest
 from django.test import override_settings
@@ -264,8 +268,15 @@ FALSO = textwrap.dedent(
     args = sys.argv[1:]
     Path(__file__).with_name("recibido.json").write_text(json.dumps(args))
     salida = args[args.index("-o") + 1]
+    if config.get("pid_en"):
+        import os
+        Path(config["pid_en"]).write_text(str(os.getpid()), encoding="utf-8")
     if config.get("duerme"):
         time.sleep(config["duerme"])
+    for linea in config.get("progreso", []):
+        # Como RTKLIB: una línea por época, separadas por retorno de carro y sin salto de línea.
+        sys.stderr.write(linea + chr(13))
+        sys.stderr.flush()
     if config.get("mensaje"):
         print(config["mensaje"], file=sys.stderr)
     if config.get("escribe") is not None:
@@ -398,6 +409,217 @@ class TestCorrer:
         with pytest.raises(ComposicionInvalida):
             self._correr(falso(escribe="basura\n"), archivos, tmp_path)
         assert huella() == antes
+
+
+def _con_horas(carpeta: Path, nombre: str, primera: str, ultima: str | None) -> Path:
+    """Un RINEX del dron con `TIME OF FIRST OBS` y, si se pide, `TIME OF LAST OBS`."""
+
+    def linea(hora: str, etiqueta: str) -> str:
+        y, mo, d, h, mi, s = hora.split()
+        campos = f"{int(y):6d}{int(mo):6d}{int(d):6d}{int(h):6d}{int(mi):6d}{float(s):13.7f}"
+        return (campos + "     GPS").ljust(60) + etiqueta
+
+    extra = linea(primera, "TIME OF FIRST OBS")
+    if ultima:
+        extra += "\n" + linea(ultima, "TIME OF LAST OBS")
+    return _rinex(carpeta, nombre, "O", xyz=(0.0, 0.0, 0.0), extra=extra)
+
+
+def _avance(minuto_s: list[tuple[int, int]]) -> list[str]:
+    return [f"processing : 2025/12/29 15:{m:02d}:{s:02d}.0 Q=1 ns=14" for m, s in minuto_s]
+
+
+class TestElAvanceLeidoDeRtklib:
+    """`rnx2rtkp` dice dónde va en stderr; con la primera y la última observación sale la barra."""
+
+    def test_la_cabecera_trae_la_primera_y_la_ultima_observacion(self, tmp_path):
+        ruta = _con_horas(tmp_path, "d.obs", "2025 12 29 15 40 0", "2025 12 29 15 50 30")
+        c = vuelo_ppk.leer_cabecera(ruta)
+        assert c.desde.isoformat() == "2025-12-29T15:40:00"
+        assert c.hasta.isoformat() == "2025-12-29T15:50:30"
+
+    def test_sin_hora_de_fin_la_cabecera_no_la_inventa(self, tmp_path):
+        c = vuelo_ppk.leer_cabecera(_con_horas(tmp_path, "d.obs", "2025 12 29 15 40 0", None))
+        assert c.hasta is None and c.ultima_observacion == ""
+
+    def test_las_fracciones_crecen_y_van_de_cero_a_uno(self, falso, archivos, tmp_path):
+        rover = _con_horas(tmp_path, "d.obs", "2025 12 29 15 40 0", "2025 12 29 15 50 0")
+        # Los minutos 40 a 50 son diez minutos: cada 30 s es el 5 %. Una época repetida no suma.
+        horas = [(40 + s // 60, s % 60) for s in range(0, 601, 30)]
+        programa = falso(escribe=_pos([1, 1]), progreso=_avance(horas + [horas[-1]]))
+        avances: list[tuple[float | None, str]] = []
+        vuelo_ppk.correr(
+            programa,
+            rover=rover,
+            base_obs=archivos["base"],
+            navegacion=[archivos["nav"]],
+            destino=tmp_path / "s.pos",
+            base=BASE,
+            progreso=lambda f, e: avances.append((f, e)),
+        )
+        fracciones = [f for f, _ in avances]
+        assert fracciones and None not in fracciones
+        assert fracciones == sorted(fracciones) and len(set(fracciones)) == len(fracciones)
+        assert fracciones[0] == pytest.approx(0.0, abs=1e-9) and fracciones[-1] == pytest.approx(
+            1.0
+        )
+        assert 0.49 < fracciones[len(fracciones) // 2] < 0.56  # hacia la mitad, a las 15:45
+        assert all("RTKLIB va en 2025-12-29 15:" in e and "GPST" in e for _, e in avances)
+        assert "fija" in avances[0][1]
+
+    def test_sin_hora_de_fin_solo_va_la_etiqueta(self, falso, archivos, tmp_path):
+        rover = _con_horas(tmp_path, "d.obs", "2025 12 29 15 40 0", None)
+        programa = falso(escribe=_pos([1]), progreso=_avance([(41, 0), (42, 0)]))
+        avances = []
+        vuelo_ppk.correr(
+            programa,
+            rover=rover,
+            base_obs=archivos["base"],
+            navegacion=[archivos["nav"]],
+            destino=tmp_path / "s.pos",
+            base=BASE,
+            progreso=lambda f, e: avances.append((f, e)),
+        )
+        assert [f for f, _ in avances] == [None, None]
+        assert avances[-1][1].startswith("RTKLIB va en 2025-12-29 15:42:00")
+
+    def test_la_barra_no_ensucia_los_mensajes_de_error(self, falso, archivos, tmp_path):
+        rover = _con_horas(tmp_path, "d.obs", "2025 12 29 15 40 0", "2025 12 29 15 50 0")
+        programa = falso(
+            codigo=0, progreso=_avance([(41, 0), (42, 0)]), mensaje="error: no common satellites"
+        )
+        with pytest.raises(ComposicionInvalida, match="no escribió ninguna posición") as e:
+            vuelo_ppk.correr(
+                programa,
+                rover=rover,
+                base_obs=archivos["base"],
+                navegacion=[archivos["nav"]],
+                destino=tmp_path / "s.pos",
+                base=BASE,
+            )
+        assert "no common satellites" in str(e.value) and "processing" not in str(e.value)
+
+
+def _proceso_vivo(pid: int) -> bool:
+    if sys.platform == "win32":
+        salida = subprocess.run(  # nosec B603 B607 - prueba, orden fija
+            ["tasklist", "/FI", f"PID eq {pid}", "/NH"], capture_output=True, text=True, check=False
+        ).stdout
+        return str(pid) in salida
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    return True
+
+
+def _esperar_a_que_muera(pid: int, hasta_s: float = 10.0) -> bool:
+    limite = time.monotonic() + hasta_s
+    while time.monotonic() < limite:
+        if not _proceso_vivo(pid):
+            return True
+        time.sleep(0.1)
+    return not _proceso_vivo(pid)
+
+
+class TestElAvanceNoTumbaAlCalculo:
+    """El hilo lector solo vacía el pipe: un avance mal formado o un `progreso` roto no bloquean a
+    RTKLIB hasta el plazo."""
+
+    def _correr(self, programa, archivos, tmp_path, **kw):
+        rover = _con_horas(tmp_path, "d.obs", "2025 12 29 15 40 0", "2025 12 29 15 50 0")
+        inicio = time.monotonic()
+        resultado = vuelo_ppk.correr(
+            programa,
+            rover=rover,
+            base_obs=archivos["base"],
+            navegacion=[archivos["nav"]],
+            destino=tmp_path / "s.pos",
+            base=BASE,
+            plazo_s=30,
+            **kw,
+        )
+        return resultado, time.monotonic() - inicio
+
+    def test_un_segundo_intercalar_en_la_hora_se_descarta_sin_matar_al_lector(
+        self, falso, archivos, tmp_path
+    ):
+        # `15:59:60` no es una hora para `datetime`; las líneas buenas de después siguen llegando,
+        # y se llenan más de los 64 KiB del pipe para que un lector muerto bloquearía a RTKLIB.
+        malas = ["processing : 2025/12/29 15:59:60.0 Q=1 ns=14"]
+        buenas = _avance([(41, 0), (45, 0), (49, 0)])
+        relleno = ["x" * 200] * 600
+        programa = falso(escribe=_pos([1]), progreso=malas + relleno + buenas)
+        avances = []
+        resultado, duracion = self._correr(
+            programa, archivos, tmp_path, progreso=lambda f, e: avances.append(f)
+        )
+        assert resultado.trayectoria.n == 1 and duracion < 20
+        assert len(avances) == 3 and avances == sorted(avances)
+
+    def test_un_progreso_que_lanza_no_detiene_el_calculo(self, falso, archivos, tmp_path):
+        programa = falso(escribe=_pos([1, 1]), progreso=_avance([(41, 0), (45, 0)]) * 50)
+        llamadas = []
+
+        def roto(fraccion, etiqueta):
+            llamadas.append(fraccion)
+            raise RuntimeError("la barra se rompió")
+
+        resultado, duracion = self._correr(programa, archivos, tmp_path, progreso=roto)
+        assert resultado.trayectoria.n == 2 and duracion < 20
+        assert len(llamadas) == 1, "tras fallar una vez, no se vuelve a llamar"
+
+    def test_una_linea_sin_fin_no_crece_sin_tope(self, falso, archivos, tmp_path):
+        programa = falso(escribe=_pos([1]), progreso=["y" * 300_000])
+        resultado, _d = self._correr(programa, archivos, tmp_path)
+        assert resultado.trayectoria.n == 1
+
+
+class TestLoQueSeCuelgaSeMataConSuDescendencia:
+    def test_pasado_el_plazo_el_proceso_ya_no_existe(self, falso, archivos, tmp_path):
+        pid_en = tmp_path / "pid.txt"
+        programa = falso(duerme=60, pid_en=str(pid_en))
+        with pytest.raises(ComposicionInvalida, match="tardó más de"):
+            vuelo_ppk.correr(
+                programa,
+                rover=archivos["rover"],
+                base_obs=archivos["base"],
+                navegacion=[archivos["nav"]],
+                destino=tmp_path / "s.pos",
+                base=BASE,
+                plazo_s=2,
+            )
+        assert _esperar_a_que_muera(int(pid_en.read_text()))
+
+    def test_si_quien_llama_se_interrumpe_no_queda_huerfano(self, falso, archivos, tmp_path):
+        pid_en = tmp_path / "pid.txt"
+        programa = falso(duerme=60, pid_en=str(pid_en))
+
+        def interrumpe(fraccion, etiqueta):
+            raise KeyboardInterrupt
+
+        rover = _con_horas(tmp_path, "d.obs", "2025 12 29 15 40 0", "2025 12 29 15 50 0")
+        # La interrupción llega con el programa vivo: el `finally` de `correr` lo mata.
+        original = vuelo_ppk._Avisador.entregar
+
+        def entregar_y_cortar(self, avances):
+            if pid_en.exists():
+                raise KeyboardInterrupt
+            original(self, avances)
+
+        with mock.patch.object(vuelo_ppk._Avisador, "entregar", entregar_y_cortar):
+            with pytest.raises(KeyboardInterrupt):
+                vuelo_ppk.correr(
+                    programa,
+                    rover=rover,
+                    base_obs=archivos["base"],
+                    navegacion=[archivos["nav"]],
+                    destino=tmp_path / "s.pos",
+                    base=BASE,
+                    plazo_s=30,
+                    progreso=interrumpe,
+                )
+        assert _esperar_a_que_muera(int(pid_en.read_text()))
 
 
 class TestSonda:

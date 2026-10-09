@@ -63,6 +63,44 @@ Llegó un vuelo de un Matrice 3E con lo que sacó Trimble Business Center (su UA
 - **El flujo de Trimble es una segunda entrada**, además de RTKLIB: quien ya procesó el PPK en
   Trimble sube su trayectoria y el `.MRK`, y obtiene lo mismo que haría el UAS sync.
 
+## Cómo se usa la segunda entrada: PPK con RTKLIB (F18.7)
+
+En «Corregir un vuelo de dron», el primer paso pregunta **¿De dónde sale la trayectoria?**
+
+1. **«Calcularla aquí con RTKLIB (PPK)».** Si en la máquina no está `rnx2rtkp`, la opción sale
+   apagada con su motivo (`sin-rnx2rtkp`) y cómo instalarlo (`sudo apt install rtklib`, o
+   `AEROCONVERT_RTKLIB_RNX2RTKP`); la de Trimble sigue funcionando.
+2. **Los archivos:** el RINEX de observación del dron (`*_PPKOBS.obs`), el de navegación (`*_PPKNAV.nav`,
+   `.25n`, `.25g`, `.25l`; hace falta uno y el segundo es opcional) y el RINEX de observación de la
+   base. Los disparos (`.MRK`), las posiciones de Trimble (opcionales: miden el sistema del visor y
+   contrastan el plano) y la carpeta de fotos son los mismos de siempre.
+3. **La coordenada de la base**, declarada: latitud y longitud en grados decimales, **altura
+   elipsoidal** en metros y el **sistema**. El selector no trae ninguno elegido (regla 3). La
+   altura ortométrica o la sobre el nivel del mar **no sirve**: corre toda la trayectoria el valor
+   de la ondulación del geoide (decenas de metros en Chile). Si la base declarada está a más de 1 km
+   del `APPROX POSITION` de su RINEX, no se procesa.
+4. **Opciones de RTKLIB** (plegadas, con su valor): modo cinemático, máscara de elevación de 15°,
+   sistemas G, R, E y C, umbral de resolución de ambigüedades de 3.
+5. **Se sigue en la ficha del trabajo.** La barra sale de la hora que va procesando RTKLIB entre la
+   primera y la última observación del dron (`TIME OF FIRST OBS` y `TIME OF LAST OBS`); si el RINEX
+   no trae la última, solo se dice dónde va. El tramo de RTKLIB es el 2 % al 70 % de la barra y el
+   resto (sincronizar, contrastar, escribir) lo que queda.
+
+**Qué entrega:** además de `fotos.csv`, `fotos.geojson`, `fotos.kml`, `calidad.md` y `vuelo.json`, el zip
+trae `trayectoria.pos` (lo que escribió RTKLIB, sin tocar) y `trayectoria.md` (porcentaje de
+posiciones fijas, flotantes y simples, huecos, y **lo declarado**: la base, su sistema y las
+opciones, para poder repetir la corrida). La calidad de cada foto es la **peor de las dos épocas
+vecinas** de su disparo; lo que no es fijo se avisa con la cuenta. La hora es GPST (la del `.pos` y
+la del `.MRK`), así que no se pregunta.
+
+**Qué comprueba y qué no:** lo que prueba que funcionó es el `.pos` leído (regla 1), no el código de
+salida de `rnx2rtkp`. Con las posiciones de Trimble delante se contrasta solo el **plano**: la altura
+de Trimble no es elipsoidal y diferiría decenas de metros sin que eso sea un error.
+
+**Ver también:** la corrida real contra el vuelo de Baquedano espera la altura elipsoidal de la
+base (P18); las pruebas de CI usan un `rnx2rtkp` de mentira que escribe un `.pos` de resultado
+conocido (`apps/documents/test_vuelo_ppk_pantalla.py`).
+
 ## Qué falta de la persona
 
 - **Un vuelo de verdad** (P15): RINEX del dron, RINEX de la base, el `.MRK`, y unas fotos, fuera del
