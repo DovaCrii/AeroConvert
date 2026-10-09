@@ -23,6 +23,9 @@ urlpatterns = [
     path("extraer-imagenes/", views.extraer_imagenes_vista, name="extraer_imagenes"),
     path("imagenes/", views.imagenes_vista, name="imagenes"),
     path("imagenes-lote/", views.imagenes_lote_vista, name="imagenes_lote"),
+    path("escanear/", views.escanear_vista, name="escanear"),
+    # La foto de una subida, derecha y más chica, para marcar su hoja. Por identificador.
+    path("escanear/foto/", views.escanear_foto, name="escanear_foto"),
     path("plano-dxf/", views.dxf_lamina_vista, name="dxf_lamina"),
     path("a-imagenes/", views.a_imagenes_vista, name="a_imagenes"),
     path("numerar/", views.numerar_vista, name="numerar"),

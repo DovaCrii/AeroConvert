@@ -47,7 +47,7 @@ Estados: ✅ hecho · 🟨 en curso · ⬜ por hacer · ⏸ espera un pedido · 
 | **B4 · Plano con color** | F13.7 ✅ | ✅ 2026-10-07 | #62 | — |
 | **B5 · Barra, portada y mapa** | F13.9 ✅ · F13.8 ✅ · F13.11 ✅ · F13.12 ✅ · F13.13 ✅ (cierra F13; versión `0.11.0`) | ✅ 2026-10-07 | #63, #64 | — |
 | **B6 · Suite PDF** | F14.0 ✅ · F14.1 ✅ · F14.2 ✅ · F14.3 ✅ · F14.4 ✅ · F14.5 ✅ · F14.6 ✅ · F14.7 ✅ · F14.8 ✅ · F14.9 ⚠ (sin veraPDF) · F14.11 ⏸ · F14.20 ✅ | 🟨 | #65 a #71, #78, #93 | P11 para F14.11 |
-| **B7 · Imagen, dron, video y vector** | F14.12 · F14.13 ✅ · F14.14 ✅ · F14.15 · F14.16 🟨 (falta SVG, Inkscape) · F14.17 ⚠ (FFmpeg real en `p340`) · F14.18 ✅ · F14.19 ✅ | 🟨 | #72, #73, #75, #76, #94 | D1 (Inkscape) |
+| **B7 · Imagen, dron, video y vector** | F14.12 ⚠ (Tesseract real en `p340`) · F14.13 ✅ · F14.14 ✅ · F14.15 · F14.16 🟨 (falta SVG, Inkscape) · F14.17 ⚠ (FFmpeg real en `p340`) · F14.18 ✅ · F14.19 ✅ | 🟨 | #72, #73, #75, #76, #94 | D1 (Inkscape) |
 | **B8 · Geoespacial** | F15.1 ⏸ · F15.2 ⚠ (EGM96 medido; EGM2008 espera su grilla) · F15.3 ⏸ · F15.4 ⏸ · F15.5 · F15.6 ◐ (falta DWG) · F15.7 · F15.8 ⏸ | 🟨 | #86 | P5 · P6 · P7 |
 | **B9 · Plataforma** | F16.1 ✅ · F16.2 ✅ · F16.3 ✅ · F16.4 ✅ · F16.5 · F16.6 ✅ | 🟨 | #79, #80, #87, #92 | F16.5 necesita a AeroBim |
 | **B11 · Poner en marcha lo apagado** | F17.1 ⚠ · F17.2 ⚠ · F17.3 ✅ · F17.4 ✅ (`docs/PUESTA_EN_MARCHA_DE_LO_APAGADO.md`) | ✅ en código; los ⚠ se miden en `p340` | #89, #90, #91, #95 | P7 · P10 · P11 · P12 · P13 para lo que es de la persona |

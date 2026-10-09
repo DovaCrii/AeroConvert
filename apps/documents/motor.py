@@ -74,6 +74,9 @@ ESPECIFICACIONES: dict[str, Especificacion] = {
     "telemetria": Especificacion(),
     "portada": Especificacion(exige="plantillas"),
     "html_a_pdf": Especificacion(),
+    # Una foto de doce megapíxeles se abre, se busca su hoja y se endereza en un par de segundos;
+    # con el reconocimiento pedido el plazo crece con las páginas (`plan`).
+    "escanear": Especificacion(carril=PESADO, timeout_s=900, emite_progreso=True),
     "reparar": Especificacion(timeout_s=600),
     # Al carril pesado: un juego de doscientas láminas escaneadas tarda minutos, y en el
     # ligero dejaría esperando a un «numerar» de un segundo.
@@ -212,6 +215,21 @@ def disponibilidad(herramienta: str, opciones: dict | None = None) -> Disponibil
         if not estado:
             return Disponibilidad.no("sin-rnx2rtkp", estado.motivo, sugerencia=estado.sugerencia)
         return Disponibilidad.si("documentos:vuelo_dron con RTKLIB (rnx2rtkp)")
+    if herramienta == "escanear" and (opciones or {}).get("ocr"):
+        # Sin reconocimiento la herramienta no necesita nada de fuera; con él, Tesseract.
+        from . import ocr
+
+        estado = ocr.sondar()
+        if not estado:
+            return Disponibilidad.no("sin-tesseract", estado.motivo, sugerencia=estado.sugerencia)
+        idioma = str((opciones or {}).get("idioma") or "spa")
+        if idioma in ocr.IDIOMAS and not estado.tiene(idioma):
+            return Disponibilidad.no(
+                "sin-tesseract",
+                f"Tesseract no tiene instalado el idioma «{ocr.IDIOMAS[idioma]}».",
+                sugerencia=f"Los que hay: {', '.join(sorted(estado.idiomas))}.",
+            )
+        return Disponibilidad.si("documentos:escanear con OCR (Tesseract)")
     if not espec.exige:
         return Disponibilidad.si(f"documentos:{herramienta}")
 
@@ -299,6 +317,13 @@ def plan(job) -> PlanDeEjecucion:
         # sonda guarda en la caché de Django. Así que se le da la ruta hecha.
         entorno[VARIABLE_TESSERACT] = ocr.sondar().programa
         plazo_s = ocr.plazo_s(_paginas_del_trabajo(job, entradas))
+    if job.herramienta == "escanear" and (job.options or {}).get("ocr"):
+        from . import ocr
+        from .tarea import VARIABLE_TESSERACT
+
+        # Como con «Reconocer texto»: el hijo no puede sondear, así que se le da la ruta hecha.
+        entorno[VARIABLE_TESSERACT] = ocr.sondar().programa
+        plazo_s = espec.timeout_s + ocr.plazo_s(len(entradas))
     if espec.exige == "ffmpeg":
         from apps.vuelos import video
 

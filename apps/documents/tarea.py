@@ -994,6 +994,39 @@ def _ocr(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
     return {"paginas": len(PdfReader(origen).pages)}
 
 
+def _escanear(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
+    import os
+
+    from apps.documents import escanear
+
+    reconocer = None
+    if opciones.get("ocr"):
+        programa = os.environ.get(VARIABLE_TESSERACT, "")
+        if not programa:
+            raise FalloDeTarea("sin-tesseract", "No llegó la ruta de Tesseract desde el corredor.")
+        reconocer = escanear.OpcionesDeOcr(programa, str(opciones.get("idioma") or "spa"))
+
+    hojas = escanear.hojas_desde_opciones(opciones.get("hojas"), len(entradas))
+    hecho = escanear.escanear(
+        [e["ruta"] for e in entradas],
+        parcial,
+        hojas,
+        mejorar=bool(opciones.get("mejorar")),
+        tamano=str(opciones.get("tamano") or "hoja"),
+        ocr=reconocer,
+        progreso=progreso,
+    )
+    return {
+        "paginas": hecho.paginas,
+        "hojas": [
+            {"nombre": h.nombre, "tratamiento": h.tratamiento, "motivo": h.motivo}
+            for h in hecho.hojas
+        ],
+        "con_ocr": hecho.con_ocr,
+        "avisos": hecho.avisos,
+    }
+
+
 #: FFmpeg y ffprobe, sondeados por el padre (el hijo no tiene Django para sondear).
 VARIABLE_FFMPEG = "AEROCONVERT_FFMPEG_HIJO"
 VARIABLE_FFPROBE = "AEROCONVERT_FFPROBE_HIJO"
@@ -1207,6 +1240,7 @@ TAREAS = {
     "md_a_pdf": _markdown_a_pdf,
     "a_epub": _a_epub,
     "html_a_pdf": _html_a_pdf,
+    "escanear": _escanear,
     "reparar": _reparar,
     "comprimir": _comprimir,
     "dividir": _dividir,

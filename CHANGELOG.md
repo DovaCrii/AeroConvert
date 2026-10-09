@@ -5,6 +5,29 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Sin publicar]
 
+### Añadido — «Escanear con el teléfono» (F14.12)
+
+- Fotos de hojas a **un PDF con una página por foto**, en el orden elegido: busca el borde de cada hoja,
+  **corrige la perspectiva** para que la página quede rectangular, la recorta y, si se pide, nivela el
+  contraste para documento (aclara el fondo y oscurece la tinta) y deja el texto reconocido con
+  Tesseract. Conserva la orientación EXIF y no toca la foto original (`apps/documents/escanear.py`).
+- **Sin dependencias nuevas:** la detección va con Pillow y Python puro (blancura, umbral de Otsu,
+  mayor región, el cuadrilátero de mayor área del casco convexo y las esquinas afinadas ajustando una
+  recta a cada lado). OpenCV (Apache-2.0) habría añadido decenas de MB para esto y el gate no lo pide.
+- **La proporción de la página no sale de la media de los lados** (se equivocaba un 7 % en la prueba):
+  se estima con la propia perspectiva (Zhang y He, 2007) y cae a la media solo si el cálculo no es creíble.
+- **No se inventa un recorte** (regla 4): si no se distingue una hoja —ocupa muy poco, llena todo el
+  cuadro, tiene forma de ele, casi no contrasta— la foto queda entera, el recibo lo dice y la pantalla
+  ofrece **marcar las cuatro esquinas** tocando la foto o escribiendo sus porcentajes (teclado y táctil,
+  nada en hover). Una detección buena también se puede corregir.
+- El reconocimiento de texto sale **apagado con motivo y alternativa** si falta Tesseract, y la
+  disponibilidad se mira con las opciones del trabajo: sin OCR la herramienta no exige nada de fuera.
+- Pruebas con oráculo: una hoja sintética de geometría conocida se «fotografía» con una cámara de agujero
+  calculada a mano (sin usar el módulo) y **PDFium** dibuja la página: el rectángulo de referencia cae a
+  ≤ 2 % de su sitio y con bordes paralelos, con y sin EXIF girado, en A4 y en otra perspectiva. La frase
+  de control con Tesseract (`@pytest.mark.oraculo`) corre donde esté el programa. Son ya
+  **cuarenta y dos** herramientas de documentos.
+
 ### Añadido — alturas elipsoidal ↔ ortométrica con geoide declarado (F15.2)
 
 - **`apps/formats/alturas.py`**: `convertir(punto, modelo=…, sentido=…)` pasa la `z_m` de un
