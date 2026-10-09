@@ -5,6 +5,10 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Sin publicar]
 
+### Añadido — Hacer un libro EPUB (F14.22)
+
+- De un PDF con texto, un Word, una página web, una hoja o un Markdown, un **EPUB 3** que se lee en el teléfono o en un lector: un capítulo por título de primer nivel, índice del lector, título y autor opcionales. Pasa por `a_markdown` (la lectura ya probada) y se escribe sin dependencia nueva (`apps/documents/a_epub.py`). Un escaneo sin texto lo dice y no deja libro. Son ya **cuarenta y una** herramientas de documentos.
+
 ### Corregido — un PDF que abre en cualquier visor salía con «pide contraseña»
 
 - Muchos PDF (certificados, informes de un sistema) van cifrados solo para restringir imprimir o copiar, con la contraseña de apertura **vacía**. `is_encrypted` no distingue ese caso, y en p340 un certificado salió rechazado en «Organizar páginas». Ahora `apps/formats/pdf.py` prueba la contraseña vacía, como hace un visor (`abre_sin_clave`, `abrir_lector`, `pide_clave`), y las doce lecturas con pypdf lo usan. Uno con contraseña de verdad se sigue parando. Oráculo: PDFium (`test_pdf_restringido.py`).

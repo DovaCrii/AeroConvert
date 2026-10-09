@@ -459,6 +459,18 @@ HERRAMIENTAS = (
         "nombre": "Markdown a PDF",
         "que_hace": "El camino de vuelta, para entregar lo que se redactó en Markdown.",
     },
+    {
+        "id": "a_epub",
+        "icono": "icon-hacer-epub",
+        "sale": "un libro EPUB con su índice",
+        "familia": "texto",
+        "url": "documents:a_epub",
+        "nombre": "Hacer un libro EPUB",
+        "que_hace": (
+            "De un PDF con texto, un Word, una página web o un Markdown, un libro que se lee en "
+            "el teléfono o en un lector, con un capítulo por título."
+        ),
+    },
     # --- Catálogos de tubería ---------------------------------------------
     #
     # Son bases de Access de AutoCAD Plant 3D. Van en este grupo porque es lo mismo que hacen

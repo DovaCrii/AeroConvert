@@ -24,7 +24,7 @@ from django.conf import settings
 from .views import HERRAMIENTAS
 
 #: Los números en letra, que es como se escriben en prosa castellana y como están hoy.
-#: Hasta cuarenta: pasado eso, la frase correcta deja de ser «las N herramientas».
+#: Hasta cuarenta y una: pasado eso, la frase correcta deja de ser «las N herramientas».
 EN_LETRA = {
     11: "once",
     12: "doce",
@@ -56,6 +56,7 @@ EN_LETRA = {
     38: "treinta y ocho",
     39: "treinta y nueve",
     40: "cuarenta",
+    41: "cuarenta y una",
 }
 
 #: Dónde se publica la cifra. No es una lista de todos los sitios donde aparece un número: es

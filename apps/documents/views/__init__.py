@@ -1,4 +1,4 @@
-"""Las pantallas de las cuarenta herramientas de documentos.
+"""Las pantallas de las cuarenta y una herramientas de documentos.
 
 ## Mirar aquí, hacer en la cola
 
@@ -91,7 +91,9 @@ from .pantalla_inicio import (  # noqa: F401
     vuelos,
 )
 from .pantalla_markdown import (  # noqa: F401
+    EXTENSIONES_DE_EPUB,
     EXTENSIONES_DE_MARKDOWN,
+    a_epub,
     a_markdown,
     de_markdown,
 )

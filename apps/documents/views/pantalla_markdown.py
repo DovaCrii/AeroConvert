@@ -19,6 +19,12 @@ from ..composicion import ComposicionInvalida
 # importar las vistas.
 from ._comun import _origen_del_formulario
 
+#: Lo que `Hacer un libro EPUB` acepta: lo que ya se sabe pasar a Markdown, y el Markdown mismo.
+#: El EPUB no está: de un EPUB a otro no hay nada que hacer.
+EXTENSIONES_DE_EPUB = frozenset(
+    {".pdf", ".docx", ".html", ".htm", ".md", ".markdown", ".txt", ".xlsx", ".csv"}
+)
+
 #: Lo que `Markdown a PDF` acepta como entrada. Lo demás se rechaza antes de encolar.
 EXTENSIONES_DE_MARKDOWN = frozenset({".md", ".markdown", ".txt"})
 
@@ -107,3 +113,40 @@ def de_markdown(request):
         return render(request, "documents/de_markdown.html", contexto)
 
     return cola_mod.encolar(request, "md_a_pdf", [origen], {}, sufijo=".pdf")
+
+
+@login_required
+def a_epub(request):
+    """Hacer un libro EPUB de un PDF, un Word, una página web o un Markdown."""
+    contexto = {
+        "seccion": "pdf",
+        "etiqueta_seccion": "Texto y tablas",
+        "titulo_pagina": "Hacer un libro EPUB",
+        "proposito": "Para leer un informe o un manual en el teléfono o en un lector de libros.",
+        "ruta_texto": (request.GET.get("ruta") or "").strip(),
+        "acepta": ",".join(sorted(EXTENSIONES_DE_EPUB)),
+    }
+
+    if request.method != "POST":
+        return render(request, "documents/a_epub.html", contexto)
+
+    try:
+        origen = _origen_del_formulario(request)
+    except (modo_mod.RutaNoPermitida, ComposicionInvalida) as fallo:
+        messages.error(request, str(fallo))
+        return render(request, "documents/a_epub.html", contexto)
+
+    if Path(origen.nombre).suffix.lower() not in EXTENSIONES_DE_EPUB:
+        messages.error(
+            request,
+            f"De «{Path(origen.nombre).suffix or origen.nombre}» no se hace un libro. Se admite "
+            + ", ".join(sorted(EXTENSIONES_DE_EPUB))
+            + ".",
+        )
+        return render(request, "documents/a_epub.html", contexto)
+
+    opciones = {
+        "titulo": (request.POST.get("titulo") or "").strip()[:200],
+        "autor": (request.POST.get("autor") or "").strip()[:200],
+    }
+    return cola_mod.encolar(request, "a_epub", [origen], opciones, sufijo=".epub")

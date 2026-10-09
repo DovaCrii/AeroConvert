@@ -704,6 +704,15 @@ una segunda lectura de GDAL: la curva de cota `L` tiene que ser una circunferenc
 - **No medido:** DWG (espera a ODA, F15.8); un DEM real de la faena; rendimiento con un modelo de varios
   gigabytes.
 
+## Pendiente: «Hacer un libro EPUB» contra EPUBCheck (F14.22)
+
+EPUBCheck es el validador de referencia del W3C (BSD-3, Java 11+). En el CI no está; la prueba `test_epubcheck_lo_da_por_valido` lleva `@pytest.mark.oraculo` y se salta sin él.
+
+1. Bajar el `.zip` de EPUBCheck 5.x de su repositorio oficial y descomprimirlo fuera del repositorio.
+2. `$env:AEROCONVERT_EPUBCHECK="<carpeta>\epubcheck.jar"` y Java en el `PATH`.
+3. `uv run pytest -m oraculo apps/documents/test_a_epub.py`.
+4. Anotar aquí la fecha, la versión de EPUBCheck y su frase final (debe ser «No errors or warnings detected»).
+
 ## Pendiente de correr en `p340`: «Office a PDF» con LibreOffice (F17.1)
 
 En la estación no hay LibreOffice, así que lo comprobado aquí es el pegamento, con un `soffice` de

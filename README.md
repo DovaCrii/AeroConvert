@@ -101,7 +101,7 @@ más: **ninguna comparte base de datos con otra**. Se comunican por archivo o po
 
 ## Estado actual
 
-**`v0.12.0`** — ráster, nubes de puntos, vectorial y CAD, cuarenta herramientas de documentos
+**`v0.12.0`** — ráster, nubes de puntos, vectorial y CAD, cuarenta y una herramientas de documentos
 (con firma digital y PDF/A), datos GNSS, vuelos de dron con PPK, lotes y API, desplegado en un
 servidor de la oficina. **Más de 4.400 pruebas**, con la cobertura por
 encima del piso de 83 %, verdes **sin GDAL ni PDAL instalados**, y el CI de GitHub Actions en

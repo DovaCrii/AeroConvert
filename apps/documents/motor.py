@@ -69,6 +69,8 @@ ESPECIFICACIONES: dict[str, Especificacion] = {
     "md_epub": Especificacion(salida_opcional=True),
     "md_html": Especificacion(salida_opcional=True),
     "md_a_pdf": Especificacion(),
+    # Un PDF de cuatrocientas páginas pasa primero a Markdown: lo mismo que «PDF a Markdown».
+    "a_epub": Especificacion(timeout_s=600, salida_opcional=True),
     "telemetria": Especificacion(),
     "portada": Especificacion(exige="plantillas"),
     "html_a_pdf": Especificacion(),
@@ -449,6 +451,8 @@ def verificar(parcial: Path, informe: dict, plan: PlanDeEjecucion | None = None)
             return Verificacion(False, f"La imagen no se deja leer: {fallo}", "salida-invalida")
         detalles["verificado_con"] = "Pillow"
         return Verificacion(True, detalles=detalles)
+    if extension == ".epub":
+        return _verificar_epub(parcial, detalles)
     if extension == ".md":
         try:
             texto = parcial.read_text(encoding="utf-8")
@@ -465,6 +469,47 @@ def verificar(parcial: Path, informe: dict, plan: PlanDeEjecucion | None = None)
 
 
 _IMAGENES = frozenset({".png", ".jpg", ".jpeg"})
+
+
+def _verificar_epub(parcial: Path, detalles: dict) -> Verificacion:
+    """Lo que un lector de EPUB exige para abrir el libro, mirado con otro lector (zipfile y
+    defusedxml), no con el que lo escribió: `mimetype` primero y sin comprimir, el
+    `container.xml` apuntando a un paquete que existe, y cada capítulo de la columna presente y
+    XML bien formado. La validación entera es EPUBCheck (`docs/PRUEBAS_CON_ORACULO.md`).
+    """
+    from defusedxml import ElementTree
+
+    ocf = "{urn:oasis:names:tc:opendocument:xmlns:container}"
+    opf = "{http://www.idpf.org/2007/opf}"
+    try:
+        with zipfile.ZipFile(parcial) as libro:
+            primera = libro.infolist()[0]
+            if primera.filename != "mimetype" or primera.compress_type != zipfile.ZIP_STORED:
+                return Verificacion(
+                    False, "El EPUB no empieza por `mimetype` sin comprimir.", "salida-invalida"
+                )
+            if libro.read("mimetype") != b"application/epub+zip":
+                return Verificacion(
+                    False, "El `mimetype` del EPUB no es el suyo.", "salida-invalida"
+                )
+            contenedor = ElementTree.fromstring(libro.read("META-INF/container.xml"))
+            raiz = contenedor.find(f".//{ocf}rootfile").get("full-path")
+            paquete = ElementTree.fromstring(libro.read(raiz))
+            base = raiz.rsplit("/", 1)[0] + "/" if "/" in raiz else ""
+            por_id = {i.get("id"): i.get("href") for i in paquete.iter(f"{opf}item")}
+            columna = [r.get("idref") for r in paquete.iter(f"{opf}itemref")]
+            if not columna:
+                return Verificacion(False, "El EPUB no tiene capítulos.", "salida-invalida")
+            for idref in columna:
+                ElementTree.fromstring(libro.read(base + por_id[idref]))
+    except (zipfile.BadZipFile, KeyError, AttributeError, IndexError) as fallo:
+        return Verificacion(False, f"Al EPUB le falta una pieza: {fallo}", "salida-invalida")
+    except ElementTree.ParseError as fallo:
+        return Verificacion(False, f"Un XML del EPUB está mal formado: {fallo}", "salida-invalida")
+    detalles["capitulos"] = len(columna)
+    detalles["verificado_con"] = "zipfile y defusedxml"
+    return Verificacion(True, detalles=detalles)
+
 
 #: La parte sin la que un documento de Office no es nada. Un `.docx` es un zip, y un zip
 #: íntegro sin `word/document.xml` se abre en Word como «el archivo está dañado».

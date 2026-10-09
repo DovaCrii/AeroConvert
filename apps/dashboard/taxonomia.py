@@ -147,6 +147,7 @@ DE_DOCUMENTOS: dict[str, str] = {
     "md_epub": "texto",
     "md_html": "texto",
     "md_a_pdf": "texto",
+    "a_epub": "texto",
     "telemetria": "vuelos",
     "fotos_dron": "vuelos",
     "vuelo_dron": "vuelos",
