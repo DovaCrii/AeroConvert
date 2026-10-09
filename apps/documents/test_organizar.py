@@ -89,7 +89,7 @@ class TestDuplicarEnLaReceta:
 class TestLaPantalla:
     def test_carga_y_habla_de_un_solo_pdf(self, sesion):
         cuerpo = sesion.get(reverse("documents:organizar")).content.decode()
-        assert "Organiza las páginas de un PDF" in cuerpo
+        assert "Organizar las páginas de un PDF" in cuerpo
         assert reverse("documents:componer_organizar") in cuerpo
         assert "<title>Organizar páginas" in cuerpo
         assert " multiple " not in cuerpo, "organizar trabaja sobre un solo archivo"
@@ -98,7 +98,7 @@ class TestLaPantalla:
         cuerpo = sesion.get(reverse("documents:unir")).content.decode()
         assert " multiple " in cuerpo
         assert reverse("documents:componer") in cuerpo
-        assert "Organiza las páginas" not in cuerpo
+        assert "Organizar las páginas" not in cuerpo
 
     @pytest.mark.parametrize("nombre", ["documents:organizar", "documents:componer_organizar"])
     def test_sin_sesion_no_se_entra(self, client, nombre):

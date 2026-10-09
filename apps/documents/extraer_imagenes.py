@@ -18,6 +18,8 @@ from __future__ import annotations
 from collections.abc import Callable
 from pathlib import Path
 
+from apps.formats import pdf as _pdf_lectura
+
 from .composicion import ComposicionInvalida
 
 #: Lado mayor mínimo, en píxeles, para que una imagen cuente.
@@ -51,7 +53,7 @@ def extraer(
         lector = PdfReader(str(origen))
     except (PyPdfError, OSError) as fallo:
         raise ComposicionInvalida(f"No se pudo abrir {origen.name}: {fallo}") from fallo
-    if lector.is_encrypted:
+    if _pdf_lectura.pide_clave(lector):
         raise ComposicionInvalida(f"{origen.name} pide contraseña, así que no se pueden sacar.")
 
     vistas: set[int] = set()

@@ -35,6 +35,8 @@ import io
 from dataclasses import dataclass
 from pathlib import Path
 
+from apps.formats import pdf as _pdf_lectura
+
 from .composicion import ComposicionInvalida
 
 #: Las tres resoluciones que se ofrecen, con **para qué sirve cada una**.
@@ -103,7 +105,7 @@ def comprimir(
     except Exception as fallo:
         raise ComposicionInvalida(f"No se pudo abrir {origen.name}: {fallo}") from fallo
 
-    if lector.is_encrypted:
+    if _pdf_lectura.pide_clave(lector):
         raise ComposicionInvalida(
             f"{origen.name} está protegido con contraseña. "
             "Quítesela primero con «Proteger o desbloquear PDF»."

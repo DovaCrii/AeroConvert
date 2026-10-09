@@ -19,6 +19,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+from apps.formats import pdf as _pdf_lectura
+
 from .composicion import ComposicionInvalida
 
 #: Los campos del `Info` que se editan, con su nombre en el PDF. El orden es el de la pantalla.
@@ -57,7 +59,7 @@ def _abrir(ruta: Path):
         lector = PdfReader(str(ruta))
     except (PyPdfError, OSError) as fallo:
         raise ComposicionInvalida(f"No se pudo abrir {ruta.name}: {fallo}") from fallo
-    if lector.is_encrypted:
+    if _pdf_lectura.pide_clave(lector):
         raise ComposicionInvalida(f"{ruta.name} pide contraseña, así que no se puede leer.")
     return lector
 

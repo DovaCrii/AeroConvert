@@ -52,7 +52,10 @@ SOLO_DE_TU = (
 IMPERATIVOS = (
     "Elige Mira Pincha Suelta Arrastra Prueba Vuelve Pulsa Haz Dime Revisa Indica Pega "
     "Ponle Abre Sube Escribe Usa Elígelo Ábrelo Pásalo "
-    "Copia Corre Deja Cambia Instala Comprueba Borra Has Repasa"
+    "Copia Corre Deja Cambia Instala Comprueba Borra Has Repasa "
+    # Un título en tú hasta el 2026-10-09: «Organiza las páginas». «Junta» no se vigila: en los
+    # `que_hace` es tercera persona («Junta GPS, GLONASS y Galileo»).
+    "Organiza"
 ).split()
 
 #: Módulos cuyas cadenas **no son para una persona**. `apps/tino/fuera.py` es la instrucción que se

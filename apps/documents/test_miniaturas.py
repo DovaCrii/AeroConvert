@@ -105,7 +105,8 @@ class TestDibujar:
     def test_un_ancho_disparatado_se_acota(self, carta):
         """Una petición manipulada no puede pedir una imagen de veinte mil píxeles."""
         ancho, _alto = _tamano(miniaturas.dibujar(carta, 1, ancho=20_000))
-        assert ancho == miniaturas.ANCHO_MAXIMO
+        # PDFium redondea la escala: a 1400 px una carta sale de 1401. Lo que importa es el tope.
+        assert abs(ancho - miniaturas.ANCHO_MAXIMO) <= 1
 
 
 class TestLaEtiqueta:

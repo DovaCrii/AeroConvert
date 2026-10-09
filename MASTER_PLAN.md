@@ -512,6 +512,7 @@ volver atrás**, igual que `test_escala_visual.py` y `test_iconos.py`. Versión 
 | F14.19 | **Markdown a PDF con la plantilla de J.E.J.** con WeasyPrint | PDFium renderiza; `pypdf` encuentra el texto del pie en cada página | Claude · **la persona entrega la plantilla** | ✅ 2026-10-07 · «Portada de J.E.J.»: rellena las dos plantillas Word de la empresa (**fuera del repositorio**, carpeta `AEROCONVERT_PLANTILLAS_JEJ`) con código, título y autor, o servicio y plan; entrega `.docx` y el PDF es un clic con «Office a PDF». **No usa WeasyPrint**: la persona entregó las plantillas Word y el diseño ya está en ellas. Oráculo: el zip no deja ningún `XXXX`; con Word, el PDF que exporta se lee con `pypdf` y se ve la portada con su logotipo (`test_portadas.py`, 2 pruebas `oraculo`) |
 | F14.20 | **HTML a PDF** y **reparar PDF** dañado | PDFium abre el reparado; el número de páginas coincide con lo recuperable | Claude | ✅ 2026-10-07 · «Reparar un PDF dañado» (PDFium reconstruye el índice; `pypdf` estricto no abría el de partida y sí abre el reparado, con sus 3 páginas y su texto) y «Página web a PDF» (HTML → Markdown → PDF: texto, títulos, listas y tablas; **no es un navegador** y la pantalla lo dice) (`test_reparar.py`, `test_html_a_pdf.py`) |
 | F14.21 | **Editar Office en el navegador** (era F12.11) | — | **Descartada por D3 (2026-10-07)**; se reabre si el uso la pide dos veces | ⏸ |
+| F14.22 | **Hacer un libro EPUB** de un PDF con texto, un Word, una página web o un Markdown (pedido en p340, 2026-10-09) | EPUBCheck (W3C) da el libro por válido; en el CI, `zipfile` y `defusedxml` leen el contenedor y cada capítulo, contra un texto de resultado conocido | Claude | ⚠ 2026-10-09 · `apps/documents/a_epub.py` (EPUB 3, un capítulo por título, índice `nav` y `toc.ncx`, sin dependencia nueva); pasa por `a_markdown`. Falta correr EPUBCheck: su descarga espera permiso (P17) |
 
 ---
 
@@ -567,7 +568,35 @@ sondeado); el PPK de `geoforge-studio` es un marcador de posición y no se porta
 | F18.6 | **Lo que entrega Trimble Business Center**: importar su trayectoria y las posiciones de las fotos, **medir el sistema de coordenadas** (no suponerlo) y aplicar el desfase de la antena | Un vuelo real de 2 505 fotos: la posición de cada foto coincide con la de Trimble a **0,9 mm** como máximo; el sistema se identifica entre catorce candidatos | Claude | ✅ 2026-10-08 |
 | F18.7 | **La segunda entrada de la pantalla: PPK con RTKLIB** (rover + base + efemérides, base declarada) con la barra de avance leída de lo que imprime `rnx2rtkp` | La corrida real contra el vuelo de Baquedano (trae `*_PPKOBS.obs`, `*.nav` y el crudo `.T04` de la base) y su `.pos` contra la trayectoria de Trimble | Claude | ⚠ 2026-10-09 hecho; la corrida real espera la altura elipsoidal de la base (P18) |
 | F18.5 | **Escribir la posición corregida en las fotos** (copias, sin recodificar los píxeles) | `exifread` lee la posición escrita y coincide con el CSV; los píxeles quedan idénticos byte por byte | Claude | ✅ 2026-10-08 (EXIF y XMP de DJI de verdad: `exifread` lee la posición, MakerNote e imagen idénticos) |
+| F18.8 | **Vuelos RTK**: la posición precisa que el dron ya escribió en el EXIF/XMP de cada foto (sin PPK), con su bandera RTK, a CSV, GeoJSON y KML (como UAS Sync 4.1) | `exifread` lee la posición de fotos de resultado conocido; `ogrinfo` cuenta las fotos del GeoJSON | Claude | ⬜ |
+| F18.9 | **Ficha EXIF de cada foto en el visor**: cámara, GNSS (calidad, desfase) y dron (gimbal, actitud, velocidades), como la ventana de UAS Sync | Los valores de la ficha contra `exifread` y contra el `export_extended` de Trimble del vuelo real | Claude | ⬜ |
+| F18.10 | **Orientación de la cámara en el CSV** (guiñada, cabeceo y alabeo del gimbal) para Metashape y Pix4D; sirve igual a vuelos oblicuos | Las columnas contra el XMP de DJI leído con `exifread` y contra el `export_extended` | Claude | ⬜ |
+| F18.11 | **Coordenadas locales con un archivo DC** (calibración de Trimble), como UAS Sync 4.1 | Las coordenadas locales de los puntos de control contra las que da TBC con la misma calibración | Claude | ⏸ espera un DC real (P19) |
+| F18.12 | **Aspecto propio de «Vuelos de dron»**: cabecera con el recorrido del vuelo, iconos de dron y los pasos de la pantalla como un plan de vuelo, sin romper «plano con color» | `test_plano.py`, `test_paleta.py` y la pantalla a 1440 y 375 px en los dos temas | Claude | ⬜ |
 | F18.13 | **Los vuelos en su propia app: `apps/vuelos/`** (salen de `apps/documents/` los `vuelo_*.py`, `fotos_dron.py`, `telemetria` y `video` si corresponde, con sus vistas, plantillas y pruebas; `apps/gnss/` al lado; sin importar nada de `documents` más que la cola y la entrada de archivos). Se queda en AeroConvert: comparte cola, sondas, entrada de archivos, permisos y despliegue, y alimenta al visor F19; separarlo en otro repositorio solo si lo usan personas que no usan el resto, si pide su propio ritmo o servidor, o si crece a un UAS Sync completo con plan propio (decisión del 2026-10-09) | La suite entera sin cambios de comportamiento; `grep` sin importaciones de `apps.documents` desde `apps.vuelos` salvo cola y entrada | Claude | ⬜ después de F18.7 y del rediseño (D8), para no chocar |
+
+---
+
+## Fase 19 — El visor geoespacial (decisión D7, 2026-10-09)
+
+**Lo que es de ver imágenes en el mapa se crea aquí, en AeroConvert.** El 2D de planos (DXF y
+PDF contra el modelo, y las plantas, frontales y perfiles con PK que nacen del IFC) se queda en
+AeroBim, que ya lo tiene y no procesa. Ortofotos, imágenes georreferenciadas, mapas base y
+terreno exigen teselado (COG), reproyección y terreno: procesamiento geoespacial, que es lo que
+hace este repositorio. Se evita así un segundo visor geoespacial en AeroBim.
+
+Reglas que siguen valiendo: **D5** (nada sale del equipo: mapa base solo con teselas propias, sin
+servidores de internet), CSP `'self'` y cero CDN (la biblioteca del visor, vendorizada con SRI), y
+la regla 3 (el CRS de cada capa se lee o se declara, nunca se supone).
+
+| # | Entrega | Oráculo | La cierra | Estado |
+| --- | --- | --- | --- | --- |
+| F19.1 | **Visor de ortofotos e imágenes georreferenciadas**: abrir un COG o un GeoTIFF sobre la retícula de F13.11, con zoom y paneo por teselas servidas desde aquí | Las esquinas y el centro de la capa frente a `gdalinfo` en EPSG:4326 (≤ 1e-7°); el píxel bajo el cursor frente a `gdallocationinfo` | Claude | ⬜ |
+| F19.2 | **Teselado bajo demanda** (COG → teselas XYZ en EPSG:3857) con caché acotada y barrida | Una tesela contra `gdal_translate -projwin` de la misma zona (`gdalcompare`) | Claude | ⬜ |
+| F19.3 | **Varias capas y su orden** (ortofoto, fotos del vuelo, traza, puntos de control) con transparencia; las del vuelo salen de «Corregir un vuelo» | Las posiciones de las fotos sobre la ortofoto contra el CSV del vuelo | Claude | ⬜ |
+| F19.4 | **Terreno**: un DEM como sombreado y la cota bajo el cursor; perfil entre dos puntos | La cota contra `gdallocationinfo`; el perfil contra muestras de `gdal_translate` | Claude | ⬜ |
+| F19.5 | **Mapa base propio** (D5): una ortofoto o un mosaico de la casa como fondo, nunca teselas de internet | Ninguna petición sale del servidor (prueba de red en el navegador) | Claude | ⬜ |
+| F19.6 | **El contrato con AeroBim**, por archivo o por API, nunca por base de datos compartida: «Ver en el mapa» desde un proyecto y un IFC sobre la ortofoto. Se escribe cuando F19.1 a F19.3 estén | Una prueba de contrato en cada lado | Claude con AeroBim | ⬜ |
 
 ---
 
@@ -625,6 +654,7 @@ quedan aquí anotadas con su fecha: una decisión sin registro se vuelve a discu
 | **D4 · Reparto con Stirling-PDF** | Amplitud frente a un servicio Java de 1–2 GB | Las ~12 de uso diario en casa; Stirling local sondeado para la cola larga · 2026-10-07 |
 | **D5 · Mapa base de la ficha** | Las teselas de internet rompen «nada sale del equipo» | Retícula de coordenadas sin mapa base; teselas propias opcionales · 2026-10-07 |
 | **D6 · «Planta» como grupo propio** | Hoy son 2 herramientas | Dentro de «Imagen, video y planta» hasta que haya 4 · 2026-10-07 |
+| **D7 · Dónde va el visor de imágenes** | Duplicar un visor geoespacial en AeroBim o hacerlo una vez | **2D de planos en AeroBim; ortofotos, imágenes, mapas base y terreno en AeroConvert** (Fase 19). Se unen por archivo o API · 2026-10-09 |
 
 > **Corrección del 2026-09-21.** Este documento y `SERVIDOR.md` decían «hoy no hay ningún
 > respaldo» — y el repositorio trae `aeroconvert-respaldo.service` y `.timer` (03:15,

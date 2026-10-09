@@ -5,7 +5,7 @@
 > Quién hace qué: **Claude** hace ramas, PR, revisión y fusiones; **la persona solo despliega en la
 > VM, al final de todo**.
 
-**Actualizado:** 2026-10-08 · **`main` en:** versión `0.12.0` · **PR sin desplegar:** #21 a #97
+**Actualizado:** 2026-10-09 · **`main` en:** versión `0.12.0` · **PR sin desplegar:** #21 a #97
 
 ## Pedidos a la persona
 
@@ -29,6 +29,9 @@ Lo que Claude necesita para avanzar y no tiene. **Sin él, la fila espera (⏸) 
 | P15 | **Parcial: llegó un vuelo (Matrice 3E, Baquedano, 2025-12-29) con la trayectoria y las posiciones de Trimble; faltan la coordenada de la base y el RINEX de la base.** Un vuelo de verdad con PPK: RINEX del dron y de la base, el `.MRK` (o la lista de disparos) y unas fotos, fuera del repositorio, más la **coordenada conocida de la base y su sistema** | F18.3 y F18.4 | Archivos en OneDrive + la coordenada | F18.3 queda ⚠: se prueba todo menos la corrida real de RTKLIB |
 | P16 | **Permiso para bajar RTKLIB** (BSD-2) a esta estación y poder correr `rnx2rtkp` aquí | F18.3 | Un sí | La corrida real solo se mide en `p340` |
 | P10 | **Terminar F10.5** (Trimble bajo Wine) | F10.5 | Pasos de `HANDOFF.md` | Sigue abierta |
+| P17 | **Permiso para bajar EPUBCheck** (W3C, BSD-3; Java 11 ya está en la estación) | F14.22 | Un sí | El EPUB se comprueba con `zipfile` y `defusedxml`; F14.22 queda ⚠ |
+| P18 | **La altura elipsoidal de la base `AUX_01`** del vuelo de Baquedano. Los datos llegaron (2026-10-09): RINEX del dron, `.MRK`, el `.T04` de la base (R12i, 15:34–16:56 GPST, antena 1,374 m) y `Baquedano_PC.csv` con `AUX_01` en UTM, pero con altura **ortométrica** (1037,918; 35,6 m bajo la elipsoidal). RTKLIB pide la elipsoidal | F18.3 (corrida real) y F18.7 | Latitud, longitud y altura elipsoidal de `AUX_01` exportadas de TBC, o el nombre del modelo de geoide del proyecto | La pantalla de PPK se hace igual (con pruebas de RTKLIB falso); la comparación real contra TBC espera |
+| P19 | **Un archivo DC** (calibración local de Trimble) de un proyecto real | F18.11 (coordenadas locales, como UAS Sync 4.1) | Archivo en OneDrive | F18.12 ⏸ |
 
 ## Bloques
 
@@ -47,7 +50,9 @@ Estados: ✅ hecho · 🟨 en curso · ⬜ por hacer · ⏸ espera un pedido · 
 | **B8 · Geoespacial** | F15.1 ⏸ · F15.2 · F15.3 ⏸ · F15.4 ⏸ · F15.5 · F15.6 ◐ (falta DWG) · F15.7 · F15.8 ⏸ | 🟨 | #86 | P5 · P6 · P7 |
 | **B9 · Plataforma** | F16.1 ✅ · F16.2 ✅ · F16.3 ✅ · F16.4 ✅ · F16.5 · F16.6 ✅ | 🟨 | #79, #80, #87, #92 | F16.5 necesita a AeroBim |
 | **B11 · Poner en marcha lo apagado** | F17.1 ⚠ · F17.2 ⚠ · F17.3 ✅ · F17.4 ✅ (`docs/PUESTA_EN_MARCHA_DE_LO_APAGADO.md`) | ✅ en código; los ⚠ se miden en `p340` | #89, #90, #91, #95 | P7 · P10 · P11 · P12 · P13 para lo que es de la persona |
-| **B12 · Vuelos de dron: PPK y sincronía** | F18.1 ✅ · F18.2 ✅ · F18.3 ⚠ · F18.4 ✅ · F18.5 ✅ · F18.6 ✅ · F18.7 ⏸ (`docs/VUELOS_DE_DRON_Y_PPK.md`) · F18.13 mover los vuelos a `apps/vuelos/` (después de F18.7 y D8) | 🟨 | #81 a #85 | P15 y P16 para la corrida real |
+| **B12 · Vuelos de dron: PPK y sincronía** | F18.1 ✅ · F18.2 ✅ · F18.3 ⚠ · F18.4 ✅ · F18.5 ✅ · F18.6 ✅ · F18.7 ⏸ (`docs/VUELOS_DE_DRON_Y_PPK.md`) | 🟨 | #81 a #85 | P15 y P16 para la corrida real |
+| **B13 · Pedidos tras el despliegue (2026-10-09)** | Lateral que cuenta lo que enseña, chapa y Compatibilidad ✅ #100 · PDF restringido y «ver en grande» ✅ #101 · F14.22 EPUB ⚠ (P17) · F18.7 PPK desde RINEX en pantalla · F18.8 vuelos RTK (posición del EXIF) · F18.9 ficha EXIF por foto en el visor · F18.10 orientación de cámara en el CSV (oblicuas) · F18.11 coordenadas locales con DC ⏸ (P19) · F18.12 aspecto propio de la sección de drones · F18.13 mover los vuelos a `apps/vuelos/` (después de F18.7 y D8) | 🟨 | #100, #101 | P17 · P18 · P19 |
+| **B14 · Visor geoespacial (D7)** | F19.1 a F19.6 (`MASTER_PLAN.md`, Fase 19): ortofotos, imágenes, mapas base propios y terreno aquí; el 2D de planos sigue en AeroBim | ⬜ | — | F19.6 necesita a AeroBim |
 | **B10 · Cierre y despliegue** | Versión `0.12.0` ✅, `HANDOFF.md` con los pasos de la VM ✅ | ✅ 2026-10-08 · **falta desplegar (la persona)** | #97 | — |
 
 **Orden de trabajo:** B1 → B2 → B3 → B4 → B5 (esto cierra F13 y la versión `0.11.0`); B6 con

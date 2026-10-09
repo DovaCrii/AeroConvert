@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block titulo %}Hacer un libro EPUB · AeroConvert{% endblock %}
+
+{% block contenido %}
+<div class="tarjeta antes-de-empezar">
+  <p class="av-m-0">
+    <strong>Un capítulo por título</strong>, con el índice del lector apuntando a cada uno. Entran
+    párrafos, listas, tablas, citas, negrita, cursiva y bloques de código.
+  </p>
+  <p class="tenue av-mt-2 av-mb-0">
+    <strong>No lleva imágenes ni maqueta.</strong> Un PDF escaneado no tiene texto que pasar:
+    primero «Reconocer el texto», y después aquí.
+  </p>
+</div>
+
+<form id="forma-documento" method="post" enctype="multipart/form-data">
+  {% csrf_token %}
+
+  <div class="tarjeta">
+    <fieldset>
+      <legend class="eyebrow">El libro (opcional)</legend>
+      <label class="form-label" for="id_titulo">Título</label>
+      <input type="text" name="titulo" id="id_titulo" class="form-control" maxlength="200"
+             placeholder="Si se deja vacío, el nombre del archivo">
+      <label class="form-label av-mt-2" for="id_autor">Autor</label>
+      <input type="text" name="autor" id="id_autor" class="form-control" maxlength="200">
+    </fieldset>
+  </div>
+
+  {% include "documents/_origen.html" with accion="convertir" boton="Hacer el libro" pregunta="¿De qué archivo?" acepta=acepta %}
+</form>
+{% endblock %}

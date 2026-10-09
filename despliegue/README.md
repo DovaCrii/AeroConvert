@@ -93,7 +93,7 @@ sondea, y la matriz de compatibilidad saldría medio apagada sin decir por qué.
 - **`python3.12` no está** — la distribución trae 3.14, y la aplicación pide `>=3.12,<3.13`.
 - **`pdal` tampoco está empaquetado.** Sin él las nubes de puntos salen apagadas con su
   motivo escrito, como las dos de Office; el ráster, el vectorial, LandXML y casi todas las
-  cuarenta herramientas de documentos funcionan igual (`/motores/equipo/` dice cuáles no y
+  cuarenta y una herramientas de documentos funcionan igual (`/motores/equipo/` dice cuáles no y
   cómo encenderlas). **No bloquea el despliegue.** Si hace
   falta, se trae de conda-forge, que es la vía que no arrastra medio sistema de compilación.
 

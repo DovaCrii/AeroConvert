@@ -39,6 +39,8 @@ from pathlib import Path
 
 from django.core.cache import cache
 
+from apps.formats import pdf as _pdf_lectura
+
 from .composicion import ComposicionInvalida
 
 SEGUNDOS_DE_CACHE = 600
@@ -158,10 +160,9 @@ def ya_tiene_texto(origen: str | Path) -> bool:
     Pasarlo por OCR tardaría minutos para producir una versión **peor** que la que ya hay:
     el reconocimiento se equivoca y el texto incrustado no.
     """
-    from pypdf import PdfReader
 
     try:
-        lector = PdfReader(str(origen))
+        lector = _pdf_lectura.abrir_lector(origen)
     except Exception:
         return False
     for hoja in lector.pages:
