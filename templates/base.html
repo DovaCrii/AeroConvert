@@ -44,7 +44,7 @@
       salen de la máquina es lo primero que hay que ver, no algo que se descubre pasando el
       ratón por encima.
     {% endcomment %}
-    <span class="chapa chapa-{{ chapa.modo }}">{{ chapa.etiqueta }}</span>
+    <span class="chapa chapa-{{ chapa.modo }}"><svg class="chapa-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#{{ chapa.icono }}"></use></svg>{{ chapa.etiqueta }}</span>
     {# F13.9: con sesión la explicación vive en el lateral; aquí solo donde no hay lateral. #}
     {% if not user.is_authenticated %}<span class="barra-explicacion">{{ chapa.explicacion }}</span>{% endif %}
 
@@ -194,7 +194,8 @@
               {% for accion in grupo.acciones %}
                 {% if accion.disponible %}
                   <li>
-                    <a href="{{ accion.enlace }}" class="menu-enlace">
+                    <a href="{{ accion.enlace }}" class="menu-enlace"
+                       {% if accion.enlace == request.path %}aria-current="page"{% endif %}>
                       <span class="menu-marca fam-{{ accion.familia }}" aria-hidden="true">
                         <svg class="menu-icono"><use href="{% static 'img/icons.svg' %}#{{ accion.icono }}"></use></svg>
                       </span>
@@ -237,7 +238,7 @@
 
         {# F13.9: la explicación del modo, siempre visible (no en un `title`). #}
         <p class="lateral-modo" role="note">
-          <span class="chapa chapa-{{ chapa.modo }}">{{ chapa.etiqueta }}</span>
+          <span class="chapa chapa-{{ chapa.modo }}"><svg class="chapa-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#{{ chapa.icono }}"></use></svg>{{ chapa.etiqueta }}</span>
           <span class="lateral-modo-texto">{{ chapa.explicacion }}</span>
         </p>
       </nav>

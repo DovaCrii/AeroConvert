@@ -86,7 +86,10 @@ def matriz(request):
             "listas": listas,
             "apagadas": apagadas,
             "documentos_listos": sum(1 for d in documentos if d["disponible"]),
+            "documentos_totales": len(documentos),
             "documentos_apagados": [d for d in documentos if not d["disponible"]],
+            # Motores y documentos apagados van **en una sola lista**: la cifra los cuenta juntos.
+            "faltan": len(apagadas) + sum(1 for d in documentos if not d["disponible"]),
             "conversiones_posibles": conversiones_posibles,
             "conversiones_totales": len(celdas),
             "motivos": sorted(por_motivo.values(), key=lambda m: -m["cuantas"]),
