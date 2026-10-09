@@ -287,6 +287,19 @@ class TestUnFalloDeDiscoNoFiltraRutas:
         texto = motor._sin_rutas(f"ERROR 4: {ruta}: not recognized", ["-json", ruta])
         assert "privada" not in texto and "ortofoto.tif" in texto
 
+    @pytest.mark.parametrize(
+        ("ruta", "como_la_escribe_gdal"),
+        [
+            # Las dos en cualquier sistema: el CI (Linux) vio pasar entera una ruta de Windows.
+            (r"C:\obra\privada\ortofoto.tif", r"C:\obra\privada\ortofoto.tif"),
+            (r"C:\obra\privada\ortofoto.tif", "C:/obra/privada/ortofoto.tif"),
+            ("/srv/obra/privada/ortofoto.tif", "/srv/obra/privada/ortofoto.tif"),
+        ],
+    )
+    def test_quita_la_carpeta_con_cualquier_barra(self, ruta, como_la_escribe_gdal):
+        texto = motor._sin_rutas(f"ERROR 4: {como_la_escribe_gdal}: not recognized", [ruta])
+        assert "privada" not in texto and "ortofoto.tif" in texto
+
 
 class TestUnArchivoQueNoAbreSeRecuerda:
     def test_cinco_teselas_de_un_archivo_roto_preguntan_a_gdal_una_vez(

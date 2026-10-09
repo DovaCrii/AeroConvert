@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 import subprocess
 from dataclasses import dataclass
 
@@ -95,9 +96,15 @@ def _sin_rutas(texto: str, argumentos: list[str]) -> str:
     El mensaje llega a la pantalla; la carpeta de la obra, la caché o la de trabajo no son de
     nadie más. El detalle completo, si hace falta, se saca del registro del servidor.
     """
+    # **Las dos barras, sea cual sea el sistema.** Con `os.path.basename`, en Linux una ruta de
+    # Windows quedaba entera (el CI lo vio: «C:\obra\privada\ortofoto.tif»), y GDAL a veces
+    # escribe la ruta con la barra cambiada.
     for argumento in argumentos:
-        if os.sep in argumento or "/" in argumento:
-            texto = texto.replace(argumento, os.path.basename(argumento))
+        if "\\" not in argumento and "/" not in argumento:
+            continue
+        nombre = re.split(r"[\\/]", argumento.rstrip("\\/"))[-1]
+        for variante in {argumento, argumento.replace("\\", "/"), argumento.replace("/", "\\")}:
+            texto = texto.replace(variante, nombre)
     return texto
 
 
