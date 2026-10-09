@@ -42,7 +42,8 @@ import re
 from dataclasses import dataclass
 from datetime import datetime
 
-from .composicion import ComposicionInvalida
+from apps.documents.composicion import ComposicionInvalida
+
 from .fotos_dron import Foto
 from .vuelo_pos import INICIO_GPS, Trayectoria
 

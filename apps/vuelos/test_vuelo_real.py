@@ -26,7 +26,7 @@ from pathlib import Path
 import pytest
 from pyproj import Transformer
 
-from apps.documents import vuelo_proceso, vuelo_sync, vuelo_trimble
+from apps.vuelos import vuelo_proceso, vuelo_sync, vuelo_trimble
 
 CARPETA = os.environ.get("AEROCONVERT_VUELO_DE_PRUEBA", "")
 
@@ -157,7 +157,7 @@ def test_la_posicion_escrita_en_fotos_reales_de_dji_la_lee_otro_lector():
     import exifread
     from PIL import Image
 
-    from apps.documents import fotos_dron, vuelo_exif
+    from apps.vuelos import fotos_dron, vuelo_exif
 
     fotos = sorted(Path(CARPETA).glob("*.JPG"))[:3] or sorted(Path(CARPETA).glob("*.jpg"))[:3]
     assert fotos, "la carpeta del vuelo no trae fotos"

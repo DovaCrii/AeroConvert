@@ -99,7 +99,7 @@ de Trimble no es elipsoidal y diferiría decenas de metros sin que eso sea un er
 
 **Ver también:** la corrida real contra el vuelo de Baquedano espera la altura elipsoidal de la
 base (P18); las pruebas de CI usan un `rnx2rtkp` de mentira que escribe un `.pos` de resultado
-conocido (`apps/documents/test_vuelo_ppk_pantalla.py`).
+conocido (`apps/vuelos/test_vuelo_ppk_pantalla.py`).
 
 ## Qué falta de la persona
 

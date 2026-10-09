@@ -1,4 +1,4 @@
-"""Vistas de documentos: el vuelo de dron. Ver `apps/documents/views/__init__.py`.
+"""Vistas de documentos: el vuelo de dron. Ver `apps/vuelos/views/__init__.py`.
 
 Cuatro: la pantalla de entrada (`vuelo_dron_vista`), el visor del resultado (`vuelo_ver`), los datos
 que dibuja el visor (`vuelo_datos`) y la miniatura de una foto (`vuelo_miniatura`).
@@ -27,11 +27,10 @@ from django.shortcuts import get_object_or_404, render
 from django.views.decorators.http import require_GET
 
 from apps.core import modo as modo_mod
-
-from .. import cola as cola_mod
-from .. import vuelo_ppk, vuelo_proceso, vuelo_trimble
-from ..composicion import ComposicionInvalida
-from ._comun import _origen_del_formulario
+from apps.documents import cola as cola_mod
+from apps.documents.composicion import ComposicionInvalida
+from apps.documents.views._comun import _origen_del_formulario
+from apps.vuelos import vuelo_ppk, vuelo_proceso, vuelo_trimble
 
 EXTENSIONES_DE_TRAYECTORIA = (".csv", ".txt")
 EXTENSIONES_DE_DISPAROS = (".mrk", ".txt", ".csv")
@@ -177,7 +176,7 @@ def _contexto_inicial() -> dict:
 def _revisar_el_ppk(request, contexto: dict) -> dict:
     """Todo lo de la segunda entrada, **antes** de encolar: con el formulario delante se dice qué
     falta, y no en una ficha roja de la cola. Devuelve lo que viaja en las opciones del trabajo."""
-    from ..motor import disponibilidad
+    from apps.documents.motor import disponibilidad
 
     estado = disponibilidad("vuelo_dron", {"origen": "rinex"})
     if not estado.disponible:
@@ -256,7 +255,7 @@ def vuelo_dron_vista(request):
     la que ya calculó Trimble Business Center, o la que se calcula aquí con RTKLIB (PPK)."""
     contexto = _contexto_inicial()
     if request.method != "POST":
-        return render(request, "documents/vuelo_dron.html", contexto)
+        return render(request, "vuelos/vuelo_dron.html", contexto)
 
     con_rtklib = request.POST.get("origen") == "rinex"
     contexto["origen"] = "rinex" if con_rtklib else "trimble"
@@ -326,7 +325,7 @@ def vuelo_dron_vista(request):
         vuelo_proceso.elegir_sistema(contexto["sistema"], posiciones)
     except (modo_mod.RutaNoPermitida, ComposicionInvalida) as fallo:
         messages.error(request, str(fallo))
-        return render(request, "documents/vuelo_dron.html", contexto)
+        return render(request, "vuelos/vuelo_dron.html", contexto)
 
     from apps.jobs.models import EntradaDeTrabajo
 
@@ -394,7 +393,7 @@ def vuelo_ver(request, pk):
     datos = _leer_datos(job)
     return render(
         request,
-        "documents/vuelo_visor.html",
+        "vuelos/vuelo_visor.html",
         {
             "seccion": "pdf",
             "etiqueta_seccion": "Vuelos de dron",

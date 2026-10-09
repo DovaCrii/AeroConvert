@@ -16,8 +16,8 @@ import xml.etree.ElementTree as ET  # nosec B405 - solo se lee lo que escribimos
 import pytest
 from pyproj import Transformer
 
-from apps.documents import vuelo_proceso
 from apps.documents.composicion import ComposicionInvalida
+from apps.vuelos import vuelo_proceso
 
 SEMANA = 2399
 T0_TOW = 142_750.0

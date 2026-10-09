@@ -32,8 +32,9 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from apps.documents.composicion import ComposicionInvalida
+
 from . import vuelo_pos, vuelo_sync, vuelo_trimble
-from .composicion import ComposicionInvalida
 
 #: Con cuántos metros de diferencia contra las posiciones de Trimble se avisa. El vuelo real
 #: (2 505 fotos) quedó a 0,9 mm; cinco milímetros ya es un tiempo o un desfase equivocado.

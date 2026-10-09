@@ -22,8 +22,9 @@ from django.contrib.auth import get_user_model
 from django.urls import reverse
 from PIL import Image
 
-from apps.documents import fotos_dron, motor, tarea
+from apps.documents import motor, tarea
 from apps.documents.composicion import ComposicionInvalida
+from apps.vuelos import fotos_dron
 
 XMP = (
     b"http://ns.adobe.com/xap/1.0/\x00<x:xmpmeta xmlns:x='adobe:ns:meta/'><rdf:RDF>"

@@ -19,7 +19,7 @@ from django.urls import reverse
 from PIL import Image
 
 from apps.documents import motor, tarea
-from apps.documents.test_vuelo_proceso import (
+from apps.vuelos.test_vuelo_proceso import (
     N_FOTOS,
     _fotos_de_trimble,
     _mrk,
@@ -483,7 +483,7 @@ class TestLasFotosConLaPosicionCorregida:
         assert _huellas({p.name: p for p in carpeta.iterdir()}) == antes
 
     def test_el_motor_rechaza_una_copia_con_otra_posicion(self, tmp_path):
-        from apps.documents import vuelo_exif
+        from apps.vuelos import vuelo_exif
 
         from_ = Image.new("RGB", (40, 30))
         memoria = io.BytesIO()
@@ -533,7 +533,7 @@ class TestLasCopiasNoSuponenNada:
         assert any("DJI_0002_V.JPG" in a.message for a in avisos)
 
     def test_el_motor_rechaza_una_altura_o_un_datum_que_no_son_los_pedidos(self, tmp_path):
-        from apps.documents import vuelo_exif
+        from apps.vuelos import vuelo_exif
 
         memoria = io.BytesIO()
         Image.new("RGB", (40, 30)).save(memoria, "JPEG")
@@ -628,7 +628,7 @@ class TestLaMiniaturaEsDura:
         )
 
     def test_una_foto_demasiado_grande_es_404(self, sesion, tmp_path, monkeypatch):
-        from apps.documents.views import pantalla_vuelo
+        from apps.vuelos.views import pantalla_vuelo
 
         carpeta = _carpeta_de_fotos(tmp_path)
         trabajo, _ = _correr(sesion, tmp_path, carpeta_de_fotos=str(carpeta))

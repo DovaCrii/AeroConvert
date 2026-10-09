@@ -48,8 +48,9 @@ from pathlib import Path
 
 from django.conf import settings
 
+from apps.documents.composicion import ComposicionInvalida
+
 from . import vuelo_pos
-from .composicion import ComposicionInvalida
 
 #: La coordenada declarada de la base no puede estar a más de esto del `APPROX POSITION` del RINEX.
 #: El de un RINEX de receptor de navegación es bueno a decenas de metros, y un error de zona o de

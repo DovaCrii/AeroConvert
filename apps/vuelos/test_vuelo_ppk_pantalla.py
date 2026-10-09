@@ -35,9 +35,10 @@ import pytest
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 
-from apps.documents import motor, tarea, vuelo_ppk
-from apps.documents.test_vuelo_ppk import _ecef, _rinex
-from apps.documents.test_vuelo_proceso import (
+from apps.documents import motor, tarea
+from apps.vuelos import vuelo_ppk
+from apps.vuelos.test_vuelo_ppk import _ecef, _rinex
+from apps.vuelos.test_vuelo_proceso import (
     A_LL,
     GPS_INICIO_S,
     N_FOTOS,
@@ -561,8 +562,8 @@ class TestDePuntaAPunta:
         assert plan.env[tarea.VARIABLE_RNX2RTKP] == str(rtklib_falso.programa)
 
     def test_la_de_trimble_no_lleva_la_variable(self, sesion, tmp_path, rtklib_falso):
-        from apps.documents.test_vuelo_pantalla import _archivos
         from apps.jobs.models import ConversionJob
+        from apps.vuelos.test_vuelo_pantalla import _archivos
 
         rutas = _archivos(tmp_path)
         respuesta = sesion.post(
@@ -707,7 +708,7 @@ def test_con_un_envoltorio_el_plazo_alcanza_tambien_al_nieto(tmp_path, rtklib_fa
     """`rnx2rtkp.cmd` o el guion de `sh` lanzan a Python: matar solo al envoltorio dejaría vivo
     al que de verdad calcula. El falso escribe el PID del Python, el nieto."""
     from apps.documents.composicion import ComposicionInvalida
-    from apps.documents.test_vuelo_ppk import _esperar_a_que_muera
+    from apps.vuelos.test_vuelo_ppk import _esperar_a_que_muera
 
     pid_en = tmp_path / "pid.txt"
     rinex = _rinex_del_vuelo(tmp_path)
@@ -726,8 +727,8 @@ def test_con_un_envoltorio_el_plazo_alcanza_tambien_al_nieto(tmp_path, rtklib_fa
 
 
 def test_la_trayectoria_de_dos_origenes_a_la_vez_no_se_admite():
-    from apps.documents import vuelo_pos, vuelo_proceso
     from apps.documents.composicion import ComposicionInvalida
+    from apps.vuelos import vuelo_pos, vuelo_proceso
 
     with pytest.raises(ComposicionInvalida, match="una trayectoria, y solo una"):
         vuelo_proceso.procesar(disparos=_mrk(), nombre_de_disparos="a.MRK")

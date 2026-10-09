@@ -206,7 +206,7 @@ def disponibilidad(herramienta: str, opciones: dict | None = None) -> Disponibil
         return Disponibilidad.no("sin-motor", f"«{herramienta}» no se ejecuta desde la cola.")
     if herramienta == "vuelo_dron" and (opciones or {}).get("origen") == "rinex":
         # Solo la trayectoria calculada aquí necesita RTKLIB; la que exportó Trimble no.
-        from . import vuelo_ppk
+        from apps.vuelos import vuelo_ppk
 
         estado = vuelo_ppk.sondar()
         if not estado:
@@ -215,7 +215,9 @@ def disponibilidad(herramienta: str, opciones: dict | None = None) -> Disponibil
     if not espec.exige:
         return Disponibilidad.si(f"documentos:{herramienta}")
 
-    from . import catalogos, ocr, office, pdfa, portadas, video
+    from apps.vuelos import video
+
+    from . import catalogos, ocr, office, pdfa, portadas
 
     sondas = {
         "plantillas": (portadas.sondar, "sin-plantillas"),
@@ -298,14 +300,16 @@ def plan(job) -> PlanDeEjecucion:
         entorno[VARIABLE_TESSERACT] = ocr.sondar().programa
         plazo_s = ocr.plazo_s(_paginas_del_trabajo(job, entradas))
     if espec.exige == "ffmpeg":
-        from . import video
+        from apps.vuelos import video
+
         from .tarea import VARIABLE_FFMPEG, VARIABLE_FFPROBE
 
         estado = video.sondar()
         entorno[VARIABLE_FFMPEG] = estado.ffmpeg
         entorno[VARIABLE_FFPROBE] = estado.ffprobe
     if job.herramienta == "vuelo_dron" and (job.options or {}).get("origen") == "rinex":
-        from . import vuelo_ppk
+        from apps.vuelos import vuelo_ppk
+
         from .tarea import VARIABLE_RNX2RTKP
 
         # Como Tesseract y FFmpeg: el hijo no tiene Django y no puede sondear.
@@ -764,7 +768,7 @@ def _problema_en_la_posicion(nombre: str, datos: bytes, pieza: dict) -> str:
     """
     from PIL import Image
 
-    from apps.documents import fotos_dron
+    from apps.vuelos import fotos_dron
 
     lat, lon = pieza["lat"], pieza["lon"]
     with Image.open(io.BytesIO(datos)) as imagen:
@@ -792,8 +796,9 @@ def _problema_en_el_pos(nombre: str, datos: bytes, pieza: dict) -> str:
     Las épocas se cuentan aparte, línea a línea (las que no son cabecera), para no darse la razón
     con el propio lector.
     """
+    from apps.vuelos.vuelo_pos import leer
+
     from .composicion import ComposicionInvalida
-    from .vuelo_pos import leer
 
     texto = datos.decode("utf-8", errors="replace")
     try:
@@ -869,7 +874,8 @@ def _problema_en_posiciones(nombre: str, datos: bytes, pieza: dict) -> str:
 def _verificar_video(parcial: Path, detalles: dict) -> Verificacion:
     """Lo mira **ffprobe**: que sea video, H.264 si se recodificó, sin audio si se quitó, y con la
     duración del tramo si se recortó (±1 s, lo que separa dos fotogramas clave)."""
-    from . import video
+    from apps.vuelos import video
+
     from .composicion import ComposicionInvalida
 
     sonda = video.sondar()

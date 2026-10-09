@@ -12,8 +12,8 @@ from datetime import datetime, timedelta
 import numpy as np
 import pytest
 
-from apps.documents import vuelo_pos
 from apps.documents.composicion import ComposicionInvalida
+from apps.vuelos import vuelo_pos
 
 CABECERA = """\
 % program   : RTKPOST ver.2.4.3

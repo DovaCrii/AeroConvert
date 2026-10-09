@@ -31,7 +31,7 @@ import statistics
 from dataclasses import dataclass, field
 from datetime import datetime
 
-from .composicion import ComposicionInvalida
+from apps.documents.composicion import ComposicionInvalida
 
 #: El inicio del tiempo GPS.
 INICIO_GPS = datetime(1980, 1, 6)

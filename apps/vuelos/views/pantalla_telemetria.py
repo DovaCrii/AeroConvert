@@ -1,4 +1,4 @@
-"""Vistas de documentos: la traza de un video de dron. Ver `apps/documents/views/__init__.py`."""
+"""Vistas de documentos: la traza de un video de dron. Ver `apps/vuelos/views/__init__.py`."""
 
 from __future__ import annotations
 
@@ -9,11 +9,10 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
 
 from apps.core import modo as modo_mod
-
-from .. import cola as cola_mod
-from .. import telemetria as telemetria_mod
-from ..composicion import ComposicionInvalida
-from ._comun import _origen_del_formulario
+from apps.documents import cola as cola_mod
+from apps.documents.composicion import ComposicionInvalida
+from apps.documents.views._comun import _origen_del_formulario
+from apps.vuelos import telemetria as telemetria_mod
 
 
 def _intervalo(texto) -> int:
@@ -49,7 +48,7 @@ def telemetria_vista(request):
     }
 
     if request.method != "POST":
-        return render(request, "documents/telemetria.html", contexto)
+        return render(request, "vuelos/telemetria.html", contexto)
 
     contexto["formato"] = request.POST.get("formato") or "gpx"
     contexto["cada_s"] = _intervalo(request.POST.get("cada_s"))
@@ -68,10 +67,10 @@ def telemetria_vista(request):
             raise ComposicionInvalida(f"{origen.nombre} no es un .SRT.")
     except (modo_mod.RutaNoPermitida, ComposicionInvalida) as fallo:
         messages.error(request, str(fallo))
-        return render(request, "documents/telemetria.html", contexto)
+        return render(request, "vuelos/telemetria.html", contexto)
     except ValueError:
         messages.error(request, "La diferencia con UTC es un número de horas, por ejemplo −4.")
-        return render(request, "documents/telemetria.html", contexto)
+        return render(request, "vuelos/telemetria.html", contexto)
 
     return cola_mod.encolar(
         request,
