@@ -733,6 +733,31 @@ pyproj o QGIS, y descargarla exige permiso de la persona. Las pruebas de orácul
 con ese motivo. Procedimiento: copiar la grilla (cdn.proj.org) a una carpeta, poner
 `AEROCONVERT_PROJ_GRILLAS` en el `.env` y correr
 `uv run pytest -m oraculo apps/formats/test_alturas.py`; anotar aquí fecha, grilla y SHA-256.
+## Corrida del 2026-10-09 — «Ver en el mapa» contra GDAL (F19.1, F19.2)
+
+`uv run pytest -m oraculo apps/visor/test_oraculo.py` con GDAL 3.12.4 (QGIS 4.0.2): **43 pasan**. El
+archivo es un **GeoTIFF sintético** que crea cada prueba (200 × 100 píxeles de 2 m en EPSG:32719, un
+tablero de 20 píxeles con un degradado por canal); no hay ningún dato real en el repositorio.
+
+| Qué | Oráculo | Medida |
+| --- | --- | --- |
+| Esquinas en EPSG:4326 | `wgs84Extent` de `gdalinfo -json` | diferencia máxima **4,4e-8°** (tolerancia 1e-7°; GDAL redondea a siete decimales) |
+| Centro en EPSG:4326 | `gdaltransform` sobre el centro de `gdalinfo` | **4e-14°** |
+| Una tesela 16/19903/39241 | otro `gdalwarp -t_srs EPSG:3857 -te … -ts 256 256 -r bilinear -dstalpha` a PNG, con la caja de una fórmula escrita aparte | **0** de 65 536 píxeles distintos |
+| La misma, contra GeoTIFF | el mismo `gdalwarp` con otro controlador | ±1 nivel en 240 píxeles (**0,37 %**): redondeo de GDAL entre controladores; la prueba tolera ±1 en menos del 1 % |
+| Orientación y posición | el color que **debe** tener un píxel del tablero (cinco puntos) | rojo, verde y azul en su sitio: el norte arriba y el este a la derecha, sin depender de `gdalwarp` |
+| Columna, fila y valores bajo el cursor | `gdallocationinfo -wgs84` y `-geoloc` (cinco píxeles) | iguales; p. ej. (130,5; 10,5) → columna 130, fila 10, bandas 0, 166, 25 |
+| 16 bits, 4 bandas con alfa, 8 bandas | VRT escalado; `gdalinfo`; `gdalwarp` del RGB | el rango medido por `-approx_stats` es el escrito (100 y 3000); las ocho bandas dan lo mismo que las tres primeras |
+| El original | `sha256`, `mtime` y la carpeta | intactos tras ficha, nueve teselas y la lectura del píxel; **ningún `.aux.xml`** (la prueba de control demuestra que sin `GDAL_PAM_ENABLED=NO` GDAL sí lo escribe) |
+
+**Lo que el plan pedía y no se hizo así:** una tesela contra `gdal_translate -projwin` y `gdalcompare`.
+Una tesela de EPSG:3857 es una **reproyección**; un recorte `-projwin` en el sistema del archivo no
+puede coincidir con ella píxel a píxel. Y `python -m osgeo_utils.gdalcompare` no está en esta máquina
+(el Python de QGIS no trae `osgeo_utils`). Se comparó con un `gdalwarp` independiente y numpy, que es
+lo que `gdalcompare` hace sin el informe.
+
+**Sin medir:** una ortofoto real de varios gigas (rendimiento de las teselas lejanas sin pirámide,
+tamaño de la caché en uso). Se anota aquí con fecha cuando se corra en `p340` con un COG del equipo.
 
 ## Pendiente: «Hacer un libro EPUB» contra EPUBCheck (F14.22)
 

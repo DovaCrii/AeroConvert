@@ -23,6 +23,15 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
   4·10⁻⁷ m en cinco puntos; EGM2008 sin medir por falta de grilla (⚠). Detalle en
   `docs/PRUEBAS_CON_ORACULO.md`.
 
+### Añadido — «Ver en el mapa»: una ortofoto por teselas (F19.1 y F19.2)
+
+- Pantalla nueva `/mapa/` (app `apps/visor/`, enlace «Ver en el mapa» en el lateral y en la ficha de un GeoTIFF): se elige un GeoTIFF o un COG de la carpeta compartida, o la salida de un trabajo propio, y se **ve con zoom y paneo** (rueda, pellizco, `+` y `-`; arrastrar, flechas) sobre la retícula de coordenadas de la ficha. Muestra las coordenadas del cursor en EPSG:4326 y en el sistema del archivo, la columna y la fila del píxel y, al pinchar o con Intro, el valor de cada banda. Nada sale del equipo (D5): el JavaScript es propio (`static/js/visor.js`, sin biblioteca ni mapa base), la CSP sigue en `'self'` y no hay scripts ni estilos en línea.
+- **Teselas XYZ de 256 × 256 en EPSG:3857, cortadas a petición** del propio archivo con `gdalwarp` por subproceso (lista de argumentos, plazo de 90 s, tres a la vez, `GDAL_PAM_ENABLED=NO` para no dejar un `.aux.xml` junto al original). La salida se **verifica** —existe, Pillow la lee entera, mide 256 × 256— antes del `os.replace`, y el código de salida de GDAL no cuenta. Las imágenes de 16 bits, con paleta o de muchas bandas pasan por un VRT propio en la caché. `ETag` y `Cache-Control: private`; con `If-None-Match` que coincide, 304 sin cortar nada.
+- **Caché de teselas acotada y barrida** (`cache-visor/`, `AEROCONVERT_VISOR_CACHE` y `AEROCONVERT_VISOR_CACHE_MAX_MB`, 512 por omisión; aparte del presupuesto de los trabajos): se escribe a `<destino>.parcial-<id>` y se renombra; pasado el tope se borra lo que hace más tiempo que nadie mira (LRU) hasta el 80 %, solo, con el barrido de la aplicación y con `manage.py barrer_teselas [--simular] [--tope-mb N] [--vaciar]`.
+- **Lo que no se adivina ni se esconde.** Sin sistema de referencia (o uno local de obra), sin matriz de transformación o fuera de lo que Web Mercator dibuja, la pantalla lo dice y no pinta (`capa-sin-crs`, `capa-sin-georreferencia`, `capa-fuera-del-mapa`); sin GDAL sale apagada con `sin-gdal` y la ficha de «Convertir» como alternativa, y el botón de la ficha, deshabilitado y con su motivo. Todas las vistas piden sesión; lo que está fuera de las carpetas permitidas o es de otra persona da 403 con su código.
+- Oráculo (`@pytest.mark.oraculo`, GDAL 3.12.4, sobre un GeoTIFF sintético en UTM 19S): las esquinas coinciden con `wgs84Extent` de `gdalinfo` a 4,4e-8° y el centro con `gdaltransform` a 4e-14°; columna, fila y valores de cinco píxeles son los de `gdallocationinfo -wgs84` y `-geoloc`; una tesela es **idéntica** a la de otro `gdalwarp` (0 de 65 536 píxeles distintos) y a GeoTIFF difiere en ±1 nivel en 240 (0,37 %); el color de cinco píxeles del tablero está en su sitio, o sea, el norte arriba y el este a la derecha. Cifras en `docs/PRUEBAS_CON_ORACULO.md`.
+
+
 ### Cambiado — los vuelos de dron en su propia app, `apps/vuelos/` (F18.13)
 
 - Salen de `apps/documents/` los motores (`vuelo_pos`, `vuelo_sync`, `vuelo_ppk`, `vuelo_proceso`,

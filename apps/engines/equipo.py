@@ -37,6 +37,14 @@ PASOS: dict[str, Paso] = {
         "Instale QGIS (trae GDAL y PDAL) y ponga AEROCONVERT_GDAL_BIN y AEROCONVERT_PDAL_BIN en "
         "el .env, apuntando a su carpeta bin.",
     ),
+    "sin-gdal": Paso(
+        PERSONA,
+        "sudo apt install gdal-bin (trae gdalinfo, gdalwarp, gdal_translate y gdallocationinfo).",
+        "Instale QGIS (trae GDAL) y ponga AEROCONVERT_GDAL_BIN en el .env, apuntando a su "
+        "carpeta bin.",
+        "Mientras tanto, la ficha del archivo en «Convertir» lo sitúa sobre una retícula de "
+        "coordenadas.",
+    ),
     "proj-descolocado": Paso(
         PERSONA,
         "Que PROJ_DATA apunte a la carpeta con proj.db del mismo GDAL (no de otra instalación).",
