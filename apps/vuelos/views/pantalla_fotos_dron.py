@@ -1,4 +1,4 @@
-"""Vistas de documentos: fotos de dron. Ver `apps/documents/views/__init__.py`."""
+"""Vistas de documentos: fotos de dron. Ver `apps/vuelos/views/__init__.py`."""
 
 from __future__ import annotations
 
@@ -9,10 +9,9 @@ from django.shortcuts import render
 
 from apps.core import modo as modo_mod
 from apps.core import subidas as subidas_mod
-
-from .. import cola as cola_mod
-from .. import fotos_dron as fotos_mod
-from ._comun import _origenes_pedidos
+from apps.documents import cola as cola_mod
+from apps.documents.views._comun import _origenes_pedidos
+from apps.vuelos import fotos_dron as fotos_mod
 
 
 @login_required
@@ -33,7 +32,7 @@ def fotos_dron_vista(request):
     }
 
     if request.method != "POST":
-        return render(request, "documents/fotos_dron.html", contexto)
+        return render(request, "vuelos/fotos_dron.html", contexto)
 
     contexto["gps"] = request.POST.get("gps") or "conservar"
     contexto["nombres"] = request.POST.get("nombres") or "igual"
@@ -46,7 +45,7 @@ def fotos_dron_vista(request):
             nuevas = subidas_mod.guardar_varios(llegadas, usuario=request.user)
         except ValidationError as fallo:
             messages.error(request, "; ".join(fallo.messages))
-            return render(request, "documents/fotos_dron.html", contexto)
+            return render(request, "vuelos/fotos_dron.html", contexto)
         texto = "\n".join(filter(None, [texto.strip(), *(s.token for s in nuevas)]))
 
     try:
@@ -54,7 +53,7 @@ def fotos_dron_vista(request):
     except modo_mod.RutaNoPermitida as fallo:
         contexto["rutas_texto"] = texto
         messages.error(request, str(fallo))
-        return render(request, "documents/fotos_dron.html", contexto)
+        return render(request, "vuelos/fotos_dron.html", contexto)
     contexto["rutas_texto"] = "\n".join(o.token for o in origenes)
 
     problema = ""
@@ -72,7 +71,7 @@ def fotos_dron_vista(request):
         problema = next((m for o in origenes if (m := fotos_mod.motivo_si_no_se_lee(o.nombre))), "")
     if problema:
         messages.error(request, problema)
-        return render(request, "documents/fotos_dron.html", contexto)
+        return render(request, "vuelos/fotos_dron.html", contexto)
 
     return cola_mod.encolar(
         request,

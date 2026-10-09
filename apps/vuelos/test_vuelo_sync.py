@@ -18,8 +18,8 @@ from datetime import datetime, timedelta
 
 import pytest
 
-from apps.documents import vuelo_pos, vuelo_sync
 from apps.documents.composicion import ComposicionInvalida
+from apps.vuelos import vuelo_pos, vuelo_sync
 
 SEMANA = 2390
 T0 = SEMANA * 604_800 + 302_400.0  # un instante GPS cualquiera, con semana

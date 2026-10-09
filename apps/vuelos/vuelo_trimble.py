@@ -30,7 +30,8 @@ import io
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
-from .composicion import ComposicionInvalida
+from apps.documents.composicion import ComposicionInvalida
+
 from .vuelo_pos import INICIO_GPS, Epoca, Trayectoria
 
 #: Los sistemas que se prueban, por su código EPSG. **Todos UTM, zonas 18, 19 y 20 Sur** (Chile).

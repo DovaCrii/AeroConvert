@@ -31,7 +31,7 @@ from datetime import datetime, timedelta
 from html import escape
 from pathlib import Path
 
-from .composicion import ComposicionInvalida
+from apps.documents.composicion import ComposicionInvalida
 
 FORMATOS = {
     "gpx": "GPX — para QGIS y la mayoría de los programas",

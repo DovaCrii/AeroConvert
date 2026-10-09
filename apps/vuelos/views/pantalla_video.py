@@ -1,4 +1,4 @@
-"""Vistas de documentos: trabajar un video de dron. Ver `apps/documents/views/__init__.py`."""
+"""Vistas de documentos: trabajar un video de dron. Ver `apps/vuelos/views/__init__.py`."""
 
 from __future__ import annotations
 
@@ -10,11 +10,10 @@ from django.shortcuts import render
 
 from apps.core import entrada as entrada_mod
 from apps.core import modo as modo_mod
-
-from .. import cola as cola_mod
-from .. import video as video_mod
-from ..composicion import ComposicionInvalida
-from ._comun import _origen_del_formulario
+from apps.documents import cola as cola_mod
+from apps.documents.composicion import ComposicionInvalida
+from apps.documents.views._comun import _origen_del_formulario
+from apps.vuelos import video as video_mod
 
 
 def _numero(texto) -> float | None:
@@ -58,7 +57,7 @@ def video_vista(request):
         "ruta_texto": (request.GET.get("ruta") or "").strip(),
     }
     if request.method != "POST" or not ffmpeg:
-        return render(request, "documents/video.html", contexto)
+        return render(request, "vuelos/video.html", contexto)
 
     try:
         origen = _origen_del_formulario(request)
@@ -104,7 +103,7 @@ def video_vista(request):
             opciones.update(inicio_s=inicio, fin_s=fin)
     except (modo_mod.RutaNoPermitida, ComposicionInvalida) as fallo:
         messages.error(request, str(fallo))
-        return render(request, "documents/video.html", contexto)
+        return render(request, "vuelos/video.html", contexto)
 
     sufijo = "_fotogramas.zip" if operacion == "fotogramas" else f"_{operacion}.mp4"
     return cola_mod.encolar(request, "video", origenes, opciones, sufijo=sufijo)

@@ -16,7 +16,8 @@ import pytest
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 
-from apps.documents import motor, tarea, telemetria
+from apps.documents import motor, tarea
+from apps.vuelos import telemetria
 
 pytestmark = pytest.mark.django_db
 

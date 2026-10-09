@@ -26,7 +26,7 @@ import subprocess  # nosec B404 - FFmpeg y ffprobe se lanzan con lista de argume
 from dataclasses import dataclass
 from pathlib import Path
 
-from .composicion import ComposicionInvalida
+from apps.documents.composicion import ComposicionInvalida
 
 SEGUNDOS_DE_CACHE = 600
 CLAVE_DE_CACHE = "documentos:ffmpeg"

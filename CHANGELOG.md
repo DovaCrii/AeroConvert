@@ -5,6 +5,19 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Sin publicar]
 
+### Cambiado — los vuelos de dron en su propia app, `apps/vuelos/` (F18.13)
+
+- Salen de `apps/documents/` los motores (`vuelo_pos`, `vuelo_sync`, `vuelo_ppk`, `vuelo_proceso`,
+  `vuelo_trimble`, `vuelo_exif`, `fotos_dron`, `telemetria`, `video`), sus cuatro pantallas y el índice
+  «Vuelos de dron», las plantillas (`templates/vuelos/`) y sus pruebas. Movimiento con `git mv`, sin
+  cambio de comportamiento: **las direcciones públicas, los nombres de ruta (`documents:vuelo_dron`…) y los
+  identificadores de herramienta (`vuelo_dron`, `fotos_dron`, `telemetria`, `video`) no cambian**, así que
+  marcadores, historial de trabajos, acciones rápidas y Tino siguen igual.
+- `apps.vuelos` solo importa de `apps.documents` la cola, la entrada de archivos, `ComposicionInvalida` y
+  `motor.disponibilidad`; `apps/vuelos/test_independencia.py` lo vigila con una lista blanca.
+- `_paso_vuelo.html` se queda en `templates/documents/` porque «Paquetes» también lo usa, y
+  `test_criterio.py` mira ahora las carpetas de las dos apps para que las pantallas movidas sigan sujetas
+  a la misma regla.
 ### Añadido — «Corregir un vuelo de dron» calcula la trayectoria con RTKLIB (F18.7)
 
 - **La segunda entrada de la pantalla.** Una elección visible, «¿De dónde sale la trayectoria?»: la que

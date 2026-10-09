@@ -34,7 +34,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
-from .composicion import ComposicionInvalida
+from apps.documents.composicion import ComposicionInvalida
 
 GPS = {
     "conservar": "Conservar la posición de cada foto",

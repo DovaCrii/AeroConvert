@@ -207,7 +207,7 @@ def estado_de_herramientas() -> list[dict]:
     # Las plantillas de portada de la empresa: archivos fuera del repositorio.
     plantillas = portadas_mod.sondar()
     # FFmpeg, para el video: programa aparte, sondeado (D1).
-    from .. import video as video_mod
+    from apps.vuelos import video as video_mod
 
     ffmpeg = video_mod.sondar()
     # Ghostscript, para el PDF/A: programa aparte, sondeado (D1).

@@ -38,7 +38,8 @@ import re
 import struct
 from fractions import Fraction
 
-from .composicion import ComposicionInvalida
+from apps.documents.composicion import ComposicionInvalida
+
 from .fotos_dron import (
     _ETIQUETA_GPS,
     _FIRMA_EXIF,
