@@ -138,11 +138,11 @@ def _escribir(tmp_path: Path, caso: str) -> Path:
     nombre, contenido = CASOS[caso]
     ruta = tmp_path / nombre
     if isinstance(contenido, str):
-        ruta.write_text(contenido, encoding="utf-8")
+        ruta.write_text(contenido, encoding="utf-8", newline="\n")
     else:
         ruta.write_bytes(contenido)
     if caso in PRJ_LATERAL:
-        ruta.with_suffix(".prj").write_text(PRJ_LATERAL[caso], encoding="utf-8")
+        ruta.with_suffix(".prj").write_text(PRJ_LATERAL[caso], encoding="utf-8", newline="\n")
     return ruta
 
 
@@ -177,7 +177,7 @@ ESPERADO: dict[str, dict] = {
     "asc": {
         "acompanantes": [("terreno.prj", ".prj", False, True)],
         "avisos": [],
-        "bytes": 218,
+        "bytes": 208,
         "cabeceras": [],
         "confianza": "extensión",
         "crs": ("", "", "desconocido"),
@@ -187,7 +187,7 @@ ESPERADO: dict[str, dict] = {
     "asc-con-prj": {
         "acompanantes": [("con_prj.prj", ".prj", True, True)],
         "avisos": [],
-        "bytes": 218,
+        "bytes": 208,
         "cabeceras": [],
         "confianza": "extensión",
         "crs": ("EPSG", "32719", "sidecar-prj"),
@@ -236,7 +236,7 @@ ESPERADO: dict[str, dict] = {
             "Ninguna forma de partir las líneas da tres columnas o "
             "más. Esto no parece un archivo de puntos delimitado."
         ],
-        "bytes": 21,
+        "bytes": 19,
         "cabeceras": [],
         "confianza": "desconocido",
         "crs": ("", "", "desconocido"),
@@ -333,7 +333,7 @@ ESPERADO: dict[str, dict] = {
     "landxml": {
         "acompanantes": [],
         "avisos": ["Contiene 1 puntos."],
-        "bytes": 335,
+        "bytes": 327,
         "cabeceras": ["landxml"],
         "confianza": "extensión",
         "crs": ("EPSG", "32719", "incrustado"),
@@ -343,7 +343,7 @@ ESPERADO: dict[str, dict] = {
     "landxml-epsg-con-prefijo": {
         "acompanantes": [],
         "avisos": ["Contiene 1 puntos."],
-        "bytes": 340,
+        "bytes": 332,
         "cabeceras": ["landxml"],
         "confianza": "extensión",
         "crs": ("EPSG", "32719", "incrustado"),
@@ -357,7 +357,7 @@ ESPERADO: dict[str, dict] = {
             "EPSG: no se usa. Declare el sistema al convertir.",
             "Contiene 1 puntos.",
         ],
-        "bytes": 333,
+        "bytes": 325,
         "cabeceras": ["landxml"],
         "confianza": "extensión",
         "crs": ("", "", "desconocido"),
@@ -453,7 +453,7 @@ ESPERADO: dict[str, dict] = {
             "Orden de columnas PENZ, deducido del rango UTM de las coordenadas. "
             "Compruébelo en la vista previa antes de convertir."
         ],
-        "bytes": 83,
+        "bytes": 80,
         "cabeceras": ["puntos"],
         "confianza": "extensión",
         "crs": ("", "", "desconocido"),
@@ -502,7 +502,7 @@ ESPERADO: dict[str, dict] = {
             "Tiene extensión de RINEX de observación pero no lo es: La "
             "primera línea no es «RINEX VERSION / TYPE»."
         ],
-        "bytes": 35,
+        "bytes": 33,
         "cabeceras": [],
         "confianza": "desconocido",
         "crs": ("", "", "desconocido"),
@@ -512,7 +512,7 @@ ESPERADO: dict[str, dict] = {
     "rinex-v2": {
         "acompanantes": [],
         "avisos": ["RINEX 2.11 de observación, receptor TRIMBLE NETR9."],
-        "bytes": 1983,
+        "bytes": 1953,
         "cabeceras": [],
         "confianza": "extensión",
         "crs": ("", "", "desconocido"),
@@ -522,7 +522,7 @@ ESPERADO: dict[str, dict] = {
     "rinex-v3": {
         "acompanantes": [],
         "avisos": ["RINEX 3.04 de observación, receptor TRIMBLE NETR9."],
-        "bytes": 2079,
+        "bytes": 2048,
         "cabeceras": [],
         "confianza": "extensión",
         "crs": ("", "", "desconocido"),
