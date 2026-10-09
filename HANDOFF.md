@@ -42,9 +42,10 @@ motivo; con `instalar_faltantes.sh` casi ninguna hace falta porque los programas
 
 **Después de desplegar:**
 1. Abrir `/motores/equipo/`: dice qué quedó apagado y el paso exacto de cada cosa.
-2. Correr las pruebas con oráculo que solo se pueden medir ahí (LibreOffice, FFmpeg, mdbtools):
-   `sudo -u aeroconvert .venv/bin/python -m pytest -q -m oraculo apps/documents/test_libreoffice.py
-   apps/documents/test_video.py`, y el procedimiento de catálogos de `docs/PRUEBAS_CON_ORACULO.md`.
+2. Aceptación a mano (el `.venv` de p340 va con `--no-dev`: no trae pytest, y no se le instala):
+   un `.docx` a PDF, un video corto a fotogramas y un `.mdb` a CSV desde la interfaz, y el
+   procedimiento de catálogos de `docs/PRUEBAS_CON_ORACULO.md`. veraPDF no está en apt: PDF/A sale
+   sin validar hasta instalarlo a mano. (2026-10-09: los ocho programas de apt quedaron en el PATH.)
 3. La API: dar el permiso `jobs.usar_api` a quien la use y `manage.py emitir_token_api <usuario>`
    (ver `docs/API.md`).
 4. `resumen_de_uso --dias 7` durante 2 o 3 semanas: con esas cifras se ordena lo que viene.
