@@ -33,6 +33,8 @@ from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from pathlib import Path
 
+from apps.formats import pdf as _pdf_lectura
+
 from .composicion import ComposicionInvalida
 
 #: Milimetros de un A4 vertical.
@@ -139,7 +141,7 @@ def partir(
     se borran: media entrega repartida en la carpeta, con nombres que parecen correctos, es
     peor que un error.
     """
-    from pypdf import PdfReader, PdfWriter
+    from pypdf import PdfWriter
 
     origen = Path(origen)
     carpeta = Path(carpeta) if carpeta else origen.parent
@@ -148,7 +150,7 @@ def partir(
         raise ComposicionInvalida("No hay nada que partir.")
 
     try:
-        lector = PdfReader(str(origen))
+        lector = _pdf_lectura.abrir_lector(origen)
     except Exception as fallo:
         raise ComposicionInvalida(f"No se pudo leer {origen.name}: {fallo}") from fallo
 

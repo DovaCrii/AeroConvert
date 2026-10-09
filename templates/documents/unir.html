@@ -131,9 +131,15 @@
               a salir en el papel. `loading="lazy"` porque una entrega de sesenta hojas son
               sesenta imágenes, y las de abajo no hacen falta hasta que se baja.
             {% endcomment %}
-            <img class="pagina-miniatura" loading="lazy" decoding="async"
-                 alt="Página {{ fila.numero }} de {{ fila.nombre_archivo }}"
-                 src="{% url 'documents:miniatura' %}?ruta={{ fila.ruta|urlencode }}&amp;pagina={{ fila.numero }}&amp;giro={{ fila.giro }}">
+            {# Pinchar la miniatura la abre en grande para leerla (`ampliar.js`); sin JavaScript, en otra pestaña. #}
+            <a class="pagina-ampliar" target="_blank" rel="noopener"
+               data-ampliar="{{ fila.nombre_archivo }}, página {{ fila.numero }}"
+               href="{% url 'documents:miniatura' %}?ruta={{ fila.ruta|urlencode }}&amp;pagina={{ fila.numero }}&amp;giro={{ fila.giro }}&amp;ancho=1400">
+              <img class="pagina-miniatura" loading="lazy" decoding="async"
+                   alt="Página {{ fila.numero }} de {{ fila.nombre_archivo }}"
+                   src="{% url 'documents:miniatura' %}?ruta={{ fila.ruta|urlencode }}&amp;pagina={{ fila.numero }}&amp;giro={{ fila.giro }}">
+              <span class="pagina-ampliar-rotulo">Ver en grande</span>
+            </a>
 
             <div class="pagina-quees">
               <strong>{{ fila.nombre_archivo }}</strong>

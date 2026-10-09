@@ -5,6 +5,15 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Sin publicar]
 
+### Corregido — un PDF que abre en cualquier visor salía con «pide contraseña»
+
+- Muchos PDF (certificados, informes de un sistema) van cifrados solo para restringir imprimir o copiar, con la contraseña de apertura **vacía**. `is_encrypted` no distingue ese caso, y en p340 un certificado salió rechazado en «Organizar páginas». Ahora `apps/formats/pdf.py` prueba la contraseña vacía, como hace un visor (`abre_sin_clave`, `abrir_lector`, `pide_clave`), y las doce lecturas con pypdf lo usan. Uno con contraseña de verdad se sigue parando. Oráculo: PDFium (`test_pdf_restringido.py`).
+- Títulos en usted: «Organizar las páginas de un PDF» y «Juntar varios PDF en uno».
+
+### Añadido — ver una página en grande
+
+- En «Organizar páginas», «Unir PDF», «Dividir PDF» y «PDF a imágenes», cada miniatura lleva «Ver en grande»: la hoja a 1400 px en un diálogo con anterior, siguiente y Escape (`static/js/ampliar.js`); sin JavaScript se abre en otra pestaña.
+
 ### Corregido — el lateral contaba herramientas que no enseñaba
 
 - «Imagen, video y planta» decía 2 y enseñaba 1 en p340: la cifra contaba también la apagada. Ahora cada grupo cuenta solo las disponibles, y un grupo sin ninguna no sale en el menú (las apagadas siguen, con su motivo, en la portada y en Compatibilidad).

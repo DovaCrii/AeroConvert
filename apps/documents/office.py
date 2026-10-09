@@ -47,6 +47,8 @@ from pathlib import Path
 from django.conf import settings
 from django.core.cache import cache
 
+from apps.formats import pdf as _pdf_lectura
+
 from .composicion import ComposicionInvalida
 
 #: Que extension va a que programa. Los formatos viejos entran igual: un `.doc` de 2003 es
@@ -279,9 +281,7 @@ def mirar_pdf(origen: str | Path) -> QueTraeElPdf:
             f"{origen.name} pide contraseña. Quítesela primero en «Proteger o desbloquear PDF»."
         )
 
-    from pypdf import PdfReader
-
-    lector = PdfReader(str(origen))
+    lector = _pdf_lectura.abrir_lector(origen)
     caracteres = sum(_cuanto_texto(pagina) for pagina in lector.pages[:PAGINAS_A_OLFATEAR])
     return QueTraeElPdf(paginas=cabecera.cuantas, caracteres=caracteres)
 
