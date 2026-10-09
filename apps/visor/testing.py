@@ -13,6 +13,8 @@ from __future__ import annotations
 
 import io
 import json
+import math
+import re
 import subprocess
 from pathlib import Path
 
@@ -78,8 +80,13 @@ def info_de_gdal(
     bandas: int = 3,
     interpretacion: str = "Red",
     overviews: bool = True,
+    unidad: str | None = None,
+    sin_dato: float | str | None = None,
 ) -> dict:
-    """Lo que `gdalinfo -json` diría de un archivo. `wkt=None` es «no declara sistema»."""
+    """Lo que `gdalinfo -json` diría de un archivo. `wkt=None` es «no declara sistema».
+
+    `unidad` y `sin_dato` son lo que declara la primera banda (`unit`, `noDataValue`): un DEM.
+    """
     info: dict = {
         "size": [ancho, alto],
         "bands": [
@@ -87,6 +94,10 @@ def info_de_gdal(
             for n in range(bandas)
         ],
     }
+    if unidad is not None:
+        info["bands"][0]["unit"] = unidad
+    if sin_dato is not None:
+        info["bands"][0]["noDataValue"] = sin_dato
     if overviews:
         info["bands"][0]["overviews"] = [{"size": [ancho // 2, alto // 2]}]
     if wkt is not None:
@@ -97,6 +108,18 @@ def info_de_gdal(
         else [ESTE_NO_M, PASO_M, 0.0, NORTE_NO_M, 0.0, -PASO_M]
     )
     return info
+
+
+def info_de_dem(**cambios) -> dict:
+    """Lo que `gdalinfo -json` diría de un DEM: `Float32` en metros y `-9999` de «sin dato»."""
+    base = {
+        "bandas": 1,
+        "tipo": "Float32",
+        "interpretacion": "Gray",
+        "unidad": "m",
+        "sin_dato": -9999.0,
+    }
+    return info_de_gdal(**{**base, **cambios})
 
 
 def png_de(lado: int = 256, color=(10, 120, 200, 255)) -> bytes:
@@ -123,22 +146,50 @@ class GdalDeMentira:
         self.minimo, self.maximo = 0.0, 4000.0
         self.valores = ["10", "20", "30"]
         self.fallar_con: motor.ErrorDeGdal | None = None
+        #: Lo que se le mandó por stdin a cada llamada (en el mismo orden que `llamadas`).
+        self.entradas: list[str | None] = []
+        self.cotas_del_perfil: list[str] | None = None
+        self.tipo_del_sombreado = "Byte"
+        self.tamano_del_sombreado: tuple[int, int] | None = None
 
     def contar(self, nombre: str) -> int:
         return sum(1 for n, _ in self.llamadas if n == nombre)
 
-    def __call__(self, nombre: str, argumentos: list[str], *, plazo_s: int):
+    def __call__(
+        self, nombre: str, argumentos: list[str], *, plazo_s: int, entrada: str | None = None
+    ):
         self.llamadas.append((nombre, list(argumentos)))
+        self.entradas.append(entrada)
         if self.fallar_con is not None:
             raise self.fallar_con
         if nombre == "gdalinfo":
             info = json.loads(json.dumps(self.info))
+            if any("sombra-" in a for a in argumentos):
+                # El sombreado entero: una banda de 8 bits del mismo tamaño que el modelo.
+                info["bands"] = [{"band": 1, "type": self.tipo_del_sombreado}]
+                if self.tamano_del_sombreado is not None:
+                    info["size"] = list(self.tamano_del_sombreado)
             if "-approx_stats" in argumentos:
                 info["bands"][0]["minimum"] = self.minimo
                 info["bands"][0]["maximum"] = self.maximo
             return motor.Resultado(salida=json.dumps(info), errores="")
         if nombre == "gdallocationinfo":
+            if entrada is not None:  # un perfil: una respuesta por pregunta, por stdin
+                preguntas = entrada.splitlines()
+                if self.cotas_del_perfil is not None:
+                    respuestas = list(self.cotas_del_perfil)
+                else:
+                    respuestas = [str(100 + i) for i in range(len(preguntas))]
+                return motor.Resultado(salida="\n".join(respuestas) + "\n", errores="")
             return motor.Resultado(salida="\n".join(self.valores) + "\n", errores="")
+        if nombre == "gdaldem":
+            if self.escribir and argumentos[0] == "hillshade":
+                Path(argumentos[2]).write_bytes(b"II*\x00sombreado")
+            elif self.escribir and argumentos[0] == "color-relief":
+                Path(argumentos[3]).write_bytes(
+                    self.contenido if self.contenido is not None else png_de(self.lado_de_salida)
+                )
+            return motor.Resultado(salida="", errores="")
         destino = Path(argumentos[-1])
         if nombre == "gdalwarp" and self.escribir:
             destino.write_bytes(
@@ -194,6 +245,69 @@ def crear_geotiff_sintetico(
     argumentos += [str(intermedio), str(destino)]
     motor.correr("gdal_translate", argumentos, plazo_s=60)
     intermedio.unlink()
+    return destino
+
+
+#: El DEM sintético: un plano inclinado más una gaussiana, con un cuadrado de «sin dato».
+#: `cota_conocida` es **la fórmula** que lo creó: lo que debe valer cada celda, sin leer el archivo.
+SIN_DATO_DEL_DEM = -9999.0
+HUECO_DEL_DEM = (60, 70, 20, 30)  # columnas [60, 70) y filas [20, 30)
+
+
+def cota_conocida(columna: int, fila: int) -> float | None:
+    """La cota de la celda `(columna, fila)` según la fórmula del DEM sintético (`None`: hueco)."""
+    c0, c1, f0, f1 = HUECO_DEL_DEM
+    if c0 <= columna < c1 and f0 <= fila < f1:
+        return None
+    plano = 500.0 + 0.2 * columna + 0.1 * fila
+    cumbre = 80.0 * math.exp(-((columna - 140) ** 2 + (fila - 40) ** 2) / (2 * 15.0**2))
+    return plano + cumbre
+
+
+def crear_dem_sintetico(
+    destino: Path,
+    *,
+    epsg: str | None = "EPSG:32719",
+    unidad: str | None = "m",
+    sin_dato: float | None = SIN_DATO_DEL_DEM,
+) -> Path:
+    """Un DEM `Float32` sintético **con GDAL de verdad** (solo para las pruebas `oraculo`).
+
+    La unidad vertical se escribe pasando por un VRT (`gdal_translate` no tiene opción para ella).
+    `unidad=None` y `sin_dato=None` son «el archivo no lo declara».
+    """
+    import numpy as np
+
+    datos = np.empty((ALTO_PX, ANCHO_PX), dtype="float32")
+    for fila in range(ALTO_PX):
+        for columna in range(ANCHO_PX):
+            cota = cota_conocida(columna, fila)
+            datos[fila, columna] = SIN_DATO_DEL_DEM if cota is None else cota
+    crudo = destino.with_name(destino.stem + "-crudo.tif")
+    Image.fromarray(datos, mode="F").save(crudo)
+    vrt = destino.with_suffix(".vrt")
+    argumentos = [
+        "-q",
+        "-of",
+        "VRT",
+        "-a_ullr",
+        *(repr(v) for v in (ESTE_NO_M, NORTE_NO_M, ESTE_NO_M + ANCHO_PX * PASO_M)),
+        repr(NORTE_NO_M - ALTO_PX * PASO_M),
+    ]
+    if epsg:
+        argumentos += ["-a_srs", epsg]
+    if sin_dato is not None:
+        argumentos += ["-a_nodata", repr(sin_dato)]
+    motor.correr("gdal_translate", [*argumentos, str(crudo), str(vrt)], plazo_s=60)
+    if unidad:
+        texto = vrt.read_text(encoding="utf-8")
+        texto = re.sub(
+            r"(<VRTRasterBand[^>]*>)", rf"\1<UnitType>{unidad}</UnitType>", texto, count=1
+        )
+        vrt.write_text(texto, encoding="utf-8")
+    motor.correr("gdal_translate", ["-q", "-of", "GTiff", str(vrt), str(destino)], plazo_s=60)
+    crudo.unlink()
+    vrt.unlink()
     return destino
 
 

@@ -37,6 +37,11 @@ HERRAMIENTAS = ("gdalinfo", "gdalwarp", "gdal_translate", "gdallocationinfo")
 PLAZO_TESELA_S = 90
 PLAZO_INFO_S = 120
 PLAZO_PIXEL_S = 30
+#: El sombreado se calcula **una vez, de todo el modelo** (las pendientes no se pueden sacar de una
+#: tesela sin sus vecinos), y después se corta en teselas.
+PLAZO_SOMBREADO_S = 300
+#: Un perfil lee hasta 1000 celdas con una sola llamada a `gdallocationinfo`.
+PLAZO_PERFIL_S = 60
 
 
 class ErrorDeGdal(Exception):
@@ -75,6 +80,21 @@ def disponibilidad() -> Disponibilidad:
     return Disponibilidad.si(estado.version)
 
 
+def disponibilidad_sombreado() -> Disponibilidad:
+    """¿Hay `gdaldem`? Sin él el sombreado y los colores por cota salen **apagados**, con motivo
+    (regla 4); la cota bajo el cursor y el perfil usan `gdallocationinfo` y siguen."""
+    if ejecutable("gdaldem") is not None:
+        return Disponibilidad.si("")
+    return Disponibilidad.no(
+        "sin-gdaldem",
+        "A este GDAL le falta gdaldem, que es lo que calcula el sombreado y los colores por cota.",
+        sugerencia=(
+            "Complete la instalación de GDAL (QGIS trae gdaldem). Mientras tanto, la imagen en "
+            "escala de grises, la cota bajo el cursor y el perfil siguen disponibles."
+        ),
+    )
+
+
 def entorno(**extra: str) -> dict[str, str]:
     """El entorno del hijo: el del servidor más lo de GDAL. **No se toca el del servidor.**"""
     base = {**os.environ, **entorno_de_gdal()}
@@ -108,7 +128,9 @@ def _sin_rutas(texto: str, argumentos: list[str]) -> str:
     return texto
 
 
-def correr(nombre: str, argumentos: list[str], *, plazo_s: int) -> Resultado:
+def correr(
+    nombre: str, argumentos: list[str], *, plazo_s: int, entrada: str | None = None
+) -> Resultado:
     """Lanza una herramienta de GDAL y devuelve lo que escribió.
 
     **El código de salida no es la prueba** (regla 1): aquí solo se distingue «ni arrancó» de
@@ -123,6 +145,7 @@ def correr(nombre: str, argumentos: list[str], *, plazo_s: int) -> Resultado:
         # rutas ya comprobadas. Lista y `shell=False`: no hay interpretación de metacaracteres.
         hecho = subprocess.run(  # nosec B603
             [programa, *argumentos],
+            input=entrada,
             capture_output=True,
             text=True,
             encoding="utf-8",

@@ -259,6 +259,21 @@ MOTIVOS: dict[str, Motivo] = dict(
             "Avise a quien administra el equipo para que revise el disco.",
         ),
         _m("coordenadas-no-validas", "La longitud o la latitud están fuera de rango."),
+        # --- Terreno (F19.4) ------------------------------------------------------------------
+        _m(
+            "sin-gdaldem",
+            "A este GDAL le falta gdaldem, que es lo que calcula el sombreado y los colores por "
+            "cota.",
+            "Complete la instalación de GDAL (QGIS trae gdaldem). La imagen en grises, la cota "
+            "bajo el cursor y el perfil siguen disponibles.",
+        ),
+        _m(
+            "capa-no-es-dem",
+            "Este archivo no es un modelo de elevación (una sola banda entera o flotante), así que "
+            "no tiene sombreado, cota ni perfil.",
+            "Para ver una ortofoto use la imagen normal.",
+        ),
+        _m("parametros-no-validos", "Un parámetro de la petición está fuera de rango."),
     ]
 )
 

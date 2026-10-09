@@ -632,6 +632,68 @@ mostraba los CSV).
 RINEX 3.05, 35 MB) y el crudo de la base (`13933630.T04`), pero no hay RTKLIB en esta estación ni
 se conoce la coordenada de la base (pedidos P16 y P15).
 
+## Corrida del 2026-10-09 — las fotos del vuelo de Baquedano: posición, ficha y orientación (F18.8 a F18.10)
+
+**Datos** (fuera del repositorio): las 2 505 fotos del vuelo de la Matrice 3E del 2025-12-29, su `.MRK`
+y el `export_extended` de Trimble. Pasan con `AEROCONVERT_VUELO_DE_PRUEBA=<carpeta>` y
+`pytest -m oraculo apps/vuelos/test_vuelo_real.py`.
+
+**Cómo se midió.** Las fotos están en una carpeta de OneDrive (marcadores de posición que bajan al abrirlas,
+unos 7 MB cada una, 17 GB en total): se leyó **una de cada 25 y la última, 102 fotos**, a 0,36 s cada una
+(37 s). Solo se lee la cabecera (192 kB). Los lectores de contraste son otros que el código: el `.MRK`
+(texto del dron), el `export_extended` de Trimble (otro programa, leído con `csv`) y, en las pruebas
+sintéticas, `exifread` y un analizador de XML.
+
+| Qué | Contra qué | Resultado (102 fotos) |
+| --- | --- | --- |
+| Posición del XMP (`GpsLatitude`, `GpsLongitude`) | Lat y Lon del `.MRK` del mismo disparo | **0,69 mm** como máximo en horizontal (el `.MRK` redondea a 1 mm). Es la posición de la **antena**: el desfase no está aplicado |
+| `AbsoluteAltitude` del XMP | «Ellh» del `.MRK` | diferencia **0,000 mm** en todas |
+| Bandera `RtkFlag` | Columna `Q` del `.MRK` (las 2 505 líneas) | **16** en las 102 y en las 2 505 líneas del `.MRK`: coinciden |
+| Estado `GpsStatus` | — | «RTK» en las 102, con la bandera en 16 |
+| `AltitudeType`, datum del EXIF | — | «RtkAlt» y «WGS-84» en las 102 |
+| Gimbal (guiñada, cabeceo, alabeo) | `Gimbal Yaw`, `Pitch`, `Roll` de Trimble | diferencia **0** |
+| Actitud del dron | `UAV Yaw`, `Pitch`, `Roll` | diferencia **0** |
+| Velocidades X, Y, Z | `V. UAV X`, `Y`, `Z` | diferencia **0** |
+| Focal, apertura, exposición, ISO, dimensiones, modelo | `Focal`, `F Number`, `Tiempo exp.`, `ISO Speed`, `Dimensiones`, `Modelo` | diferencia **0**; 5280 × 3956, M3E |
+| Altura del XMP y altura sobre el despegue | `Alt. abs. vuelo` y `Alt.rel.vuelo` | diferencia **0** |
+| Columnas `gimbal_*` del CSV de `vuelo_rtk.procesar` | las mismas de Trimble | diferencia **0°**; el cabeceo es −80° y la guiñada cambia de una pasada a otra |
+
+**Lo que dice esta corrida de la altura.** La `AbsoluteAltitude` de DJI coincide con la «Ellh» que el propio
+`.MRK` llama elipsoidal, y es la misma que Trimble copia en su columna `Alt. abs. vuelo` (diferencia 0). **No** es la
+altura que Trimble entrega como posición de la foto (columna `Elevación`), que difiere unos 35 m (el geoide, ya
+medido el 2026-10-08). Por eso `vuelo_rtk.py` solo la llama elipsoidal **si coincide con la `Ellh` del `.MRK`**:
+la etiqueta la pone DJI en el `.MRK`, y esa es la comprobación. Sin `.MRK` no se afirma.
+
+**Lo que esta corrida destapó.**
+
+- **`GpsStatus` no es la calidad:** dice «RTK» en las 102 fotos de un vuelo que fue PPK, sin corrección en
+  el aire, con `RtkFlag` y la columna `Q` del `.MRK` en 16. La calidad sale de la bandera.
+- **El XMP lleva la posición de la antena**, no la de la cámara: coincide con la del `.MRK` sin aplicar su
+  desfase. Si un dron la dejara ya con el desfase aplicado, sumarlo otra vez correría la foto: por eso se
+  rechaza todo cuando la posición de una foto y la de su disparo difieren más de 2 cm.
+- En la primera foto, `UTCAtExposure` del XMP (15:39:10,934) es la hora **GPST** del disparo del `.MRK`
+  (semana 2399, segundo 142 750,934), no el UTC, que sería 18 s menos (15:38:52, lo que dice la hora local
+  de la foto, 12:38:52 −03:00). Solo se miró en la primera foto y **no se usa**: la hora de cada disparo
+  sale del `.MRK`.
+
+**Lo que no se midió, y queda ⚠ (F18.8).** El vuelo fue PPK: **no hay un vuelo con RTK en el aire**, así
+que solo se vio la bandera 16. Las banderas 50 (fija) y 34 (flotante) son las que publica DJI y no se han
+contrastado con un archivo real. Hace falta (pedido P20) una carpeta de fotos de un vuelo con RTK y su
+exportación de UAS Sync o de TBC.
+
+### Procedimiento manual con un vuelo RTK real, pendiente
+
+1. Fotos de un vuelo RTK (bandera 34 o 50) y su `.MRK`, fuera del repositorio.
+2. «Corregir un vuelo de dron» → «Las fotos ya traen la posición RTK»: carpeta de fotos, `.MRK` y el
+   sistema del visor.
+3. Contar con `exifread` (o con el `.MRK`: columna `Q`) cuántas fotos traen cada bandera y comparar con la
+   tabla de `calidad.md`: **fijas contra `50`, flotantes contra `34`**, una por una. Anotar aquí la fecha y
+   las cuentas.
+4. Comprobar que la altura sale «elipsoidal» (coincide con la «Ellh» del `.MRK`) y contrastar la posición
+   de cinco fotos con la de UAS Sync o TBC (el contraste es del plano: la altura de Trimble no es la
+   elipsoidal).
+5. Si alguna cifra no coincide, **no** ajustar la tabla de banderas a ojo: anotar el código que apareció.
+
 ## Lo que sigue sin oráculo, y se dice
 
 **ECW no se puede verificar aquí.** El GDAL de QGIS 4.0.2 **no trae el controlador ECW**, ni
@@ -759,6 +821,91 @@ lo que `gdalcompare` hace sin el informe.
 **Sin medir:** una ortofoto real de varios gigas (rendimiento de las teselas lejanas sin pirámide,
 tamaño de la caché en uso). Se anota aquí con fecha cuando se corra en `p340` con un COG del equipo.
 
+## Corrida del 2026-10-09 — terreno en «Ver en el mapa» contra GDAL (F19.4)
+
+GDAL 3.12.4 (QGIS 4.0.2), `uv run pytest -m oraculo apps/visor/test_terreno_oraculo.py` (24 pruebas).
+El archivo es un **DEM sintético** que crea la prueba (`apps/visor/testing.py::crear_dem_sintetico`):
+200 × 100 celdas de 2 m en EPSG:32719, `Float32`, unidad `m`, «sin dato» -9999, un plano
+(`500 + 0,2·col + 0,1·fila`) más una gaussiana de 80 m centrada en la celda (140, 40) y un hueco de
+«sin dato» en las columnas 60 a 69 y las filas 20 a 29. `cota_conocida(col, fila)` es **la fórmula** que
+lo creó: dice la cota de cada celda sin leer el archivo. Ningún dato real.
+
+### 1. La cota bajo el cursor
+
+Cinco celdas (el centro de cada una, llevado a EPSG:4326 con `gdaltransform`), contra `gdallocationinfo
+-valonly -wgs84` y contra la fórmula:
+
+| Celda (col, fila) | Cota propia | `gdallocationinfo` | Fórmula |
+| --- | --- | --- | --- |
+| (10, 10) | 503,0 | 503,0 | 503,0 |
+| (140, 40), la cima | 612,0 | 612,0 | 612,0 |
+| (0, 0), el borde | 500,0 | 500,0 | 500,0 |
+| (199, 99), la esquina | 549,7000 | 549,7000 | 549,70000 (3e-6) |
+| (65, 25), en el hueco | sin dato | -9999 → sin dato | sin dato |
+
+Diferencia máxima con `gdallocationinfo`: **0**. El hueco sale como «sin dato», no como -9999.
+
+### 2. El perfil
+
+Una fila de la rejilla, de la celda (40, 25) a la (90, 25): 51 muestras, una por celda, que cruzan el
+hueco. Cada muestra contra `gdallocationinfo -wgs84` con la longitud y la latitud que devolvió el propio
+perfil, y contra la fórmula: **diferencia máxima 3,1e-5 m** (el redondeo de un `Float32`); los **10
+huecos** son exactamente las columnas 60 a 69. La longitud geodésica es 100,0104 m, **1,00010** veces los
+100 m del plano de UTM, que es lo que da el factor de escala del lugar (a 1,67° del meridiano central,
+k ≈ 0,99989). La distancia geodésica de un grado de ecuador (111 319,4908 m) y de un grado de meridiano en
+el ecuador (110 574,3886 m) se prueba también en el CI, sin GDAL, contra esos valores conocidos.
+
+### 3. El sombreado
+
+Una tesela de nivel 17 cortada de `sombra-<huella>.tif`, contra **otro** `gdaldem hillshade -az 315 -alt 45
+-z 1 -compute_edges` y **otro** `gdalwarp` a GeoTIFF con la caja de una fórmula aparte:
+
+- Diferencia: **0** de 65 536 valores (mayor diferencia en un canal: 0). Con otro sol (`-az 90 -alt 25 -z
+  2.5`), también 0.
+- La fórmula analítica de Horn sobre el plano (a 255·[cos z·cos p + sen z·sen p·cos(az − as)]): la celda
+  (20, 80), lejos de la gaussiana, vale **198** en la tesela y **198,2** por la fórmula.
+- El hueco de «sin dato», transparente en el centro (alfa 0).
+- El sombreado **entero** de la caché es, celda a celda, el de otro `gdaldem` aparte (0 de 20 000).
+
+**Lo que atrapó el oráculo.** La primera versión escribía el sombreado con `-co COMPRESS=DEFLATE -co
+TILED=YES`: junto al hueco de «sin dato» dejaba **24 celdas distintas** (media 185,831 contra 185,919
+sin las opciones; el mismo resultado leído por Pillow y por `gdal_translate -of PNG`). Con solo DEFLATE
+(por franjas) da 0 diferencias. Se quitó `TILED=YES`, y la prueba del sombreado entero lo vigila.
+
+### 4. El color por cota
+
+Una tesela de color contra `gdalwarp -ot Float32 -dstnodata … ` + `gdaldem color-relief -alpha` aparte con
+una tabla de colores escrita en la prueba: mayor diferencia en un canal **0**. Y la celda (20, 80), de
+512 m: el color es (66, 37, 111) en la tesela y el de interpolar linealmente a mano entre las dos paradas
+de viridis que la rodean, (66,4; 37; 111,4).
+
+### 5. Lo que la ficha declara, y lo que no
+
+- `gdalinfo -json -stats`: tipo `Float32`, `unit: m`, `noDataValue: -9999`; las estadísticas **exactas**
+  (500,0 a 612,022) son las de la fórmula. El rango que usa la leyenda sale de `-approx_stats` (que lee una
+  muestra): **611,745 de máximo**, 0,28 m menos que el exacto (2026-10-09). Por eso la pantalla dice «rango
+  medido de forma aproximada»; con él, lo más alto satura en el color de la punta.
+- Sin unidad ni «sin dato» declarados (el archivo se crea sin ellos): la capa los deja vacíos, la cota
+  del hueco sale como **-9999** (una altura más: no se esconde lo que nadie declaró) y la pantalla dice
+  «unidad no declarada».
+- Un sistema compuesto (`EPSG:32719+5773`): la referencia vertical es la de `VERTCRS[...]` que imprime
+  `gdalsrsinfo -o wkt2`; uno solo horizontal no declara ninguna («referencia vertical no declarada»).
+
+### 6. El original quedó intacto
+
+`sha256`, `mtime` y la carpeta del original, sin ningún `.aux.xml` al lado, después de pedir una tesela
+de cada modo, un punto con valor y un perfil. Con `gdaldem` retirado (la prueba lo oculta), la tesela de
+sombra da 503 `sin-gdaldem` con alternativa y la cota y el perfil siguen contestando.
+
+### Lo que esta corrida **no** prueba
+
+- Un DEM real grande: el sombreado entero se calcula de una vez y el plazo es de 300 s. Hay que medir el
+  tiempo de uno de varios GB en `p340` (y, si no cabe, partirlo o pedir un COG con pirámide).
+- Un DEM en grados (EPSG:4326): la escala de 111 120 m por grado de `gdaldem` está en el código y se prueba
+  como cuenta, no contra GDAL.
+- La referencia vertical de `apps/formats/alturas.py` (F15.2, PR 107): no se usa todavía; cuando esté en
+  `main` podrá leerse de ahí (el geoide que declara el archivo contra el que dice el proyecto).
+
 ## Pendiente: «Hacer un libro EPUB» contra EPUBCheck (F14.22)
 
 EPUBCheck es el validador de referencia del W3C (BSD-3, Java 11+). En el CI no está; la prueba `test_epubcheck_lo_da_por_valido` lleva `@pytest.mark.oraculo` y se salta sin él.
@@ -797,3 +944,28 @@ En la estación hay ACE y no hay `mdbtools`; en el servidor, al revés. El proce
    tienen que coincidir una por una con las de ACE.
 3. Abrir el Excel y comprobar que una columna numérica (`NOMINAL_DIAMETER`) sale como número.
 
+
+## Corrida del 2026-10-09 — «Escanear con el teléfono» contra PDFium; Tesseract pendiente en `p340` (F14.12)
+
+**Lo medido aquí.** No hay datos reales: una hoja sintética de 210 × 297 mm, con un rectángulo negro de
+referencia de 40 a 170 mm de ancho y de 70 a 130 mm de alto y unas frases, se «fotografía» con una
+cámara de agujero calculada **en la prueba, sin usar el módulo** (foco de 1 400 px en una foto de
+1 600 × 1 200; cabeceo 28°, guiñada −16°, alabeo 5°; cada punto del cuadro busca el punto de la hoja
+que ve, rayo contra plano). **PDFium dibuja** la página que entrega la herramienta y se mide el
+rectángulo: sus cuatro bordes caen a ≤ 2 % del tamaño de la página de donde la hoja los tenía, cada
+borde medido en dos sitios del rectángulo difiere ≤ 2 % (paralelos) y la página tiene la proporción
+210 : 297 dentro del 2 %. Las esquinas detectadas quedaron a menos de 0,2 % de las proyectadas
+(corrida de la estación: página de 366 × 520 px, proporción 0,704 frente a 0,707). Se repite con la
+orientación EXIF girada, en A4 y con otra perspectiva. Con la media de los lados en vez de la
+estimación por perspectiva la proporción salía 0,760: un 7 % de error, que es por lo que no se usa.
+
+**Pendiente en `p340`, donde está Tesseract:**
+
+```bash
+cd /opt/aeroconvert && sudo -u aeroconvert .venv/bin/python -m pytest -q -m oraculo \
+    apps/documents/test_escanear.py
+```
+
+La prueba pide el PDF con reconocimiento sobre esa misma hoja y **PDFium** (otro lector) busca
+«CONTROL» y «7391» en la capa de texto que escribió Tesseract. Anotar aquí la fecha, la versión de
+Tesseract y el idioma usado.

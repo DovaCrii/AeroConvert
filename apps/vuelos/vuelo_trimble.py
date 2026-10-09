@@ -27,7 +27,7 @@ from __future__ import annotations
 
 import csv
 import io
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 
 from apps.documents.composicion import ComposicionInvalida
@@ -84,6 +84,32 @@ class PuntoDeTrayectoria:
     t_gps_s: float
 
 
+#: Las columnas del archivo ampliado que sirven para la ficha de la foto y para la orientación de
+#: la cámara (F18.9, F18.10). Se guardan **como texto**: quien las interpreta es `ficha_foto`.
+COLUMNAS_DE_FICHA = (
+    "Fecha",
+    "Modelo",
+    "Apertura",
+    "Tiempo exp.",
+    "F Number",
+    "Focal",
+    "Focal 35 mm",
+    "ISO Speed",
+    "Dimensiones",
+    "Alt. abs. vuelo",
+    "Alt.rel.vuelo",
+    "Gimbal Roll",
+    "Gimbal Yaw",
+    "Gimbal Pitch",
+    "UAV Roll",
+    "UAV Yaw",
+    "UAV Pitch",
+    "V. UAV X",
+    "V. UAV Y",
+    "V. UAV Z",
+)
+
+
 @dataclass(frozen=True)
 class PosicionDeFoto:
     nombre: str
@@ -93,6 +119,7 @@ class PosicionDeFoto:
     lat: float | None = None
     lon: float | None = None
     calidad: str = ""
+    extras: dict = field(default_factory=dict, compare=False)
 
 
 @dataclass(frozen=True)
@@ -177,6 +204,11 @@ def leer_posiciones_por_foto(datos: bytes) -> list[PosicionDeFoto]:
                         float(fila["Latitud"]),
                         float(fila["Longitud"]),
                         (fila.get("Calidad") or "").strip(),
+                        {
+                            c: (fila.get(c) or "").strip()
+                            for c in COLUMNAS_DE_FICHA
+                            if (fila.get(c) or "").strip()
+                        },
                     )
                 )
             except (KeyError, ValueError, StopIteration) as fallo:

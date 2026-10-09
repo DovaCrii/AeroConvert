@@ -48,6 +48,7 @@
        data-capa="{% url 'visor:capa' %}?ruta={{ token|urlencode }}"
        data-teselas="{% url 'visor:tesela' 0 0 0 %}"
        data-punto="{% url 'visor:punto' %}"
+       data-perfil="{% url 'visor:perfil' %}"
        data-ruta="{{ token }}">
 
     <header class="visor-barra">
@@ -89,7 +90,7 @@
     {% if capa.tipo != "Byte" or capa.paleta %}
       <p class="mensaje mensaje-info" role="note">
         <svg class="mensaje-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-info"></use></svg>
-        <span><span class="visually-hidden">Información: </span>{% if capa.paleta %}Imagen con paleta de colores: se muestra con sus colores.{% else %}Imagen de {{ capa.tipo }}: se muestra escalada a 8 bits con el rango medido; los valores de abajo son los reales.{% endif %}</span>
+        <span><span class="visually-hidden">Información: </span>{% if capa.paleta %}Imagen con paleta de colores: se muestra con sus colores.{% elif capa.es_dem %}Modelo de elevación de una banda ({{ capa.tipo }}): se ve como sombreado, en grises o con color por cota (rango medido de forma aproximada); la cota bajo el cursor es el valor real de la celda.{% else %}Imagen de {{ capa.tipo }}: se muestra escalada a 8 bits con el rango medido; los valores de abajo son los reales.{% endif %}</span>
       </p>
     {% endif %}
 
@@ -130,17 +131,116 @@
           <p class="visor-valor cifra av-mt-2 av-mb-0" id="mapa-valor" role="status" aria-live="polite">Pinche un punto del mapa para ver el valor de sus bandas.</p>
         </section>
 
+        {% if capa.es_dem %}
+        {# Terreno (F19.4): un modelo digital de elevación. Cada cifra que no se declara se dice. #}
+        <section class="visor-foto" aria-labelledby="terreno-titulo" id="terreno">
+          <h2 class="visor-foto-titulo" id="terreno-titulo">Terreno</h2>
+          <fieldset class="terreno-modos">
+            <legend class="terreno-leyenda-titulo">Cómo se ve</legend>
+            <label class="opcion">
+              <input type="radio" name="terreno-modo" value="gris" {% if not sombreado.disponible %}checked{% endif %}>
+              <span><strong>Imagen en grises</strong></span>
+            </label>
+            <label class="opcion">
+              <input type="radio" name="terreno-modo" value="sombra"
+                     {% if sombreado.disponible %}checked{% else %}disabled aria-describedby="terreno-motivo"{% endif %}>
+              <span><strong>Sombreado</strong></span>
+            </label>
+            <label class="opcion">
+              <input type="radio" name="terreno-modo" value="cota"
+                     {% if not sombreado.disponible %}disabled aria-describedby="terreno-motivo"{% endif %}>
+              <span><strong>Color por cota</strong></span>
+            </label>
+          </fieldset>
+          {% if not sombreado.disponible %}
+            <p class="mensaje mensaje-aviso" id="terreno-motivo" role="note" data-motivo="{{ sombreado.codigo_motivo }}">
+              <svg class="mensaje-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-veredicto-reparos"></use></svg>
+              <span><span class="visually-hidden">Aviso: </span>{{ sombreado.mensaje }} {{ sombreado.sugerencia }}</span>
+            </p>
+          {% endif %}
+
+          <div class="terreno-sol" id="terreno-sol">
+            <div>
+              <label class="terreno-campo-rotulo" for="terreno-az">Azimut del sol (°)</label>
+              <input type="number" class="form-control" id="terreno-az" min="0" max="359" step="1" inputmode="numeric" value="{{ azimut_deg }}">
+            </div>
+            <div>
+              <label class="terreno-campo-rotulo" for="terreno-alt">Altura del sol (°)</label>
+              <input type="number" class="form-control" id="terreno-alt" min="1" max="90" step="1" inputmode="numeric" value="{{ altura_deg }}">
+            </div>
+            <div>
+              <label class="terreno-campo-rotulo" for="terreno-zf">Exageración vertical</label>
+              <input type="number" class="form-control" id="terreno-zf" min="0.1" max="20" step="0.1" inputmode="decimal" value="{{ exageracion_z|stringformat:'.1f' }}">
+            </div>
+          </div>
+
+          <div class="terreno-leyenda" id="terreno-leyenda" aria-live="polite"></div>
+
+          <dl class="visor-ficha">
+            <dt>Unidad vertical</dt>
+            <dd>{% if capa.unidad_vertical %}{{ capa.unidad_vertical }}{% else %}no declarada{% endif %}</dd>
+            <dt>Referencia vertical</dt>
+            <dd>{% if capa.referencia_vertical %}{{ capa.referencia_vertical }}{% else %}no declarada{% endif %}</dd>
+            <dt>Cota</dt>
+            <dd id="terreno-cota">—</dd>
+          </dl>
+          {% if not capa.unidad_vertical %}
+            <p class="tenue av-fs-sm av-mt-2 av-mb-0">El archivo no declara su unidad vertical: la cota sale sin unidad y el sombreado supone la misma que la horizontal.</p>
+          {% endif %}
+        </section>
+        {% endif %}
+
         <section class="visor-foto" aria-labelledby="mapa-teclas-titulo">
           <h2 class="visor-foto-titulo" id="mapa-teclas-titulo">Con el teclado</h2>
           <ul class="visor-teclas av-mb-0" id="mapa-ayuda">
             <li><kbd>←</kbd> <kbd>↑</kbd> <kbd>→</kbd> <kbd>↓</kbd> mueven el mapa (con <kbd>Mayús</kbd>, cuatro veces más).</li>
             <li><kbd>+</kbd> y <kbd>−</kbd> acercan y alejan.</li>
             <li><kbd>0</kbd> encuadra la imagen entera.</li>
-            <li><kbd>Intro</kbd> lee el valor del píxel del centro.</li>
+            <li><kbd>Intro</kbd> lee el valor del píxel del centro{% if capa.es_dem %} (o marca el punto del perfil, si «Marcar perfil» está activo){% endif %}.</li>
           </ul>
         </section>
       </aside>
     </div>
+
+    {% if capa.es_dem %}
+    <section class="tarjeta" aria-labelledby="perfil-titulo" id="perfil">
+      <div class="eyebrow" id="perfil-titulo">Perfil entre dos puntos</div>
+      <p class="tenue av-mt-1 av-mb-2 av-fs-sm">
+        Active «Marcar perfil» y pinche, toque o pulse <kbd>Intro</kbd> (en el centro del mapa) dos veces: el punto A y el punto B. Se mide sobre la línea más corta entre ellos en el elipsoide WGS84; cada muestra toma el valor de su celda, sin interpolar. Lo que cae fuera del modelo o sin dato queda como hueco.
+      </p>
+      <div class="perfil-controles">
+        <button type="button" class="boton boton-suave boton-pequeno" id="perfil-marcar" aria-pressed="false">Marcar perfil</button>
+        <button type="button" class="boton boton-suave boton-pequeno" id="perfil-quitar" disabled>Quitar perfil</button>
+        <label class="terreno-campo-rotulo" for="perfil-n">Muestras</label>
+        <select class="form-select perfil-n" id="perfil-n">
+          <option value="21">21</option>
+          <option value="51">51</option>
+          <option value="101" selected>101</option>
+          <option value="201">201</option>
+          <option value="501">501</option>
+        </select>
+        <a class="boton boton-suave boton-pequeno visor-enlace" id="perfil-csv" href="#" download aria-disabled="true" tabindex="-1">Descargar CSV</a>
+      </div>
+      <p class="visor-valor av-mt-2 av-mb-2" id="perfil-estado" role="status" aria-live="polite">Todavía no hay un perfil: marque los puntos A y B.</p>
+      <svg id="perfil-ns" width="0" height="0" hidden aria-hidden="true" focusable="false"></svg>
+      <div class="perfil-grafico" id="perfil-grafico"></div>
+      <div class="table-responsive perfil-tabla" id="perfil-tabla" tabindex="0" role="region" aria-label="Valores del perfil" hidden>
+        <table class="table table-sm av-m-0">
+          <caption class="visually-hidden">Muestras del perfil: distancia desde A, posición y cota</caption>
+          <thead>
+            <tr>
+              <th scope="col">Muestra</th>
+              <th scope="col">Distancia (m)</th>
+              <th scope="col">Latitud</th>
+              <th scope="col">Longitud</th>
+              <th scope="col" id="perfil-col-cota">Cota</th>
+            </tr>
+          </thead>
+          <tbody id="perfil-filas"></tbody>
+        </table>
+      </div>
+    </section>
+    {% endif %}
 
     <section class="tarjeta" aria-labelledby="mapa-esquinas-titulo">
       <div class="eyebrow" id="mapa-esquinas-titulo">Esquinas y centro</div>

@@ -65,7 +65,8 @@ Llegó un vuelo de un Matrice 3E con lo que sacó Trimble Business Center (su UA
 
 ## Cómo se usa la segunda entrada: PPK con RTKLIB (F18.7)
 
-En «Corregir un vuelo de dron», el primer paso pregunta **¿De dónde sale la trayectoria?**
+En «Corregir un vuelo de dron», el primer paso pregunta **¿De dónde sale la posición precisa?** (desde
+F18.8 tiene tres respuestas; la tercera, más abajo).
 
 1. **«Calcularla aquí con RTKLIB (PPK)».** Si en la máquina no está `rnx2rtkp`, la opción sale
    apagada con su motivo (`sin-rnx2rtkp`) y cómo instalarlo (`sudo apt install rtklib`, o
@@ -101,10 +102,45 @@ de Trimble no es elipsoidal y diferiría decenas de metros sin que eso sea un er
 base (P18); las pruebas de CI usan un `rnx2rtkp` de mentira que escribe un `.pos` de resultado
 conocido (`apps/vuelos/test_vuelo_ppk_pantalla.py`).
 
+## La tercera entrada: las fotos ya traen la posición RTK (F18.8 a F18.10)
+
+Cuando el dron voló con RTK **no hay PPK que hacer**: la posición precisa está escrita en cada foto. La
+tercera respuesta de la misma pantalla («Las fotos ya traen la posición RTK») la **lee** y entrega los
+mismos archivos. Es la misma pantalla y no una herramienta aparte porque lo que sale es lo mismo y porque
+la pregunta es la que se hace quien viene del vuelo; los pasos que sobran (trayectoria, posiciones de
+Trimble, copias con la posición) se ocultan y se muestra el sistema del visor sin valor elegido.
+
+1. **Hace falta la carpeta de fotos y el `.MRK`.** El `.MRK` es el otro lector: las fotos se emparejan con
+   sus disparos por orden (solo con tantos como fotos) y la posición de cada foto se compara con la del
+   disparo. Si alguna difiere más de 2 cm no se entrega nada.
+2. **La posición** es la del XMP de DJI (`GpsLatitude`, `GpsLongitude`, `AbsoluteAltitude`); si no hay XMP,
+   la del EXIF. Es la de la **antena**; con la casilla de la cámara se aplica el desfase del `.MRK`.
+3. **La altura** se llama elipsoidal solo si coincide con la «Ellh» del `.MRK` a 5 mm. DJI la mide
+   «elipsoidal» en el `.MRK`; el XMP solo dice `AltitudeType="RtkAlt"`.
+4. **La calidad** sale de `RtkFlag` (50 fija, 34 flotante, 16 simple, 0 sin solución). `GpsStatus` no sirve:
+   dice «RTK» aunque la bandera sea 16. Sin bandera, «no informada»; con un código que no se conoce,
+   «no reconocida».
+5. **Sin trayectoria**: el visor dibuja solo los puntos, y el sistema se declara (no se supone).
+
+**Ficha de cada foto (F18.9).** En el visor, al elegir una foto aparece su ficha de cámara, GNSS y dron, leída
+del archivo (solo la cabecera), o, si la foto no está en la carpeta, del `export_extended` de Trimble.
+Funciona igual en los tres orígenes.
+
+**Orientación de la cámara (F18.10).** `fotos.csv` trae `gimbal_guinada_deg`, `gimbal_cabeceo_deg` y
+`gimbal_alabeo_deg` en los tres orígenes: del XMP de las fotos de la carpeta o, si no, del archivo de
+Trimble. Es la convención de DJI **sin convertir** (cabeceo −90° = nadir): los ejes de Metashape y de
+Pix4D son otros y se mapean al importar.
+
+**Qué se comprobó:** cifras con las 2 505 fotos del vuelo de Baquedano en `docs/PRUEBAS_CON_ORACULO.md`
+(2026-10-09). Ese vuelo fue PPK y no RTK: solo se vio la bandera 16; **las 50 y 34 esperan un vuelo RTK
+real (P20)**.
+
 ## Qué falta de la persona
 
 - **Un vuelo de verdad** (P15): RINEX del dron, RINEX de la base, el `.MRK`, y unas fotos, fuera del
   repositorio, y la **coordenada conocida de la base con su sistema**. Sin él, F18.3 queda ⚠: se
   prueba todo lo demás, pero la corrida real de RTKLIB contra datos reales no.
+- **Un vuelo RTK real** (P20): las fotos de un vuelo con RTK en el aire y su exportación de UAS Sync o
+  de TBC. Sin él, F18.8 queda ⚠: las banderas 50 y 34 no se han visto en un archivo real.
 - **Permiso para bajar RTKLIB a esta estación** (P16), para poder correr `rnx2rtkp` aquí y no solo
   en `p340`. Sin él, lo real se mide en el servidor.

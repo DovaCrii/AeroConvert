@@ -1,0 +1,235 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block titulo %}Escanear con el teléfono · AeroConvert{% endblock %}
+
+{% block contenido %}
+
+{% if not hojas %}
+
+{# Paso 1: las fotos. #}
+<div class="tarjeta antes-de-empezar">
+  <p class="sin-hueco">
+    <strong>Una foto de una hoja sale de lado, en perspectiva y con la mesa alrededor.</strong>
+    Aquí se busca el borde de cada hoja, se endereza para que quede rectangular, se recorta y se
+    juntan todas en <strong>un PDF con una página por foto</strong>.
+  </p>
+  <p class="tenue">
+    Si en alguna foto no se distingue la hoja, <strong>no se inventa un recorte</strong>: se le
+    dice y puede marcar las cuatro esquinas usted. Las fotos originales no se tocan.
+  </p>
+</div>
+
+<form method="post" enctype="multipart/form-data">
+  {% csrf_token %}
+
+  <div class="tarjeta tarjeta-acento">
+    <div class="eyebrow">Las fotos</div>
+    <h2 class="av-fs-md">¿Cuáles?</h2>
+    <p class="tenue av-mt-2 av-mb-3">
+      Este servidor lee: {{ leidas }}. Después de elegirlas podrá cambiar el orden de las páginas.
+    </p>
+
+    <div class="origenes origenes-pdf">
+      <div class="origen">
+        <div class="origen-cabeza">
+          <span class="origen-marca fam-transformar" aria-hidden="true">
+            <svg class="origen-icono"><use href="{% static 'img/icons.svg' %}#icon-equipo"></use></svg>
+          </span>
+          <div>
+            <h3 class="origen-titulo">Desde su equipo o su teléfono</h3>
+            <p class="origen-nota">Varias a la vez. En el teléfono se puede tomar la foto en el momento.</p>
+          </div>
+        </div>
+        <div class="soltar soltar-compacto">
+          <label class="visually-hidden" for="id_subir">Elegir fotos de hojas</label>
+          <input type="file" name="archivos" id="id_subir" class="form-control" multiple
+                 accept="image/*,.heic,.heif" data-tope-mb="{{ tope_mb }}">
+          <p class="soltar-ayuda av-mt-2 av-mb-0"><span class="limite-subida">Límite por foto: <strong>{{ tope_mb }} MB</strong></span></p>
+        </div>
+      </div>
+
+      <div class="origen">
+        <div class="origen-cabeza">
+          <span class="origen-marca fam-proteger" aria-hidden="true">
+            <svg class="origen-icono"><use href="{% static 'img/icons.svg' %}#icon-carpeta"></use></svg>
+          </span>
+          <div>
+            <h3 class="origen-titulo">De la carpeta compartida</h3>
+            <p class="origen-nota">Pinche cada una en el orden en que van.</p>
+          </div>
+        </div>
+        {% include "dashboard/_buscador.html" with destino="#id_fotos" modo="anadir" %}
+      </div>
+    </div>
+
+    <textarea name="archivos_texto" id="id_fotos" hidden>{{ rutas_texto }}</textarea>
+    <div class="av-mt-3" data-avance-subida hidden></div>
+
+    <input type="hidden" name="accion" value="mirar">
+    <button type="submit" class="boton">Buscar las hojas</button>
+  </div>
+</form>
+
+{% else %}
+
+{# Paso 2: lo hallado en cada foto, con las esquinas a la vista y editables. #}
+<form method="post" id="forma-escaneo" enctype="multipart/form-data">
+  {% csrf_token %}
+  <textarea name="archivos_texto" hidden>{{ rutas_texto }}</textarea>
+  <input type="hidden" name="accion" value="hacer">
+
+  <div class="tarjeta tarjeta-acento">
+    <div class="eyebrow">Las hojas</div>
+    <h2 class="av-fs-md">Revise cada foto antes de crear el PDF</h2>
+    <p class="tenue av-mt-2 av-mb-0">
+      El recuadro de cada foto es la hoja que se encontró: lo de fuera se recorta y lo de dentro
+      se endereza. Si no es la hoja, <strong>marque las cuatro esquinas</strong> (tocándolas en la
+      foto o escribiendo sus porcentajes) o <strong>deje la foto entera</strong>.
+    </p>
+  </div>
+
+  <ol class="hojas-escaneadas" data-escanear>
+    {% for h in hojas %}
+    <li class="hoja-escaneada tarjeta" data-hoja="{{ h.indice }}">
+      <h3 class="av-fs-md av-mb-2">Foto {{ h.numero }} · {{ h.nombre }}</h3>
+
+      {% if h.detectada %}
+        <p class="estado-hoja estado-hoja-ok" role="status">
+          <svg class="icono-estado" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-veredicto-abre"></use></svg>
+          <span><strong>Se encontró la hoja.</strong> Compruebe que el recuadro la rodea.</span>
+        </p>
+      {% else %}
+        <p class="estado-hoja estado-hoja-aviso" role="status">
+          <svg class="icono-estado" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-veredicto-reparos"></use></svg>
+          <span><strong>No se encontró la hoja.</strong> {{ h.motivo }} Si no la marca, queda la foto entera.</span>
+        </p>
+      {% endif %}
+
+      <div class="hoja-foto" data-foto data-hoja="{{ h.indice }}">
+        <img src="{% url 'documents:escanear_foto' %}?ruta={{ h.token|urlencode }}"
+             alt="Foto {{ h.numero }}: {{ h.nombre }}" loading="lazy">
+        <svg class="dibujo-hoja-marco" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+          <polygon points="{{ h.puntos }}"></polygon>
+        </svg>
+      </div>
+
+      <fieldset class="av-mt-3">
+        <legend class="eyebrow">Qué hacer con esta foto</legend>
+        <label class="opcion">
+          <input type="radio" name="modo_{{ h.indice }}" value="esquinas" {% if h.modo == "esquinas" %}checked{% endif %}>
+          <span><strong>Recortar y enderezar la hoja</strong><span class="tenue">Con las esquinas del recuadro.</span></span>
+        </label>
+        <label class="opcion">
+          <input type="radio" name="modo_{{ h.indice }}" value="entera" {% if h.modo != "esquinas" %}checked{% endif %}>
+          <span><strong>Dejar la foto entera</strong><span class="tenue">Sin recortar ni enderezar.</span></span>
+        </label>
+      </fieldset>
+
+      <div class="hoja-acciones av-mt-2">
+        <button type="button" class="boton boton-suave" data-marcar hidden>Marcar las esquinas en la foto</button>
+        <p class="tenue av-mb-0" data-ayuda-marcar aria-live="polite"></p>
+      </div>
+
+      <details class="av-mt-2">
+        <summary>Poner o ajustar las esquinas con números</summary>
+        <p class="tenue av-mt-2">
+          Cada esquina es un porcentaje del ancho (de 0, a la izquierda, a 100) y del alto (de 0,
+          arriba, a 100) de la foto, tal como se ve arriba.
+        </p>
+        <div class="hoja-numeros">
+          {% for e in h.esquinas %}
+          <fieldset class="hoja-esquina-campos">
+            <legend class="av-fs-sm fw-semibold">{{ forloop.counter }}. {{ e.etiqueta }}</legend>
+            <label for="id_e{{ h.indice }}_{{ e.k }}x">Ancho (%)</label>
+            <input type="number" min="0" max="100" step="0.01" inputmode="decimal" class="form-control"
+                   id="id_e{{ h.indice }}_{{ e.k }}x" name="e{{ h.indice }}_{{ e.k }}x" value="{{ e.x }}" data-esquina="{{ e.k }}" data-eje="x">
+            <label for="id_e{{ h.indice }}_{{ e.k }}y">Alto (%)</label>
+            <input type="number" min="0" max="100" step="0.01" inputmode="decimal" class="form-control"
+                   id="id_e{{ h.indice }}_{{ e.k }}y" name="e{{ h.indice }}_{{ e.k }}y" value="{{ e.y }}" data-esquina="{{ e.k }}" data-eje="y">
+          </fieldset>
+          {% endfor %}
+        </div>
+      </details>
+
+      <div class="av-mt-3 av-mw-16">
+        <label class="fw-semibold" for="id_orden_{{ h.indice }}">Posición en el PDF</label>
+        <input type="number" min="1" max="{{ hojas|length }}" step="1" class="form-control"
+               id="id_orden_{{ h.indice }}" name="orden_{{ h.indice }}" value="{{ h.orden }}">
+      </div>
+    </li>
+    {% endfor %}
+  </ol>
+
+  <div class="tarjeta">
+    <div class="eyebrow">El PDF</div>
+
+    <fieldset class="av-mb-3">
+      <legend class="fw-semibold">Tamaño de las páginas</legend>
+      {% for valor, texto in tamanos.items %}
+        <label class="opcion">
+          <input type="radio" name="tamano" value="{{ valor }}" {% if tamano == valor %}checked{% endif %}>
+          <span><strong>{{ texto }}</strong></span>
+        </label>
+      {% endfor %}
+    </fieldset>
+
+    <label class="opcion">
+      <input type="checkbox" name="mejorar" {% if mejorar %}checked{% endif %}>
+      <span>
+        <strong>Mejorar el contraste para documento</strong>
+        <span class="tenue">
+          Aclara el fondo y oscurece la tinta. Pensado para texto: una foto o un bloque oscuro
+          grande dentro de la hoja queda más claro de lo que era.
+        </span>
+      </span>
+    </label>
+
+    {% if tesseract %}
+      <label class="opcion">
+        <input type="checkbox" name="ocr" id="id_ocr" {% if quiere_ocr %}checked{% endif %}>
+        <span>
+          <strong>Reconocer el texto (OCR)</strong>
+          <span class="tenue">
+            El PDF sale con el texto debajo de la imagen, para poder buscarlo y copiarlo. El
+            reconocimiento se equivoca a veces y tarda unos segundos por página.
+          </span>
+        </span>
+      </label>
+      <div class="av-mt-2 av-mb-3 av-mw-26">
+        <label class="fw-semibold" for="id_idioma">Idioma del texto</label>
+        <select id="id_idioma" name="idioma" class="form-select">
+          {% for codigo, nombre in idiomas.items %}
+            <option value="{{ codigo }}" {% if idioma == codigo %}selected{% endif %}>{{ nombre }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    {% else %}
+      {# Regla 4: apagada, con su motivo y su alternativa; no se esconde ni se sustituye. #}
+      <label class="opcion opcion-apagada">
+        <input type="checkbox" name="ocr" disabled aria-describedby="motivo-ocr">
+        <span>
+          <strong>Reconocer el texto (OCR) — no disponible ahora</strong>
+          <span class="tenue" id="motivo-ocr">
+            {{ tesseract.motivo }} {{ tesseract.sugerencia }}
+            Mientras tanto el PDF sale con las páginas como imagen, y «Reconocer texto (OCR)» se
+            puede usar después, cuando Tesseract esté.
+          </span>
+        </span>
+      </label>
+    {% endif %}
+
+    <div class="av-mt-3">
+      <button type="submit" class="boton">Crear el PDF</button>
+      <a class="boton boton-suave" href="{% url 'documents:escanear' %}">Elegir otras fotos</a>
+    </div>
+  </div>
+</form>
+
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'js/escanear.js' %}" defer></script>
+{% endblock %}

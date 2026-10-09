@@ -215,6 +215,22 @@ HERRAMIENTAS = (
         "que_hace": "Fotos o escaneos en un solo documento, en A4 o al tamaño del original.",
     },
     {
+        "id": "escanear",
+        "icono": "icon-escanear",
+        "sale": "un PDF con una página por hoja",
+        "familia": "transformar",
+        "url": "documents:escanear",
+        "nombre": "Escanear con el teléfono",
+        "que_hace": (
+            "Fotos de hojas a un PDF: encuentra el borde de cada hoja, la endereza y la recorta, "
+            "mejora el contraste si se pide y puede dejar el texto reconocido."
+        ),
+        "tras_hacerlo": (
+            "Repase cada página: si una hoja no se distinguió, quedó la foto entera y el recibo "
+            "lo dice."
+        ),
+    },
+    {
         "id": "a_imagenes",
         "icono": "icon-pdf-a-imagen",
         "sale": "JPG o PNG",

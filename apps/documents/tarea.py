@@ -533,12 +533,60 @@ def _lo_declarado(base, calculo, opciones: dict) -> str:
     return "\n".join(lineas) + "\n"
 
 
+def _vuelo_dron_con_fotos(por_papel: dict, opciones: dict, parcial: Path) -> dict:
+    """«Vuelo con RTK» (F18.8): la posición ya está en las fotos. Se **leen**, no se calculan.
+
+    Las fotos se abren en solo lectura y solo su cabecera. El `.MRK` es el otro lector: con él se
+    comprueba que las fotos son de ese vuelo y de qué altura se trata (`vuelo_rtk.py`).
+    """
+    import zipfile
+
+    from apps.vuelos import vuelo_rtk
+
+    if not por_papel.get("disparos"):
+        raise FalloDeTarea("documento-invalido", "Hace falta el archivo .MRK del dron.")
+    carpeta = (opciones.get("carpeta_de_fotos") or "").strip()
+    if not carpeta:
+        raise FalloDeTarea("documento-invalido", "Hace falta la carpeta de fotos del vuelo.")
+    fichas = vuelo_rtk.leer_carpeta(Path(carpeta), progreso)
+    print(f"Carpeta de fotos: {len(fichas)} imágenes leídas", flush=True)
+    disparos = Path(por_papel["disparos"])
+    hecho = vuelo_rtk.procesar(
+        fichas=fichas,
+        disparos=disparos.read_bytes(),
+        nombre_de_disparos=disparos.name,
+        sistema=str(opciones.get("sistema", "")),
+        aplicar_desfase=bool(opciones.get("aplicar_desfase", True)),
+        progreso=progreso,
+    )
+    with zipfile.ZipFile(parcial, "w", zipfile.ZIP_DEFLATED) as paquete:
+        for nombre, datos in hecho.archivos.items():
+            paquete.writestr(nombre, datos)
+    fotos = hecho.resumen["fotos"]
+    return {
+        **hecho.resumen,
+        "piezas": [
+            {"nombre": "fotos.csv", "filas": fotos},
+            {"nombre": "fotos.geojson", "puntos": hecho.resumen["con_posicion"]},
+            *(
+                [{"nombre": "fotos.kml", "puntos": hecho.resumen["con_posicion"]}]
+                if "fotos.kml" in hecho.archivos
+                else []
+            ),
+            {"nombre": "calidad.md"},
+            {"nombre": "vuelo.json", "fotos": fotos},
+        ],
+    }
+
+
 def _vuelo_dron(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
     import zipfile
 
     from apps.vuelos import vuelo_pos, vuelo_proceso
 
     por_papel = {e.get("papel"): e["ruta"] for e in entradas}
+    if opciones.get("origen") == "fotos":
+        return _vuelo_dron_con_fotos(por_papel, opciones, parcial)
     con_rtklib = opciones.get("origen") == "rinex"
     if con_rtklib:
         if not por_papel.get("disparos"):
@@ -553,10 +601,13 @@ def _vuelo_dron(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
                 "documento-invalido", "Hacen falta la trayectoria y los disparos de la cámara."
             )
     nombres = None
+    fichas = None
     carpeta = (opciones.get("carpeta_de_fotos") or "").strip()
     if carpeta:
         nombres = vuelo_proceso.nombres_de_fotos(Path(carpeta))
         print(f"Carpeta de fotos: {len(nombres)} imágenes", flush=True)
+        # La orientación del gimbal de cada foto (F18.10) sale de su XMP; solo se lee la cabecera.
+        fichas = vuelo_proceso.fichas_de_la_carpeta(Path(carpeta))
     referencia = por_papel.get("referencia")
 
     calculo = texto_pos = base = None
@@ -582,6 +633,7 @@ def _vuelo_dron(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
         sistema=str(opciones.get("sistema", "medir")),
         aplicar_desfase=bool(opciones.get("aplicar_desfase", True)),
         progreso=avance,
+        fichas=fichas,
     )
     piezas_de_rtklib: list[dict] = []
     if calculo is not None:
@@ -942,6 +994,39 @@ def _ocr(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
     return {"paginas": len(PdfReader(origen).pages)}
 
 
+def _escanear(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
+    import os
+
+    from apps.documents import escanear
+
+    reconocer = None
+    if opciones.get("ocr"):
+        programa = os.environ.get(VARIABLE_TESSERACT, "")
+        if not programa:
+            raise FalloDeTarea("sin-tesseract", "No llegó la ruta de Tesseract desde el corredor.")
+        reconocer = escanear.OpcionesDeOcr(programa, str(opciones.get("idioma") or "spa"))
+
+    hojas = escanear.hojas_desde_opciones(opciones.get("hojas"), len(entradas))
+    hecho = escanear.escanear(
+        [e["ruta"] for e in entradas],
+        parcial,
+        hojas,
+        mejorar=bool(opciones.get("mejorar")),
+        tamano=str(opciones.get("tamano") or "hoja"),
+        ocr=reconocer,
+        progreso=progreso,
+    )
+    return {
+        "paginas": hecho.paginas,
+        "hojas": [
+            {"nombre": h.nombre, "tratamiento": h.tratamiento, "motivo": h.motivo}
+            for h in hecho.hojas
+        ],
+        "con_ocr": hecho.con_ocr,
+        "avisos": hecho.avisos,
+    }
+
+
 #: FFmpeg y ffprobe, sondeados por el padre (el hijo no tiene Django para sondear).
 VARIABLE_FFMPEG = "AEROCONVERT_FFMPEG_HIJO"
 VARIABLE_FFPROBE = "AEROCONVERT_FFPROBE_HIJO"
@@ -1155,6 +1240,7 @@ TAREAS = {
     "md_a_pdf": _markdown_a_pdf,
     "a_epub": _a_epub,
     "html_a_pdf": _html_a_pdf,
+    "escanear": _escanear,
     "reparar": _reparar,
     "comprimir": _comprimir,
     "dividir": _dividir,
