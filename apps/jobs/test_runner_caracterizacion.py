@@ -1161,6 +1161,20 @@ class TestGrupoDeProcesos:
         assert resultado.stdout.strip() == "hola"
         assert resultado.stderr.strip() == "mal"
 
+    def test_correr_en_grupo_decodifica_utf8_aunque_la_pagina_de_codigos_sea_otra(self):
+        """En Windows `text=True` sin `encoding` decodifica con cp1252 y «á» sale «Ã¡»."""
+        codigo = (
+            "import sys\n"
+            "sys.stdout.buffer.write('pirámides'.encode('utf-8'))\n"
+            "sys.stderr.buffer.write(b'ca\\xffo \\xc3\\xb1')\n"  # un byte inválido no tumba
+        )
+        resultado = runner._correr_en_grupo(
+            list(_py(codigo)), cwd=None, entorno=os.environ.copy(), timeout_s=30
+        )
+        assert resultado.stdout == "pirámides"
+        assert resultado.stderr.endswith("o ñ")
+        assert "�" in resultado.stderr
+
 
 # =============================================================================
 # Reclamo y entregables ajenos
