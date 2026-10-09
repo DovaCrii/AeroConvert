@@ -742,3 +742,28 @@ En la estación hay ACE y no hay `mdbtools`; en el servidor, al revés. El proce
    tienen que coincidir una por una con las de ACE.
 3. Abrir el Excel y comprobar que una columna numérica (`NOMINAL_DIAMETER`) sale como número.
 
+
+## Corrida del 2026-10-09 — «Escanear con el teléfono» contra PDFium; Tesseract pendiente en `p340` (F14.12)
+
+**Lo medido aquí.** No hay datos reales: una hoja sintética de 210 × 297 mm, con un rectángulo negro de
+referencia de 40 a 170 mm de ancho y de 70 a 130 mm de alto y unas frases, se «fotografía» con una
+cámara de agujero calculada **en la prueba, sin usar el módulo** (foco de 1 400 px en una foto de
+1 600 × 1 200; cabeceo 28°, guiñada −16°, alabeo 5°; cada punto del cuadro busca el punto de la hoja
+que ve, rayo contra plano). **PDFium dibuja** la página que entrega la herramienta y se mide el
+rectángulo: sus cuatro bordes caen a ≤ 2 % del tamaño de la página de donde la hoja los tenía, cada
+borde medido en dos sitios del rectángulo difiere ≤ 2 % (paralelos) y la página tiene la proporción
+210 : 297 dentro del 2 %. Las esquinas detectadas quedaron a menos de 0,2 % de las proyectadas
+(corrida de la estación: página de 366 × 520 px, proporción 0,704 frente a 0,707). Se repite con la
+orientación EXIF girada, en A4 y con otra perspectiva. Con la media de los lados en vez de la
+estimación por perspectiva la proporción salía 0,760: un 7 % de error, que es por lo que no se usa.
+
+**Pendiente en `p340`, donde está Tesseract:**
+
+```bash
+cd /opt/aeroconvert && sudo -u aeroconvert .venv/bin/python -m pytest -q -m oraculo \
+    apps/documents/test_escanear.py
+```
+
+La prueba pide el PDF con reconocimiento sobre esa misma hoja y **PDFium** (otro lector) busca
+«CONTROL» y «7391» en la capa de texto que escribió Tesseract. Anotar aquí la fecha, la versión de
+Tesseract y el idioma usado.
