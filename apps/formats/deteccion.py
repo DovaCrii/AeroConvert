@@ -247,6 +247,28 @@ def _crs_de_prj(ruta: Path) -> crs_mod.Crs:
         return crs_mod.SIN_CRS
 
 
+@dataclass
+class _Hallazgos:
+    """Lo que va quedando de mirar un archivo, paso a paso. Solo lo usa `inspeccionar`."""
+
+    codigo: str | None
+    confianza: str
+    avisos: list[str] = field(default_factory=list)
+    crs: crs_mod.Crs = crs_mod.SIN_CRS
+    tiff: object = None
+    las: object = None
+    puntos: object = None
+    landxml: object = None
+    pdf: object = None
+    trimble: object = None
+
+    def descartar(self, aviso: str) -> None:
+        """No era lo que su extensión o su firma prometían: se queda sin formato y se dice."""
+        self.codigo = ""
+        self.confianza = CONFIANZA_DESCONOCIDA
+        self.avisos.append(aviso)
+
+
 def inspeccionar(ruta: str | Path) -> Inspeccion:
     """Lee la cabecera y devuelve lo que se sabe. **No abre la imagen.**
 
@@ -255,6 +277,42 @@ def inspeccionar(ruta: str | Path) -> Inspeccion:
     """
     ruta = Path(ruta)
 
+    tamano, cabecera = _leer_el_principio(ruta)
+    hallazgos = _reconocer_el_formato(ruta, cabecera)
+
+    # Cada lector mira solo su formato; el orden es el de siempre, y uno puede dejar al
+    # archivo sin formato (`descartar`) antes de que le toque al siguiente.
+    _leer_tiff(ruta, hallazgos)
+    _leer_las(ruta, hallazgos)
+    _leer_libreta(ruta, hallazgos)
+    _leer_pdf(ruta, hallazgos)
+    _leer_trimble(ruta, hallazgos)
+    _leer_rinex(ruta, hallazgos)
+    _leer_landxml(ruta, hallazgos)
+    _resolver_el_crs_restante(ruta, hallazgos)
+
+    codigo = hallazgos.codigo
+    return Inspeccion(
+        ruta=ruta,
+        nombre=ruta.name,
+        bytes_totales=tamano,
+        codigo_formato=codigo or "",
+        confianza=hallazgos.confianza,
+        crs=hallazgos.crs,
+        acompanantes=archivos_acompanantes(ruta, codigo or ""),
+        tiff=hallazgos.tiff,
+        las=hallazgos.las,
+        puntos=hallazgos.puntos,
+        landxml=hallazgos.landxml,
+        pdf=hallazgos.pdf,
+        trimble=hallazgos.trimble,
+        avisos=tuple(hallazgos.avisos),
+        detalles={},
+    )
+
+
+def _leer_el_principio(ruta: Path) -> tuple[int, bytes]:
+    """Tamaño y primeros bytes del archivo, o `OrigenIlegible` con su motivo."""
     if not ruta.exists():
         raise OrigenIlegible(f"No hay ningún archivo en {ruta}.", "origen-no-legible")
     if ruta.is_dir():
@@ -288,7 +346,11 @@ def inspeccionar(ruta: str | Path) -> Inspeccion:
         raise OrigenIlegible(
             f"No se pudo leer {ruta.name}: {fallo}", "origen-no-legible"
         ) from fallo
+    return tamano, cabecera
 
+
+def _reconocer_el_formato(ruta: Path, cabecera: bytes) -> _Hallazgos:
+    """Firma, extensión y la discrepancia entre ambas. Un VRT con otra extensión no se acepta."""
     avisos: list[str] = []
     codigo = por_firma(cabecera, ruta.name)
     confianza = CONFIANZA_FIRMA
@@ -323,177 +385,176 @@ def inspeccionar(ruta: str | Path) -> Inspeccion:
         codigo = None
         confianza = CONFIANZA_DESCONOCIDA
 
-    cabecera_tiff = None
-    crs = crs_mod.SIN_CRS
-    detalles: dict = {}
+    return _Hallazgos(codigo=codigo, confianza=confianza, avisos=avisos)
 
-    if codigo in ("geotiff", "bigtiff", "cog"):
-        try:
-            cabecera_tiff = tiff.leer_cabecera(ruta)
-        # `ArithmeticError`: una etiqueta DOUBLE con inf o nan hace `int()` levantar
-        # `OverflowError`, que no es un `ValueError`.
-        except (tiff.NoEsTiff, OSError, ValueError, ArithmeticError) as fallo:
-            avisos.append(f"Empieza como un TIFF pero la cabecera no se pudo leer: {fallo}")
+
+def _leer_tiff(ruta: Path, h: _Hallazgos) -> None:
+    if h.codigo not in ("geotiff", "bigtiff", "cog"):
+        return
+    try:
+        h.tiff = tiff.leer_cabecera(ruta)
+    # `ArithmeticError`: una etiqueta DOUBLE con inf o nan hace `int()` levantar
+    # `OverflowError`, que no es un `ValueError`.
+    except (tiff.NoEsTiff, OSError, ValueError, ArithmeticError) as fallo:
+        h.avisos.append(f"Empieza como un TIFF pero la cabecera no se pudo leer: {fallo}")
+        return
+
+    cabecera_tiff = h.tiff
+    h.codigo = "bigtiff" if cabecera_tiff.es_bigtiff else "geotiff"
+    if cabecera_tiff.epsg:
+        h.crs = crs_mod.epsg(cabecera_tiff.epsg, origen=crs_mod.INCRUSTADO)
+    if cabecera_tiff.es_bigtiff and not cabecera_tiff.necesitaba_bigtiff:
+        # La coma decimal, no el punto: el resto de la ficha dice «466,2 MB» y
+        # «2,56 cm/px», y mezclar las dos convenciones en la misma tarjeta se nota.
+        gigas = f"{cabecera_tiff.bytes_sin_comprimir / 1e9:.2f}".replace(".", ",")
+        h.avisos.append(
+            f"Es BigTIFF sin necesitarlo: sin comprimir ocupa {gigas} GB, muy por "
+            "debajo del techo de 4 GB del TIFF clásico. Reescribirlo como clásico "
+            "no pierde nada y lo abre mucho más software."
+        )
+    if cabecera_tiff.tiene_alfa:
+        h.avisos.append(
+            "Trae una banda alfa. Varios CAD la pintan como una banda gris más o "
+            "dejan negro donde debería ser transparente."
+        )
+
+
+def _leer_las(ruta: Path, h: _Hallazgos) -> None:
+    if h.codigo not in ("las", "laz", "copc"):
+        return
+    try:
+        h.las = las_mod.leer_cabecera(ruta)
+    # `struct.error` se cuela con un archivo truncado en el sitio justo.
+    except (las_mod.NoEsLas, OSError, ValueError, struct.error) as fallo:
+        h.avisos.append(f"Empieza como un LAS pero la cabecera no se pudo leer: {fallo}")
+        return
+
+    cabecera_las = h.las
+    # **La firma no distingue las tres cosas: las tres empiezan por `LASF`.** Un LAZ
+    # es un LAS con los datos comprimidos, y un COPC es un LAZ con un octree dentro.
+    # Solo la cabecera lo dice, y para AeroBim la diferencia es entre poder abrir la
+    # nube y no poder.
+    if cabecera_las.es_copc:
+        h.codigo = "copc"
+    elif cabecera_las.comprimido:
+        h.codigo = "laz"
+    else:
+        h.codigo = "las"
+
+    if cabecera_las.epsg:
+        h.crs = crs_mod.epsg(cabecera_las.epsg, origen=crs_mod.INCRUSTADO)
+    elif cabecera_las.wkt:
+        h.crs = crs_mod.desde_wkt(cabecera_las.wkt, origen=crs_mod.INCRUSTADO)
+
+    if not cabecera_las.precision_suficiente_para_float32:
+        h.avisos.append(
+            "Las coordenadas son demasiado grandes para float32: pasarlas a "
+            "precisión simple sin restar el desplazamiento de cabecera mueve los "
+            "puntos unos 20 cm. Cualquier visor que lo haga mal se notará."
+        )
+
+
+def _leer_libreta(ruta: Path, h: _Hallazgos) -> None:
+    if h.codigo != "puntos":
+        return
+    try:
+        h.puntos = puntos_mod.leer(ruta)
+    except (puntos_mod.NoEsArchivoDePuntos, OSError, ValueError) as fallo:
+        # Un `.csv` que no es una libreta de puntos es un `.csv` cualquiera, y decirlo
+        # es mejor que dejar la ficha en blanco: la extensión no promete nada.
+        h.descartar(f"Tiene extensión de libreta de puntos pero no lo es: {fallo}")
+        return
+
+    cabecera_puntos = h.puntos
+    h.avisos.extend(_avisos_de_puntos(cabecera_puntos))
+    if not cabecera_puntos.leido_completo:
+        h.avisos.append(
+            "Es una libreta muy grande: el conteo y los límites son de las primeras "
+            f"{puntos_mod.LINEAS_MAXIMAS_AL_INSPECCIONAR:,} líneas".replace(",", ".")
+            + ". Convertirla la recorre entera."
+        )
+
+
+def _leer_pdf(ruta: Path, h: _Hallazgos) -> None:
+    if h.codigo != "pdf":
+        return
+    try:
+        h.pdf = pdf_mod.leer_cabecera(ruta)
+    except pdf_mod.NoEsPdf as fallo:
+        h.avisos.append(f"Empieza como un PDF pero no se pudo leer: {fallo}")
+        return
+    h.avisos.extend(_avisos_de_pdf(h.pdf))
+
+
+def _leer_trimble(ruta: Path, h: _Hallazgos) -> None:
+    if h.codigo != "trimble_t0x":
+        return
+    try:
+        h.trimble = trimble_mod.leer_cabecera(ruta)
+    except (trimble_mod.NoEsTrimble, OSError, ValueError) as fallo:
+        # Cuatro bytes de firma los puede tener cualquier cosa. Si el bloque que debe
+        # venir detras no esta, no es un crudo de Trimble y no se finge que lo sea.
+        h.descartar(f"Empieza como un crudo de Trimble pero no lo es: {fallo}")
+        return
+    h.avisos.append(f"Dato crudo de {h.trimble.descripcion}.")
+
+
+def _leer_rinex(ruta: Path, h: _Hallazgos) -> None:
+    if h.codigo != "rinex_obs":
+        return
+    try:
+        cabecera_rinex = rinex_mod.leer_cabecera(ruta)
+        if not cabecera_rinex.es_observacion:
+            raise rinex_mod.NoEsRinex("es de navegación, no de observación")
+    except (rinex_mod.NoEsRinex, OSError, ValueError) as fallo:
+        # `.obs` y `.rnx` los usan otros programas: la extensión no promete un RINEX.
+        h.descartar(f"Tiene extensión de RINEX de observación pero no lo es: {fallo}")
+        return
+    h.avisos.append(
+        f"RINEX {cabecera_rinex.version:.2f} de observación"
+        + (f", receptor {cabecera_rinex.receptor}" if cabecera_rinex.receptor else "")
+        + "."
+    )
+
+
+def _leer_landxml(ruta: Path, h: _Hallazgos) -> None:
+    if h.codigo != "landxml":
+        return
+    try:
+        h.landxml = landxml_mod.leer_cabecera(ruta)
+    except landxml_mod.NoEsLandXml as fallo:
+        # Un `.xml` que no es un LandXML es un `.xml` cualquiera. La extensión no
+        # promete nada: la comparten media docena de formatos y todos los que no lo son.
+        h.descartar(f"Tiene extensión .xml pero no es un LandXML: {fallo}")
+        return
+
+    cabecera_landxml = h.landxml
+    if cabecera_landxml.epsg:
+        # Lo escribe quien hizo el archivo: «EPSG:32719» y «abc» existen de verdad, y
+        # un `int()` suelto convertía un dato mal escrito en un error 500.
+        texto_epsg = str(cabecera_landxml.epsg).strip().upper().removeprefix("EPSG:")
+        if texto_epsg.isdigit():
+            h.crs = crs_mod.epsg(int(texto_epsg), origen=crs_mod.INCRUSTADO)
         else:
-            codigo = "bigtiff" if cabecera_tiff.es_bigtiff else "geotiff"
-            if cabecera_tiff.epsg:
-                crs = crs_mod.epsg(cabecera_tiff.epsg, origen=crs_mod.INCRUSTADO)
-            if cabecera_tiff.es_bigtiff and not cabecera_tiff.necesitaba_bigtiff:
-                # La coma decimal, no el punto: el resto de la ficha dice «466,2 MB» y
-                # «2,56 cm/px», y mezclar las dos convenciones en la misma tarjeta se nota.
-                gigas = f"{cabecera_tiff.bytes_sin_comprimir / 1e9:.2f}".replace(".", ",")
-                avisos.append(
-                    f"Es BigTIFF sin necesitarlo: sin comprimir ocupa {gigas} GB, muy por "
-                    "debajo del techo de 4 GB del TIFF clásico. Reescribirlo como clásico "
-                    "no pierde nada y lo abre mucho más software."
-                )
-            if cabecera_tiff.tiene_alfa:
-                avisos.append(
-                    "Trae una banda alfa. Varios CAD la pintan como una banda gris más o "
-                    "dejan negro donde debería ser transparente."
-                )
-
-    cabecera_las = None
-    if codigo in ("las", "laz", "copc"):
-        try:
-            cabecera_las = las_mod.leer_cabecera(ruta)
-        # `struct.error` se cuela con un archivo truncado en el sitio justo.
-        except (las_mod.NoEsLas, OSError, ValueError, struct.error) as fallo:
-            avisos.append(f"Empieza como un LAS pero la cabecera no se pudo leer: {fallo}")
-        else:
-            # **La firma no distingue las tres cosas: las tres empiezan por `LASF`.** Un LAZ
-            # es un LAS con los datos comprimidos, y un COPC es un LAZ con un octree dentro.
-            # Solo la cabecera lo dice, y para AeroBim la diferencia es entre poder abrir la
-            # nube y no poder.
-            if cabecera_las.es_copc:
-                codigo = "copc"
-            elif cabecera_las.comprimido:
-                codigo = "laz"
-            else:
-                codigo = "las"
-
-            if cabecera_las.epsg:
-                crs = crs_mod.epsg(cabecera_las.epsg, origen=crs_mod.INCRUSTADO)
-            elif cabecera_las.wkt:
-                crs = crs_mod.desde_wkt(cabecera_las.wkt, origen=crs_mod.INCRUSTADO)
-
-            if not cabecera_las.precision_suficiente_para_float32:
-                avisos.append(
-                    "Las coordenadas son demasiado grandes para float32: pasarlas a "
-                    "precisión simple sin restar el desplazamiento de cabecera mueve los "
-                    "puntos unos 20 cm. Cualquier visor que lo haga mal se notará."
-                )
-
-    cabecera_puntos = None
-    if codigo == "puntos":
-        try:
-            cabecera_puntos = puntos_mod.leer(ruta)
-        except (puntos_mod.NoEsArchivoDePuntos, OSError, ValueError) as fallo:
-            # Un `.csv` que no es una libreta de puntos es un `.csv` cualquiera, y decirlo
-            # es mejor que dejar la ficha en blanco: la extensión no promete nada.
-            codigo = ""
-            confianza = CONFIANZA_DESCONOCIDA
-            avisos.append(f"Tiene extensión de libreta de puntos pero no lo es: {fallo}")
-        else:
-            avisos.extend(_avisos_de_puntos(cabecera_puntos))
-            if not cabecera_puntos.leido_completo:
-                avisos.append(
-                    "Es una libreta muy grande: el conteo y los límites son de las primeras "
-                    f"{puntos_mod.LINEAS_MAXIMAS_AL_INSPECCIONAR:,} líneas".replace(",", ".")
-                    + ". Convertirla la recorre entera."
-                )
-
-    cabecera_pdf = None
-    if codigo == "pdf":
-        try:
-            cabecera_pdf = pdf_mod.leer_cabecera(ruta)
-        except pdf_mod.NoEsPdf as fallo:
-            avisos.append(f"Empieza como un PDF pero no se pudo leer: {fallo}")
-        else:
-            avisos.extend(_avisos_de_pdf(cabecera_pdf))
-
-    cabecera_trimble = None
-    if codigo == "trimble_t0x":
-        try:
-            cabecera_trimble = trimble_mod.leer_cabecera(ruta)
-        except (trimble_mod.NoEsTrimble, OSError, ValueError) as fallo:
-            # Cuatro bytes de firma los puede tener cualquier cosa. Si el bloque que debe
-            # venir detras no esta, no es un crudo de Trimble y no se finge que lo sea.
-            codigo = ""
-            confianza = CONFIANZA_DESCONOCIDA
-            avisos.append(f"Empieza como un crudo de Trimble pero no lo es: {fallo}")
-        else:
-            avisos.append(f"Dato crudo de {cabecera_trimble.descripcion}.")
-
-    if codigo == "rinex_obs":
-        try:
-            cabecera_rinex = rinex_mod.leer_cabecera(ruta)
-            if not cabecera_rinex.es_observacion:
-                raise rinex_mod.NoEsRinex("es de navegación, no de observación")
-        except (rinex_mod.NoEsRinex, OSError, ValueError) as fallo:
-            # `.obs` y `.rnx` los usan otros programas: la extensión no promete un RINEX.
-            codigo = ""
-            confianza = CONFIANZA_DESCONOCIDA
-            avisos.append(f"Tiene extensión de RINEX de observación pero no lo es: {fallo}")
-        else:
-            avisos.append(
-                f"RINEX {cabecera_rinex.version:.2f} de observación"
-                + (f", receptor {cabecera_rinex.receptor}" if cabecera_rinex.receptor else "")
-                + "."
+            h.avisos.append(
+                f"El LandXML dice epsgCode «{cabecera_landxml.epsg}», que no es un "
+                "número de EPSG: no se usa. Declare el sistema al convertir."
             )
+    h.avisos.extend(_avisos_de_landxml(cabecera_landxml))
 
-    cabecera_landxml = None
-    if codigo == "landxml":
-        try:
-            cabecera_landxml = landxml_mod.leer_cabecera(ruta)
-        except landxml_mod.NoEsLandXml as fallo:
-            # Un `.xml` que no es un LandXML es un `.xml` cualquiera. La extensión no
-            # promete nada: la comparten media docena de formatos y todos los que no lo son.
-            codigo = ""
-            confianza = CONFIANZA_DESCONOCIDA
-            avisos.append(f"Tiene extensión .xml pero no es un LandXML: {fallo}")
-        else:
-            if cabecera_landxml.epsg:
-                # Lo escribe quien hizo el archivo: «EPSG:32719» y «abc» existen de verdad, y
-                # un `int()` suelto convertía un dato mal escrito en un error 500.
-                texto_epsg = str(cabecera_landxml.epsg).strip().upper().removeprefix("EPSG:")
-                if texto_epsg.isdigit():
-                    crs = crs_mod.epsg(int(texto_epsg), origen=crs_mod.INCRUSTADO)
-                else:
-                    avisos.append(
-                        f"El LandXML dice epsgCode «{cabecera_landxml.epsg}», que no es un "
-                        "número de EPSG: no se usa. Declare el sistema al convertir."
-                    )
-            avisos.extend(_avisos_de_landxml(cabecera_landxml))
 
-    if not crs.conocido:
-        crs = _crs_de_prj(ruta)
+def _resolver_el_crs_restante(ruta: Path, h: _Hallazgos) -> None:
+    """Lo que no trajo el archivo: el `.prj` de al lado y, al final, lo que impone el formato."""
+    if not h.crs.conocido:
+        h.crs = _crs_de_prj(ruta)
 
-    if not crs.conocido:
+    if not h.crs.conocido:
         # Lo que impone el formato. Un KML **solo** existe en EPSG:4326, así que decirlo no
         # es adivinar: es leer la norma. Va el último para que no pise nada de lo que traiga
         # el archivo, aunque en estos formatos no puede haber otra cosa.
-        formato = catalogo.FORMATOS.get(codigo or "")
+        formato = catalogo.FORMATOS.get(h.codigo or "")
         if formato is not None and formato.crs_fijo:
-            crs = crs_mod.epsg(int(formato.crs_fijo), origen=crs_mod.POR_NORMA)
-
-    return Inspeccion(
-        ruta=ruta,
-        nombre=ruta.name,
-        bytes_totales=tamano,
-        codigo_formato=codigo or "",
-        confianza=confianza,
-        crs=crs,
-        acompanantes=archivos_acompanantes(ruta, codigo or ""),
-        tiff=cabecera_tiff,
-        las=cabecera_las,
-        puntos=cabecera_puntos,
-        landxml=cabecera_landxml,
-        pdf=cabecera_pdf,
-        trimble=cabecera_trimble,
-        avisos=tuple(avisos),
-        detalles=detalles,
-    )
+            h.crs = crs_mod.epsg(int(formato.crs_fijo), origen=crs_mod.POR_NORMA)
 
 
 def _avisos_de_pdf(cabecera: pdf_mod.CabeceraPdf) -> list[str]:

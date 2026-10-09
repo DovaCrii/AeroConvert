@@ -102,35 +102,50 @@ def _opciones_visibles(opciones: dict) -> list[tuple[str, str]]:
     return [(k.replace("_", " "), str(v)) for k, v in visibles.items()]
 
 
-def construir(job) -> bytes:
-    """El PDF del informe de `job`, en memoria."""
-    from reportlab.lib import colors
-    from reportlab.lib.pagesizes import A4
-    from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
-    from reportlab.lib.units import mm
-    from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+class _Hoja:
+    """Los estilos del informe y la fábrica de sus tablas (reportlab, que se importa tarde)."""
 
-    estilos = getSampleStyleSheet()
-    normal = ParagraphStyle(
-        "n", parent=estilos["Normal"], fontName="Helvetica", fontSize=9, leading=12
-    )
-    etiqueta = ParagraphStyle("e", parent=normal, textColor=colors.HexColor("#555555"))
-    huella = ParagraphStyle("h", parent=normal, fontName="Courier", fontSize=7.5, leading=10)
-    titulo = ParagraphStyle(
-        "t", parent=estilos["Title"], fontName="Helvetica-Bold", fontSize=18, alignment=0
-    )
-    seccion = ParagraphStyle(
-        "s",
-        parent=estilos["Heading2"],
-        fontName="Helvetica-Bold",
-        fontSize=12,
-        spaceBefore=12,
-        spaceAfter=4,
-    )
+    def __init__(self) -> None:
+        from reportlab.lib import colors
+        from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 
-    def tabla(filas: list[tuple[str, str, bool]]):
+        estilos = getSampleStyleSheet()
+        self.normal = ParagraphStyle(
+            "n", parent=estilos["Normal"], fontName="Helvetica", fontSize=9, leading=12
+        )
+        self.etiqueta = ParagraphStyle(
+            "e", parent=self.normal, textColor=colors.HexColor("#555555")
+        )
+        self.huella = ParagraphStyle(
+            "h", parent=self.normal, fontName="Courier", fontSize=7.5, leading=10
+        )
+        self.titulo = ParagraphStyle(
+            "t", parent=estilos["Title"], fontName="Helvetica-Bold", fontSize=18, alignment=0
+        )
+        self.seccion = ParagraphStyle(
+            "s",
+            parent=estilos["Heading2"],
+            fontName="Helvetica-Bold",
+            fontSize=12,
+            spaceBefore=12,
+            spaceAfter=4,
+        )
+
+    def parrafo(self, texto: str, estilo):
+        from reportlab.platypus import Paragraph
+
+        return Paragraph(texto, estilo)
+
+    def tabla(self, filas: list[tuple[str, str, bool]]):
+        from reportlab.lib import colors
+        from reportlab.lib.units import mm
+        from reportlab.platypus import Paragraph, Table, TableStyle
+
         datos = [
-            [Paragraph(_texto(k), etiqueta), Paragraph(_texto(v), huella if mono else normal)]
+            [
+                Paragraph(_texto(k), self.etiqueta),
+                Paragraph(_texto(v), self.huella if mono else self.normal),
+            ]
             for k, v, mono in filas
         ]
         t = Table(datos, colWidths=[44 * mm, 130 * mm])
@@ -146,24 +161,55 @@ def construir(job) -> bytes:
         )
         return t
 
+
+def construir(job) -> bytes:
+    """El PDF del informe de `job`, en memoria."""
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.units import mm
+    from reportlab.platypus import SimpleDocTemplate
+
+    hoja = _Hoja()
+
     historia = [
-        Paragraph("Informe de verificación", titulo),
-        Paragraph(
+        hoja.parrafo("Informe de verificación", hoja.titulo),
+        hoja.parrafo(
             f"Trabajo {job.pk} · generado el {_fecha(timezone.now())}",
-            etiqueta,
+            hoja.etiqueta,
         ),
     ]
+    historia += _seccion_resumen(job, hoja)
+    historia += _seccion_lo_que_entro(job, hoja)
+    historia += _seccion_lo_que_salio(job, hoja)
+    historia += _seccion_mediciones(job, hoja)
+    historia += _seccion_opciones(job, hoja)
+    historia += _seccion_avisos(job, hoja)
+    historia += _seccion_el_original(job, hoja)
 
-    # --- Resumen -------------------------------------------------------------------------
+    memoria = io.BytesIO()
+    documento = SimpleDocTemplate(
+        memoria,
+        pagesize=A4,
+        leftMargin=18 * mm,
+        rightMargin=18 * mm,
+        topMargin=16 * mm,
+        bottomMargin=16 * mm,
+        title=f"Informe de verificación {job.pk}",
+        author="AeroConvert",
+    )
+    documento.build(historia)
+    return memoria.getvalue()
+
+
+def _seccion_resumen(job, hoja: _Hoja) -> list:
     duracion = ""
     if job.started_at and job.finished_at:
         duracion = f"{(job.finished_at - job.started_at).total_seconds():.1f} s"
     programa = job.herramienta or job.engine_id or "—"
     if job.engine_version:
         programa += f" · {job.engine_version}"
-    historia += [
-        Paragraph("Resumen", seccion),
-        tabla(
+    return [
+        hoja.parrafo("Resumen", hoja.seccion),
+        hoja.tabla(
             [
                 ("Estado", ESTADOS.get(job.status, job.status), False),
                 ("Programa", programa, False),
@@ -183,7 +229,10 @@ def construir(job) -> bytes:
         ),
     ]  # fmt: skip
 
-    # --- Lo que entró ---------------------------------------------------------------------
+
+def _seccion_lo_que_entro(job, hoja: _Hoja) -> list:
+    from reportlab.platypus import Spacer
+
     entradas = list(job.entradas.all())
     antes: list[tuple[str, str, bool]] = [
         ("Archivo", job.source_name or "—", False),
@@ -205,7 +254,7 @@ def construir(job) -> bytes:
             False,
         ),
     ]
-    historia += [Paragraph("Lo que entró", seccion), tabla(antes)]
+    historia = [hoja.parrafo("Lo que entró", hoja.seccion), hoja.tabla(antes)]
     if len(entradas) > 1:
         extra: list[tuple[str, str, bool]] = []
         for e in entradas:
@@ -213,9 +262,11 @@ def construir(job) -> bytes:
                 (f"Entrada {e.orden + 1}", f"{e.nombre} — {_tamano(e.bytes)}", False),
                 ("sha256", e.sha256 or "no calculado", True),
             ]
-        historia += [Spacer(1, 4), tabla(extra)]
+        historia += [Spacer(1, 4), hoja.tabla(extra)]
+    return historia
 
-    # --- Lo que salió ---------------------------------------------------------------------
+
+def _seccion_lo_que_salio(job, hoja: _Hoja) -> list:
     salida_nombre = (
         job.output_path.replace("\\", "/").rsplit("/", 1)[-1] if job.output_path else "—"
     )
@@ -231,56 +282,57 @@ def construir(job) -> bytes:
             False,
         ),
     ]
-    historia += [Paragraph("Lo que salió", seccion), tabla(despues)]
+    return [hoja.parrafo("Lo que salió", hoja.seccion), hoja.tabla(despues)]
 
-    # --- Lo que midió el lector que verificó -----------------------------------------------
+
+def _seccion_mediciones(job, hoja: _Hoja) -> list:
+    """Lo que midió el lector que verificó."""
     filas = _aplanar(job.verification or {})[:MAXIMO_FILAS_DE_VERIFICACION]
-    historia.append(Paragraph("Lo que se midió en la salida", seccion))
+    historia = [hoja.parrafo("Lo que se midió en la salida", hoja.seccion)]
     if filas:
-        historia.append(tabla([(k, v, False) for k, v in filas]))
+        historia.append(hoja.tabla([(k, v, False) for k, v in filas]))
     else:
-        historia.append(Paragraph("Este trabajo no guardó mediciones de la salida.", normal))
+        historia.append(
+            hoja.parrafo("Este trabajo no guardó mediciones de la salida.", hoja.normal)
+        )
+    return historia
 
-    # --- Opciones ---------------------------------------------------------------------------
+
+def _seccion_opciones(job, hoja: _Hoja) -> list:
     opciones = _opciones_visibles(job.options)
-    if opciones:
-        historia += [
-            Paragraph("Opciones aplicadas", seccion),
-            tabla([(k, v, False) for k, v in opciones]),
-        ]
+    if not opciones:
+        return []
+    return [
+        hoja.parrafo("Opciones aplicadas", hoja.seccion),
+        hoja.tabla([(k, v, False) for k, v in opciones]),
+    ]
 
-    # --- Avisos -----------------------------------------------------------------------------
+
+def _seccion_avisos(job, hoja: _Hoja) -> list:
     avisos = list(job.eventos.filter(level__in=("warning", "error")).order_by("sequence")[:20])
-    if avisos:
-        historia.append(Paragraph("Avisos durante el trabajo", seccion))
-        historia.append(tabla([(a.level, a.message, False) for a in avisos]))
+    if not avisos:
+        return []
+    return [
+        hoja.parrafo("Avisos durante el trabajo", hoja.seccion),
+        hoja.tabla([(a.level, a.message, False) for a in avisos]),
+    ]
 
-    # --- El original --------------------------------------------------------------------------
-    historia.append(Paragraph("El original", seccion))
+
+def _seccion_el_original(job, hoja: _Hoja) -> list:
+    historia = [hoja.parrafo("El original", hoja.seccion)]
     if job.status == "done":
         historia.append(
-            Paragraph(
+            hoja.parrafo(
                 "El corredor comprobó al terminar que la fecha de modificación del original "
                 "no cambió; si hubiera cambiado, el trabajo habría fallado. La huella de arriba "
                 "se calculó antes de empezar.",
-                normal,
+                hoja.normal,
             )
         )
     else:
         historia.append(
-            Paragraph("El trabajo no terminó: no hay entrega que acompañe este informe.", normal)
+            hoja.parrafo(
+                "El trabajo no terminó: no hay entrega que acompañe este informe.", hoja.normal
+            )
         )
-
-    memoria = io.BytesIO()
-    documento = SimpleDocTemplate(
-        memoria,
-        pagesize=A4,
-        leftMargin=18 * mm,
-        rightMargin=18 * mm,
-        topMargin=16 * mm,
-        bottomMargin=16 * mm,
-        title=f"Informe de verificación {job.pk}",
-        author="AeroConvert",
-    )
-    documento.build(historia)
-    return memoria.getvalue()
+    return historia
