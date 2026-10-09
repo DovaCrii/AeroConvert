@@ -55,7 +55,7 @@ UNIR = Modo(
     pantalla="documents:unir",
     componer="documents:componer",
     sufijo="_unido.pdf",
-    titulo="Junta varios PDF en uno",
+    titulo="Juntar varios PDF en uno",
     proposito="Elija qué páginas entran, en qué orden, y gire las láminas que lo necesiten.",
     un_solo_archivo=False,
 )
@@ -65,7 +65,7 @@ ORGANIZAR = Modo(
     pantalla="documents:organizar",
     componer="documents:componer_organizar",
     sufijo="_organizado.pdf",
-    titulo="Organiza las páginas de un PDF",
+    titulo="Organizar las páginas de un PDF",
     proposito="Gira, reordena, quita o repite páginas, viendo cada una antes de generarlo.",
     un_solo_archivo=True,
 )

@@ -166,6 +166,41 @@ class _RecogerQuejas(logging.Handler):
         self.mensajes.append(registro.getMessage())
 
 
+def abre_sin_clave(lector) -> bool:
+    """`True` si el PDF se lee sin que nadie escriba una contraseña, y lo deja descifrado.
+
+    **Cifrado no es lo mismo que «pide contraseña».** Muchos PDF —certificados, informes que
+    salen de un sistema— van cifrados con la contraseña de apertura **vacía**: solo restringen
+    imprimir o copiar, y cualquier visor los abre sin preguntar. `is_encrypted` dice `True` en
+    los dos casos, y en p340 (2026-10-09) un certificado que abre en cualquier visor salió con
+    «pide contraseña». Aquí se intenta la vacía, que es lo que hace el visor.
+    """
+    if not lector.is_encrypted:
+        return True
+    try:
+        return bool(lector.decrypt(""))
+    except Exception:  # noqa: BLE001 - un cifrado que pypdf no sabe abrir es «pide contraseña»
+        return False
+
+
+def abrir_lector(ruta: str | Path, **opciones):
+    """Un `PdfReader` ya descifrado si su contraseña de apertura es vacía.
+
+    Quien lo abre comprueba después `pide_clave(lector)`, no `is_encrypted`: este sigue en
+    `True` para un PDF restringido aunque ya se pueda leer entero.
+    """
+    from pypdf import PdfReader
+
+    lector = PdfReader(str(ruta), **opciones)
+    abre_sin_clave(lector)
+    return lector
+
+
+def pide_clave(lector) -> bool:
+    """`True` solo si hace falta una contraseña que no se tiene."""
+    return not abre_sin_clave(lector)
+
+
 def leer_cabecera(ruta: str | Path) -> CabeceraPdf:
     """Recorre el PDF y devuelve qué páginas tiene."""
     import warnings
@@ -185,7 +220,7 @@ def leer_cabecera(ruta: str | Path) -> CabeceraPdf:
         with warnings.catch_warnings(record=True) as recogidos:
             warnings.simplefilter("always")
             lector = PdfReader(str(ruta))
-            cifrado = bool(lector.is_encrypted)
+            cifrado = pide_clave(lector)
             paginas = (
                 ()
                 if cifrado

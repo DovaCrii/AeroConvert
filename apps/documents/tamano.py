@@ -27,6 +27,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+from apps.formats import pdf as _pdf_lectura
+
 from .composicion import ComposicionInvalida
 from .marcas import GIROS, MM_POR_PUNTO
 
@@ -81,7 +83,7 @@ def _abrir(origen: Path):
         lector = PdfReader(str(origen))
     except (PyPdfError, OSError) as fallo:
         raise ComposicionInvalida(f"No se pudo abrir {origen.name}: {fallo}") from fallo
-    if lector.is_encrypted:
+    if _pdf_lectura.pide_clave(lector):
         raise ComposicionInvalida(
             f"{origen.name} pide contraseña. Quítesela primero en «Proteger o desbloquear PDF»."
         )

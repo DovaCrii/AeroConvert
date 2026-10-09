@@ -32,6 +32,8 @@ import io
 from dataclasses import dataclass
 from pathlib import Path
 
+from apps.formats import pdf as _pdf_lectura
+
 from .composicion import ComposicionInvalida
 
 #: Los cuatro giros que un PDF puede declarar. Cualquier otro valor es un archivo roto y se
@@ -155,7 +157,7 @@ def _abrir(origen: Path):
         lector = PdfReader(str(origen))
     except Exception as fallo:
         raise ComposicionInvalida(f"No se pudo leer {origen.name}: {fallo}") from fallo
-    if lector.is_encrypted:
+    if _pdf_lectura.pide_clave(lector):
         raise ComposicionInvalida(
             f"{origen.name} pide contraseña. Quítesela primero en «Proteger o desbloquear PDF»."
         )

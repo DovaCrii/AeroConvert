@@ -30,6 +30,8 @@ import io
 import zipfile
 from pathlib import Path
 
+from apps.formats import pdf as _pdf_lectura
+
 from .composicion import ComposicionInvalida
 
 #: Lo que se sabe leer, y con qué. El orden es el de la pantalla.
@@ -566,7 +568,7 @@ def de_pdf(origen: str | Path) -> str:
     except Exception as fallo:
         raise ComposicionInvalida(f"No se pudo abrir {origen.name}: {fallo}") from fallo
 
-    if lector.is_encrypted:
+    if _pdf_lectura.pide_clave(lector):
         raise ComposicionInvalida(
             f"{origen.name} está protegido con contraseña. "
             "Quítesela primero con «Proteger o desbloquear PDF»."
