@@ -12,6 +12,7 @@ from django.contrib.auth import get_user_model
 from django.test import override_settings
 
 from apps.engines import registry
+from apps.engines.base import ruta_parcial
 from apps.engines.testing import MotorDeMentira, analizar_progreso_de_gdal
 from apps.formats.tests.constructor import geotiff_minimo
 from apps.jobs import despachador, runner
@@ -84,7 +85,7 @@ class TestConversionCorrecta:
     def test_no_queda_ningun_parcial(self, usuario, origen, tmp_path, registro_limpio):
         _con_motor(MotorDeMentira())
         runner.ejecutar(_trabajo(usuario, origen, tmp_path))
-        assert not (tmp_path / "salida.tif.parcial").exists()
+        assert not ruta_parcial(tmp_path / "salida.tif").exists()
         assert not (tmp_path / "salida.tif.prueba").exists()
 
     def test_se_borran_los_acompanantes_que_dejo_el_motor(
@@ -94,8 +95,6 @@ class TestConversionCorrecta:
         acompañante se queda huérfano: nadie lo reclama y nadie lo borra. Son kilobytes,
         pero uno por conversión, y contradicen lo que se promete — que el entregable es un
         solo archivo que se basta a sí mismo."""
-
-        from apps.engines.base import ruta_parcial
 
         class MotorSucio(MotorDeMentira):
             def plan(self, trabajo):
@@ -219,7 +218,7 @@ class TestNoSeCreeElCodigoDeSalida:
         """Un parcial abandonado se confunde con un entregable a medias."""
         _con_motor(MotorDeMentira(escribe="a medias", codigo_de_salida=1))
         runner.ejecutar(_trabajo(usuario, origen, tmp_path))
-        assert not (tmp_path / "salida.tif.parcial").exists()
+        assert not ruta_parcial(tmp_path / "salida.tif").exists()
 
     def test_la_cola_de_stderr_se_guarda_para_diagnosticar(
         self, usuario, origen, tmp_path, registro_limpio
@@ -251,7 +250,7 @@ class TestCancelacion:
 
         assert resultado.estado == CANCELADO
         assert resultado.codigo_motivo == "cancelado-por-el-usuario"
-        assert not (tmp_path / "salida.tif.parcial").exists()
+        assert not ruta_parcial(tmp_path / "salida.tif").exists()
         # Si de verdad mato al hijo, no espero los 30 segundos.
         assert tardo < 20
 
