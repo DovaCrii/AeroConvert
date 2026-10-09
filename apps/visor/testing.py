@@ -311,6 +311,156 @@ def crear_dem_sintetico(
     return destino
 
 
+#: Seis puntos del GeoTIFF sintético, **medidos con `gdaltransform`** (GDAL 3.12.4, 2026-10-09) de
+#: EPSG:32719 a EPSG:4326 y a EPSG:3857: `(este, norte, lon, lat, x_3857, y_3857)`. Son el otro
+#: lector: se copiaron de su salida, no de nuestra cuenta. Sirven al CI (sin GDAL) como valores
+#: conocidos de la proyección del vuelo, y a las pruebas `oraculo` como control del propio control.
+PUNTOS_DE_GDAL = (
+    (
+        345000.0,
+        6295100.0,
+        -70.6681004961076,
+        -33.4723648674549,
+        -7866736.96255459,
+        -3958171.6572418,
+    ),
+    (
+        345100.0,
+        6295000.0,
+        -70.6670419679731,
+        -33.4732809301211,
+        -7866619.12774166,
+        -3958293.90855355,
+    ),
+    (
+        345200.0,
+        6295050.0,
+        -70.6659575305621,
+        -33.4728446044647,
+        -7866498.40872126,
+        -3958235.67942417,
+    ),
+    (
+        345300.0,
+        6294950.0,
+        -70.6648989734458,
+        -33.4737606496285,
+        -7866380.57068211,
+        -3958357.92907697,
+    ),
+    (
+        345400.0,
+        6294900.0,
+        -70.6638317758094,
+        -33.4742258926039,
+        -7866261.77078465,
+        -3958420.01798675,
+    ),
+    (
+        345040.0,
+        6295060.0,
+        -70.6676770875254,
+        -33.4727312935397,
+        -7866689.82892681,
+        -3958220.55774731,
+    ),
+)
+
+#: El origen (redondeado a 100 m) que usa el `vuelo.json` sintético, como el del trabajo real.
+ORIGEN_DEL_VUELO = (345000.0, 6294900.0)
+
+CALIDADES_DEL_VUELO = ("PPK", "flotante", "simple", "")
+
+
+def datos_de_vuelo_sintetico(
+    *,
+    epsg: int | None = 32719,
+    con_trayectoria: bool = True,
+    puntos_de_control: list[dict] | None = None,
+    con_carpeta: bool = False,
+    fotos_lonlat: list[tuple[float, float]] | None = None,
+) -> dict:
+    """El `vuelo.json` de un vuelo de cinco disparos, con posiciones que se conocen de antemano.
+
+    Los disparos 1 a 4 caen en `PUNTOS_DE_GDAL[1:5]` (con sus lon/lat de GDAL), y el 5 **no tiene
+    posición**. La trayectoria pasa por los cinco primeros puntos, relativa al origen. Con
+    `fotos_lonlat`, los disparos caen en **esas** posiciones (lon, lat) y no en las de GDAL.
+    """
+    este0, norte0 = ORIGEN_DEL_VUELO
+    fotos = []
+    posiciones = (
+        [(p[0], p[1], p[2], p[3]) for p in PUNTOS_DE_GDAL[1:5]]
+        if fotos_lonlat is None
+        else [(este0, norte0, lon, lat) for lon, lat in fotos_lonlat]
+    )
+    for n, (este, norte, lon, lat) in enumerate(posiciones, start=1):
+        foto = {
+            "n": n,
+            "nombre": f"DJI_{n:04d}.JPG",
+            "x": este - este0,
+            "y": norte - norte0,
+            "lat": lat,
+            "lon": lon,
+            "alt": 100.0 + n,
+            "calidad": CALIDADES_DEL_VUELO[n - 1],
+            "t_gps_s": 1000.0 + n,
+            "miniatura": con_carpeta,
+        }
+        if con_carpeta:
+            foto["archivo"] = foto["nombre"]
+        fotos.append(foto)
+    fotos.append({"n": 5, "nombre": "DJI_0005.JPG", "motivo": "El disparo no tiene posición."})
+    trayectoria = [[e - este0, n - norte0] for e, n, *_ in PUNTOS_DE_GDAL[:5]]
+    datos = {
+        "version": 1,
+        "sistema": {
+            "epsg": epsg,
+            "nombre": "WGS 84 / UTM zone 19S",
+            "como": "medido",
+            "geografico": "WGS84",
+            "equivalentes": [],
+        },
+        "altura": None,
+        "origen": {"este": este0, "norte": norte0},
+        "trayectoria_total": len(trayectoria) if con_trayectoria else 0,
+        "trayectoria": trayectoria if con_trayectoria else [],
+        "fotos": fotos,
+    }
+    if puntos_de_control is not None:
+        datos["puntos_de_control"] = puntos_de_control
+    return datos
+
+
+def crear_vuelo_sintetico(usuario, carpeta: Path, *, carpeta_de_fotos: Path | None = None, **datos):
+    """Un trabajo «Corregir un vuelo de dron» **terminado**, de `usuario`, con su zip en `carpeta`.
+
+    No corre la herramienta: escribe el zip que ella escribiría (el `vuelo.json` y un CSV mínimo) y
+    deja la fila en la base. Los datos son los de `datos_de_vuelo_sintetico`.
+    """
+    import zipfile
+
+    from django.utils import timezone
+
+    from apps.jobs.models import HECHO, ConversionJob
+
+    carpeta.mkdir(parents=True, exist_ok=True)
+    cuerpo = datos_de_vuelo_sintetico(con_carpeta=carpeta_de_fotos is not None, **datos)
+    salida = carpeta / f"vuelo{ConversionJob.objects.count() + 1}_vuelo.zip"
+    with zipfile.ZipFile(salida, "w") as paquete:
+        paquete.writestr("vuelo.json", json.dumps(cuerpo))
+        paquete.writestr("fotos.csv", "foto,disparo\n")
+    return ConversionJob.objects.create(
+        owner=usuario,
+        source_name="009.csv",
+        target_format_code="zip",
+        herramienta="vuelo_dron",
+        status=HECHO,
+        output_path=str(salida),
+        finished_at=timezone.now(),
+        options={"carpeta_de_fotos": str(carpeta_de_fotos)} if carpeta_de_fotos else {},
+    )
+
+
 def herramienta_externa(
     nombre: str, argumentos: list[str], entrada: str | None = None
 ) -> subprocess.CompletedProcess:

@@ -91,6 +91,12 @@ PRESUPUESTO_GB = config("AEROCONVERT_PRESUPUESTO_GB", default=20, cast=int)
 VISOR_CACHE = config("AEROCONVERT_VISOR_CACHE", default="")
 VISOR_CACHE_MAX_MB = config("AEROCONVERT_VISOR_CACHE_MAX_MB", default=512, cast=int)
 
+#: El mapa base propio de «Ver en el mapa» (F19.5, D5): una o varias ortofotos o mosaicos COG
+#: **de la casa**, separados por `;`, cada uno con su nombre opcional (`Nombre=ruta`). Tienen que
+#: estar dentro de las raíces permitidas. **Nunca teselas de internet**: vacío, el fondo es la
+#: retícula.
+VISOR_MAPA_BASE = config("AEROCONVERT_VISOR_MAPA_BASE", default="")
+
 #: Donde van las copias de la base, y cuantos dias se guardan. Fuera del arbol de codigo en
 #: la VM, y **con al menos una copia fuera de la maquina**: un respaldo en el mismo disco
 #: que la base no protege del escenario que mas importa, que es que se muera el disco.

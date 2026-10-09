@@ -338,7 +338,9 @@ class TestElVisorDiceElMotivoDeUnaTeselaFallida:
         assert "Aviso: " in cuerpo, "y su palabra para quien no ve el color ni el dibujo"
 
     def test_un_codigo_se_avisa_una_sola_vez(self):
-        assert "avisados.has(codigo)" in self.JS and "avisados.add(codigo)" in self.JS
+        # Una vez **por capa y código** (F19.3): decenas de teselas con el mismo fallo, un aviso.
+        assert "avisados.has(clave)" in self.JS and "avisados.add(clave)" in self.JS
+        assert 'l.id + ":" + codigo' in self.JS
 
     def test_la_respuesta_de_un_504_trae_lo_que_se_va_a_mostrar(self, sesion, falso, original):
         url, _ = _tesela_de_la_capa(sesion, original)
@@ -358,7 +360,7 @@ class TestDemasiadasTeselas:
         assert "demasiadas para pedirlas todas. Acerque el mapa" in self.JS
 
     def test_el_aviso_se_quita_cuando_deja_de_haber_demasiadas(self):
-        assert 'quitarAviso("demasiadas")' in self.JS
+        assert 'quitarAviso("demasiadas:" + l.id)' in self.JS
 
     def test_pasado_el_tope_no_se_piden(self):
         """El `return` va antes de `pedirTesela`, dentro de la rama del aviso."""
@@ -377,7 +379,15 @@ class TestLasEtiquetasDelCanvasSeMiden:
         assert not re.search(r"colores\.(texto|papel|escala)\s*=\s*[\"']#", self.JS)
 
     def test_el_fondo_de_las_etiquetas_y_de_la_escala_es_opaco(self):
-        assert "globalAlpha" not in self.JS
+        # La transparencia de una capa (F19.3) se aplica **solo** dentro de `dibujarCapa`, entre
+        # `save()` y `restore()`: las etiquetas y la escala se pintan después, opacas.
+        inicio = self.JS.index("function dibujarCapa")
+        fin = self.JS.index("function dibujar()")
+        assert self.JS.count("globalAlpha") == 1
+        assert inicio < self.JS.index("globalAlpha") < fin
+        for funcion in ("function dibujarEtiquetas", "function dibujarEscala"):
+            cuerpo = self.JS[self.JS.index(funcion) :]
+            assert "globalAlpha" not in cuerpo[: cuerpo.index("restore()")]
 
     def test_las_etiquetas_se_pintan_sobre_el_fondo_del_token(self):
         cuerpo = self.JS[self.JS.index("function dibujarEtiquetas") :]

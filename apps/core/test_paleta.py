@@ -482,6 +482,27 @@ PARES = [
     ("marcas A y B sobre su borde claro", ("--av-primary", "--av-surface"), GRAFICO),
     ("letra de A y B sobre su caja del mapa", ("--av-text", "--av-surface"), TEXTO),
     ("rampa de color: su borde", ("--av-border-control", "--av-surface"), GRAFICO),
+    # Varias capas (F19.3). El vuelo se dibuja en el canvas de `visor.js` **sobre una imagen
+    # cualquiera**, así que cada marca lleva un borde `--av-surface` y se mide contra él: relleno
+    # de la marca (por calidad), trayectoria y cruz del punto de control; y el anillo de la foto
+    # elegida.
+    *[
+        (f"marca de foto {calidad} sobre su borde claro", (token, "--av-surface"), GRAFICO)
+        for calidad, token in (
+            ("PPK o fija", "--av-ok"),
+            ("flotante", "--av-warn"),
+            ("simple", "--av-danger"),
+            ("sin calidad informada", "--av-text-muted"),
+        )
+    ],
+    ("trayectoria del vuelo sobre su borde claro", ("--av-info", "--av-surface"), GRAFICO),
+    ("cruz del punto de control sobre su caja clara", ("--av-primary", "--av-surface"), GRAFICO),
+    ("anillo de la foto elegida sobre el borde claro", ("--av-text", "--av-surface"), GRAFICO),
+    (
+        "casilla y botones de la lista de capas",
+        ("--av-border-control", "--av-surface-alt"),
+        GRAFICO,
+    ),
     ("borde del buscador, final de la barra", _sobre_el_final_de_la_barra(BLANCO, 0.45), GRAFICO),
     ("texto de la barra", (BLANCO, NAVY), TEXTO),
     ("texto de la barra, final del degradado", (BLANCO, "--av-barra-fin"), TEXTO),

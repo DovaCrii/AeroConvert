@@ -4592,6 +4592,130 @@ code {
   font-size: var(--av-fs-xs);
 }
 
+/* Varias capas (F19.3): la lista con su orden, su visibilidad y su transparencia. Todo con botones y
+ * controles nativos (teclado y táctil); lo que una capa no puede dibujar se escribe en su fila. */
+.capas-lista {
+  display: grid;
+  gap: var(--av-s-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.capa-fila {
+  display: grid;
+  gap: var(--av-s-1);
+  padding: var(--av-s-2) var(--av-s-3);
+  border: 1px solid var(--av-border);
+  border-radius: var(--av-radius-sm);
+  background: var(--av-surface-alt);
+}
+
+.capa-sin-dibujar {
+  border-style: dashed;
+  border-color: var(--av-border-control);
+}
+
+.capa-visible {
+  display: flex;
+  align-items: center;
+  gap: var(--av-s-2);
+  margin: 0;
+  font-weight: 600;
+  font-size: var(--av-fs-sm);
+}
+
+.capa-visible input {
+  flex: none;
+}
+
+.capa-nombre {
+  overflow-wrap: anywhere;
+}
+
+.capa-tipo {
+  margin: 0;
+  font-size: var(--av-fs-xs);
+  color: var(--av-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.capa-orden {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--av-s-2);
+}
+
+.capa-transparencia {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) 3.2rem;
+  align-items: center;
+  gap: var(--av-s-2);
+}
+
+.capa-transparencia .terreno-campo-rotulo {
+  margin: 0;
+}
+
+.capa-rango {
+  width: 100%;
+  min-width: 0;
+  accent-color: var(--av-primary);
+}
+
+.capa-valor {
+  text-align: right;
+  font-size: var(--av-fs-sm);
+}
+
+.capa-nota {
+  margin: 0;
+  font-size: var(--av-fs-xs);
+  color: var(--av-text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.capa-nota-aviso {
+  color: var(--av-text);
+}
+
+.capas-anadir {
+  margin-top: var(--av-s-3);
+}
+
+.capas-anadir > summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: var(--av-fs-sm);
+}
+
+.capas-anadir > summary:focus-visible {
+  outline: 2px solid var(--av-primary);
+  outline-offset: 2px;
+}
+
+.capas-forma {
+  display: grid;
+  gap: var(--av-s-3);
+  margin-top: var(--av-s-3);
+}
+
+/* La leyenda del vuelo: el punto de control es una cruz, y la trayectoria, un trazo. */
+.visor-punto-control {
+  background: var(--av-primary);
+  border-radius: 0;
+  clip-path: polygon(35% 0, 65% 0, 65% 35%, 100% 35%, 100% 65%, 65% 65%, 65% 100%, 35% 100%, 35% 65%, 0 65%, 0 35%, 35% 35%);
+}
+
+.visor-linea-trayectoria {
+  display: inline-block;
+  flex: none;
+  width: 1.1rem;
+  height: 0;
+  border-top: 3px solid var(--av-info);
+}
+
 /* Terreno (F19.4): sombreado, color por cota y perfil. Todo con los tokens `--av-*`; el color nunca
  * va solo (la rampa lleva sus valores escritos; el perfil, sus marcas A y B y su tabla). */
 @media (min-width: 992px) {
