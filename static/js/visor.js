@@ -22,6 +22,18 @@
  * (A y B, con letra y forma) y dibuja su perfil en un SVG propio, con su tabla y su CSV. Lo que no
  * tiene dato queda como hueco en la línea, nunca se une ni se interpola.
  *
+ * ## Varias capas y su orden (F19.3)
+ *
+ * El mapa es una **pila de capas**: imágenes (la primera es la principal, la del terreno y el
+ * perfil), el mapa base propio de la casa (F19.5) y las tres partes de un vuelo de «Corregir un
+ * vuelo de dron» (trayectoria, fotos y puntos de control). Cada capa se enciende o se apaga, tiene su
+ * transparencia (0 % opaca, 100 % no se ve) y su lugar en la lista; subir y bajar son **botones**
+ * (nada depende de arrastrar). La lista, el orden y la transparencia se guardan en la dirección
+ * (`e=id:transparencia:visible,…`) con `history.replaceState`, para volver a abrir el mapa tal cual.
+ * Las posiciones del vuelo llegan del servidor **ya en Web Mercator**; la calidad de cada foto se
+ * dibuja con color **y** forma (círculo, triángulo, cuadrado, rombo), y su leyenda está escrita.
+ * Una capa que no se puede dibujar (sin sistema, sin permiso, sin datos) lo dice **en su fila**.
+ *
  * ## Qué no inventa
  *
  * El sistema del archivo y las coordenadas **en él** las dice el servidor (PROJ), no este archivo. Un
@@ -63,7 +75,14 @@
   const ESPERA_DEL_PUNTO_MS = 150;
   const REINTENTO_DE_ERROR_MS = 8000;
 
+  // La ficha de la capa principal (`null` si el mapa es solo de vuelos). Todo lo del terreno y el
+  // perfil, y la lectura del píxel, es de esta capa.
   let capa = null;
+  let principal = null;
+  const pila = []; // las capas, de arriba (0) a abajo
+  const vuelos = new Map(); // id del trabajo -> { datos, urls, estado, mensaje }
+  let iniciado = false;
+  let foto = null; // { vuelo, i }: la foto elegida
   let colores = {};
   let ancho = 0;
   let alto = 0;
@@ -72,7 +91,8 @@
   let tocada = false; // mientras nadie la toque, un cambio de tamaño vuelve a encuadrar
   const vista = { cx: 0, cy: 0, z: 0 };
 
-  const imagenes = new Map(); // "z/x/y" -> { img, listo, error, hasta }
+  // Cada capa ráster guarda sus teselas en `l.imagenes` ("z/x/y" -> { img, listo, error, hasta });
+  // la cola de lo que falta por pedir es de todas, y el tope de peticiones a la vez también.
   const cola = [];
   let enVuelo = 0;
   let falladas = 0;
@@ -102,6 +122,14 @@
       marca: v("--av-danger", "#c00"),
       escala: v("--av-text", "#111"),
       papel: v("--av-surface", "#fff"),
+      // El vuelo (F19.3): cada marca lleva además un borde `papel`, así que se lee sobre cualquier
+      // imagen de fondo. La prueba de contraste de `apps/core/test_paleta.py` mide estos tokens.
+      buena: v("--av-ok", "#287a3e"),
+      flotante: v("--av-warn", "#8a5a00"),
+      simple: v("--av-danger", "#c00"),
+      sin: v("--av-text-muted", "#666"),
+      trayectoria: v("--av-info", "#1a5f9e"),
+      control: v("--av-primary", "#a0207a"),
     };
   }
 
@@ -120,21 +148,61 @@
   const aMetrosX = (px) => (px - ancho / 2) * resolucion(vista.z) + vista.cx;
   const aMetrosY = (py) => (alto / 2 - py) * resolucion(vista.z) + vista.cy;
 
+  /* ---- Qué es cada capa y dónde está ---- */
+
+  const esRaster = (l) => l.tipo === "raster" || l.tipo === "fondo";
+  const esVuelo = (l) => l.tipo.indexOf("vuelo-") === 0;
+  // `lista`: tiene qué dibujar. Cualquier otro estado (`cargando`, `apagada`, `error`) se dice en su fila.
+  const dibujable = (l) => l.estado === "lista";
+
+  function cajaDe(l) {
+    if (esRaster(l)) return l.ficha.caja_3857;
+    const v = vuelos.get(l.vuelo);
+    return v && v.datos ? v.datos.caja_3857 : null;
+  }
+
+  /* La caja (metros de Web Mercator) que cubren las capas listas. Con `conFondo` falso, sin el mapa
+   * base: encuadrar sobre un mosaico de la región entera dejaría la ortofoto del tamaño de un punto. */
+  function cajaUnida(conFondo) {
+    let caja = null;
+    pila.forEach(function (l) {
+      if (!dibujable(l) || (l.tipo === "fondo" && !conFondo)) return;
+      const c = cajaDe(l);
+      if (!c) return;
+      caja = caja
+        ? [Math.min(caja[0], c[0]), Math.min(caja[1], c[1]), Math.max(caja[2], c[2]), Math.max(caja[3], c[3])]
+        : c.slice();
+    });
+    return caja;
+  }
+
   function limitesDeZoom() {
-    return { minimo: Math.max(0, capa.zoom_minimo - 1), maximo: capa.zoom_maximo + 2 };
+    let minimo = Infinity;
+    let maximo = -Infinity;
+    pila.forEach(function (l) {
+      if (!esRaster(l) || !dibujable(l)) return;
+      minimo = Math.min(minimo, l.ficha.zoom_minimo - 1);
+      maximo = Math.max(maximo, l.ficha.zoom_maximo + 2);
+    });
+    // Un mapa solo de vuelos no tiene teselas que acotarlo: hasta donde se ve un punto.
+    if (!isFinite(minimo)) return { minimo: 0, maximo: 22 };
+    return { minimo: Math.max(0, minimo), maximo: maximo };
   }
 
   function limitar() {
     const l = limitesDeZoom();
     vista.z = Math.min(Math.max(vista.z, l.minimo), l.maximo);
-    // El centro no sale de la capa: un mapa donde uno se pierde no sirve.
-    const [x0, y0, x1, y1] = capa.caja_3857;
-    vista.cx = Math.min(Math.max(vista.cx, x0), x1);
-    vista.cy = Math.min(Math.max(vista.cy, y0), y1);
+    // El centro no sale de lo que hay en el mapa: un mapa donde uno se pierde no sirve.
+    const caja = cajaUnida(true);
+    if (!caja) return;
+    vista.cx = Math.min(Math.max(vista.cx, caja[0]), caja[2]);
+    vista.cy = Math.min(Math.max(vista.cy, caja[1]), caja[3]);
   }
 
   function encuadrar() {
-    const [x0, y0, x1, y1] = capa.caja_3857;
+    const caja = cajaUnida(false) || cajaUnida(true);
+    if (!caja) return;
+    const [x0, y0, x1, y1] = caja;
     const margen = 24;
     const alcance = Math.max(
       (x1 - x0) / Math.max(ancho - 2 * margen, 50),
@@ -150,9 +218,14 @@
 
   /* ---- Teselas ---- */
 
-  function direccion(z, x, y) {
+  // La dirección de teselas sale de la plantilla (`data-teselas` termina en `0/0/0.png`).
+  const BASE_DE_TESELAS = raiz.dataset.teselas.replace(/0\/0\/0\.png$/, "");
+
+  function direccion(l, z, x, y) {
+    // El modo de terreno (sombreado, color por cota) es de la capa principal; las demás, en grises.
     return (
-      capa.base + z + "/" + x + "/" + y + ".png?ruta=" + encodeURIComponent(capa.ruta) + consultaDeTerreno()
+      BASE_DE_TESELAS + z + "/" + x + "/" + y + ".png?ruta=" + encodeURIComponent(l.token) +
+      (l === principal ? consultaDeTerreno() : "")
     );
   }
 
@@ -170,23 +243,23 @@
     return consulta;
   }
 
-  function tesela(z, x, y) {
-    return imagenes.get(z + "/" + x + "/" + y);
+  function tesela(l, z, x, y) {
+    return l.imagenes.get(z + "/" + x + "/" + y);
   }
 
-  function pedirTesela(z, x, y) {
+  function pedirTesela(l, z, x, y) {
     const clave = z + "/" + x + "/" + y;
-    const previa = imagenes.get(clave);
+    const previa = l.imagenes.get(clave);
     if (previa && (!previa.error || Date.now() < previa.hasta)) return;
     const registro = { img: null, listo: false, error: false, hasta: 0 };
-    imagenes.set(clave, registro);
-    cola.push({ clave: clave, z: z, x: x, y: y, registro: registro });
-    // La memoria acotada: se suelta lo que hace más tiempo que se pidió.
-    if (imagenes.size > MAXIMO_EN_MEMORIA) {
-      const primera = imagenes.keys().next().value;
-      const suelta = imagenes.get(primera);
+    l.imagenes.set(clave, registro);
+    cola.push({ capa: l, clave: clave, z: z, x: x, y: y, registro: registro });
+    // La memoria acotada (por capa): se suelta lo que hace más tiempo que se pidió.
+    if (l.imagenes.size > MAXIMO_EN_MEMORIA) {
+      const primera = l.imagenes.keys().next().value;
+      const suelta = l.imagenes.get(primera);
       if (suelta && suelta.img && suelta.img.close) suelta.img.close();
-      imagenes.delete(primera);
+      l.imagenes.delete(primera);
     }
     sacarDeLaCola();
   }
@@ -208,7 +281,7 @@
         }
       }
       const t = cola.splice(mejor, 1)[0];
-      if (imagenes.get(t.clave) !== t.registro) continue; // ya se soltó de la memoria
+      if (t.capa.imagenes.get(t.clave) !== t.registro) continue; // ya se soltó de la memoria
       enVuelo++;
       cargarTesela(t);
     }
@@ -219,7 +292,7 @@
    * trae el motivo (`codigo` y `mensaje`, p. ej. el 504 «conviértala a COG»). */
   function cargarTesela(t) {
     const registro = t.registro;
-    fetch(direccion(t.z, t.x, t.y), { credentials: "same-origin" })
+    fetch(direccion(t.capa, t.z, t.x, t.y), { credentials: "same-origin" })
       .then(function (r) {
         if (r.ok) return r.blob();
         return r
@@ -248,7 +321,7 @@
         registro.hasta = Date.now() + REINTENTO_DE_ERROR_MS;
         falladas++;
         const datos = (fallo && fallo.datos) || {};
-        avisarDeLaTesela(datos.codigo || "tesela-sin-respuesta", datos.mensaje);
+        avisarDeLaTesela(t.capa, datos.codigo || "tesela-sin-respuesta", datos.mensaje);
         estado();
         sacarDeLaCola();
       });
@@ -273,16 +346,18 @@
     $("mapa-aviso").hidden = true;
   }
 
-  /* Un motivo de tesela se dice **una vez** (por código): decenas de teselas con el mismo fallo no
-   * son decenas de avisos. */
-  function avisarDeLaTesela(codigo, mensaje) {
-    if (avisados.has(codigo)) return;
-    avisados.add(codigo);
+  /* Un motivo de tesela se dice **una vez** por capa y código: decenas de teselas con el mismo fallo
+   * no son decenas de avisos. Con varias capas, el aviso dice de cuál habla. */
+  function avisarDeLaTesela(l, codigo, mensaje) {
+    const clave = l.id + ":" + codigo;
+    if (avisados.has(clave)) return;
+    avisados.add(clave);
     mostrarAviso(
-      "tesela:" + codigo,
-      mensaje ||
-        "No se pudo cortar una tesela y el servidor no dijo por qué. Si la imagen es muy grande, " +
-          "conviértala a COG."
+      "tesela:" + clave,
+      "«" + l.nombre + "»: " +
+        (mensaje ||
+          "no se pudo cortar una tesela y el servidor no dijo por qué. Si la imagen es muy grande, " +
+            "conviértala a COG.")
     );
   }
 
@@ -377,9 +452,9 @@
     contexto.restore();
   }
 
-  function teselasVisibles(zt) {
+  function teselasVisibles(l, zt) {
     const lado = (2 * ORIGEN) / Math.pow(2, zt);
-    const [cx0, cy0, cx1, cy1] = capa.caja_3857;
+    const [cx0, cy0, cx1, cy1] = l.ficha.caja_3857;
     const x0 = Math.max(aMetrosX(0), cx0);
     const x1 = Math.min(aMetrosX(ancho), cx1);
     const yAlta = Math.min(aMetrosY(0), cy1);
@@ -395,22 +470,23 @@
     return lista;
   }
 
-  function dibujarTeselas() {
+  function dibujarTeselas(l) {
+    const f = l.ficha;
     const sesgo = Math.log2(Math.min(densidad, 2));
-    const zt = Math.min(Math.max(Math.round(vista.z + sesgo), capa.zoom_minimo), capa.zoom_maximo);
+    const zt = Math.min(Math.max(Math.round(vista.z + sesgo), f.zoom_minimo), f.zoom_maximo);
     const lado = (2 * ORIGEN) / Math.pow(2, zt);
-    const lista = teselasVisibles(zt);
+    const lista = teselasVisibles(l, zt);
     if (lista.length > MAXIMO_VISIBLES) {
       // Un encuadre así pediría cientos de teselas: no se piden, y se dice qué hacer.
       mostrarAviso(
-        "demasiadas",
-        "Hay " +
+        "demasiadas:" + l.id,
+        "«" + l.nombre + "»: hay " +
           lista.length +
           " teselas a la vista, demasiadas para pedirlas todas. Acerque el mapa para verlas."
       );
       return;
     }
-    quitarAviso("demasiadas");
+    quitarAviso("demasiadas:" + l.id);
     const ampliada = resolucion(zt) / resolucion(vista.z) > 1.5;
     contexto.imageSmoothingEnabled = !ampliada; // acercado, el píxel se ve cuadrado y se puede contar
 
@@ -422,15 +498,15 @@
       const w = der - izq;
       const h = inf - sup;
       if (der < 0 || izq > ancho || inf < 0 || sup > alto) continue;
-      const r = tesela(zt, tx, ty);
+      const r = tesela(l, zt, tx, ty);
       if (r && r.listo) {
         contexto.drawImage(r.img, izq, sup, w, h);
         continue;
       }
-      if (!r || (r.error && Date.now() >= r.hasta)) pedirTesela(zt, tx, ty);
+      if (!r || (r.error && Date.now() >= r.hasta)) pedirTesela(l, zt, tx, ty);
       // Mientras llega, lo que ya se tiene de un nivel más lejano, estirado.
       for (let d = 1; d <= 3 && zt - d >= 0; d++) {
-        const padre = tesela(zt - d, tx >> d, ty >> d);
+        const padre = tesela(l, zt - d, tx >> d, ty >> d);
         if (padre && padre.listo) {
           const trozo = LADO / Math.pow(2, d);
           const sx = (tx - ((tx >> d) << d)) * trozo;
@@ -442,14 +518,15 @@
     }
   }
 
-  function dibujarContorno() {
+  function dibujarContorno(l) {
+    const f = l.ficha;
     contexto.save();
     contexto.strokeStyle = colores.contorno;
     contexto.lineWidth = 2;
     contexto.lineJoin = "round";
     contexto.setLineDash([]);
     contexto.beginPath();
-    capa.contorno_3857.forEach(function (p, i) {
+    f.contorno_3857.forEach(function (p, i) {
       const x = aPantallaX(p[0]);
       const y = aPantallaY(p[1]);
       if (i === 0) contexto.moveTo(x, y);
@@ -459,7 +536,7 @@
     contexto.stroke();
     // Las cuatro esquinas, cuadradas: el contorno no se apoya solo en el color.
     contexto.fillStyle = colores.contorno;
-    capa.esquinas_4326.forEach(function (p) {
+    f.esquinas_4326.forEach(function (p) {
       const x = aPantallaX(deLon(p[0]));
       const y = aPantallaY(deLat(p[1]));
       contexto.fillRect(x - 3, y - 3, 6, 6);
@@ -588,14 +665,132 @@
     contexto.restore();
   }
 
+  /* ---- El vuelo: trayectoria, fotos y puntos de control ---- */
+
+  /* Una marca por calidad, **de distinta forma además de distinto color** (círculo: PPK o fija ·
+   * triángulo: flotante · cuadrado: simple · rombo: sin calidad informada). Las mismas de
+   * `vuelo.js`. El control es una cruz dentro de un cuadrado: otra forma más. */
+  function trazarMarca(tipo, px, py, r) {
+    contexto.beginPath();
+    if (tipo === "flotante") {
+      contexto.moveTo(px, py - r * 1.25);
+      contexto.lineTo(px + r * 1.15, py + r * 0.9);
+      contexto.lineTo(px - r * 1.15, py + r * 0.9);
+      contexto.closePath();
+    } else if (tipo === "simple") {
+      contexto.rect(px - r * 0.95, py - r * 0.95, r * 1.9, r * 1.9);
+    } else if (tipo === "sin") {
+      contexto.moveTo(px, py - r * 1.3);
+      contexto.lineTo(px + r * 1.3, py);
+      contexto.lineTo(px, py + r * 1.3);
+      contexto.lineTo(px - r * 1.3, py);
+      contexto.closePath();
+    } else if (tipo === "control") {
+      contexto.moveTo(px - r * 1.4, py);
+      contexto.lineTo(px + r * 1.4, py);
+      contexto.moveTo(px, py - r * 1.4);
+      contexto.lineTo(px, py + r * 1.4);
+    } else {
+      contexto.arc(px, py, r, 0, 2 * Math.PI);
+    }
+  }
+
+  function dibujarTrayectoria(l) {
+    const puntos = vuelos.get(l.vuelo).datos.trayectoria.puntos;
+    if (puntos.length < 2) return;
+    contexto.save();
+    contexto.lineJoin = "round";
+    contexto.setLineDash([]);
+    const trazo = function () {
+      contexto.beginPath();
+      puntos.forEach(function (p, i) {
+        const x = aPantallaX(p[0]);
+        const y = aPantallaY(p[1]);
+        if (i === 0) contexto.moveTo(x, y);
+        else contexto.lineTo(x, y);
+      });
+    };
+    // Un borde claro debajo: la línea se lee sobre una imagen oscura y sobre una clara.
+    trazo();
+    contexto.strokeStyle = colores.papel;
+    contexto.lineWidth = 5;
+    contexto.stroke();
+    trazo();
+    contexto.strokeStyle = colores.trayectoria;
+    contexto.lineWidth = 2.5;
+    contexto.stroke();
+    contexto.restore();
+  }
+
+  function dibujarMarcaDeFoto(clase, px, py, radio, elegida) {
+    contexto.save();
+    contexto.lineJoin = "round";
+    trazarMarca(clase, px, py, radio);
+    contexto.fillStyle = colores[clase];
+    contexto.fill();
+    contexto.strokeStyle = elegida ? colores.escala : colores.papel;
+    contexto.lineWidth = elegida ? 3 : 1.5;
+    contexto.stroke();
+    contexto.restore();
+  }
+
+  function dibujarFotos(l) {
+    const puntos = vuelos.get(l.vuelo).datos.fotos.puntos;
+    const radio = puntos.length > 1500 ? 3 : 4;
+    puntos.forEach(function (f, i) {
+      const px = aPantallaX(f.mx);
+      const py = aPantallaY(f.my);
+      if (px < -10 || px > ancho + 10 || py < -10 || py > alto + 10) return;
+      if (foto && foto.vuelo === l.vuelo && foto.i === i) return; // la elegida va encima de todas
+      dibujarMarcaDeFoto(f.clase, px, py, radio, false);
+    });
+    if (foto && foto.vuelo === l.vuelo) {
+      const f = puntos[foto.i];
+      dibujarMarcaDeFoto(f.clase, aPantallaX(f.mx), aPantallaY(f.my), radio + 3, true);
+    }
+  }
+
+  function dibujarControl(l) {
+    const puntos = vuelos.get(l.vuelo).datos.control.puntos;
+    puntos.forEach(function (c) {
+      const px = aPantallaX(c.mx);
+      const py = aPantallaY(c.my);
+      if (px < -10 || px > ancho + 10 || py < -10 || py > alto + 10) return;
+      contexto.save();
+      // Un cuadrado claro con una cruz: la cruz es la forma, el cuadrado el borde que la despega
+      // de la imagen.
+      contexto.fillStyle = colores.papel;
+      contexto.fillRect(px - 8, py - 8, 16, 16);
+      contexto.strokeStyle = colores.control;
+      contexto.lineWidth = 3;
+      trazarMarca("control", px, py, 4.5);
+      contexto.stroke();
+      contexto.restore();
+    });
+  }
+
+  function dibujarCapa(l) {
+    if (!l.visible || !dibujable(l) || l.transparencia >= 100) return;
+    contexto.save();
+    contexto.globalAlpha = 1 - l.transparencia / 100;
+    if (esRaster(l)) {
+      dibujarTeselas(l);
+      if (l.tipo === "raster") dibujarContorno(l);
+    } else if (l.tipo === "vuelo-trayectoria") dibujarTrayectoria(l);
+    else if (l.tipo === "vuelo-fotos") dibujarFotos(l);
+    else if (l.tipo === "vuelo-control") dibujarControl(l);
+    contexto.restore();
+  }
+
   function dibujar() {
-    if (!capa) return;
+    if (!iniciado) return;
     contexto.setTransform(densidad, 0, 0, densidad, 0, 0);
     contexto.fillStyle = colores.fondo;
     contexto.fillRect(0, 0, ancho, alto);
     dibujarReticula();
-    dibujarTeselas();
-    dibujarContorno();
+    // De abajo (el final de la lista) a arriba (el principio): la primera capa de la lista queda
+    // encima, sea imagen o vuelo. Las etiquetas de la retícula, después: debajo no se leerían.
+    for (let i = pila.length - 1; i >= 0; i--) dibujarCapa(pila[i]);
     dibujarEtiquetas();
     dibujarPerfil();
     dibujarMarca();
@@ -612,7 +807,7 @@
     alto = Math.max(Math.round(caja.height), 1);
     lienzo.width = Math.round(ancho * densidad);
     lienzo.height = Math.round(alto * densidad);
-    if (capa && !tocada) encuadrar();
+    if (iniciado && !tocada) encuadrar();
     else pedir();
   }
 
@@ -640,7 +835,8 @@
     $("mapa-lon-lat").textContent =
       "latitud " + formato(punto.lat, 6) + "°, longitud " + formato(punto.lon, 6) + "°";
     clearTimeout(esperaPunto);
-    if (sinPreguntar) return;
+    // Sin imagen principal (un mapa solo de vuelos) no hay píxel que leer: queda la posición.
+    if (sinPreguntar || !capa) return;
     esperaPunto = setTimeout(function () {
       preguntarPunto(punto, false);
     }, ESPERA_DEL_PUNTO_MS);
@@ -696,7 +892,7 @@
         "columna " + Math.floor(d.columna) + ", fila " + Math.floor(d.fila);
     }
     if (capa.es_dem) pintarCota(d);
-    if (conValor) {
+    if (conValor && $("mapa-valor")) {
       let texto;
       if (!d.dentro) texto = "Ese punto cae fuera de la imagen.";
       else if (!d.valores.length) texto = "GDAL no devolvió ningún valor.";
@@ -717,6 +913,8 @@
   }
 
   function pedirValor(mx, my) {
+    // Si la imagen principal no se pudo leer (lo dice su fila), no hay píxel que preguntar.
+    if (!capa) return;
     marca = { mx: mx, my: my };
     $("mapa-valor").textContent = "Leyendo el valor del píxel…";
     // La lectura de coordenadas es la de este punto, y la pregunta al servidor va **con valor**:
@@ -728,8 +926,14 @@
 
   /* Un clic, un toque o Intro: con «Marcar perfil» activo pone un extremo; si no, lee el valor. */
   function accionDePunto(mx, my) {
-    if (capa.es_dem && perfil.activo) marcarPerfil(mx, my);
-    else pedirValor(mx, my);
+    if (capa && capa.es_dem && perfil.activo) {
+      marcarPerfil(mx, my);
+      return;
+    }
+    // Un punto de foto cerca: se elige la foto. Si no, se lee el píxel de la imagen principal.
+    const cercana = fotoCercana(aPantallaX(mx), aPantallaY(my));
+    if (cercana) elegirFoto(cercana.vuelo, cercana.i);
+    else if (capa) pedirValor(mx, my);
   }
 
   /* ---- Terreno: cómo se ve un DEM, su leyenda y la cota bajo el cursor ---- */
@@ -824,12 +1028,16 @@
     }
   }
 
+  /* Cambió cómo se ve la capa principal (el modo de terreno): sus teselas ya no valen. Las de las
+   * demás capas no cambian. */
   function reiniciarTeselas() {
-    cola.length = 0;
-    imagenes.forEach(function (r) {
+    for (let i = cola.length - 1; i >= 0; i--) {
+      if (cola[i].capa === principal) cola.splice(i, 1);
+    }
+    principal.imagenes.forEach(function (r) {
       if (r.img && r.img.close) r.img.close();
     });
-    imagenes.clear();
+    principal.imagenes.clear();
     falladas = 0;
     avisados.clear();
     if (claveDelAviso.indexOf("tesela:") === 0) quitarAviso(claveDelAviso);
@@ -1257,6 +1465,16 @@
       case " ":
         accionDePunto(vista.cx, vista.cy);
         break;
+      case "[":
+        moverFoto(-1);
+        break;
+      case "]":
+        moverFoto(1);
+        break;
+      case "Escape":
+        if (!foto) return;
+        elegirFoto(null, -1);
+        break;
       default:
         return;
     }
@@ -1276,9 +1494,513 @@
   $("mapa-mas").addEventListener("click", function () {
     acercar(1, ancho / 2, alto / 2);
   });
-  $("mapa-valor-centro").addEventListener("click", function () {
-    pedirValor(vista.cx, vista.cy);
-  });
+  if ($("mapa-valor-centro")) {
+    $("mapa-valor-centro").addEventListener("click", function () {
+      pedirValor(vista.cx, vista.cy);
+    });
+  }
+
+  /* ---- Las fotos de un vuelo: elegir una, su miniatura y su ficha ---- */
+
+  const RADIO_DE_PUNTERIA = 12;
+
+  // Las capas de fotos que se ven ahora, de arriba abajo.
+  function fotosVisibles() {
+    return pila.filter(function (l) {
+      return l.tipo === "vuelo-fotos" && l.visible && dibujable(l) && l.transparencia < 100;
+    });
+  }
+
+  function fotoCercana(px, py) {
+    let mejor = null;
+    let distancia = RADIO_DE_PUNTERIA * RADIO_DE_PUNTERIA;
+    fotosVisibles().forEach(function (l) {
+      vuelos.get(l.vuelo).datos.fotos.puntos.forEach(function (f, i) {
+        const dx = aPantallaX(f.mx) - px;
+        const dy = aPantallaY(f.my) - py;
+        const d2 = dx * dx + dy * dy;
+        if (d2 < distancia) {
+          distancia = d2;
+          mejor = { vuelo: l.vuelo, i: i };
+        }
+      });
+    });
+    return mejor;
+  }
+
+  function elegirFoto(idDelVuelo, i) {
+    foto = i < 0 || idDelVuelo === null ? null : { vuelo: idDelVuelo, i: i };
+    mostrarFoto();
+    pedir();
+  }
+
+  function moverFoto(delta) {
+    const capasDeFotos = fotosVisibles();
+    if (!capasDeFotos.length) return;
+    const idDelVuelo = foto ? foto.vuelo : capasDeFotos[0].vuelo;
+    const total = vuelos.get(idDelVuelo).datos.fotos.puntos.length;
+    let i;
+    if (foto && foto.vuelo === idDelVuelo) i = (foto.i + delta + total) % total;
+    else i = delta > 0 ? 0 : total - 1;
+    elegirFoto(idDelVuelo, i);
+    // Si el punto quedó fuera de la vista, se lleva al centro.
+    const f = vuelos.get(idDelVuelo).datos.fotos.puntos[i];
+    const px = aPantallaX(f.mx);
+    const py = aPantallaY(f.my);
+    if (px < 20 || px > ancho - 20 || py < 20 || py > alto - 20) {
+      tocada = true;
+      vista.cx = f.mx;
+      vista.cy = f.my;
+      limitar();
+      pedir();
+      actualizarLectura();
+    }
+  }
+
+  function actualizarNavegacionDeFotos() {
+    const anterior = $("vuelo-foto-anterior");
+    if (!anterior) return;
+    const hay = fotosVisibles().length > 0;
+    anterior.disabled = !hay;
+    $("vuelo-foto-siguiente").disabled = !hay;
+  }
+
+  function filaDeFicha(titulo, valor) {
+    return [elemento("dt", "", titulo), elemento("dd", "", valor)];
+  }
+
+  let fichaPedida = 0;
+
+  function mostrarFoto() {
+    const detalle = $("vuelo-foto-detalle");
+    if (!detalle) return;
+    const peticion = ++fichaPedida;
+    $("vuelo-exif-grupos").replaceChildren();
+    if (!foto) {
+      detalle.hidden = true;
+      $("vuelo-foto-vacia").hidden = false;
+      $("vuelo-foto-quitar").hidden = true;
+      return;
+    }
+    const v = vuelos.get(foto.vuelo);
+    const f = v.datos.fotos.puntos[foto.i];
+    detalle.hidden = false;
+    $("vuelo-foto-vacia").hidden = true;
+    $("vuelo-foto-quitar").hidden = false;
+    $("vuelo-foto-nombre").textContent = f.nombre || "Disparo " + f.n;
+
+    const datos = $("vuelo-foto-datos");
+    datos.replaceChildren();
+    [
+      ["Disparo", String(f.n)],
+      ["Calidad", f.calidad || "No informada"],
+      ["Latitud", formato(f.lat, 9) + "°"],
+      ["Longitud", formato(f.lon, 9) + "°"],
+    ].forEach(function (par) {
+      filaDeFicha(par[0], par[1]).forEach(function (nodoDeFila) {
+        datos.appendChild(nodoDeFila);
+      });
+    });
+
+    // La miniatura y la ficha las sirven las vistas del vuelo (con su comprobación de dueño y de
+    // carpeta): aquí solo se arma la dirección. El número es el del disparo, un entero.
+    const imagen = $("vuelo-foto-imagen");
+    const sinImagen = $("vuelo-foto-sin-imagen");
+    const urls = v.datos.urls;
+    if (f.miniatura && v.datos.con_miniaturas && Number.isInteger(f.n)) {
+      imagen.alt = "Foto " + (f.nombre || f.n);
+      imagen.src = urls.miniatura.replace("{n}", String(f.n));
+      imagen.hidden = false;
+      sinImagen.textContent = "";
+    } else {
+      imagen.hidden = true;
+      sinImagen.textContent = v.datos.con_miniaturas
+        ? "Esta foto no está en la carpeta elegida."
+        : "No se eligió la carpeta de fotos: no hay miniatura.";
+    }
+
+    const fuente = $("vuelo-exif-fuente");
+    if (!Number.isInteger(f.n)) {
+      fuente.textContent = "Esta foto no trae número de disparo: no hay ficha.";
+      return;
+    }
+    fuente.textContent = "Leyendo la ficha…";
+    fetch(urls.ficha.replace("{n}", String(f.n)), {
+      credentials: "same-origin",
+      headers: { Accept: "application/json" },
+    })
+      .then(function (r) {
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        return r.json();
+      })
+      .then(function (json) {
+        if (peticion !== fichaPedida) return; // se eligió otra foto mientras tanto
+        fuente.textContent = json.fuente_texto;
+        const grupos = $("vuelo-exif-grupos");
+        json.grupos.forEach(function (g) {
+          const grupo = elemento("details", "visor-exif-grupo");
+          grupo.open = true;
+          grupo.appendChild(elemento("summary", "", g.titulo));
+          const lista = elemento("dl", "visor-ficha");
+          g.filas.forEach(function (par) {
+            filaDeFicha(par.rotulo, par.valor).forEach(function (nodoDeFila) {
+              lista.appendChild(nodoDeFila);
+            });
+          });
+          grupo.appendChild(lista);
+          grupos.appendChild(grupo);
+        });
+      })
+      .catch(function (fallo) {
+        if (peticion !== fichaPedida) return;
+        fuente.textContent =
+          fallo.message === "HTTP 404"
+            ? "Esta foto no tiene ficha: no está en la carpeta elegida y no hay posiciones de Trimble que la describan."
+            : "No se pudo leer la ficha (" + fallo.message + ").";
+      });
+  }
+
+  if ($("vuelo-foto-imagen")) {
+    $("vuelo-foto-imagen").addEventListener("error", function () {
+      this.hidden = true;
+      $("vuelo-foto-sin-imagen").textContent = "No se pudo abrir la foto.";
+    });
+    $("vuelo-foto-anterior").addEventListener("click", function () {
+      moverFoto(-1);
+    });
+    $("vuelo-foto-siguiente").addEventListener("click", function () {
+      moverFoto(1);
+    });
+    $("vuelo-foto-quitar").addEventListener("click", function () {
+      elegirFoto(null, -1);
+    });
+  }
+
+  /* ---- La lista de capas: orden, visibilidad y transparencia ---- */
+
+  const ROTULOS = {
+    raster: "Imagen",
+    fondo: "Mapa de fondo",
+    "vuelo-trayectoria": "Trayectoria del vuelo",
+    "vuelo-fotos": "Fotos del vuelo",
+    "vuelo-control": "Puntos de control del vuelo",
+  };
+
+  function decirDeLasCapas(texto) {
+    const caja = $("capas-aviso");
+    if (caja) caja.textContent = texto;
+  }
+
+  /* `e=id:transparencia:visible,…`, de arriba abajo. Es lo mismo que lee y normaliza el servidor
+   * (`apps/visor/capas.py`): el estado de las capas es un dato de la dirección, no de este archivo. */
+  function textoDeEstado() {
+    return pila
+      .map(function (l) {
+        return l.id + ":" + l.transparencia + ":" + (l.visible ? 1 : 0);
+      })
+      .join(",");
+  }
+
+  function guardarEstado() {
+    const texto = textoDeEstado();
+    const campo = $("capas-estado");
+    if (campo) campo.value = texto;
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set("e", texto);
+      window.history.replaceState(null, "", url.pathname + url.search + url.hash);
+    } catch (fallo) {
+      // Sin historial el mapa funciona igual; solo no se puede volver a abrir con el enlace.
+    }
+  }
+
+  function quitarCapa(l) {
+    const f = l.fuente;
+    if (!f) return;
+    try {
+      const url = new URL(window.location.href);
+      if (f.poner !== undefined) {
+        url.searchParams.set(f.param, f.poner);
+      } else {
+        const quedan = url.searchParams.getAll(f.param).filter(function (v) {
+          return v !== f.valor;
+        });
+        url.searchParams.delete(f.param);
+        quedan.forEach(function (v) {
+          url.searchParams.append(f.param, v);
+        });
+      }
+      // Lo que se queda conserva su orden y su transparencia; lo que se va, sale del estado.
+      const se_van = pila.filter(function (otra) {
+        return otra === l || (l.vuelo && otra.vuelo === l.vuelo);
+      });
+      url.searchParams.set(
+        "e",
+        pila
+          .filter(function (otra) {
+            return se_van.indexOf(otra) < 0;
+          })
+          .map(function (otra) {
+            return otra.id + ":" + otra.transparencia + ":" + (otra.visible ? 1 : 0);
+          })
+          .join(",")
+      );
+      window.location.assign(url.pathname + url.search);
+    } catch (fallo) {
+      decirDeLasCapas("No se pudo quitar la capa.");
+    }
+  }
+
+  function boton(texto, nombreAccesible, accion, desactivado) {
+    const b = elemento("button", "boton boton-suave boton-pequeno capa-boton", texto);
+    b.type = "button";
+    b.setAttribute("aria-label", nombreAccesible);
+    b.dataset.accion = texto;
+    b.disabled = !!desactivado;
+    b.addEventListener("click", accion);
+    return b;
+  }
+
+  function moverCapa(id, delta) {
+    const i = pila.findIndex(function (l) {
+      return l.id === id;
+    });
+    const j = i + delta;
+    if (i < 0 || j < 0 || j >= pila.length) return;
+    const l = pila[i];
+    pila.splice(i, 1);
+    pila.splice(j, 0, l);
+    pintarCapas();
+    // El foco se queda en el mismo botón; si ya no se puede (llegó al borde), en el contrario.
+    const fila = $("capas-lista").querySelector('[data-id="' + id + '"]');
+    if (fila) {
+      const preferido = fila.querySelector('[data-accion="' + (delta < 0 ? "Subir" : "Bajar") + '"]');
+      const otro = fila.querySelector('[data-accion="' + (delta < 0 ? "Bajar" : "Subir") + '"]');
+      if (preferido && !preferido.disabled) preferido.focus();
+      else if (otro) otro.focus();
+    }
+    decirDeLasCapas("«" + l.nombre + "» es ahora la capa " + (j + 1) + " de " + pila.length + ".");
+    guardarEstado();
+    pedir();
+  }
+
+  function filaDeCapa(l, posicion) {
+    const lista = dibujable(l);
+    const fila = elemento("li", "capa-fila" + (lista ? "" : " capa-sin-dibujar"));
+    fila.dataset.id = l.id;
+
+    const cabeza = elemento("div", "capa-cabeza");
+    const etiqueta = elemento("label", "capa-visible");
+    const casilla = document.createElement("input");
+    casilla.type = "checkbox";
+    casilla.checked = l.visible && lista;
+    casilla.disabled = !lista;
+    casilla.addEventListener("change", function () {
+      l.visible = casilla.checked;
+      guardarEstado();
+      actualizarNavegacionDeFotos();
+      pedir();
+    });
+    etiqueta.appendChild(casilla);
+    etiqueta.appendChild(elemento("span", "capa-nombre", l.nombre));
+    cabeza.appendChild(etiqueta);
+    fila.appendChild(cabeza);
+
+    fila.appendChild(elemento("p", "capa-tipo", ROTULOS[l.tipo]));
+
+    const acciones = elemento("div", "capa-orden");
+    acciones.appendChild(
+      boton("Subir", "Subir «" + l.nombre + "»", function () { moverCapa(l.id, -1); }, posicion === 0)
+    );
+    acciones.appendChild(
+      boton("Bajar", "Bajar «" + l.nombre + "»", function () { moverCapa(l.id, 1); }, posicion === pila.length - 1)
+    );
+    if (l.fuente) {
+      acciones.appendChild(
+        boton(
+          "Quitar",
+          l.vuelo ? "Quitar el vuelo entero («" + l.nombre + "» y sus otras capas)" : "Quitar «" + l.nombre + "»",
+          function () { quitarCapa(l); },
+          false
+        )
+      );
+    }
+    fila.appendChild(acciones);
+
+    if (lista) {
+      const idRango = "capa-transparencia-" + l.id;
+      const bloque = elemento("div", "capa-transparencia");
+      const rotulo = elemento("label", "terreno-campo-rotulo", "Transparencia");
+      rotulo.htmlFor = idRango;
+      const rango = document.createElement("input");
+      rango.type = "range";
+      rango.id = idRango;
+      rango.min = "0";
+      rango.max = "100";
+      rango.step = "5";
+      rango.value = String(l.transparencia);
+      rango.className = "capa-rango";
+      rango.setAttribute("aria-label", "Transparencia de «" + l.nombre + "»");
+      const salida = elemento("output", "capa-valor cifra", l.transparencia + " %");
+      salida.htmlFor = idRango;
+      // Sin volver a pintar la lista: se destruiría el control mientras se arrastra.
+      rango.addEventListener("input", function () {
+        l.transparencia = parseInt(rango.value, 10) || 0;
+        salida.textContent = l.transparencia + " %";
+        rango.setAttribute("aria-valuetext", l.transparencia + " % de transparencia");
+        guardarEstado();
+        actualizarNavegacionDeFotos();
+        pedir();
+      });
+      bloque.appendChild(rotulo);
+      bloque.appendChild(rango);
+      bloque.appendChild(salida);
+      fila.appendChild(bloque);
+    }
+
+    // Lo que la capa dice de sí: cuántos puntos tiene, o por qué no se dibuja. Siempre escrito.
+    const nota = notaDeCapa(l);
+    if (nota) fila.appendChild(elemento("p", "capa-nota" + (lista ? "" : " capa-nota-aviso"), nota));
+    return fila;
+  }
+
+  function notaDeCapa(l) {
+    if (l.estado === "cargando") return "Cargando…";
+    if (l.estado !== "lista") return "No se dibuja: " + l.mensaje;
+    const v = esVuelo(l) ? vuelos.get(l.vuelo).datos : null;
+    if (l.tipo === "vuelo-fotos") {
+      const n = v.fotos.puntos.length;
+      const sin = v.fotos.sin_posicion;
+      return n + (n === 1 ? " foto" : " fotos") + (sin ? "; " + sin + " sin posición, que no se dibujan" : "");
+    }
+    if (l.tipo === "vuelo-trayectoria") return v.trayectoria.puntos.length + " puntos del recorrido";
+    if (l.tipo === "vuelo-control") return v.control.puntos.length + " puntos de control";
+    if (l.tipo === "raster" && l.ficha.es_dem && !l.principal) {
+      return "Modelo de elevación: se ve en grises (el sombreado es de la imagen principal).";
+    }
+    return "";
+  }
+
+  function pintarCapas() {
+    const lista = $("capas-lista");
+    if (!lista) return;
+    const activo = document.activeElement;
+    const filaActiva = activo && activo.closest ? activo.closest("#capas-lista > li") : null;
+    const idActivo = filaActiva ? filaActiva.dataset.id : "";
+    lista.replaceChildren();
+    pila.forEach(function (l, i) {
+      lista.appendChild(filaDeCapa(l, i));
+    });
+    // Si el foco estaba en la lista y se perdió al repintar, vuelve a la misma capa.
+    if (idActivo && document.activeElement === document.body) {
+      const fila = lista.querySelector('[data-id="' + idActivo + '"]');
+      const control = fila ? fila.querySelector("input, button") : null;
+      if (control) control.focus();
+    }
+  }
+
+  /* ---- Carga de lo que cada capa necesita ---- */
+
+  function leerDeclaradas() {
+    try {
+      const crudo = JSON.parse(raiz.dataset.capas || "[]");
+      return Array.isArray(crudo) ? crudo : [];
+    } catch (fallo) {
+      return [];
+    }
+  }
+
+  function crearCapa(d) {
+    return {
+      id: String(d.id),
+      tipo: String(d.tipo),
+      nombre: String(d.nombre || ""),
+      token: String(d.token || ""),
+      vuelo: String(d.vuelo || ""),
+      datos: String(d.datos || ""),
+      fuente: d.fuente || null,
+      principal: !!d.principal,
+      visible: d.visible !== false,
+      transparencia: Math.max(0, Math.min(100, parseInt(d.transparencia, 10) || 0)),
+      estado: "cargando",
+      mensaje: "",
+      ficha: null,
+      imagenes: new Map(),
+    };
+  }
+
+  function leerJson(url) {
+    return fetch(url, { credentials: "same-origin", headers: { Accept: "application/json" } }).then(
+      function (r) {
+        return r
+          .json()
+          .catch(function () {
+            return {};
+          })
+          .then(function (datos) {
+            return { ok: r.ok, datos: datos };
+          });
+      }
+    );
+  }
+
+  function cargarFicha(l) {
+    return leerJson(raiz.dataset.capa + "?ruta=" + encodeURIComponent(l.token))
+      .then(function (respuesta) {
+        if (!respuesta.ok) {
+          l.estado = "error";
+          l.mensaje = respuesta.datos.mensaje || "no se pudo leer la capa.";
+        } else if (respuesta.datos.dibujable === false) {
+          l.estado = "apagada";
+          l.mensaje = respuesta.datos.detalle || "el archivo no se puede dibujar en el mapa.";
+        } else {
+          l.ficha = respuesta.datos;
+          l.estado = "lista";
+        }
+      })
+      .catch(function () {
+        l.estado = "error";
+        l.mensaje = "no se pudo leer la capa. Compruebe la conexión con el servidor.";
+      });
+  }
+
+  function cargarVuelo(id, url) {
+    const v = { datos: null, estado: "cargando", mensaje: "" };
+    vuelos.set(id, v);
+    return leerJson(url)
+      .then(function (respuesta) {
+        if (!respuesta.ok) {
+          v.estado = "error";
+          v.mensaje = respuesta.datos.mensaje || "no se pudo leer el vuelo.";
+        } else {
+          v.datos = respuesta.datos;
+          v.estado = "lista";
+        }
+      })
+      .catch(function () {
+        v.estado = "error";
+        v.mensaje = "no se pudo leer el vuelo. Compruebe la conexión con el servidor.";
+      });
+  }
+
+  /* Cada parte del vuelo se apaga **con su motivo** (sin sistema, sin recorrido, sin control…): la
+   * regla 4. Una parte apagada no se dibuja ni se esconde de la lista. */
+  function estadoDeLaParte(l) {
+    const v = vuelos.get(l.vuelo);
+    if (v.estado === "error") {
+      l.estado = "error";
+      l.mensaje = v.mensaje;
+      return;
+    }
+    const d = v.datos;
+    const parte = l.tipo === "vuelo-trayectoria" ? d.trayectoria : l.tipo === "vuelo-fotos" ? d.fotos : d.control;
+    if (!parte.disponible) {
+      l.estado = "apagada";
+      l.mensaje = (parte.mensaje || "") + (parte.sugerencia ? " " + parte.sugerencia : "");
+    } else {
+      l.estado = "lista";
+    }
+  }
 
   /* ---- Arranque ---- */
 
@@ -1286,6 +2008,31 @@
     const caja = $("mapa-cargando");
     caja.hidden = false;
     caja.textContent = mensaje;
+  }
+
+  function terminarDeCargar() {
+    pila.forEach(function (l) {
+      if (esVuelo(l)) estadoDeLaParte(l);
+    });
+    if (principal && principal.estado === "lista") {
+      capa = principal.ficha;
+      capa.puntoUrl = raiz.dataset.punto;
+      capa.perfilUrl = raiz.dataset.perfil;
+      capa.ruta = principal.token;
+      iniciarTerreno();
+      iniciarPerfil();
+    }
+    pintarCapas();
+    if (!pila.some(dibujable)) {
+      const sinNada = pila.length ? pila[0].mensaje : "";
+      fallo(sinNada ? "No se pudo dibujar el mapa: " + sinNada : "No hay nada que dibujar.");
+      return;
+    }
+    $("mapa-cargando").hidden = true;
+    iniciado = true;
+    actualizarNavegacionDeFotos();
+    medir();
+    encuadrar();
   }
 
   function arrancar() {
@@ -1305,31 +2052,28 @@
     }
     new ResizeObserver(medir).observe(lienzo);
 
-    fetch(raiz.dataset.capa, { credentials: "same-origin" })
-      .then(function (r) {
-        return r.json().then(function (datos) {
-          return { ok: r.ok, datos: datos };
-        });
-      })
-      .then(function (respuesta) {
-        if (!respuesta.ok) {
-          fallo(respuesta.datos.mensaje || "No se pudo leer la capa.");
-          return;
-        }
-        capa = respuesta.datos;
-        capa.base = raiz.dataset.teselas.replace(/0\/0\/0\.png$/, "");
-        capa.puntoUrl = raiz.dataset.punto;
-        capa.perfilUrl = raiz.dataset.perfil;
-        capa.ruta = raiz.dataset.ruta;
-        iniciarTerreno();
-        iniciarPerfil();
-        $("mapa-cargando").hidden = true;
-        medir();
-        encuadrar();
-      })
-      .catch(function () {
-        fallo("No se pudo leer la capa. Compruebe la conexión con el servidor.");
-      });
+    const tiposConocidos = Object.keys(ROTULOS);
+    leerDeclaradas().forEach(function (d) {
+      if (d && d.id && tiposConocidos.indexOf(d.tipo) >= 0) pila.push(crearCapa(d));
+    });
+    principal =
+      pila.find(function (l) {
+        return l.tipo === "raster" && l.principal;
+      }) || null;
+    pintarCapas();
+
+    // Cada imagen pide su ficha y cada vuelo sus datos, **en paralelo**; una que falla lo dice en su
+    // fila y no tumba a las demás.
+    const promesas = [];
+    const pedidos = new Set();
+    pila.forEach(function (l) {
+      if (esRaster(l)) promesas.push(cargarFicha(l));
+      else if (l.vuelo && !pedidos.has(l.vuelo)) {
+        pedidos.add(l.vuelo);
+        promesas.push(cargarVuelo(l.vuelo, l.datos));
+      }
+    });
+    Promise.all(promesas).then(terminarDeCargar);
   }
 
   arrancar();

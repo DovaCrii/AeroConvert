@@ -279,6 +279,47 @@ MOTIVOS: dict[str, Motivo] = dict(
             "Para ver una ortofoto use la imagen normal.",
         ),
         _m("parametros-no-validos", "Un parámetro de la petición está fuera de rango."),
+        # --- Varias capas y mapa base propio (F19.3 y F19.5) ---------------
+        _m(
+            "vuelo-sin-crs",
+            "Este vuelo no declara el sistema de coordenadas de sus puntos, así que no se dibuja "
+            "sobre el mapa: ubicarlo con uno supuesto sería inventar dónde voló.",
+            "Vuelva a correr «Corregir un vuelo de dron» declarando el sistema, o midiéndolo con "
+            "las posiciones de Trimble.",
+        ),
+        _m(
+            "vuelo-sin-trayectoria",
+            "Este vuelo no trae recorrido (con posiciones RTK de las fotos no hay trayectoria): "
+            "unir las fotos en orden sería inventar uno.",
+            "Se ven los puntos de las fotos.",
+        ),
+        _m(
+            "vuelo-sin-puntos-de-control",
+            "Este vuelo no trae puntos de control.",
+            "Los puntos de control se muestran cuando el vuelo los incluye.",
+        ),
+        _m(
+            "vuelo-sin-fotos-con-posicion",
+            "Ninguna foto de este vuelo tiene posición, así que no hay puntos que dibujar.",
+            "Revise las posiciones de Trimble y los disparos del vuelo.",
+        ),
+        _m(
+            "vuelo-no-encontrado",
+            "Ese vuelo ya no está, o no es suyo.",
+            "Elija uno de los vuelos terminados de su lista.",
+        ),
+        _m(
+            "vuelo-ilegible",
+            "El resultado de este vuelo no trae datos para el mapa.",
+            "Vuelva a correr «Corregir un vuelo de dron».",
+        ),
+        _m(
+            "mapa-base-no-valido",
+            "Este mapa base no se puede usar: no está donde dice, está fuera de las carpetas "
+            "permitidas o no es un GeoTIFF o COG.",
+            "Quien administra el equipo lo corrige en AEROCONVERT_VISOR_MAPA_BASE. Mientras tanto "
+            "el fondo es la retícula de coordenadas.",
+        ),
     ]
 )
 
