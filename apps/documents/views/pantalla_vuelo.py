@@ -103,15 +103,23 @@ def _numero(request, campo: str, que: str) -> float:
 def _opciones_de_rtklib(request, contexto: dict) -> vuelo_ppk.Opciones:
     """Las opciones de RTKLIB que pide la pantalla, validadas por `vuelo_ppk.Opciones`."""
     try:
-        mascara = int(
-            float((request.POST.get("ppk_mascara_elevacion_deg") or "").replace(",", "."))
-        )
+        crudo = float((request.POST.get("ppk_mascara_elevacion_deg") or "").replace(",", "."))
         umbral = float((request.POST.get("ppk_umbral_ambiguedad") or "").replace(",", "."))
     except ValueError as fallo:
         raise ComposicionInvalida(
             "La máscara de elevación y el umbral de ambigüedades son números."
         ) from fallo
-    sistemas = [s for s in request.POST.getlist("ppk_sistemas") if s in vuelo_ppk.SISTEMAS]
+    if not math.isfinite(crudo) or crudo != int(crudo):
+        raise ComposicionInvalida(
+            "La máscara de elevación va en grados enteros (por omisión, 15): no se redondea."
+        )
+    mascara = int(crudo)
+    sistemas = request.POST.getlist("ppk_sistemas")
+    desconocidos = [s for s in sistemas if s not in vuelo_ppk.SISTEMAS]
+    if desconocidos:
+        raise ComposicionInvalida(
+            f"«{', '.join(desconocidos)}» no es un sistema satelital de los que se ofrecen."
+        )
     contexto["ppk_mascara"] = mascara
     contexto["ppk_umbral"] = umbral
     contexto["ppk_sistemas"] = sistemas

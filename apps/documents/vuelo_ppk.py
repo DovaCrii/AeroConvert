@@ -32,11 +32,14 @@ from __future__ import annotations
 
 import math
 import os
+import queue
 import re
 import shutil
+import signal
 import subprocess
 import tempfile
 import threading
+import time
 from collections import deque
 from collections.abc import Callable
 from dataclasses import dataclass, field
@@ -400,6 +403,12 @@ _PROCESANDO = re.compile(
 #: época: a 5 Hz son miles).
 PASO_MINIMO_DE_AVANCE = 0.01
 
+#: Una «línea» de stderr sin salto ni retorno de carro no puede crecer sin fin en memoria.
+TOPE_DE_LINEA_B = 64 * 1024
+
+#: Cada cuánto despierta el hilo principal a entregar el avance y a mirar el plazo.
+SONDEO_S = 0.2
+
 
 def _fraccion(hora: datetime, desde: datetime | None, hasta: datetime | None) -> float | None:
     if desde is None or hasta is None or hasta <= desde:
@@ -407,22 +416,32 @@ def _fraccion(hora: datetime, desde: datetime | None, hasta: datetime | None) ->
     return max(0.0, min(1.0, (hora - desde).total_seconds() / (hasta - desde).total_seconds()))
 
 
-def _leer_avance(
-    flujo,
-    mensajes: deque,
-    progreso: Callable[[float | None, str], None] | None,
-    desde: datetime | None,
-    hasta: datetime | None,
-) -> None:
-    """Lee el stderr de RTKLIB **mientras corre**: avisa de la barra y guarda lo demás."""
+def _hora_de_linea(encontrada: re.Match) -> tuple[datetime, int | None] | None:
+    """La hora y la calidad de una línea `processing`, o `None` si no es una hora de verdad
+    (un `15:59:60` por un segundo intercalar, un mes 13…): se descarta, no se cae."""
+    y, mo, d, h, mi, s, q = encontrada.groups()
+    try:
+        hora = datetime(int(y), int(mo), int(d), int(h), int(mi), int(float(s)))
+    except ValueError:
+        return None
+    return hora, (int(q) if q is not None else None)
+
+
+def _leer_avance(flujo, mensajes: deque, avances: queue.Queue) -> None:
+    """Vacía el stderr de RTKLIB **sin parar**: guarda lo que no es la barra y **encola** el resto.
+
+    Este hilo no llama a nadie ni calcula nada que pueda fallar fuera de lo previsto: si se
+    muriera, nadie vaciaría el pipe y `rnx2rtkp` se bloquearía hasta el plazo. Quien entrega el
+    avance es el hilo principal.
+    """
     pendiente = b""
-    ultima = -1.0
     while True:
         trozo = flujo.read1(4096) if hasattr(flujo, "read1") else flujo.read(4096)
         if not trozo:
             break
         pendiente += trozo
         *lineas, pendiente = re.split(rb"[\r\n]", pendiente)
+        pendiente = pendiente[-TOPE_DE_LINEA_B:]
         for cruda in lineas:
             linea = cruda.decode("utf-8", errors="replace").strip()
             if not linea:
@@ -431,22 +450,70 @@ def _leer_avance(
             if not encontrada:
                 mensajes.append(linea)  # lo que no es la barra: avisos y errores de RTKLIB
                 continue
-            if progreso is None:
-                continue
-            y, mo, d, h, mi, s, q = encontrada.groups()
-            hora = datetime(int(y), int(mo), int(d), int(h), int(mi), int(float(s)))
-            fraccion = _fraccion(hora, desde, hasta)
-            etiqueta = f"RTKLIB va en {hora:%Y-%m-%d %H:%M:%S} GPST"
-            if q is not None:
-                etiqueta += f" ({vuelo_pos.CALIDADES.get(int(q), 'sin calidad')})"
-            if fraccion is None:
-                progreso(None, etiqueta)  # sin hora de fin no hay fracción: solo se dice dónde va
-            elif fraccion - ultima >= PASO_MINIMO_DE_AVANCE:
-                ultima = fraccion
-                progreso(fraccion, etiqueta)
+            hora = _hora_de_linea(encontrada)
+            if hora is not None and avances.qsize() < 10_000:
+                avances.put(hora)
     resto = pendiente.decode("utf-8", errors="replace").strip()
     if resto and not _PROCESANDO.search(resto):
         mensajes.append(resto)
+
+
+class _Avisador:
+    """Convierte las horas que dice RTKLIB en llamadas a `progreso`, en el hilo de quien llama.
+
+    Nunca baja, avisa solo si la barra avanzó lo suficiente y, si `progreso` lanza, deja de
+    llamarlo: un fallo de la barra no puede tumbar el cálculo.
+    """
+
+    def __init__(self, progreso, desde, hasta) -> None:
+        self.progreso = progreso
+        self.desde = desde
+        self.hasta = hasta
+        self.ultima = -1.0
+        self.roto = False
+
+    def entregar(self, avances: queue.Queue) -> None:
+        while True:
+            try:
+                hora, q = avances.get_nowait()
+            except queue.Empty:
+                return
+            if self.progreso is None or self.roto:
+                continue
+            fraccion = _fraccion(hora, self.desde, self.hasta)
+            etiqueta = f"RTKLIB va en {hora:%Y-%m-%d %H:%M:%S} GPST"
+            if q is not None:
+                etiqueta += f" ({vuelo_pos.CALIDADES.get(q, 'sin calidad')})"
+            if fraccion is not None:
+                if fraccion - self.ultima < PASO_MINIMO_DE_AVANCE:
+                    continue
+                self.ultima = fraccion
+            # Sin hora de fin no hay fracción: solo se dice dónde va.
+            self._avisar(fraccion, etiqueta)
+
+    def _avisar(self, fraccion, etiqueta) -> None:
+        try:
+            self.progreso(fraccion, etiqueta)
+        except Exception:  # noqa: BLE001 - el avance es un adorno: no tumba el cálculo
+            self.roto = True
+
+
+def _matar(proceso: subprocess.Popen) -> None:
+    """Mata a RTKLIB **y a lo que haya lanzado** (un envoltorio `.cmd` o `sh` tiene un nieto)."""
+    if os.name == "nt":
+        subprocess.run(  # nosec B603 B607 - orden fija, solo el PID de nuestro propio proceso
+            ["taskkill", "/T", "/F", "/PID", str(proceso.pid)],
+            capture_output=True,
+            check=False,
+            timeout=30,
+        )
+    else:
+        try:
+            os.killpg(proceso.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            return
+    if proceso.poll() is None:
+        proceso.kill()
 
 
 def correr(
@@ -465,7 +532,7 @@ def correr(
 
     `progreso(fraccion, etiqueta)` se llama con lo que RTKLIB dice en stderr: la fracción sale de
     la hora que va procesando entre la primera y la última observación del dron, y es `None` si el
-    RINEX no trae la última. Nunca baja.
+    RINEX no trae la última. Nunca baja, y se llama desde el hilo de quien llama a `correr`.
     """
     revision = revisar(rover, base_obs, navegacion, base)
     destino = Path(destino)
@@ -481,41 +548,53 @@ def correr(
             opciones=opciones,
         )
         mensajes_vivos: deque[str] = deque(maxlen=6)
+        avances: queue.Queue = queue.Queue()
+        # Un grupo de procesos propio, para poder alcanzar al nieto si el programa es un envoltorio.
+        grupo = (
+            {"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP}
+            if os.name == "nt"
+            else {"start_new_session": True}
+        )
         try:
             proceso = subprocess.Popen(  # nosec B603 - lista de argumentos, sin shell, rutas absolutas
                 orden,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.PIPE,
                 env={**os.environ, "LC_ALL": "C"},
+                **grupo,
             )
         except OSError as fallo:
             raise ComposicionInvalida(f"No se pudo lanzar RTKLIB: {fallo}") from fallo
 
         lector = threading.Thread(
-            target=_leer_avance,
-            args=(
-                proceso.stderr,
-                mensajes_vivos,
-                progreso,
-                revision.rover.desde,
-                revision.rover.hasta,
-            ),
-            daemon=True,
+            target=_leer_avance, args=(proceso.stderr, mensajes_vivos, avances), daemon=True
         )
         lector.start()
+        avisador = _Avisador(progreso, revision.rover.desde, revision.rover.hasta)
+        limite = time.monotonic() + plazo_s
         try:
-            proceso.wait(timeout=plazo_s)
-        except subprocess.TimeoutExpired as fallo:
-            proceso.kill()
-            proceso.wait()
-            raise ComposicionInvalida(
-                f"RTKLIB tardó más de {plazo_s // 60} minutos y se detuvo. Con una base lejana o "
-                "un vuelo muy largo conviene un intervalo mayor."
-            ) from fallo
+            while proceso.poll() is None:
+                if time.monotonic() >= limite:
+                    _matar(proceso)
+                    proceso.wait()
+                    raise ComposicionInvalida(
+                        f"RTKLIB tardó más de {plazo_s // 60} minutos y se detuvo. Con una base "
+                        "lejana o un vuelo muy largo conviene un intervalo mayor."
+                    )
+                avisador.entregar(avances)
+                try:
+                    proceso.wait(timeout=SONDEO_S)
+                except subprocess.TimeoutExpired:
+                    continue
         finally:
+            # Una cancelación o un Ctrl+C no dejan a RTKLIB huérfano.
+            if proceso.poll() is None:
+                _matar(proceso)
+                proceso.wait()
             lector.join(timeout=10)  # un nieto que retenga el pipe no puede colgar al trabajo
             if proceso.stderr is not None:
                 proceso.stderr.close()
+        avisador.entregar(avances)
 
         mensajes = list(mensajes_vivos)
         # **El código de salida no es la prueba.** Lo que cuenta es lo que quedó escrito.

@@ -35,7 +35,7 @@ import pytest
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 
-from apps.documents import motor, tarea
+from apps.documents import motor, tarea, vuelo_ppk
 from apps.documents.test_vuelo_ppk import _ecef, _rinex
 from apps.documents.test_vuelo_proceso import (
     A_LL,
@@ -116,6 +116,12 @@ config = json.loads(Path(__file__).with_name("falso.json").read_text(encoding="u
 argumentos = sys.argv[1:]
 Path(__file__).with_name("recibido.json").write_text(json.dumps(argumentos), encoding="utf-8")
 salida = argumentos[argumentos.index("-o") + 1]
+if config.get("pid_en"):
+    import os
+
+    Path(config["pid_en"]).write_text(str(os.getpid()), encoding="utf-8")
+if config.get("duerme"):
+    time.sleep(config["duerme"])
 for linea in config.get("progreso", []):
     sys.stderr.write(linea + chr(13))
     sys.stderr.flush()
@@ -383,6 +389,17 @@ class TestLoQueSeRechazaAntesDeEncolar:
 
     def test_una_opcion_de_rtklib_fuera_de_rango_se_rechaza(self, sesion, tmp_path, rtklib_falso):
         self._rechazada(sesion, tmp_path, "máscara de elevación", ppk_mascara_elevacion_deg="80")
+
+    def test_una_mascara_no_entera_no_se_trunca(self, sesion, tmp_path, rtklib_falso):
+        self._rechazada(sesion, tmp_path, "grados enteros", ppk_mascara_elevacion_deg="10.9")
+
+    def test_un_sistema_satelital_que_no_se_ofrece_no_se_descarta_en_silencio(
+        self, sesion, tmp_path, rtklib_falso
+    ):
+        self._rechazada(
+            sesion, tmp_path, "no es un sistema satelital de los que se ofrecen",
+            ppk_sistemas=["G", "X"],
+        )  # fmt: skip
 
     def test_sin_ningun_sistema_satelital_se_rechaza(self, sesion, tmp_path, rtklib_falso):
         self._rechazada(sesion, tmp_path, "sistemas satelitales", ppk_sistemas=[])
@@ -684,6 +701,28 @@ class TestElAvanceLlegaALaCola:
         with pytest.raises(ComposicionInvalida, match="Falta el sistema"):
             tarea._calcular_con_rtklib(entradas, opciones)
         assert not (rtklib_falso.carpeta / "recibido.json").exists()
+
+
+def test_con_un_envoltorio_el_plazo_alcanza_tambien_al_nieto(tmp_path, rtklib_falso):
+    """`rnx2rtkp.cmd` o el guion de `sh` lanzan a Python: matar solo al envoltorio dejaría vivo
+    al que de verdad calcula. El falso escribe el PID del Python, el nieto."""
+    from apps.documents.composicion import ComposicionInvalida
+    from apps.documents.test_vuelo_ppk import _esperar_a_que_muera
+
+    pid_en = tmp_path / "pid.txt"
+    rinex = _rinex_del_vuelo(tmp_path)
+    programa = rtklib_falso(duerme=60, pid_en=str(pid_en))
+    with pytest.raises(ComposicionInvalida, match="tardó más de"):
+        vuelo_ppk.correr(
+            str(programa),
+            rover=rinex["rover_obs"],
+            base_obs=rinex["base_obs"],
+            navegacion=[rinex["navegacion"]],
+            destino=tmp_path / "s.pos",
+            base=vuelo_ppk.Base(BASE_LAT, BASE_LON, BASE_ALT, "SIRGAS-Chile 2002"),
+            plazo_s=3,
+        )
+    assert _esperar_a_que_muera(int(pid_en.read_text()))
 
 
 def test_la_trayectoria_de_dos_origenes_a_la_vez_no_se_admite():

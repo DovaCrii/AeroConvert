@@ -47,7 +47,7 @@ Estados: ✅ hecho · 🟨 en curso · ⬜ por hacer · ⏸ espera un pedido · 
 | **B8 · Geoespacial** | F15.1 ⏸ · F15.2 · F15.3 ⏸ · F15.4 ⏸ · F15.5 · F15.6 ◐ (falta DWG) · F15.7 · F15.8 ⏸ | 🟨 | #86 | P5 · P6 · P7 |
 | **B9 · Plataforma** | F16.1 ✅ · F16.2 ✅ · F16.3 ✅ · F16.4 ✅ · F16.5 · F16.6 ✅ | 🟨 | #79, #80, #87, #92 | F16.5 necesita a AeroBim |
 | **B11 · Poner en marcha lo apagado** | F17.1 ⚠ · F17.2 ⚠ · F17.3 ✅ · F17.4 ✅ (`docs/PUESTA_EN_MARCHA_DE_LO_APAGADO.md`) | ✅ en código; los ⚠ se miden en `p340` | #89, #90, #91, #95 | P7 · P10 · P11 · P12 · P13 para lo que es de la persona |
-| **B12 · Vuelos de dron: PPK y sincronía** | F18.1 ✅ · F18.2 ✅ · F18.3 ⚠ · F18.4 ✅ · F18.5 ✅ · F18.6 ✅ · F18.7 ⏸ (`docs/VUELOS_DE_DRON_Y_PPK.md`) | 🟨 | #81 a #85 | P15 y P16 para la corrida real |
+| **B12 · Vuelos de dron: PPK y sincronía** | F18.1 ✅ · F18.2 ✅ · F18.3 ⚠ · F18.4 ✅ · F18.5 ✅ · F18.6 ✅ · F18.7 ⏸ (`docs/VUELOS_DE_DRON_Y_PPK.md`) · F18.13 mover los vuelos a `apps/vuelos/` (después de F18.7 y D8) | 🟨 | #81 a #85 | P15 y P16 para la corrida real |
 | **B10 · Cierre y despliegue** | Versión `0.12.0` ✅, `HANDOFF.md` con los pasos de la VM ✅ | ✅ 2026-10-08 · **falta desplegar (la persona)** | #97 | — |
 
 **Orden de trabajo:** B1 → B2 → B3 → B4 → B5 (esto cierra F13 y la versión `0.11.0`); B6 con
