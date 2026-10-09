@@ -9,6 +9,17 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 - De un PDF con texto, un Word, una página web, una hoja o un Markdown, un **EPUB 3** que se lee en el teléfono o en un lector: un capítulo por título de primer nivel, índice del lector, título y autor opcionales. Pasa por `a_markdown` (la lectura ya probada) y se escribe sin dependencia nueva (`apps/documents/a_epub.py`). Un escaneo sin texto lo dice y no deja libro. Son ya **cuarenta y una** herramientas de documentos.
 
+### Corregido — el lateral contaba herramientas que no enseñaba
+
+- «Imagen, video y planta» decía 2 y enseñaba 1 en p340: la cifra contaba también la apagada. Ahora cada grupo cuenta solo las disponibles, y un grupo sin ninguna no sale en el menú (las apagadas siguen, con su motivo, en la portada y en Compatibilidad).
+- Trato de usted: «lo que conviertas» (la chapa del modo, en todas las pantallas), «las elijas» y «Lo que sueles hacer». La prueba de trato vigila ahora también el subjuntivo de tú.
+
+### Cambiado — lateral, chapa del modo y Compatibilidad
+
+- **Lateral:** la herramienta donde se está queda marcada (`aria-current`, fondo y barra) y su grupo se abre solo, sin cambiar lo que la persona dejó guardado; barra de desplazamiento fina y del color del tema; el grupo abierto lleva su símbolo en el color de acción.
+- **Chapa del modo** («Equipo», «Taller», «Nube»): con su símbolo delante (la forma dice el modo sin depender del color) y, al pie del lateral, en los colores del tema: el verde de la barra sobre fondo claro no se leía.
+- **Compatibilidad:** lo apagado (motores y herramientas de documentos) en **una sola lista**, una fila por cosa con «Por qué», «Qué hace falta» y «Mientras tanto» escritos; lo que funciona, en una línea por motor; la matriz y el historial, plegados y recordados. En el teléfono, las cifras del resumen van de dos en dos.
+
 ### Corregido — `instalar_faltantes.sh` daba todo por ausente en un servidor en español
 
 - `apt-cache policy` contesta en el idioma del sistema («Candidato:» en p340) y el guion buscaba «Candidate:»: en la primera corrida (2026-10-09) dijo que no había ninguno de los doce paquetes. Ahora fija `LC_ALL=C` antes de hablar con apt, y una prueba lo vigila.

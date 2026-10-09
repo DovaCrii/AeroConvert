@@ -528,21 +528,47 @@ a:hover {
 /* La chapa del modo. Saber si los archivos salen o no de la máquina es lo primero que hay
    que ver, no algo que se averigua entrando a una pantalla de ajustes. */
 .chapa {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--av-s-1);
   font-size: var(--av-fs-xs);
   font-weight: var(--av-peso-fuerte);
-  letter-spacing: var(--av-track-rotulo);
-  text-transform: uppercase;
-  padding: 2px 10px;
+  letter-spacing: 0.02em;
+  padding: 2px 10px 2px 8px;
   border-radius: var(--av-radius-pill);
   border: 1px solid currentcolor;
+  white-space: nowrap;
 }
 
-.chapa-taller {
+/* El símbolo del modo delante de la palabra: personas para el equipo, un equipo para el taller,
+ * una subida para la nube. La forma dice el modo sin depender del color. */
+.chapa-icono {
+  width: 0.95rem;
+  height: 0.95rem;
+  flex: none;
+}
+
+/* Sobre la barra navy, que es igual en los dos temas: color fijo con un velo del mismo tono. */
+.barra .chapa-taller {
   color: #7fe3c4;
+  background: rgb(127 227 196 / 12%);
 }
 
-.chapa-nube {
+.barra .chapa-nube {
   color: #f5a8d3;
+  background: rgb(245 168 211 / 12%);
+}
+
+/* En el lateral la superficie cambia con el tema: el verde de la barra sobre blanco no se lee
+ * (1,5:1). Aquí van los tokens del tema. */
+.lateral .chapa-taller {
+  color: var(--av-ok);
+  background: var(--av-ok-soft);
+}
+
+.lateral .chapa-nube {
+  color: var(--av-primary);
+  background: var(--av-primary-soft);
 }
 
 /* --- La portada de entrada -----------------------------------------------
@@ -846,6 +872,16 @@ a:hover {
   background: var(--av-surface-alt);
 }
 
+/* El grupo abierto lleva su título en el color de acción: se ve en cuál se está sin leer. */
+.lateral-grupo[open] > .lateral-grupo-titulo .lateral-grupo-icono {
+  color: var(--av-primary);
+}
+
+/* Los nombres largos («Entregar a un programa») parten en dos líneas apretadas, no sueltas. */
+.lateral-grupo-titulo {
+  line-height: 1.25;
+}
+
 .lateral-grupo + .lateral-grupo {
   margin-top: 2px;
 }
@@ -887,6 +923,37 @@ a:hover {
 .lateral .menu-enlace:hover,
 .lateral .menu-enlace:focus-visible {
   color: var(--av-text);
+}
+
+/* La herramienta donde se está: fondo, barra a la izquierda y el atributo para el lector de
+ * pantalla, igual que Inicio o Historial. Antes no se marcaba y solo el ratón encima la
+ * resaltaba. */
+.lateral .menu-enlace[aria-current="page"] {
+  background: var(--av-primary-soft);
+  box-shadow: inset 3px 0 0 var(--av-primary);
+  font-weight: 600;
+}
+
+/* La barra de desplazamiento del lateral: fina y en los colores del tema, no la gris gruesa del
+ * sistema, que en oscuro era lo más llamativo de la columna. El hueco se reserva para que el
+ * contenido no salte al aparecer. */
+.lateral-nav {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--av-text-muted) 45%, transparent) transparent;
+  scrollbar-gutter: stable;
+}
+
+.lateral-nav::-webkit-scrollbar {
+  width: 8px;
+}
+
+.lateral-nav::-webkit-scrollbar-thumb {
+  border-radius: var(--av-radius-pill);
+  background: color-mix(in srgb, var(--av-text-muted) 45%, transparent);
+}
+
+.lateral-nav::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 @media (min-width: 56rem) {
@@ -3386,9 +3453,11 @@ code {
 }
 
 /* La tira de cifras de cabecera: el estado de la máquina en dos segundos. */
+/* De dos en dos como mínimo: en un teléfono, cuatro cifras apiladas llenaban la pantalla entera
+ * antes de llegar a lo que falta. */
 .resumen-tiras {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(13rem, calc(50% - var(--av-s-3))), 1fr));
   gap: var(--av-s-3);
   margin-bottom: var(--av-s-8);
 }
@@ -3433,6 +3502,130 @@ code {
   grid-template-columns: repeat(auto-fit, minmax(min(20rem, 100%), 1fr));
   align-items: start;
   gap: 14px;
+}
+
+/* Compatibilidad: **lo que falta, una fila por cosa**. En ancho, tres columnas (qué · por qué ·
+ * qué hace falta) que se leen de un vistazo y se comparan entre filas; en estrecho, apiladas.
+ * Sustituye a las dos rejillas de tarjetas grandes, que pedían tres pantallas de desplazamiento. */
+.faltas {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-radius: var(--av-radius);
+  box-shadow: var(--av-elev-1);
+  background: var(--av-surface);
+}
+
+.falta {
+  display: grid;
+  gap: var(--av-s-2) var(--av-s-5);
+  padding: var(--av-s-4);
+  border-left: 3px solid var(--av-warn);
+}
+
+.falta + .falta {
+  border-top: 1px solid var(--av-border);
+}
+
+.falta p {
+  margin: 0;
+  font-size: var(--av-fs-sm);
+  line-height: var(--av-alto-normal);
+  text-wrap: pretty;
+}
+
+.falta-remedio {
+  display: grid;
+  gap: var(--av-s-1);
+}
+
+.falta-que {
+  display: grid;
+  grid-template-columns: 2.2rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.falta-nombre {
+  display: grid;
+  min-width: 0;
+}
+
+.falta-nombre .tenue {
+  font-size: var(--av-fs-xs);
+}
+
+/* El rótulo de cada columna va **escrito**, no implícito en la posición: en móvil se apilan y
+ * sin él no se sabría cuál es el motivo y cuál el remedio. */
+.falta-rotulo {
+  display: block;
+  margin-bottom: 2px;
+  color: var(--av-text-muted);
+  font-size: var(--av-fs-xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+@media (min-width: 64rem) {
+  .falta {
+    grid-template-columns: minmax(14rem, 1.1fr) minmax(0, 1.2fr) minmax(0, 1.3fr);
+    align-items: start;
+  }
+
+  .falta-que {
+    grid-template-columns: 2.2rem minmax(0, 1fr);
+  }
+
+  /* En fila, la píldora sobra: el borde ámbar, el icono y la columna «Por qué» ya lo dicen. */
+  .falta-que .pildora {
+    display: none;
+  }
+}
+
+/* Lo que funciona: una línea por motor, en columnas que se rellenan solas. */
+.listas-compactas {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(18rem, 100%), 1fr));
+  gap: var(--av-s-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lista-compacta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--av-radius-sm);
+  box-shadow: var(--av-elev-1);
+  background: var(--av-surface);
+}
+
+.lista-compacta-icono {
+  flex: none;
+  color: var(--av-ok);
+}
+
+.lista-compacta-texto {
+  display: grid;
+  min-width: 0;
+  font-size: var(--av-fs-sm);
+}
+
+.lista-compacta-texto .tenue {
+  font-size: var(--av-fs-xs);
+  overflow-wrap: anywhere;
+}
+
+.aviso-todo-listo {
+  display: flex;
+  align-items: center;
+  gap: var(--av-s-2);
+  color: var(--av-ok);
 }
 
 /* Las apagadas piden más sitio: llevan motivo, remedio y alternativa. */
