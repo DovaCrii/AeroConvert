@@ -24,6 +24,8 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+from apps.engines.base import ruta_parcial
+
 from .composicion import ComposicionInvalida
 
 #: Tope de líneas. Un Markdown de cien mil líneas es un volcado, no un documento, y armar
@@ -293,7 +295,7 @@ def _escribir_el_pdf(piezas: list, origen: Path, destino: Path) -> None:
     from reportlab.lib.units import mm
     from reportlab.platypus import SimpleDocTemplate
 
-    parcial = destino.with_name(destino.name + ".parcial")
+    parcial = ruta_parcial(destino)
     documento = SimpleDocTemplate(
         str(parcial),
         pagesize=A4,

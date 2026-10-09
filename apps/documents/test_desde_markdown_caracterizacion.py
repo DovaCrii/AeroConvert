@@ -292,7 +292,7 @@ class TestLosCaminosDeFallo:
 
         monkeypatch.setattr(Path, "replace", espia)
         markdown_a_pdf(_escribir(tmp_path, "titulos"))
-        assert vistos == [("doc.pdf.parcial", "doc.pdf", True)]
+        assert vistos == [("doc.parcial.pdf", "doc.pdf", True)]
 
     def test_un_pdf_de_entrada_se_lee_como_texto_y_no_levanta_por_eso(self, tmp_path):
         """La pantalla lo rechaza antes (`apps/core/test_auditoria.py`); aquí solo se fija que la
