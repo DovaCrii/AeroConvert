@@ -5,6 +5,30 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Sin publicar]
 
+### Añadido — «Ver en el mapa» con un mapa base propio, nunca de internet (F19.5)
+
+- **Un fondo de la casa**: `AEROCONVERT_VISOR_MAPA_BASE` lleva una o varias ortofotos o mosaicos COG
+  (hasta 8, separados por `;`, con nombre opcional: `Mosaico de la obra=D:\obra\mosaico.tif`), dentro
+  de las raíces permitidas. La persona elige el fondo en «Añadir o cambiar capas»; sin elegir se ve el
+  primero que sirva, y «Retícula de coordenadas, sin mapa de fondo» deja la pantalla como antes. Es la
+  capa de abajo de la lista, y se puede subir, apagar o hacer transparente como las demás.
+- **No hay forma de configurar un servidor de teselas** (D5: «nada sale del equipo»). El valor es una ruta
+  del disco: una dirección de internet queda apagada, y un `.vrt` tampoco pasa (puede apuntar a una).
+  El navegador **no conoce la ruta**: pide `fondo:<n>`, y el servidor la resuelve y la comprueba contra
+  las raíces en cada petición (403 `mapa-base-no-valido`, sin decir la ruta).
+- Un fondo configurado que no sirve (fuera de las raíces, no es un GeoTIFF, ya no está) **se lista
+  apagado con su motivo**; uno pedido que no existe no se cambia por otro. Sin ninguno, la pantalla dice
+  cómo configurarlo. Sin GDAL, apagado con `sin-gdal` y su alternativa. Motivo nuevo:
+  `mapa-base-no-valido`. Variable nueva del `.env`, opcional: `AEROCONVERT_VISOR_MAPA_BASE`.
+- **Una prueba de que ninguna petición sale del servidor** (`apps/visor/test_sin_salida.py`): ni el
+  HTML (cinco formas de la pantalla) ni la plantilla nombran una dirección absoluta, todo atributo que
+  el navegador pide es del propio servidor, el JavaScript no tiene más camino de red que `fetch` a
+  direcciones que arma del servidor, y la CSP sigue en `'self'`. En el navegador, con una imagen, un DEM,
+  un vuelo y el fondo, y moviendo el mapa: 47 peticiones, las 47 al propio servidor.
+- Oráculo (`@pytest.mark.oraculo`, GDAL 3.12.4, mosaico sintético): la tesela del fondo, idéntica a la
+  de otro `gdalwarp`; una casilla conocida en su sitio; el original sin tocar. Cifras en
+  `docs/PRUEBAS_CON_ORACULO.md`.
+
 ### Añadido — «Ver en el mapa» con varias capas y su orden (F19.3)
 
 - **Una lista de capas** en `/mapa/`: la imagen principal, otras imágenes (`?capa=…`), un vuelo propio

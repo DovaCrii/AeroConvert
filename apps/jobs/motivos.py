@@ -308,6 +308,13 @@ MOTIVOS: dict[str, Motivo] = dict(
             "El resultado de este vuelo no trae datos para el mapa.",
             "Vuelva a correr «Corregir un vuelo de dron».",
         ),
+        _m(
+            "mapa-base-no-valido",
+            "Este mapa base no se puede usar: no está donde dice, está fuera de las carpetas "
+            "permitidas o no es un GeoTIFF o COG.",
+            "Quien administra el equipo lo corrige en AEROCONVERT_VISOR_MAPA_BASE. Mientras tanto "
+            "el fondo es la retícula de coordenadas.",
+        ),
     ]
 )
 

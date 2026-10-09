@@ -11,7 +11,15 @@ Lo que no pasa por ahí es un **403** con su código (`ruta-no-permitida`, `orig
 ## Nada sale del equipo (D5)
 
 Las teselas las corta GDAL del propio archivo. No hay ninguna petición a un servidor de mapas, y el
-JavaScript (`static/js/visor.js`) es propio y se sirve de `'self'`.
+JavaScript (`static/js/visor.js`) es propio y se sirve de `'self'`. El **mapa base** (F19.5) es una
+ortofoto o un mosaico de la casa (`AEROCONVERT_VISOR_MAPA_BASE`, ver `fondo.py`): el navegador pide
+`fondo:<n>` y la ruta del disco no sale del servidor.
+
+## Varias capas (F19.3)
+
+`inicio` arma la lista de capas de la pantalla (`?ruta=`, `?capa=`, `?vuelo=`, `?fondo=`, `?e=`); la
+ficha de cada imagen la pide el navegador, y las partes de un vuelo propio salen de `vuelo` (404
+para el trabajo de otra persona, igual que el visor del vuelo).
 """
 
 from __future__ import annotations
@@ -35,7 +43,7 @@ from apps.core import modo as modo_mod
 from apps.formats import huella as huella_mod
 from apps.jobs.motivos import MOTIVOS
 
-from . import cache, mercator, motor, terreno, teselas
+from . import cache, fondo, mercator, motor, terreno, teselas
 from . import capa as capa_mod
 from . import capas as capas_mod
 from . import punto as punto_mod
@@ -69,7 +77,10 @@ def _error(codigo: str, mensaje: str, estado: int, **extra) -> JsonResponse:
 
 
 def _resolver(texto: str, usuario):
-    """La puerta del visor: `entrada.resolver` (ruta de la carpeta compartida, resultado propio)."""
+    """La puerta del visor: `fondo:<n>` es un mapa base de la casa; todo lo demás pasa por
+    `entrada.resolver` (ruta de la carpeta compartida o resultado propio)."""
+    if (texto or "").strip().startswith(fondo.PREFIJO):
+        return fondo.resolver(texto.strip())
     return entrada_mod.resolver(texto, usuario=usuario)
 
 
@@ -260,9 +271,9 @@ def _resolver_extra(request, contexto: dict, texto: str):
     return origen, None
 
 
-def _descriptores_de_capas(rasters: list[dict], trabajos: list) -> list[dict]:
+def _descriptores_de_capas(rasters: list[dict], trabajos: list, elegido) -> list[dict]:
     """Las capas del mapa, **por omisión de arriba abajo**: lo del vuelo, las imágenes en el orden
-    en que se pidieron. `fuente` está en la fila que «quita» la capa entera
+    en que se pidieron y el mapa base al fondo. `fuente` está en la fila que «quita» la capa entera
     (en un vuelo, la de las fotos: quita las tres)."""
     lista: list[dict] = []
     for job in trabajos:
@@ -291,6 +302,16 @@ def _descriptores_de_capas(rasters: list[dict], trabajos: list) -> list[dict]:
                 "token": r["token"],
                 "principal": i == 0,
                 "fuente": {"param": r["param"], "valor": r["texto"]},
+            }
+        )
+    if elegido is not None:
+        lista.append(
+            {
+                "id": capas_mod.id_de_fondo(),
+                "tipo": capas_mod.FONDO,
+                "nombre": f"Mapa de fondo: {elegido.nombre}",
+                "token": elegido.token,
+                "fuente": {"param": "fondo", "poner": fondo.SIN_FONDO},
             }
         )
     return lista
@@ -354,9 +375,24 @@ def inicio(request):
     if solo_vuelos:
         contexto["nombre_origen"] = ", ".join(vuelo_mod.nombre_de(j) for j in trabajos)
 
+    # El mapa base: solo con GDAL (se corta en teselas como cualquier imagen).
+    fondos = fondo.configurados() if disponibilidad.disponible else []
+    elegido = fondo.elegir(request.GET.get("fondo"), fondos) if disponibilidad.disponible else None
+    contexto["fondos"] = [
+        {
+            "indice": f.indice,
+            "nombre": f.nombre,
+            "usable": f.usable,
+            "detalle": f.detalle,
+            "elegido": elegido is not None and f.indice == elegido.indice,
+        }
+        for f in fondos
+    ]
+    contexto["sin_fondo_elegido"] = elegido is None
+    contexto["motivo_del_fondo"] = MOTIVOS[fondo.CODIGO_NO_VALIDO]
     contexto["sin_gdal"] = None if disponibilidad.disponible else disponibilidad
 
-    descriptores = _descriptores_de_capas(rasters, trabajos)
+    descriptores = _descriptores_de_capas(rasters, trabajos, elegido)
     ordenadas = capas_mod.ordenar(descriptores, request.GET.get("e"))
     contexto["capas_json"] = json.dumps(ordenadas, ensure_ascii=False)
     contexto["estado_e"] = (request.GET.get("e") or "")[: capas_mod.LARGO_MAXIMO_DEL_ESTADO]

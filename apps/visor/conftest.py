@@ -17,6 +17,7 @@ def raiz_de_obra(tmp_path, settings):
     settings.MODO = settings.MODO_TALLER
     settings.VISOR_CACHE = str(tmp_path / "cache-visor")
     settings.VISOR_CACHE_MAX_MB = 64
+    settings.VISOR_MAPA_BASE = ""
     carpeta = tmp_path / "obra"
     carpeta.mkdir()
     return carpeta

@@ -4,7 +4,7 @@
 > [`docs/historial/`](docs/historial/) y en `git log`. Si algo de aquí no cuadra con el código,
 > **gana el código**: actualice esta página antes de seguir.
 
-**Estado al:** 2026-10-08 · **Versión:** `0.12.0` · **Último PR fusionado:** #97
+**Estado al:** 2026-10-09 · **Versión:** `0.12.0` · **Último PR fusionado:** #110
 
 ## Quién hace qué
 
@@ -14,11 +14,14 @@ verde** (el agente `fusionador-de-pr` espera el CI). **Usted despliega en p340.*
 
 ## Dónde está
 
-- **Desplegado (2026-10-05):** hasta el #20. **En `main` sin desplegar: #21 a #97.**
+- **Desplegado (2026-10-05):** hasta el #20. **En `main` sin desplegar: #21 a #110.**
 - **Dirección visual (D8, 2026-10-09):** «Plan de vuelo» en toda la app, también la entrada; sustituye al
   plano con color de F13.7. Sistema y límites en `docs/DISENO_PLAN_DE_VUELO.md` (F13.14).
 - **Los vuelos de dron viven en apps/vuelos/** (F18.13): motores, vistas, plantillas y pruebas; la cola, la
   entrada y las URL documents:… siguen en apps/documents/. test_independencia.py vigila el límite.
+- **«Ver en el mapa» (`/mapa/`, `apps/visor/`) en `main`:** teselas, terreno (F19.4), varias capas con orden,
+  transparencia y vuelos propios (F19.3) y mapa base de la casa (F19.5). Abierto: F19.6 (contrato con
+  AeroBim) y los puntos de control, que «Corregir un vuelo» aún no escribe.
 - 40 herramientas de documentos en nueve grupos; ~4.400 pruebas verdes sin GDAL ni PDAL.
 - Lo de esta tanda: vuelos de dron con PPK y visor, curvas de nivel, paquetes y lotes, API con token,
   firma con sello de tiempo, PDF/A, video de dron, LibreOffice y `mdbtools` donde no hay Office ni
@@ -42,7 +45,7 @@ motivo; con `instalar_faltantes.sh` casi ninguna hace falta porque los programas
 `AEROCONVERT_PLANTILLAS_JEJ`, `AEROCONVERT_CUOTA_DE_SUBIDAS_MB`, `AEROCONVERT_RAICES_DE_CONFIANZA`,
 `AEROCONVERT_TSA_URL`, `AEROCONVERT_RTKLIB_RNX2RTKP`, `AEROCONVERT_LIBREOFFICE`,
 `AEROCONVERT_GHOSTSCRIPT`, `AEROCONVERT_VERAPDF`, `AEROCONVERT_FFMPEG`, `AEROCONVERT_MDBTOOLS`,
-`AEROCONVERT_LOG_LEVEL`.
+`AEROCONVERT_LOG_LEVEL`, `AEROCONVERT_VISOR_MAPA_BASE` (el fondo de «Ver en el mapa»; vacío: retícula).
 
 **Después de desplegar:**
 1. Abrir `/motores/equipo/`: dice qué quedó apagado y el paso exacto de cada cosa.

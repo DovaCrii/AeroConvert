@@ -18,7 +18,7 @@
     4. Se dibuja.
 
   **Varias capas (F19.3) y mapa base propio (F19.5).** A la imagen principal se le suman otras
-  imágenes (`capa=`), vuelos propios (`vuelo=`); la lista de
+  imágenes (`capa=`), vuelos propios (`vuelo=`) y un mapa base de la casa (`fondo=`); la lista de
   capas (orden, visibilidad y transparencia) se guarda en `e=`. Una capa que falla lo dice en su
   fila, sin tumbar el mapa. Un mapa solo de vuelos no necesita GDAL (`solo_vuelo`); el mapa base sí.
 {% endcomment %}
@@ -92,7 +92,7 @@
     {% if sin_gdal %}
       <p class="mensaje mensaje-aviso" role="note" data-motivo="{{ sin_gdal.codigo_motivo }}">
         <svg class="mensaje-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-veredicto-reparos"></use></svg>
-        <span><span class="visually-hidden">Aviso: </span>Sin GDAL no se pueden sumar imágenes: {{ sin_gdal.mensaje }} {{ sin_gdal.sugerencia }}</span>
+        <span><span class="visually-hidden">Aviso: </span>Sin GDAL no se pueden sumar imágenes ni un mapa de fondo: {{ sin_gdal.mensaje }} {{ sin_gdal.sugerencia }}</span>
       </p>
     {% endif %}
     {% if omitidas or omitidas_de_vuelo %}
@@ -156,6 +156,19 @@
             <form method="get" action="{% url 'visor:inicio' %}" id="capas-forma" class="capas-forma">
               {% for nombre, valor in ocultos %}<input type="hidden" name="{{ nombre }}" value="{{ valor }}">{% endfor %}
               <input type="hidden" name="e" id="capas-estado" value="{{ estado_e }}">
+
+              <div>
+                <label class="terreno-campo-rotulo" for="capas-fondo">Mapa de fondo</label>
+                <select class="form-select" name="fondo" id="capas-fondo"{% if sin_gdal %} disabled{% endif %}>
+                  <option value="ninguno"{% if sin_fondo_elegido %} selected{% endif %}>Retícula de coordenadas, sin mapa de fondo</option>
+                  {% for f in fondos %}
+                    <option value="{{ f.indice }}"{% if f.elegido %} selected{% endif %}{% if not f.usable %} disabled{% endif %}>{{ f.nombre }}{% if not f.usable %} (no disponible: {{ f.detalle }}){% endif %}</option>
+                  {% endfor %}
+                </select>
+                {% if not fondos and not sin_gdal %}
+                  <p class="tenue av-fs-xs av-mt-1 av-mb-0" data-motivo="sin-mapa-base">Esta instalación no tiene mapa de fondo, y se ve la retícula. Quien administra el equipo puede configurar uno propio (una ortofoto o un mosaico COG de la casa) en <code>AEROCONVERT_VISOR_MAPA_BASE</code>. Nunca se piden teselas de internet.</p>
+                {% endif %}
+              </div>
 
               <div>
                 <label class="terreno-campo-rotulo" for="capas-otra-imagen">Otra imagen de un trabajo suyo</label>

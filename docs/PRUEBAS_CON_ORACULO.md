@@ -966,6 +966,48 @@ caen en esquinas de píxel y de casilla: ahí el color es una mezcla de dos casi
 - Los puntos de control: el trabajo no los escribe todavía; la prueba de CI los lee de un `vuelo.json`
   armado a mano.
 
+## Corrida del 2026-10-09 — el mapa base propio de «Ver en el mapa» contra GDAL (F19.5)
+
+GDAL 3.12.4 (QGIS 4.0.2), `uv run pytest -m oraculo apps/visor/test_mapa_base_oraculo.py` (3 pruebas).
+El mosaico es **sintético**: el mismo tablero de la ortofoto de prueba, a 800 × 400 píxeles de 10 m
+(8 km × 4 km) en EPSG:32719, centrado en la ortofoto. Ningún dato real.
+
+### 1. La tesela del fondo
+
+La que sirve la vista con `ruta=fondo:0` (nivel 14, tesela 4975/9810) contra **otro** `gdalwarp -t_srs
+EPSG:3857 -te … -ts 256 256 -r bilinear -dstalpha` a PNG, con la caja de la tesela de una fórmula
+escrita aparte: mayor diferencia en un canal **0**, píxeles distintos **0 de 65 536**. La tesela tiene
+imagen (alfa 255 en el centro). El `ETag` es otro que el de la misma tesela de la ortofoto, y las dos
+teselas no son iguales (cada capa tiene su caché).
+
+### 2. Una casilla conocida
+
+El píxel (410, 210) del mosaico, llevado a EPSG:3857 con `pyproj` y mirado en la tesela del nivel
+máximo: rojo exacto de su casilla, verde y azul a ≤ 6 de la fórmula del tablero.
+
+### 3. El original quedó intacto
+
+`sha256`, `mtime` y la carpeta del mosaico, sin ningún `.aux.xml` al lado, tras pedir la ficha, la tesela
+y la tesela con `If-None-Match` (que da 304). La ruta del mosaico no aparece en ninguna respuesta.
+
+### La prueba de red, en el navegador (2026-10-09)
+
+Con el arnés de la sesión (la aplicación en un puerto propio, una base en memoria y datos sintéticos: una
+ortofoto, un DEM, un mosaico como fondo y un vuelo de cinco disparos), abriendo «Ver en el mapa» con las
+cuatro cosas a la vez y acercando, alejando y moviendo el mapa con el teclado:
+`performance.getEntriesByType("resource")` dio **47 peticiones, las 47 a `127.0.0.1:8791`** (el propio
+servidor), de tipos `link`, `img`, `script`, `other` y `fetch`; las teselas, a `/mapa/teselas/…?ruta=fondo:0`
+y a las rutas de las imágenes. Ninguna a otro origen. En el CI lo vigila `apps/visor/test_sin_salida.py`
+(lo que el servidor escribe y lo que el JavaScript puede pedir), que no sustituye a esta medida: se repite
+con el navegador cuando cambie el JavaScript del visor.
+
+### Lo que esta corrida **no** prueba
+
+- Un mosaico real de la casa (varios GB): el rendimiento de las teselas lejanas sin pirámide y el tamaño
+  de la caché en uso se miden en `p340` con un COG del equipo.
+- Que el administrador haya escrito bien la ruta: eso lo dice la lista (el fondo sale apagado con su
+  motivo), no esta corrida.
+
 ## Pendiente: «Hacer un libro EPUB» contra EPUBCheck (F14.22)
 
 EPUBCheck es el validador de referencia del W3C (BSD-3, Java 11+). En el CI no está; la prueba `test_epubcheck_lo_da_por_valido` lleva `@pytest.mark.oraculo` y se salta sin él.
