@@ -1,14 +1,15 @@
 """Vistas de documentos: el vuelo de dron. Ver `apps/vuelos/views/__init__.py`.
 
-Cuatro: la pantalla de entrada (`vuelo_dron_vista`), el visor del resultado (`vuelo_ver`), los datos
-que dibuja el visor (`vuelo_datos`) y la miniatura de una foto (`vuelo_miniatura`).
+Cinco: la pantalla de entrada (`vuelo_dron_vista`), el visor del resultado (`vuelo_ver`), los datos
+que dibuja el visor (`vuelo_datos`), la miniatura de una foto (`vuelo_miniatura`) y su ficha de
+cámara, GNSS y dron (`vuelo_ficha`).
 
 ## Quién ve qué
 
 Todas son **de quien pidió el trabajo** (404 para cualquier otra persona, que además no confirma que
 exista). La miniatura lee un archivo del disco: el nombre sale **del propio `vuelo.json`** del
 trabajo, nunca de la dirección, y la carpeta se vuelve a comprobar contra las raíces permitidas en
-cada petición.
+cada petición. La ficha lee la cabecera del mismo archivo, con las mismas comprobaciones.
 """
 
 from __future__ import annotations
@@ -30,7 +31,7 @@ from apps.core import modo as modo_mod
 from apps.documents import cola as cola_mod
 from apps.documents.composicion import ComposicionInvalida
 from apps.documents.views._comun import _origen_del_formulario
-from apps.vuelos import vuelo_ppk, vuelo_proceso, vuelo_trimble
+from apps.vuelos import ficha_foto, vuelo_ppk, vuelo_proceso, vuelo_sync, vuelo_trimble
 
 EXTENSIONES_DE_TRAYECTORIA = (".csv", ".txt")
 EXTENSIONES_DE_DISPAROS = (".mrk", ".txt", ".csv")
@@ -144,6 +145,8 @@ def _contexto_inicial() -> dict:
         "sistemas": _sistemas_para_declarar(),
         "escala": "GPST",
         "sistema": "medir",
+        # Con las fotos RTK no hay con qué medirlo y **no hay uno elegido** (regla 3).
+        "sistema_fotos": "",
         "aplicar_desfase": True,
         "escribir_en_fotos": False,
         "trayectoria_texto": "",
@@ -171,6 +174,20 @@ def _contexto_inicial() -> dict:
         "ppk_sistemas": list(SISTEMAS_POR_OMISION),
         "ppk_modo": "cinematico",
     }
+
+
+def _revisar_las_fotos_rtk(carpeta: str, disparos) -> None:
+    """Lo barato de la entrada «Las fotos ya traen la posición RTK», **antes** de encolar: que haya
+    fotos y tantas como disparos. Leerlas (lo caro) corre en la cola."""
+    if not carpeta:
+        raise ComposicionInvalida(
+            "Elija la carpeta de fotos: con RTK la posición está en las fotos mismas."
+        )
+    eventos = vuelo_sync.leer_mrk(vuelo_trimble._decodificar(disparos.ruta.read_bytes()))
+    nombres = vuelo_proceso.nombres_de_fotos(Path(carpeta))
+    if not nombres:
+        raise ComposicionInvalida("La carpeta no trae ninguna foto JPG.")
+    vuelo_sync.emparejar(eventos, nombres)
 
 
 def _revisar_el_ppk(request, contexto: dict) -> dict:
@@ -258,11 +275,18 @@ def vuelo_dron_vista(request):
         return render(request, "vuelos/vuelo_dron.html", contexto)
 
     con_rtklib = request.POST.get("origen") == "rinex"
-    contexto["origen"] = "rinex" if con_rtklib else "trimble"
+    con_fotos = request.POST.get("origen") == "fotos"
+    contexto["origen"] = "rinex" if con_rtklib else ("fotos" if con_fotos else "trimble")
     contexto["escala"] = request.POST.get("escala_de_tiempo") or ("GPST" if con_rtklib else "")
     contexto["sistema"] = request.POST.get("sistema") or "medir"
+    contexto["sistema_fotos"] = (request.POST.get("sistema_fotos") or "").strip()
+    if con_fotos:
+        # El campo de esta entrada es otro (`sistema_fotos`, sin «medir»): el resto del
+        # proceso lo lee como `sistema`.
+        contexto["sistema"] = contexto["sistema_fotos"] or "medir"
     contexto["aplicar_desfase"] = request.POST.get("aplicar_desfase") == "on"
-    contexto["escribir_en_fotos"] = request.POST.get("escribir_en_fotos") == "on"
+    # Con las fotos RTK la posición ya está escrita en ellas: no hay nada que corregir en copias.
+    contexto["escribir_en_fotos"] = request.POST.get("escribir_en_fotos") == "on" and not con_fotos
     for campo in ("trayectoria", "disparos", "referencia"):
         contexto[f"{campo}_texto"] = (request.POST.get(campo) or "").strip()
     for campo, _subida in _RINEX:
@@ -273,19 +297,23 @@ def vuelo_dron_vista(request):
     contexto["carpeta_texto"] = (request.POST.get("carpeta_de_fotos") or "").strip()
 
     try:
-        if not con_rtklib and not _hay(request, "trayectoria", "trayectoria_subida"):
+        if (
+            not con_rtklib
+            and not con_fotos
+            and not _hay(request, "trayectoria", "trayectoria_subida")
+        ):
             raise ComposicionInvalida("Falta la trayectoria: el CSV que exportó Trimble.")
         if not _hay(request, "disparos", "disparos_subida"):
             raise ComposicionInvalida("Faltan los disparos de la cámara: el archivo .MRK del dron.")
         trayectoria = (
             None
-            if con_rtklib
+            if con_rtklib or con_fotos
             else _origen_del_formulario(request, campo="trayectoria", archivo="trayectoria_subida")
         )
         disparos = _origen_del_formulario(request, campo="disparos", archivo="disparos_subida")
         referencia = (
             _origen_del_formulario(request, campo="referencia", archivo="referencia_subida")
-            if _hay(request, "referencia", "referencia_subida")
+            if not con_fotos and _hay(request, "referencia", "referencia_subida")
             else None
         )
         if trayectoria is not None and (
@@ -294,7 +322,18 @@ def vuelo_dron_vista(request):
             raise ComposicionInvalida(f"{trayectoria.nombre} no es un CSV de trayectoria.")
         if Path(disparos.nombre).suffix.lower() not in EXTENSIONES_DE_DISPAROS:
             raise ComposicionInvalida(f"{disparos.nombre} no es un .MRK ni una lista de tiempos.")
-        if not con_rtklib and contexto["escala"] not in ESCALAS:
+        if con_fotos and Path(disparos.nombre).suffix.lower() != ".mrk":
+            raise ComposicionInvalida(
+                f"{disparos.nombre} no es un .MRK: con las fotos RTK hace falta el del dron, no "
+                "una "
+                "lista de tiempos (con él se comprueba que las fotos son de ese vuelo)."
+            )
+        if con_fotos and contexto["sistema"] == "medir":
+            raise ComposicionInvalida(
+                "Elija el sistema de coordenadas del visor: con las fotos RTK no hay con qué "
+                "medirlo, y no se supone."
+            )
+        if not con_rtklib and not con_fotos and contexto["escala"] not in ESCALAS:
             raise ComposicionInvalida(
                 "Elija la escala de tiempo de la trayectoria: no se supone."
                 if not contexto["escala"]
@@ -312,6 +351,8 @@ def vuelo_dron_vista(request):
             raise ComposicionInvalida(
                 "Para escribir la posición en las fotos hay que elegir la carpeta donde están."
             )
+        if con_fotos:
+            _revisar_las_fotos_rtk(carpeta, disparos)
 
         ppk = _revisar_el_ppk(request, contexto) if con_rtklib else None
 
@@ -329,7 +370,10 @@ def vuelo_dron_vista(request):
 
     from apps.jobs.models import EntradaDeTrabajo
 
-    if ppk is None:
+    if con_fotos:
+        entradas = [disparos]
+        papeles = [EntradaDeTrabajo.DISPAROS]
+    elif ppk is None:
         entradas = [trayectoria, disparos]
         papeles = [EntradaDeTrabajo.TRAYECTORIA, EntradaDeTrabajo.DISPAROS]
     else:
@@ -356,6 +400,7 @@ def vuelo_dron_vista(request):
             "aplicar_desfase": contexto["aplicar_desfase"],
             "carpeta_de_fotos": carpeta,
             "escribir_en_fotos": contexto["escribir_en_fotos"],
+            **({"origen": "fotos"} if con_fotos else {}),
             **(ppk["opciones"] if ppk else {}),
         },
         sufijo="_vuelo.zip",
@@ -398,7 +443,12 @@ def vuelo_ver(request, pk):
             "seccion": "pdf",
             "etiqueta_seccion": "Vuelos de dron",
             "titulo_pagina": "El vuelo en el mapa",
-            "proposito": "El recorrido, los puntos de cada foto y las fotos mismas.",
+            # Un vuelo con RTK no tiene recorrido: no se promete.
+            "proposito": (
+                "El recorrido, los puntos de cada foto y las fotos mismas."
+                if datos.get("trayectoria_total")
+                else "Los puntos de cada foto y las fotos mismas."
+            ),
             "job": job,
             "sistema": datos["sistema"],
             "altura": datos["altura"],
@@ -418,21 +468,21 @@ def vuelo_datos(request, pk):
     return respuesta
 
 
-@login_required
-@require_GET
-def vuelo_miniatura(request, pk, n: int):
-    """La foto número `n` del vuelo, achicada. El nombre sale del `vuelo.json`, no de la URL."""
-    from PIL import Image, UnidentifiedImageError
+def _foto_de_la_carpeta(job, foto: dict) -> Path:
+    """El archivo de esta foto en la carpeta del trabajo, o 404. **Todas las comprobaciones.**
 
-    job = _vuelo_de(request, pk)
+    El nombre sale del `vuelo.json` (que lo escribió el trabajo a partir de lo que había en la
+    carpeta), nunca de la dirección; la carpeta se vuelve a comprobar contra las raíces
+    permitidas, y
+    un enlace simbólico que salga de ella no se sirve.
+    """
     carpeta_texto = (job.options or {}).get("carpeta_de_fotos") or ""
     if not carpeta_texto:
         raise Http404("Este vuelo no trae carpeta de fotos.")
-    fotos = _leer_datos(job)["fotos"]
-    if not 1 <= n <= len(fotos) or not fotos[n - 1].get("miniatura"):
+    if not foto.get("miniatura"):
         raise Http404("Esa foto no está en la carpeta.")
     # El nombre **real** del archivo en la carpeta (no el del CSV): sin separadores ni «..».
-    nombre = fotos[n - 1].get("archivo") or ""
+    nombre = foto.get("archivo") or ""
     if not nombre or Path(nombre).name != nombre:
         raise Http404("Nombre de foto no válido.")
     try:
@@ -450,6 +500,64 @@ def vuelo_miniatura(request, pk, n: int):
         modo_mod.comprobar_ruta(str(real))
     except modo_mod.RutaNoPermitida as fallo:
         raise Http404("La foto está fuera de las carpetas permitidas.") from fallo
+    return real
+
+
+@login_required
+@require_GET
+def vuelo_ficha(request, pk, n: int):
+    """La ficha de la foto `n`: cámara, GNSS y dron (F18.9), en tres grupos listos para mostrar.
+
+    Se lee **del archivo de la foto** en la carpeta del trabajo (solo lectura, solo su cabecera). Si
+    la foto no está ahí pero Trimble la describió, sale del `export_extended` que el trabajo guardó
+    en su `vuelo.json`, y la respuesta lo dice. Si no hay ninguna de las dos, 404 con el motivo.
+    """
+    job = _vuelo_de(request, pk)
+    fotos = _leer_datos(job)["fotos"]
+    if not 1 <= n <= len(fotos):
+        raise Http404("Ese disparo no existe.")
+    foto = fotos[n - 1]
+    ficha = None
+    try:
+        ficha = ficha_foto.leer_ficha(_foto_de_la_carpeta(job, foto))
+    except (Http404, ComposicionInvalida):
+        ficha = None
+    if ficha is None and foto.get("ficha"):
+        ficha = ficha_foto.FichaFoto.de_dict(foto["ficha"])
+    if ficha is None:
+        raise Http404(
+            "Esta foto no tiene ficha: no está en la carpeta elegida y no hay posiciones de "
+            "Trimble que la describan."
+        )
+    fuente = (
+        "Leída del archivo de la foto (EXIF y XMP)."
+        if ficha.fuente == "foto"
+        else "Leída del archivo ampliado de Trimble: la foto no está en la carpeta."
+    )
+    respuesta = JsonResponse(
+        {
+            "nombre": ficha.nombre,
+            "fuente": ficha.fuente,
+            "fuente_texto": fuente,
+            "grupos": ficha_foto.grupos(ficha, foto.get("desfase"), foto.get("calidad", "")),
+        },
+        json_dumps_params={"ensure_ascii": False},
+    )
+    respuesta["Cache-Control"] = "private, no-store"
+    return respuesta
+
+
+@login_required
+@require_GET
+def vuelo_miniatura(request, pk, n: int):
+    """La foto número `n` del vuelo, achicada. El nombre sale del `vuelo.json`, no de la URL."""
+    from PIL import Image, UnidentifiedImageError
+
+    job = _vuelo_de(request, pk)
+    fotos = _leer_datos(job)["fotos"]
+    if not 1 <= n <= len(fotos):
+        raise Http404("Esa foto no está en la carpeta.")
+    real = _foto_de_la_carpeta(job, fotos[n - 1])
 
     try:
         with Image.open(real) as imagen:

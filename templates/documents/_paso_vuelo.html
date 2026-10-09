@@ -9,6 +9,10 @@
   Variables: `numero`, `titulo`, `ayuda`, `campo` (el campo oculto de la carpeta compartida),
   `subida` (el campo del archivo del equipo), `acepta`, `ext` (lo que lista el explorador),
   `texto` (lo ya elegido), `obligatorio`, `carpeta` (si se elige una carpeta).
+
+  Opcionales para la entrada «Las fotos ya traen la posición RTK»: `ayuda_fotos` (lo que dice el
+  paso en esa entrada; el texto de `ayuda` se oculta) y `hace_falta_con_fotos` (el paso pasa a ser
+  obligatorio en esa entrada). El CSS muestra cada texto según la entrada elegida.
 {% endcomment %}
 <section class="vuelo-paso" aria-labelledby="paso-{{ campo }}">
   <header class="vuelo-paso-cabeza">
@@ -16,11 +20,16 @@
     <div>
       <h2 class="vuelo-paso-titulo" id="paso-{{ campo }}">{{ titulo }}</h2>
       <p class="vuelo-paso-estado">
-        {% if obligatorio %}<span class="pildora pildora-running">hace falta</span>{% else %}<span class="pildora pildora-cancelled">opcional</span>{% endif %}
+        {% if obligatorio %}<span class="pildora pildora-running">hace falta</span>{% elif hace_falta_con_fotos %}<span class="vuelo-con-trayectoria"><span class="pildora pildora-cancelled">opcional</span></span><span class="vuelo-solo-fotos"><span class="pildora pildora-running">hace falta</span></span>{% else %}<span class="pildora pildora-cancelled">opcional</span>{% endif %}
       </p>
     </div>
   </header>
-  <p class="tenue vuelo-paso-ayuda">{{ ayuda }}</p>
+  {% if ayuda_fotos %}
+    <p class="tenue vuelo-paso-ayuda vuelo-con-trayectoria">{{ ayuda }}</p>
+    <p class="tenue vuelo-paso-ayuda vuelo-solo-fotos">{{ ayuda_fotos }}</p>
+  {% else %}
+    <p class="tenue vuelo-paso-ayuda">{{ ayuda }}</p>
+  {% endif %}
 
   <input type="hidden" name="{{ campo }}" id="id_{{ campo }}" value="{{ texto }}"
          data-muestra-en="#elegido-{{ campo }}">

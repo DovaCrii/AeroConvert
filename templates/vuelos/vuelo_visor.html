@@ -9,11 +9,14 @@
   **El visor del vuelo.** Lo mismo que enseña Emlid Studio al terminar un vuelo: el recorrido, un
   punto por foto y la foto misma al pincharlo. Sin mapa base ni teselas: una retícula de
   coordenadas en el sistema **medido**, que se dice arriba. Todo se dibuja en el navegador con lo
-  que hay en `vuelo.json`; nada sale del equipo.
+  que hay en `vuelo.json`; nada sale del equipo. La **ficha** de la foto elegida (cámara, GNSS y
+  dron, F18.9) es un panel a la vista, no un cuadro que aparece al pasar el ratón: cada grupo es un
+  `<details>` abierto, que se pliega y se despliega con el teclado.
 {% endcomment %}
 <div class="visor" id="visor"
      data-datos="{% url 'documents:vuelo_datos' job.pk %}"
      data-miniatura="{% url 'documents:vuelo_miniatura' job.pk 1 %}"
+     data-ficha="{% url 'documents:vuelo_ficha' job.pk 1 %}"
      data-miniaturas="{% if con_miniaturas %}si{% else %}no{% endif %}">
 
   <header class="visor-barra">
@@ -69,6 +72,12 @@
           <button type="button" class="boton boton-suave boton-pequeno" id="visor-anterior">Anterior</button>
           <button type="button" class="boton boton-suave boton-pequeno" id="visor-siguiente">Siguiente</button>
         </div>
+      </section>
+
+      <section class="visor-foto visor-exif" id="visor-exif" aria-labelledby="visor-exif-titulo" hidden>
+        <h2 class="visor-foto-titulo" id="visor-exif-titulo">Ficha de la foto</h2>
+        <p class="visor-exif-fuente tenue" id="visor-exif-fuente" role="status"></p>
+        <div id="visor-exif-grupos"></div>
       </section>
 
       <section class="visor-lista" aria-labelledby="visor-lista-titulo">

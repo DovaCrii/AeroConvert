@@ -66,6 +66,11 @@ class Disparo:
     desfase_n_mm: float | None = None
     desfase_e_mm: float | None = None
     desfase_v_mm: float | None = None
+    # Lo que el propio `.MRK` dice de la posición de la antena en ese disparo (sirve para
+    # comprobar que unas fotos son de este `.MRK`, y la altura que escribe el dron: `Ellh`).
+    lat: float | None = None
+    lon: float | None = None
+    alt_elipsoidal_m: float | None = None
 
 
 @dataclass(frozen=True)
@@ -81,15 +86,26 @@ class FotoSincronizada:
     q: int | None
     motivo: str  # vacío si hay posición
     desfase_aplicado: bool = False  # la posición es la de la cámara y no la de la antena
+    #: Si la calidad no es una de `CALIDADES` (una bandera RTK que no se reconoce, o sin solución),
+    #: aquí va su texto: el código numérico no puede decirlo.
+    calidad_texto: str = ""
 
     @property
     def con_posicion(self) -> bool:
         return self.lat is not None
 
+    @property
+    def calidad(self) -> str:
+        """El texto de la calidad; vacío si no hay calidad que decir."""
+        if self.calidad_texto:
+            return self.calidad_texto
+        return CALIDADES.get(self.q, f"código {self.q}") if self.q is not None else ""
+
 
 # --- Los disparos --------------------------------------------------------------------------
 
 _ETIQUETADO = re.compile(r"(-?\d+(?:\.\d+)?),\s*(N|E|V)\b")
+_POSICION_MRK = re.compile(r"(-?\d+(?:\.\d+)?),\s*(Lat|Lon|Ellh)\b")
 
 
 def leer_mrk(texto: str) -> list[Disparo]:
@@ -112,6 +128,7 @@ def leer_mrk(texto: str) -> list[Disparo]:
                 f"La línea {numero_de_linea} del .MRK no trae un segundo GPS legible."
             ) from fallo
         desfases = {m.group(2): float(m.group(1)) for m in _ETIQUETADO.finditer(linea)}
+        posicion = {m.group(2): float(m.group(1)) for m in _POSICION_MRK.finditer(linea)}
         disparos.append(
             Disparo(
                 numero=int(campos[0]),
@@ -119,6 +136,9 @@ def leer_mrk(texto: str) -> list[Disparo]:
                 desfase_n_mm=desfases.get("N"),
                 desfase_e_mm=desfases.get("E"),
                 desfase_v_mm=desfases.get("V"),
+                lat=posicion.get("Lat"),
+                lon=posicion.get("Lon"),
+                alt_elipsoidal_m=posicion.get("Ellh"),
             )
         )
     if not disparos:
@@ -327,8 +347,16 @@ COLUMNAS_CSV = (
     "desfase_antena_e_mm",
     "desfase_antena_v_mm",
     "desfase_aplicado",
+    # La orientación del gimbal, tal como la escribe DJI (F18.10): cabeceo −90 = nadir. Vacías si
+    # no hay de dónde leerla (ni las fotos ni el archivo de Trimble).
+    "gimbal_guinada_deg",
+    "gimbal_cabeceo_deg",
+    "gimbal_alabeo_deg",
     "motivo",
 )
+
+#: La orientación del gimbal de una foto: guiñada, cabeceo y alabeo, en grados y como la da DJI.
+Orientacion = tuple[float | None, float | None, float | None]
 
 
 def _numero(valor, decimales: int) -> str:
@@ -340,13 +368,23 @@ def _o_nada(valor):
     return None if valor is None or math.isnan(valor) else valor
 
 
-def a_csv(fotos: list[FotoSincronizada], referencia_de_altura: str = "elipsoidal") -> str:
-    """El CSV para Pix4D, Metashape o QGIS. Las fotos sin posición van, con su motivo."""
+def a_csv(
+    fotos: list[FotoSincronizada],
+    referencia_de_altura: str = "elipsoidal",
+    orientaciones: dict[str, Orientacion] | None = None,
+) -> str:
+    """El CSV para Pix4D, Metashape o QGIS. Las fotos sin posición van, con su motivo.
+
+    `orientaciones` (nombre de la foto en minúsculas → guiñada, cabeceo y alabeo del gimbal) llena
+    las tres columnas de orientación; la foto que no está queda con ellas **vacías**, no en cero.
+    """
+    orientaciones = orientaciones or {}
     salida = io.StringIO()
     escritor = csv.writer(salida, lineterminator="\n")
     escritor.writerow(COLUMNAS_CSV)
     for f in fotos:
         d = f.disparo
+        guinada, cabeceo, alabeo = orientaciones.get(f.nombre.lower(), (None, None, None))
         escritor.writerow(
             [
                 f.nombre,
@@ -358,12 +396,15 @@ def a_csv(fotos: list[FotoSincronizada], referencia_de_altura: str = "elipsoidal
                 _numero(f.sdn_m, 4),
                 _numero(f.sde_m, 4),
                 _numero(f.sdu_m, 4),
-                CALIDADES.get(f.q, "") if f.q is not None else "",
+                f.calidad,
                 f"{d.t_gps_s:.6f}",
                 _numero(d.desfase_n_mm, 1),
                 _numero(d.desfase_e_mm, 1),
                 _numero(d.desfase_v_mm, 1),
                 "si" if f.desfase_aplicado else "no",
+                _numero(guinada, 2),
+                _numero(cabeceo, 2),
+                _numero(alabeo, 2),
                 f.motivo,
             ]
         )
@@ -378,7 +419,7 @@ def a_geojson(fotos: list[FotoSincronizada], sistema: str) -> str:
             "properties": {
                 "foto": f.nombre,
                 "disparo": f.disparo.numero,
-                "calidad": CALIDADES.get(f.q, ""),
+                "calidad": f.calidad,
                 "sdn_m": _o_nada(f.sdn_m),
                 "sde_m": _o_nada(f.sde_m),
                 "sdu_m": _o_nada(f.sdu_m),
@@ -419,7 +460,7 @@ def resumen(fotos: list[FotoSincronizada]) -> dict:
     con = [f for f in fotos if f.con_posicion]
     por_calidad: dict[str, int] = {}
     for f in con:
-        nombre = CALIDADES.get(f.q, f"código {f.q}")
+        nombre = f.calidad
         por_calidad[nombre] = por_calidad.get(nombre, 0) + 1
     return {
         "fotos": len(fotos),

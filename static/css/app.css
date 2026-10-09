@@ -4194,10 +4194,14 @@ code {
   gap: var(--av-s-3);
 }
 
-/* La segunda entrada: solo se ve la que está elegida. Sin `:has()` (navegadores viejos) se ven las
- * dos, que es feo pero no esconde nada. */
+/* Las tres entradas: solo se ve la que está elegida. Sin `:has()` (navegadores viejos) se ven todas,
+ * que es feo pero no esconde nada. `.vuelo-con-trayectoria` es lo que sobra cuando la posición ya
+ * viene en las fotos (RTK): la trayectoria, las posiciones de Trimble, copias con la posición. */
 .vuelo-layout:has(#id_origen_rinex:checked) .vuelo-solo-trimble,
-.vuelo-layout:not(:has(#id_origen_rinex:checked)) .vuelo-solo-rinex {
+.vuelo-layout:has(#id_origen_fotos:checked) .vuelo-solo-trimble,
+.vuelo-layout:not(:has(#id_origen_rinex:checked)) .vuelo-solo-rinex,
+.vuelo-layout:has(#id_origen_fotos:checked) .vuelo-con-trayectoria,
+.vuelo-layout:not(:has(#id_origen_fotos:checked)) .vuelo-solo-fotos {
   display: none;
 }
 
@@ -4452,6 +4456,44 @@ code {
   display: flex;
   gap: var(--av-s-2);
   margin-top: var(--av-s-3);
+}
+
+/* La ficha de la foto: tres grupos plegables, siempre a la vista (nada aparece al pasar el ratón). */
+.visor-exif[hidden] {
+  display: none;
+}
+
+.visor-exif-fuente {
+  margin: 0 0 var(--av-s-2);
+  font-size: var(--av-fs-sm);
+}
+
+.visor-exif-grupo + .visor-exif-grupo {
+  margin-top: var(--av-s-3);
+  padding-top: var(--av-s-2);
+  border-top: 1px solid var(--av-border);
+}
+
+.visor-exif-grupo > summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: var(--av-fs-md);
+}
+
+.visor-exif-grupo > summary:focus-visible {
+  outline: 2px solid var(--av-primary);
+  outline-offset: 2px;
+}
+
+/* Los rótulos de la ficha son largos («Desfase antena a cámara, vertical…»): con `auto` se comían la
+ * columna entera y el valor quedaba de una letra por línea. Reparto fijo, y los dos envuelven. */
+.visor-exif-grupo .visor-ficha {
+  grid-template-columns: minmax(6rem, 45%) minmax(0, 1fr);
+  margin-top: var(--av-s-2);
+}
+
+.visor-exif-grupo .visor-ficha dt {
+  overflow-wrap: anywhere;
 }
 
 .visor-filtros {

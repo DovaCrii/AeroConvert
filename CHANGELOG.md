@@ -54,6 +54,49 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 - **Lo que no se adivina ni se esconde.** Sin sistema de referencia (o uno local de obra), sin matriz de transformación o fuera de lo que Web Mercator dibuja, la pantalla lo dice y no pinta (`capa-sin-crs`, `capa-sin-georreferencia`, `capa-fuera-del-mapa`); sin GDAL sale apagada con `sin-gdal` y la ficha de «Convertir» como alternativa, y el botón de la ficha, deshabilitado y con su motivo. Todas las vistas piden sesión; lo que está fuera de las carpetas permitidas o es de otra persona da 403 con su código.
 - Oráculo (`@pytest.mark.oraculo`, GDAL 3.12.4, sobre un GeoTIFF sintético en UTM 19S): las esquinas coinciden con `wgs84Extent` de `gdalinfo` a 4,4e-8° y el centro con `gdaltransform` a 4e-14°; columna, fila y valores de cinco píxeles son los de `gdallocationinfo -wgs84` y `-geoloc`; una tesela es **idéntica** a la de otro `gdalwarp` (0 de 65 536 píxeles distintos) y a GeoTIFF difiere en ±1 nivel en 240 (0,37 %); el color de cinco píxeles del tablero está en su sitio, o sea, el norte arriba y el este a la derecha. Cifras en `docs/PRUEBAS_CON_ORACULO.md`.
 
+### Añadido — vuelos con RTK: la posición ya viene en las fotos (F18.8)
+
+- **Una tercera entrada en «Corregir un vuelo de dron»**, «Las fotos ya traen la posición RTK», y la
+  pregunta de arriba pasa a ser «¿De dónde sale la posición precisa?». Se eligió la misma pantalla y no
+  una herramienta aparte porque entrega lo mismo (CSV, GeoJSON, KML, `calidad.md` y el visor) y porque es
+  la pregunta que se hace quien viene de un vuelo; la elección oculta los pasos que sobran (trayectoria,
+  posiciones de Trimble, copias con la posición) y muestra los que faltan.
+- Se **lee** la posición de cada foto (XMP de DJI: `GpsLatitude`, `GpsLongitude`, `AbsoluteAltitude`; si no
+  hay XMP, el EXIF) y su **calidad de `RtkFlag`** (50 fija, 34 flotante, 16 simple, 0 sin solución): una
+  bandera ausente se dice «no informada» y una que no se conoce, «no reconocida (código N)». No se usa
+  `GpsStatus`, que en el vuelo real dice «RTK» aunque la bandera sea 16. Las desviaciones del dron van a
+  `sdn_m`, `sde_m` y `sdu_m`.
+- **El `.MRK` es el otro lector** y es obligatorio en esta entrada: se empareja por orden (solo con tantos
+  disparos como fotos) y la posición de cada foto se compara con la del disparo. Si alguna difiere más de
+  2 cm, **no se entrega nada** (o el `.MRK` es de otro vuelo, o el dron ya aplicó el desfase de la antena).
+  La altura solo se llama **elipsoidal** si coincide con la «Ellh» del `.MRK` a 5 mm; si no, se dice que no
+  se afirma. Con el desfase de la antena se entrega la posición de la cámara.
+- Sin trayectoria no hay línea en el visor (unir las fotos en orden inventaría un recorrido) y el sistema
+  del visor se **declara** en un selector sin valor elegido: no hay Este y Norte contra los que medirlo.
+- Lector de la cabecera de las fotos (`apps/vuelos/ficha_foto.py`): solo lee los primeros 192 kB, abre en
+  solo lectura y no usa un lector de XML para el XMP.
+
+### Añadido — la ficha EXIF de cada foto en el visor del vuelo (F18.9)
+
+- Al elegir una foto, un panel **a la vista** (no un cuadro en hover) con tres grupos plegables con el
+  teclado: **cámara** (modelo, focal, equivalente en 35 mm, apertura, exposición, ISO, dimensiones, fecha),
+  **GNSS** (calidad, bandera RTK, desviaciones, edad de la corrección, posición, altura y su tipo, datum, y
+  el desfase antena a cámara del `.MRK` con su signo y si se aplicó) y **dron** (gimbal y actitud del dron,
+  velocidades, altura sobre el despegue). Lo que la foto no trae **no aparece como fila**: no hay guiones
+  que parezcan datos.
+- Nueva dirección `documents:vuelo_ficha` (`/documentos/vuelo/<id>/foto/<n>/ficha/`), solo de quien pidió el
+  trabajo, con las mismas comprobaciones de carpeta y de enlaces que la miniatura. Se lee del archivo de la
+  foto; si ya no está, del `export_extended` de Trimble que el trabajo guardó en su `vuelo.json`, y la
+  respuesta dice de cuál.
+
+### Añadido — la orientación de la cámara en el CSV (F18.10)
+
+- `fotos.csv` trae `gimbal_guinada_deg`, `gimbal_cabeceo_deg` y `gimbal_alabeo_deg`, con la unidad en el
+  nombre, para Metashape y Pix4D (y los vuelos oblicuos). Salen del XMP de las fotos de la carpeta; si no
+  hay carpeta, del archivo ampliado de Trimble. Sin ninguno quedan **vacías**, nunca en cero.
+- **Se informa la convención de DJI, sin convertir** (cabeceo −90° = cámara al nadir), y `calidad.md` lo dice
+  con de dónde salió y cuántas fotos la traen; Metashape y Pix4D tienen la suya y hay que mapear las
+  columnas al importar. El XMP no dice si el norte es el magnético o el geográfico: tampoco se afirma.
 
 ### Cambiado — los vuelos de dron en su propia app, `apps/vuelos/` (F18.13)
 
