@@ -88,13 +88,34 @@ class TestElArbol:
 
 
 class TestLasPantallasLeenElMismoArbol:
-    def test_la_portada_y_el_lateral_pintan_los_mismos_grupos_en_el_mismo_orden(self, sesion):
+    @pytest.mark.parametrize("hay_access", [True, False])
+    def test_la_portada_y_el_lateral_pintan_los_mismos_grupos_en_el_mismo_orden(
+        self, sesion, monkeypatch, hay_access
+    ):
+        # Los dos casos a la fuerza: en la estación hay Access y en el CI no (PR 100 pasó aquí
+        # y falló allí).
+        from apps.documents import catalogos
+
+        estado = catalogos.Disponible(
+            controlador="Microsoft Access Driver" if hay_access else "",
+            motivo="" if hay_access else "No hay.",
+        )
+        monkeypatch.setattr(catalogos, "sondar", lambda *a, **k: estado)
         cuerpo = sesion.get(reverse("dashboard:que_puedo_hacer")).content.decode()
         portada = _titulos(cuerpo, r'<h2 class="grupo-titulo">([^<]+)</h2>')
         lateral = _titulos(cuerpo, r'<span class="lateral-grupo-nombre">([^<]+)</span>')
         esperado = [g.titulo for g in taxonomia.GRUPOS]
-        assert lateral == esperado
         assert portada == esperado
+        # **El lateral solo enseña lo que se puede hacer** (y cuenta solo eso): un grupo sin
+        # ninguna disponible no sale. Sin Access, como en el CI, «Imagen, video y planta» queda
+        # vacío. El orden es el mismo; lo que puede faltar, solo lo que no tiene nada que hacer.
+        con_algo = {
+            g["titulo"]
+            for g in acciones_mod.por_categoria()
+            if any(a.disponible for a in g["acciones"])
+        }
+        assert lateral == [t for t in esperado if t in con_algo]
+        assert ("Imagen, video y planta" in lateral) is hay_access
 
     def test_los_dos_indices_de_documentos_enseñan_cada_uno_su_trozo_en_orden(self, sesion):
         for nombre, indice in (("documents:inicio", "documentos"), ("documents:texto", "texto")):
