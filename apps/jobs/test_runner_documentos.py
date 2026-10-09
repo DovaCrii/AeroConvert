@@ -293,10 +293,33 @@ class TestLosOriginalesSeMiranTodos:
             job=job, orden=1, ruta=str(dos), nombre=dos.name, mtime_ns=1
         )
 
-        runner._comprobar_originales(job, [job.entradas.get(orden=0), segunda])
+        with pytest.raises(runner.TrabajoFallido) as fallo:
+            runner._comprobar_originales(job, [job.entradas.get(orden=0), segunda])
 
-        mensajes = " ".join(e.message for e in job.eventos.all())
-        assert "dos.pdf" in mensajes and "cambió" in mensajes
+        assert fallo.value.codigo == "original-modificado"
+        assert "dos.pdf" in fallo.value.mensaje and "cambió" in fallo.value.mensaje
+        assert "uno.pdf" not in fallo.value.mensaje
+
+    def test_un_original_con_otro_contenido_cuenta_el_antes_y_el_despues(self, tmp_path):
+        ruta = tmp_path / "a.bin"
+        ruta.write_bytes(b"antes")
+        estado = ruta.stat()
+        sha_antes = hashlib.sha256(b"antes").hexdigest()
+        ruta.write_bytes(b"despues, mas largo")  # cambia el tamano aunque la fecha coincidiera
+        os.utime(ruta, ns=(estado.st_atime_ns, estado.st_mtime_ns))
+
+        mensaje = runner._cambio_del_original(
+            ruta, "a.bin", estado.st_mtime_ns, estado.st_size, sha_antes
+        )
+
+        assert sha_antes in mensaje
+        assert hashlib.sha256(b"despues, mas largo").hexdigest() in mensaje
+        assert (
+            runner._cambio_del_original(
+                ruta, "a.bin", ruta.stat().st_mtime_ns, ruta.stat().st_size, ""
+            )
+            == ""
+        )
 
 
 class TestLosCarriles:

@@ -333,6 +333,15 @@ def _seccion_el_original(job, hoja: _Hoja) -> list:
                 hoja.normal,
             )
         )
+    elif job.reason_code == "original-modificado":
+        historia.append(
+            hoja.parrafo(
+                "El original cambió mientras se trabajaba con él, y por eso el trabajo terminó "
+                "en error y la salida no se entregó. El antes y el después (fecha, tamaño y "
+                "huella) están en «Avisos durante el trabajo».",
+                hoja.normal,
+            )
+        )
     else:
         historia.append(
             hoja.parrafo(

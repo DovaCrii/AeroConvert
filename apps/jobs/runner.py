@@ -289,6 +289,17 @@ def _ejecutar(job: ConversionJob) -> Resultado:
         _borrar(parcial)
         raise TrabajoFallido(veredicto.codigo_motivo or "salida-invalida", veredicto.motivo)
 
+    # **El original se comprueba antes de entregar nada**, no después: si el motor (o quien
+    # fuera) lo tocó, la salida no se renombra. Es la regla cinco: lo que cambió el original no
+    # se entrega como si fuera una conversión de él.
+    cambio = _cambio_del_original(
+        origen, origen.name, huella_antes, job.source_size_bytes, job.source_sha256
+    )
+    if cambio:
+        _borrar(parcial)
+        _limpiar_restos(parcial)
+        raise TrabajoFallido("original-modificado", cambio)
+
     _renombrar_con_acompanantes(job, parcial, destino)
     _limpiar_restos(parcial)
 
@@ -314,14 +325,6 @@ def _ejecutar(job: ConversionJob) -> Resultado:
     for aviso in veredicto.detalles.get("avisos") or ():
         job.registrar(str(aviso), nivel=JobEvent.AVISO, etapa=VERIFICACION)
     job.marcar_progreso(VERIFICACION, 1.0)
-
-    # El original tiene que estar exactamente como estaba. No es una comprobacion de
-    # cortesia: es la unica forma de detectar un motor que escribio donde no debia.
-    if origen.stat().st_mtime_ns != huella_antes:
-        job.registrar(
-            "El archivo de origen cambio durante la conversión. Revisa el motor.",
-            nivel=JobEvent.ERROR,
-        )
 
     return Resultado(HECHO, "", "Convertido y verificado.")
 
@@ -359,7 +362,7 @@ def _ejecutar_documento(job: ConversionJob) -> Resultado:
 
         # --- 4. Verificar ---------------------------------------------------------
         veredicto = _verificar_y_colocar_el_documento(
-            job, documentos, plan, informe, parcial, destino
+            job, documentos, plan, informe, parcial, destino, entradas
         )
     finally:
         documentos.borrar_auxiliares(job)
@@ -467,6 +470,9 @@ def _cerrar_sin_archivo(job: ConversionJob, plan, informe: dict, entradas: list)
         )
         raise TrabajoFallido("sin-salida", "La herramienta terminó sin escribir nada.")
 
+    # También un «hecho» sin archivo es una afirmación sobre el original: si cambió, no vale.
+    _comprobar_originales(job, entradas)
+
     job.desenlace = desenlace
     job.verification = informe.get("detalles") or {}
     job.output_path = ""
@@ -481,14 +487,23 @@ def _cerrar_sin_archivo(job: ConversionJob, plan, informe: dict, entradas: list)
         ]
     )
     job.marcar_progreso(VERIFICACION, 1.0)
-    _comprobar_originales(job, entradas)
     return Resultado(HECHO, "", motivos_mod.DESENLACES[desenlace].mensaje)
 
 
 def _verificar_y_colocar_el_documento(
-    job: ConversionJob, documentos, plan, informe: dict, parcial: Path, destino: Path
+    job: ConversionJob,
+    documentos,
+    plan,
+    informe: dict,
+    parcial: Path,
+    destino: Path,
+    entradas: list,
 ):
-    """Verifica el parcial con un lector distinto del que escribió y lo renombra."""
+    """Verifica el parcial con un lector distinto del que escribió y lo renombra.
+
+    Antes de renombrar se comprueba que **ningún original cambió**: si cambió, el parcial se borra
+    y el trabajo termina en `original-modificado`; nada se entrega.
+    """
     job.status = VERIFICANDO
     job.save(update_fields=["status", "updated_at"])
     job.marcar_progreso(VERIFICACION, 0.0)
@@ -497,6 +512,12 @@ def _verificar_y_colocar_el_documento(
     if not veredicto.correcta:
         _borrar(parcial)
         raise TrabajoFallido(veredicto.codigo_motivo or "salida-invalida", veredicto.motivo)
+
+    try:
+        _comprobar_originales(job, entradas)
+    except TrabajoFallido:
+        _borrar(parcial)
+        raise
 
     _renombrar(parcial, destino)
     return veredicto
@@ -530,24 +551,60 @@ def _cerrar_documento(
         ]
     )
     job.marcar_progreso(VERIFICACION, 1.0)
-    _comprobar_originales(job, entradas)
     return Resultado(HECHO, "", "Hecho y verificado.")
+
+
+def _cambio_del_original(
+    ruta: Path, nombre: str, mtime_ns: int | None, bytes_antes: int, sha256_antes: str
+) -> str:
+    """Si el original ya no es el que se huelló, el mensaje que lo cuenta; si no, `""`.
+
+    Se compara la fecha de modificación y, si se conocía, el tamaño: es barato incluso con
+    40 GB. **Solo cuando algo cambió** se vuelve a calcular el `sha256`, para dejar en la
+    bitácora el de antes y el de después. Un original que desapareció no se denuncia aquí: de
+    eso se ocupan las comprobaciones de «origen legible».
+    """
+    if mtime_ns is None:
+        return ""
+    try:
+        estado = ruta.stat()
+    except OSError:
+        return ""
+    cambio_el_tamano = bool(bytes_antes) and estado.st_size != bytes_antes
+    if estado.st_mtime_ns == mtime_ns and not cambio_el_tamano:
+        return ""
+    try:
+        sha256_despues = deteccion.huella(ruta)
+    except OSError:
+        sha256_despues = "ilegible"
+    return (
+        f"El archivo de origen {nombre} cambió durante el trabajo: fecha de modificación "
+        f"{mtime_ns} -> {estado.st_mtime_ns} ns, tamaño {bytes_antes or '?'} -> "
+        f"{estado.st_size} bytes, sha256 {sha256_antes or '?'} -> {sha256_despues}. "
+        "La salida no se entrega."
+    )
 
 
 def _comprobar_originales(job: ConversionJob, entradas) -> None:
     """El original no se toca, **y se mira en cada entrada**.
 
     Con un solo `source_path` solo se podía comprobar la primera, y en un «Unir» de veinte
-    archivos las diecinueve restantes quedaban sin vigilar.
+    archivos las diecinueve restantes quedaban sin vigilar. Si alguna cambió, el trabajo
+    **falla** con `original-modificado` (el mensaje lleva el antes y el después de cada una y
+    queda en la bitácora): antes solo se denunciaba y el trabajo seguía en «hecho».
     """
-    for entrada in entradas:
-        try:
-            ahora = Path(entrada.ruta).stat().st_mtime_ns
-        except OSError:
-            continue
-        if entrada.mtime_ns is not None and ahora != entrada.mtime_ns:
-            job.registrar(
-                f"El archivo de origen {entrada.nombre} cambió durante el trabajo. Revisa la "
-                "herramienta.",
-                nivel=JobEvent.ERROR,
+    cambios = [
+        mensaje
+        for entrada in entradas
+        if (
+            mensaje := _cambio_del_original(
+                Path(entrada.ruta),
+                entrada.nombre,
+                entrada.mtime_ns,
+                entrada.bytes,
+                entrada.sha256,
             )
+        )
+    ]
+    if cambios:
+        raise TrabajoFallido("original-modificado", " ".join(cambios))
