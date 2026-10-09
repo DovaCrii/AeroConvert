@@ -906,6 +906,66 @@ sombra da 503 `sin-gdaldem` con alternativa y la cota y el perfil siguen contest
 - La referencia vertical de `apps/formats/alturas.py` (F15.2, PR 107): no se usa todavía; cuando esté en
   `main` podrá leerse de ahí (el geoide que declara el archivo contra el que dice el proyecto).
 
+## Corrida del 2026-10-09 — varias capas en «Ver en el mapa» contra GDAL (F19.3)
+
+GDAL 3.12.4 (QGIS 4.0.2), `uv run pytest -m oraculo apps/visor/test_capas_oraculo.py` (6 pruebas). Todo
+**sintético**: la ortofoto de tablero de `testing.crear_geotiff_sintetico` (200 × 100 píxeles de 2 m en
+EPSG:32719, esquina noroeste en (345 000, 6 295 100)) y un vuelo que **escribe la propia prueba**
+(`testing.crear_vuelo_sintetico`: el zip con su `vuelo.json`, sin correr la herramienta). Ningún dato real.
+
+### 1. Las fotos, contra otro camino de transformación
+
+Los cuatro disparos del vuelo sintético están en puntos de la ortofoto que `gdaltransform` pasó de
+EPSG:32719 a EPSG:4326 y a EPSG:3857 (los valores están copiados en `testing.PUNTOS_DE_GDAL`: son del
+otro lector, no de nuestra cuenta). La vista `visor:vuelo` los devuelve en EPSG:3857 con la fórmula de la
+cuadrícula de teselas. Contra `gdaltransform -s_srs EPSG:4326 -t_srs EPSG:3857` de la misma latitud y
+longitud, la peor diferencia de las cuatro:
+
+| Nivel de la cuadrícula | Diferencia (px de mapa) |
+| --- | --- |
+| 14 | 0,000047 |
+| 17 | 0,000374 |
+| 20 | 0,002991 |
+
+En metros: **0,000446** (0,45 mm). El criterio era menos de 1 px a un zoom dado: a 20, 0,003 px.
+
+### 2. La trayectoria
+
+El `vuelo.json` solo trae Este y Norte **relativos a un origen**, en el sistema que el trabajo midió.
+Los cinco puntos del recorrido, vueltos grados con PROJ y de ahí a Web Mercator, contra `gdaltransform
+-s_srs EPSG:32719 -t_srs EPSG:3857` de su Este y su Norte: peor diferencia **0,000446 m** (0,003 px al
+nivel 20).
+
+### 3. El píxel bajo cada marca
+
+Cuatro disparos construidos sobre **píxeles conocidos** (columna, fila) = (30, 30), (70, 50), (110, 70)
+y (150, 10), todos en el centro de una casilla del tablero. El centro de cada píxel se pasó a EPSG:4326
+con `gdaltransform`, y con eso se armó el vuelo. La tesela de la ortofoto (nivel 17, el máximo) bajo cada
+marca debe tener el color que **la fórmula del tablero** le da a ese píxel (rojo 255 o 0 según la casilla;
+verde `col · 255 / 199`; azul `fila · 255 / 99`):
+
+| Píxel (col, fila) | RGBA en la tesela | Fórmula |
+| --- | --- | --- |
+| (30, 30) | (0, 38, 77, 255) | R 0, G 38,4, B 77,3 |
+| (70, 50) | (255, 89, 128, 255) | R 255, G 89,7, B 128,8 |
+| (110, 70) | (0, 140, 180, 255) | R 0, G 141,0, B 180,3 |
+| (150, 10) | (255, 192, 25, 255) | R 255, G 192,2, B 25,8 |
+
+Rojo exacto en los cuatro; verde y azul a 1 como mucho de la fórmula (la prueba tolera 6). Si la marca cayera corrida un
+píxel entero hacia la casilla de al lado, el rojo no coincidiría.
+
+**Lo que atrapó el diseño de la prueba.** La primera versión usaba los puntos de `PUNTOS_DE_GDAL`, que
+caen en esquinas de píxel y de casilla: ahí el color es una mezcla de dos casillas (se midió R = 2, ni
+0 ni 255) y la comparación no dice nada. Los disparos de esta prueba van en el centro de la casilla.
+
+### Lo que esta corrida **no** prueba
+
+- Un CSV real de Trimble: el oráculo compara con el `vuelo.json` sintético (mismas posiciones, otro
+  camino de transformación), no con el CSV de un vuelo real.
+- Una ortofoto real con un vuelo real encima: se mide en `p340`, con datos que no entran al repo.
+- Los puntos de control: el trabajo no los escribe todavía; la prueba de CI los lee de un `vuelo.json`
+  armado a mano.
+
 ## Pendiente: «Hacer un libro EPUB» contra EPUBCheck (F14.22)
 
 EPUBCheck es el validador de referencia del W3C (BSD-3, Java 11+). En el CI no está; la prueba `test_epubcheck_lo_da_por_valido` lleva `@pytest.mark.oraculo` y se salta sin él.

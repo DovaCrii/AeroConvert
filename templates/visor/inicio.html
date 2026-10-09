@@ -16,9 +16,14 @@
     3. El archivo no se puede dibujar (sin sistema de referencia, sin georreferencia, fuera del
        alcance de Web Mercator): el motivo, **sin sugerir «el más probable»** (regla 3).
     4. Se dibuja.
+
+  **Varias capas (F19.3) y mapa base propio (F19.5).** A la imagen principal se le suman otras
+  imágenes (`capa=`), vuelos propios (`vuelo=`); la lista de
+  capas (orden, visibilidad y transparencia) se guarda en `e=`. Una capa que falla lo dice en su
+  fila, sin tumbar el mapa. Un mapa solo de vuelos no necesita GDAL (`solo_vuelo`); el mapa base sí.
 {% endcomment %}
 
-{% if not gdal.disponible %}
+{% if not gdal.disponible and not solo_vuelo %}
   <div class="tarjeta">
     <div class="eyebrow">Ahora mismo no se puede</div>
     <h2 class="av-fs-md">{{ gdal.mensaje }}</h2>
@@ -43,20 +48,22 @@
     <a class="boton visor-enlace" href="{% url 'visor:inicio' %}">Elegir otro archivo</a>
   </div>
 
-{% elif capa %}
+{% elif capa or solo_vuelo %}
   <div class="visor" id="mapa-visor"
-       data-capa="{% url 'visor:capa' %}?ruta={{ token|urlencode }}"
+       data-capa="{% url 'visor:capa' %}"
        data-teselas="{% url 'visor:tesela' 0 0 0 %}"
        data-punto="{% url 'visor:punto' %}"
        data-perfil="{% url 'visor:perfil' %}"
+       data-capas="{{ capas_json }}"
        data-ruta="{{ token }}">
 
     <header class="visor-barra">
       <div class="visor-datos">
         <span class="visor-chip">
-          <span class="visor-chip-rotulo">Archivo</span>
+          <span class="visor-chip-rotulo">{% if capa %}Archivo{% else %}Vuelo{% endif %}</span>
           <span class="visor-chip-texto" title="{{ nombre_origen }}">{{ nombre_origen }}</span>
         </span>
+        {% if capa %}
         <span class="visor-chip visor-chip-sistema">
           <span class="visor-chip-rotulo">Sistema</span>
           <strong>{{ capa.sistema }}</strong>
@@ -72,6 +79,7 @@
             <span class="cifra">{{ gsd_cm|floatformat:2 }} cm</span>
           </span>
         {% endif %}
+        {% endif %}
       </div>
       <div class="visor-acciones">
         <button type="button" class="boton boton-suave boton-pequeno" id="mapa-ajustar">Encuadrar</button>
@@ -81,13 +89,26 @@
       </div>
     </header>
 
+    {% if sin_gdal %}
+      <p class="mensaje mensaje-aviso" role="note" data-motivo="{{ sin_gdal.codigo_motivo }}">
+        <svg class="mensaje-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-veredicto-reparos"></use></svg>
+        <span><span class="visually-hidden">Aviso: </span>Sin GDAL no se pueden sumar imágenes: {{ sin_gdal.mensaje }} {{ sin_gdal.sugerencia }}</span>
+      </p>
+    {% endif %}
+    {% if omitidas or omitidas_de_vuelo %}
+      <p class="mensaje mensaje-aviso" role="note">
+        <svg class="mensaje-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-veredicto-reparos"></use></svg>
+        <span><span class="visually-hidden">Aviso: </span>Se muestran como máximo {{ maximo_de_rasters }} imágenes y {{ maximo_de_vuelos }} vuelos a la vez, y las que sobraban no se abrieron. Quite una capa para abrir otra.</span>
+      </p>
+    {% endif %}
+
     {% if capa.sin_piramide %}
       <p class="mensaje mensaje-aviso" role="note">
         <svg class="mensaje-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-veredicto-reparos"></use></svg>
         <span><span class="visually-hidden">Aviso: </span>Esta imagen es grande y no trae pirámide de vistas previas: las teselas lejanas pueden tardar. Convertida a COG se ve al instante.</span>
       </p>
     {% endif %}
-    {% if capa.tipo != "Byte" or capa.paleta %}
+    {% if capa and capa.tipo != "Byte" or capa and capa.paleta %}
       <p class="mensaje mensaje-info" role="note">
         <svg class="mensaje-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-info"></use></svg>
         <span><span class="visually-hidden">Información: </span>{% if capa.paleta %}Imagen con paleta de colores: se muestra con sus colores.{% elif capa.es_dem %}Modelo de elevación de una banda ({{ capa.tipo }}): se ve como sombreado, en grises o con color por cota (rango medido de forma aproximada); la cota bajo el cursor es el valor real de la celda.{% else %}Imagen de {{ capa.tipo }}: se muestra escalada a 8 bits con el rango medido; los valores de abajo son los reales.{% endif %}</span>
@@ -108,6 +129,15 @@
         <p class="visor-cargando" id="mapa-cargando" role="status">Cargando el mapa…</p>
         <div class="visor-leyenda" aria-label="Qué se ve en el mapa">
           <span class="visor-leyenda-item"><i class="visor-contorno" aria-hidden="true"></i> Contorno de la imagen</span>
+          {% if hay_vuelo %}
+          {# La calidad de cada foto: color **y** forma **y** texto. Mismas marcas que el visor del vuelo. #}
+          <span class="visor-leyenda-item"><i class="visor-punto visor-punto-buena" aria-hidden="true"></i> Foto PPK o fija</span>
+          <span class="visor-leyenda-item"><i class="visor-punto visor-punto-flotante" aria-hidden="true"></i> Foto flotante</span>
+          <span class="visor-leyenda-item"><i class="visor-punto visor-punto-simple" aria-hidden="true"></i> Foto simple</span>
+          <span class="visor-leyenda-item"><i class="visor-punto visor-punto-sin" aria-hidden="true"></i> Foto sin calidad informada</span>
+          <span class="visor-leyenda-item"><i class="visor-punto visor-punto-control" aria-hidden="true"></i> Punto de control</span>
+          <span class="visor-leyenda-item"><i class="visor-linea-trayectoria" aria-hidden="true"></i> Trayectoria</span>
+          {% endif %}
           <span class="visor-leyenda-item">Nivel <span class="cifra" id="mapa-nivel">—</span></span>
           <span class="visor-leyenda-item">Norte arriba</span>
           <p class="visor-pie tenue" id="mapa-estado" role="status" aria-live="polite"></p>
@@ -115,21 +145,91 @@
       </div>
 
       <aside class="visor-lateral">
+        <section class="visor-foto" aria-labelledby="capas-titulo" id="capas">
+          <h2 class="visor-foto-titulo" id="capas-titulo">Capas</h2>
+          <p class="tenue av-fs-sm av-mb-2">La primera de la lista queda encima. Con «Subir» y «Bajar» cambia su orden. La transparencia va de 0 % (opaca) a 100 % (no se ve).</p>
+          <ol class="capas-lista" id="capas-lista" aria-label="Capas del mapa"></ol>
+          <p class="visually-hidden" id="capas-aviso" role="status" aria-live="polite"></p>
+
+          <details class="capas-anadir">
+            <summary>Añadir o cambiar capas</summary>
+            <form method="get" action="{% url 'visor:inicio' %}" id="capas-forma" class="capas-forma">
+              {% for nombre, valor in ocultos %}<input type="hidden" name="{{ nombre }}" value="{{ valor }}">{% endfor %}
+              <input type="hidden" name="e" id="capas-estado" value="{{ estado_e }}">
+
+              <div>
+                <label class="terreno-campo-rotulo" for="capas-otra-imagen">Otra imagen de un trabajo suyo</label>
+                <select class="form-select" name="capa" id="capas-otra-imagen"{% if sin_gdal %} disabled{% endif %}>
+                  <option value="">No añadir ninguna</option>
+                  {% for p in propios %}<option value="{{ p.token }}">{{ p.nombre }} · {{ p.fecha|date:"d/m/Y H:i" }}</option>{% endfor %}
+                </select>
+              </div>
+
+              <div>
+                <label class="terreno-campo-rotulo" for="capas-otra-ruta">O la ruta de otra imagen de la carpeta compartida</label>
+                <input type="text" class="form-control" name="capa" id="capas-otra-ruta" autocomplete="off" spellcheck="false"{% if sin_gdal %} disabled{% endif %}>
+              </div>
+
+              <div>
+                <label class="terreno-campo-rotulo" for="capas-vuelo">Un vuelo suyo ya corregido</label>
+                <select class="form-select" name="vuelo" id="capas-vuelo">
+                  <option value="">No añadir ninguno</option>
+                  {% for v in vuelos_propios %}<option value="{{ v.pk }}">{{ v.nombre }} · {{ v.fecha|date:"d/m/Y H:i" }}</option>{% endfor %}
+                </select>
+                {% if not vuelos_propios %}
+                  <p class="tenue av-fs-xs av-mt-1 av-mb-0">Todavía no hay un vuelo terminado de «Corregir un vuelo de dron» que no esté ya en el mapa.</p>
+                {% endif %}
+              </div>
+
+              <button type="submit" class="boton boton-suave boton-pequeno">Actualizar las capas</button>
+            </form>
+          </details>
+        </section>
+
         <section class="visor-foto" aria-labelledby="mapa-lectura-titulo">
           <h2 class="visor-foto-titulo" id="mapa-lectura-titulo">Coordenadas <span id="mapa-origen">del centro del mapa</span></h2>
           <dl class="visor-ficha">
             <dt>EPSG:4326</dt>
             <dd id="mapa-lon-lat">—</dd>
+            {% if capa %}
             <dt>{% if capa.epsg %}EPSG:{{ capa.epsg }}{% else %}Sistema del archivo{% endif %}</dt>
             <dd id="mapa-en-su-sistema">—</dd>
             <dt>Píxel</dt>
             <dd id="mapa-pixel">—</dd>
+            {% endif %}
           </dl>
+          {% if capa %}
           <div class="av-mt-3">
             <button type="button" class="boton boton-suave boton-pequeno" id="mapa-valor-centro">Valor del píxel del centro</button>
           </div>
           <p class="visor-valor cifra av-mt-2 av-mb-0" id="mapa-valor" role="status" aria-live="polite">Pinche un punto del mapa para ver el valor de sus bandas.</p>
+          {% endif %}
         </section>
+
+        {% if hay_vuelo %}
+        {# La foto elegida de un vuelo (F19.3): miniatura y ficha de las vistas del vuelo, con sus comprobaciones de dueño. #}
+        <section class="visor-foto" aria-labelledby="vuelo-foto-titulo" id="vuelo-foto">
+          <h2 class="visor-foto-titulo" id="vuelo-foto-titulo">Foto del vuelo</h2>
+          <p class="tenue av-fs-sm av-mb-2" id="vuelo-foto-vacia">Pinche el punto de una foto en el mapa, o use «Foto anterior» y «Foto siguiente» (con el mapa enfocado, <kbd>[</kbd> y <kbd>]</kbd>).</p>
+          <div id="vuelo-foto-detalle" hidden>
+            <h3 class="visor-foto-titulo" id="vuelo-foto-nombre"></h3>
+            <div class="visor-foto-marco">
+              <img id="vuelo-foto-imagen" alt="" hidden>
+              <p class="visor-foto-vacia tenue" id="vuelo-foto-sin-imagen" role="status"></p>
+            </div>
+            <dl class="visor-ficha" id="vuelo-foto-datos"></dl>
+            <div class="visor-exif" id="vuelo-exif">
+              <p class="visor-exif-fuente tenue" id="vuelo-exif-fuente" role="status" aria-live="polite"></p>
+              <div id="vuelo-exif-grupos"></div>
+            </div>
+          </div>
+          <div class="visor-foto-nav">
+            <button type="button" class="boton boton-suave boton-pequeno" id="vuelo-foto-anterior" disabled>Foto anterior</button>
+            <button type="button" class="boton boton-suave boton-pequeno" id="vuelo-foto-siguiente" disabled>Foto siguiente</button>
+            <button type="button" class="boton boton-suave boton-pequeno" id="vuelo-foto-quitar" hidden>Quitar la selección</button>
+          </div>
+        </section>
+        {% endif %}
 
         {% if capa.es_dem %}
         {# Terreno (F19.4): un modelo digital de elevación. Cada cifra que no se declara se dice. #}
@@ -195,7 +295,8 @@
           <ul class="visor-teclas av-mb-0" id="mapa-ayuda">
             <li><kbd>←</kbd> <kbd>↑</kbd> <kbd>→</kbd> <kbd>↓</kbd> mueven el mapa (con <kbd>Mayús</kbd>, cuatro veces más).</li>
             <li><kbd>+</kbd> y <kbd>−</kbd> acercan y alejan.</li>
-            <li><kbd>0</kbd> encuadra la imagen entera.</li>
+            <li><kbd>0</kbd> encuadra todo lo que hay en el mapa.</li>
+            {% if hay_vuelo %}<li><kbd>[</kbd> y <kbd>]</kbd> eligen la foto anterior y la siguiente del vuelo; <kbd>Esc</kbd> quita la selección.</li>{% endif %}
             <li><kbd>Intro</kbd> lee el valor del píxel del centro{% if capa.es_dem %} (o marca el punto del perfil, si «Marcar perfil» está activo){% endif %}.</li>
           </ul>
         </section>
@@ -242,6 +343,7 @@
     </section>
     {% endif %}
 
+    {% if capa %}
     <section class="tarjeta" aria-labelledby="mapa-esquinas-titulo">
       <div class="eyebrow" id="mapa-esquinas-titulo">Esquinas y centro</div>
       <p class="tenue av-mt-1 av-mb-2 av-fs-sm">
@@ -272,6 +374,7 @@
         </table>
       </div>
     </section>
+    {% endif %}
   </div>
 
 {% else %}
@@ -330,6 +433,33 @@
             <p class="tenue av-m-0">Todavía no hay ninguna salida GeoTIFF o COG de un trabajo suyo.</p>
           {% endif %}
         </div>
+
+        <div class="origen">
+          <div class="origen-cabeza">
+            <span class="origen-marca fam-gnss" aria-hidden="true">
+              <svg class="origen-icono"><use href="{% static 'img/icons.svg' %}#icon-vuelo"></use></svg>
+            </span>
+            <div>
+              <h3 class="origen-titulo">Un vuelo suyo</h3>
+              <p class="origen-nota">Su recorrido y las fotos, sin imagen de fondo. Después puede sumarle una ortofoto.</p>
+            </div>
+          </div>
+          {% if vuelos_propios %}
+            <ul class="listado">
+              {% for v in vuelos_propios %}
+                <li>
+                  <a class="linea linea-archivo" href="{% url 'visor:inicio' %}?vuelo={{ v.pk }}">
+                    <svg class="linea-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-archivo"></use></svg>
+                    <span class="linea-nombre">{{ v.nombre }}</span>
+                    <span class="linea-peso cifra">{{ v.fecha|date:"d/m/Y H:i" }}</span>
+                  </a>
+                </li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <p class="tenue av-m-0">Todavía no hay un vuelo terminado de «Corregir un vuelo de dron».</p>
+          {% endif %}
+        </div>
       </div>
     </div>
   </form>
@@ -338,7 +468,7 @@
 {% endblock %}
 
 {% block scripts %}
-{% if capa and capa.dibujable and not error %}
+{% if hay_mapa %}
 <script src="{% static 'js/visor.js' %}"></script>
 {% endif %}
 {% endblock %}
