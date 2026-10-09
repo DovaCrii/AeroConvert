@@ -19,7 +19,10 @@ en la altura y 29 mm de desviación en el norte.
 
 from __future__ import annotations
 
+import csv
+import io
 import os
+import re
 import statistics
 from pathlib import Path
 
@@ -178,3 +181,70 @@ def test_la_posicion_escrita_en_fotos_reales_de_dji_la_lee_otro_lector():
         assert b'GpsLatitude="-23.12345670"' in nuevo
 
         assert (hashlib.sha256(ruta.read_bytes()).hexdigest(), ruta.stat().st_mtime_ns) == huella
+
+
+# --- Las fotos del vuelo real: la ficha, la posición RTK y la orientación (F18.8 a F18.10) ------
+
+#: Se lee **una foto de cada 25** (y la última): las 2 505 son unos 17 GB en una carpeta de
+#: OneDrive, y bajarlas todas para comprobar lo mismo no aporta. Con las 102 se midió lo de abajo.
+SALTO_DE_LA_MUESTRA = 25
+
+
+@pytest.fixture(scope="module")
+def muestra():
+    from apps.vuelos import ficha_foto
+
+    carpeta = Path(CARPETA)
+    nombres = vuelo_proceso.nombres_de_fotos(carpeta)
+    indices = [*range(0, len(nombres), SALTO_DE_LA_MUESTRA), len(nombres) - 1]
+    mrk_ruta = sorted(carpeta.glob("*Timestamp.MRK"))[0]
+    lineas = [x for x in mrk_ruta.read_text(encoding="utf-8").splitlines() if x.strip()]
+    referencia = vuelo_trimble.leer_posiciones_por_foto(
+        sorted(carpeta.glob("*export_extended.csv"))[0].read_bytes()
+    )
+    assert len(nombres) == len(lineas) == len(referencia), "las tres listas son de las mismas fotos"
+    return {
+        "indices": indices,
+        "fichas": [ficha_foto.leer_ficha(carpeta / nombres[i]) for i in indices],
+        # El `.MRK` de esas mismas fotos: sus líneas, con su número original.
+        "mrk": ("\n".join(lineas[i] for i in indices) + "\n").encode("utf-8"),
+        "referencia": [referencia[i] for i in indices],
+    }
+
+
+def test_las_fotos_del_vuelo_real_dan_su_posicion_rtk_y_el_mrk_la_confirma(muestra):
+    """F18.8 con fotos de DJI de verdad: la posición del XMP contra la del `.MRK`.
+
+    Medido el 2026-10-09 (Matrice 3E, 102 de las 2 505 fotos, una de cada 25): el XMP coincide
+    con la posición del `.MRK` a 0,7 mm como máximo en horizontal y a 0,0 mm en altura, y la
+    `AbsoluteAltitude` es la `Ellh` del `.MRK`. La bandera `RtkFlag` vale 16 (posición simple) en
+    todas, aunque `GpsStatus` diga «RTK»: ese vuelo fue PPK, sin corrección en el aire.
+    """
+    from collections import Counter
+
+    from apps.vuelos import vuelo_rtk
+
+    fichas = muestra["fichas"]
+    assert Counter(f.rtk_bandera for f in fichas) == {16: len(fichas)}
+    # La columna `Q` del `.MRK` (el otro lector de la calidad) dice lo mismo que `RtkFlag`.
+    q_del_mrk = [
+        int(re.search(r"(\d+),Q", x).group(1)) for x in muestra["mrk"].decode().splitlines()
+    ]
+    assert q_del_mrk == [f.rtk_bandera for f in fichas]
+    assert {f.gps_estado for f in fichas} == {"RTK"} and {f.calidad for f in fichas} == {"simple"}
+    assert {f.datum for f in fichas} == {"WGS-84"} and {f.posicion_de for f in fichas} == {"XMP"}
+
+    r = vuelo_rtk.procesar(
+        fichas=fichas,
+        disparos=muestra["mrk"],
+        nombre_de_disparos="vuelo_Timestamp.MRK",
+        sistema="32719",
+    )
+    assert r.resumen["fotos"] == r.resumen["con_posicion"] == len(fichas)
+    assert r.resumen["comprobado_contra_el_mrk_mm"] < 2.0
+    assert r.referencia_de_altura.startswith("elipsoidal")
+    assert r.resumen["fotos_con_posicion_fija"] == 0
+    assert any("no tienen posición fija" in a for a in r.avisos)
+    assert {
+        f["calidad"] for f in csv.DictReader(io.StringIO(r.archivos["fotos.csv"].decode()))
+    } == {"simple"}

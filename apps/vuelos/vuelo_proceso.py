@@ -391,7 +391,7 @@ def _calidades_de_las_fotos(fotos) -> dict[str, int]:
     cuentas: dict[str, int] = {}
     for f in fotos:
         if f.con_posicion:
-            nombre = vuelo_sync.CALIDADES.get(f.q, f"código {f.q}")
+            nombre = f.calidad
             cuentas[nombre] = cuentas.get(nombre, 0) + 1
     return cuentas
 
@@ -519,12 +519,25 @@ def _informe(
 # --- Los datos del visor ----------------------------------------------------------------------
 
 
-def _datos_del_visor(elegido, puntos, fotos, ref, a_proyectado, ref_altura, nombres_en_carpeta):
-    este0 = round(min(p.este for p in puntos), -2)
-    norte0 = round(min(p.norte for p in puntos), -2)
+def _datos_del_visor(
+    elegido,
+    puntos,
+    fotos,
+    ref,
+    a_proyectado,
+    ref_altura,
+    nombres_en_carpeta,
+):
+    """Lo que dibuja el visor. Sin `puntos` (un vuelo RTK no tiene trayectoria) no se dibuja
+    ninguna línea: unir las fotos en orden sería inventar un recorrido."""
+    proyectadas = {
+        i: a_proyectado.transform(f.lon, f.lat) for i, f in enumerate(fotos) if f.con_posicion
+    }
+    este0 = round(min([p.este for p in puntos] or [e for e, _n in proyectadas.values()]), -2)
+    norte0 = round(min([p.norte for p in puntos] or [n for _e, n in proyectadas.values()]), -2)
     paso = max(1, math.ceil(len(puntos) / PUNTOS_DEL_VISOR))
     elegidos = puntos[::paso]
-    if elegidos[-1] is not puntos[-1]:
+    if elegidos and elegidos[-1] is not puntos[-1]:
         elegidos.append(puntos[-1])
     # nombre (en minúsculas) -> el nombre **real** en la carpeta: en Linux `dji.jpg` y `DJI.JPG` no
     # son el mismo archivo, y la miniatura se pide por el nombre que de verdad existe.
@@ -535,10 +548,8 @@ def _datos_del_visor(elegido, puntos, fotos, ref, a_proyectado, ref_altura, nomb
         if not f.con_posicion:
             lista.append({"n": i + 1, "nombre": f.nombre, "motivo": f.motivo})
             continue
-        este, norte = a_proyectado.transform(f.lon, f.lat)
-        calidad = (ref[i].calidad if ref and ref[i].calidad else "") or vuelo_sync.CALIDADES.get(
-            f.q, ""
-        )
+        este, norte = proyectadas[i]
+        calidad = (ref[i].calidad if ref and ref[i].calidad else "") or f.calidad
         lista.append(
             {
                 "n": i + 1,

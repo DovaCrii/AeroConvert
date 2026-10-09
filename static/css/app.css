@@ -4194,10 +4194,14 @@ code {
   gap: var(--av-s-3);
 }
 
-/* La segunda entrada: solo se ve la que está elegida. Sin `:has()` (navegadores viejos) se ven las
- * dos, que es feo pero no esconde nada. */
+/* Las tres entradas: solo se ve la que está elegida. Sin `:has()` (navegadores viejos) se ven todas,
+ * que es feo pero no esconde nada. `.vuelo-con-trayectoria` es lo que sobra cuando la posición ya
+ * viene en las fotos (RTK): la trayectoria, las posiciones de Trimble, copias con la posición. */
 .vuelo-layout:has(#id_origen_rinex:checked) .vuelo-solo-trimble,
-.vuelo-layout:not(:has(#id_origen_rinex:checked)) .vuelo-solo-rinex {
+.vuelo-layout:has(#id_origen_fotos:checked) .vuelo-solo-trimble,
+.vuelo-layout:not(:has(#id_origen_rinex:checked)) .vuelo-solo-rinex,
+.vuelo-layout:has(#id_origen_fotos:checked) .vuelo-con-trayectoria,
+.vuelo-layout:not(:has(#id_origen_fotos:checked)) .vuelo-solo-fotos {
   display: none;
 }
 

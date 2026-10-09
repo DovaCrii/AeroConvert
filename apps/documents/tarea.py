@@ -533,12 +533,60 @@ def _lo_declarado(base, calculo, opciones: dict) -> str:
     return "\n".join(lineas) + "\n"
 
 
+def _vuelo_dron_con_fotos(por_papel: dict, opciones: dict, parcial: Path) -> dict:
+    """«Vuelo con RTK» (F18.8): la posición ya está en las fotos. Se **leen**, no se calculan.
+
+    Las fotos se abren en solo lectura y solo su cabecera. El `.MRK` es el otro lector: con él se
+    comprueba que las fotos son de ese vuelo y de qué altura se trata (`vuelo_rtk.py`).
+    """
+    import zipfile
+
+    from apps.vuelos import vuelo_rtk
+
+    if not por_papel.get("disparos"):
+        raise FalloDeTarea("documento-invalido", "Hace falta el archivo .MRK del dron.")
+    carpeta = (opciones.get("carpeta_de_fotos") or "").strip()
+    if not carpeta:
+        raise FalloDeTarea("documento-invalido", "Hace falta la carpeta de fotos del vuelo.")
+    fichas = vuelo_rtk.leer_carpeta(Path(carpeta), progreso)
+    print(f"Carpeta de fotos: {len(fichas)} imágenes leídas", flush=True)
+    disparos = Path(por_papel["disparos"])
+    hecho = vuelo_rtk.procesar(
+        fichas=fichas,
+        disparos=disparos.read_bytes(),
+        nombre_de_disparos=disparos.name,
+        sistema=str(opciones.get("sistema", "")),
+        aplicar_desfase=bool(opciones.get("aplicar_desfase", True)),
+        progreso=progreso,
+    )
+    with zipfile.ZipFile(parcial, "w", zipfile.ZIP_DEFLATED) as paquete:
+        for nombre, datos in hecho.archivos.items():
+            paquete.writestr(nombre, datos)
+    fotos = hecho.resumen["fotos"]
+    return {
+        **hecho.resumen,
+        "piezas": [
+            {"nombre": "fotos.csv", "filas": fotos},
+            {"nombre": "fotos.geojson", "puntos": hecho.resumen["con_posicion"]},
+            *(
+                [{"nombre": "fotos.kml", "puntos": hecho.resumen["con_posicion"]}]
+                if "fotos.kml" in hecho.archivos
+                else []
+            ),
+            {"nombre": "calidad.md"},
+            {"nombre": "vuelo.json", "fotos": fotos},
+        ],
+    }
+
+
 def _vuelo_dron(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
     import zipfile
 
     from apps.vuelos import vuelo_pos, vuelo_proceso
 
     por_papel = {e.get("papel"): e["ruta"] for e in entradas}
+    if opciones.get("origen") == "fotos":
+        return _vuelo_dron_con_fotos(por_papel, opciones, parcial)
     con_rtklib = opciones.get("origen") == "rinex"
     if con_rtklib:
         if not por_papel.get("disparos"):

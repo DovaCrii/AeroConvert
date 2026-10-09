@@ -395,7 +395,7 @@
         fila("Norte", metros(datos.origen.norte + f.y)),
         fila("Latitud", f.lat.toFixed(9)),
         fila("Longitud", f.lon.toFixed(9)),
-        fila("Altura", f.alt.toFixed(3) + " m"),
+        fila("Altura", f.alt === null || f.alt === undefined ? "No informada" : f.alt.toFixed(3) + " m"),
         fila("Hora", fechaGps(f.t_gps_s))
       );
     }
@@ -502,9 +502,12 @@
     } else {
       mas.hidden = true;
     }
+    // Un vuelo con RTK no tiene trayectoria: no se dice «0 de 0 puntos».
     $("visor-pie").textContent =
-      visibles.length + " de " + fotos.length + " fotos · trayectoria: " +
-      trayectoria.length + " de " + datos.trayectoria_total + " puntos dibujados";
+      visibles.length + " de " + fotos.length + " fotos" +
+      (datos.trayectoria_total
+        ? " · trayectoria: " + trayectoria.length + " de " + datos.trayectoria_total + " puntos dibujados"
+        : "");
   }
 
   /* ---- Ratón, rueda y teclado ---- */
