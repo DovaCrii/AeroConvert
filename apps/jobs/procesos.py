@@ -361,6 +361,10 @@ def _correr_en_grupo(comando: list[str], *, cwd, entorno: dict, timeout_s: int):
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,
+        # Sin esto, en Windows se decodifica con la página de códigos local y «pirámides» sale
+        # «pirÃ¡mides». Los hijos escriben UTF-8; un byte inválido no tumba el paso.
+        encoding="utf-8",
+        errors="replace",
         cwd=cwd,
         env=entorno,
         shell=False,

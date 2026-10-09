@@ -24,6 +24,8 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+from apps.engines.base import ruta_parcial
+
 from .composicion import ComposicionInvalida
 
 #: Tope de líneas. Un Markdown de cien mil líneas es un volcado, no un documento, y armar
@@ -176,6 +178,18 @@ def _leer_las_lineas(origen: Path) -> list[str]:
     return lineas
 
 
+def _bloque_de_codigo(lineas: list[str], hoja):
+    """Un bloque de código con **sus saltos de línea**.
+
+    `Paragraph` colapsa los blancos y los saltos («x = 1 < 2 & 3 print(x)»); `Preformatted` los
+    respeta y dibuja el texto tal cual, sin mini-HTML: no hay nada que escapar, y un `<` o un
+    `&` salen como lo que son.
+    """
+    from reportlab.platypus import Preformatted
+
+    return Preformatted("\n".join(lineas), hoja["Codigo"])
+
+
 def _piezas_de(lineas: list[str], hoja, ancho_util: float) -> list:
     """Recorre las líneas y arma las piezas de reportlab: títulos, párrafos, listas, tablas..."""
     from reportlab.platypus import ListFlowable, ListItem, Paragraph, Spacer
@@ -221,7 +235,7 @@ def _piezas_de(lineas: list[str], hoja, ancho_util: float) -> list:
     for linea in lineas:
         if _CERCA.match(linea):
             if en_codigo:
-                piezas.append(Paragraph(_escapar("\n".join(codigo)), hoja["Codigo"]))
+                piezas.append(_bloque_de_codigo(codigo, hoja))
                 codigo.clear()
             else:
                 cerrar_todo()
@@ -270,7 +284,7 @@ def _piezas_de(lineas: list[str], hoja, ancho_util: float) -> list:
 
     if en_codigo and codigo:
         # Una cerca sin cerrar. Se imprime lo que hay: perderlo sería peor que enseñarlo.
-        piezas.append(Paragraph(_escapar("\n".join(codigo)), hoja["Codigo"]))
+        piezas.append(_bloque_de_codigo(codigo, hoja))
     cerrar_todo()
     return piezas
 
@@ -281,7 +295,7 @@ def _escribir_el_pdf(piezas: list, origen: Path, destino: Path) -> None:
     from reportlab.lib.units import mm
     from reportlab.platypus import SimpleDocTemplate
 
-    parcial = destino.with_name(destino.name + ".parcial")
+    parcial = ruta_parcial(destino)
     documento = SimpleDocTemplate(
         str(parcial),
         pagesize=A4,

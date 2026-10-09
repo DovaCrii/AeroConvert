@@ -85,14 +85,14 @@ ESPERADO: dict[str, dict] = {
         "destino": "doc.pdf",
         "paginas": 1,
         "sobran": [],
-        "texto": "Antes\n x = 1 < 2 & 3 print(x)\nDespués\n",
+        "texto": "Antes\n x = 1 < 2 & 3\nprint(x)\nDespués\n",
     },
     "codigo-con-tildes": {"destino": "doc.pdf", "paginas": 1, "sobran": [], "texto": "linea a\n"},
     "codigo-sin-cerrar": {
         "destino": "doc.pdf",
         "paginas": 1,
         "sobran": [],
-        "texto": "sin cerrar sigue\n",
+        "texto": "sin cerrar\nsigue\n",
     },
     "escapes-de-markdown": {
         "destino": "doc.pdf",
@@ -292,7 +292,7 @@ class TestLosCaminosDeFallo:
 
         monkeypatch.setattr(Path, "replace", espia)
         markdown_a_pdf(_escribir(tmp_path, "titulos"))
-        assert vistos == [("doc.pdf.parcial", "doc.pdf", True)]
+        assert vistos == [("doc.parcial.pdf", "doc.pdf", True)]
 
     def test_un_pdf_de_entrada_se_lee_como_texto_y_no_levanta_por_eso(self, tmp_path):
         """La pantalla lo rechaza antes (`apps/core/test_auditoria.py`); aquí solo se fija que la
@@ -310,16 +310,20 @@ def test_la_salida_es_un_pdf_legible(tmp_path):
     assert len(pypdf.PdfReader(io.BytesIO(datos)).pages) == 1
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "Defecto hallado al caracterizar (F11.8): los bloques de código se imprimen con "
-        "`Paragraph`, que colapsa los saltos de línea, así que un bloque de varias líneas sale "
-        "como una sola («x = 1 < 2 & 3 print(x)»). Hace falta `Preformatted` o `<br/>`. No se "
-        "arregla en el refactor."
-    ),
-)
 def test_un_bloque_de_codigo_conserva_sus_lineas(tmp_path):
     ruta = _escribir(tmp_path, "codigo")
     _, texto = _texto(markdown_a_pdf(ruta))
     assert "x = 1 < 2 & 3\nprint(x)" in texto
+
+    # Y con **otro lector** (PDFium), que no comparte código con pypdf: las líneas salen
+    # separadas y `<` y `&` se ven como texto, no como marcas.
+    import pypdfium2
+
+    documento = pypdfium2.PdfDocument(str(ruta.with_suffix(".pdf")))
+    try:
+        crudo = documento[0].get_textpage().get_text_bounded()
+    finally:
+        documento.close()
+    lineas = [linea.strip() for linea in crudo.splitlines()]
+    assert "x = 1 < 2 & 3" in lineas
+    assert "print(x)" in lineas

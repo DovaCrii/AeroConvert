@@ -21,6 +21,8 @@ from datetime import datetime
 
 from django.utils import timezone
 
+from .models import JobEvent
+
 #: Opciones que no se imprimen nunca: llevan secretos o datos de quien pidió el trabajo.
 OPCIONES_OCULTAS = (
     "contrasena",
@@ -309,7 +311,9 @@ def _seccion_opciones(job, hoja: _Hoja) -> list:
 
 
 def _seccion_avisos(job, hoja: _Hoja) -> list:
-    avisos = list(job.eventos.filter(level__in=("warning", "error")).order_by("sequence")[:20])
+    avisos = list(
+        job.eventos.filter(level__in=(JobEvent.AVISO, JobEvent.ERROR)).order_by("sequence")[:20]
+    )
     if not avisos:
         return []
     return [
@@ -326,6 +330,15 @@ def _seccion_el_original(job, hoja: _Hoja) -> list:
                 "El corredor comprobó al terminar que la fecha de modificación del original "
                 "no cambió; si hubiera cambiado, el trabajo habría fallado. La huella de arriba "
                 "se calculó antes de empezar.",
+                hoja.normal,
+            )
+        )
+    elif job.reason_code == "original-modificado":
+        historia.append(
+            hoja.parrafo(
+                "El original cambió mientras se trabajaba con él, y por eso el trabajo terminó "
+                "en error y la salida no se entregó. El antes y el después (fecha, tamaño y "
+                "huella) están en «Avisos durante el trabajo».",
                 hoja.normal,
             )
         )

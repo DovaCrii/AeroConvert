@@ -327,14 +327,23 @@ class TestLaVerificacion:
         registry.registrar(motor)
         job = _trabajo(usuario, origen, tmp_path)
 
-        resultado = runner.ejecutar(job)
+        sha_antes = hashlib.sha256(origen.read_bytes()).hexdigest()
+        mtime_antes = origen.stat().st_mtime_ns
 
-        # Sigue siendo `hecho`: se denuncia, no se revierte.
-        assert resultado.estado == HECHO, resultado.mensaje
-        errores = _eventos(job, level=JobEvent.ERROR)
-        assert [e.message for e in errores] == [
-            "El archivo de origen cambio durante la conversión. Revisa el motor."
-        ]
+        resultado = runner.ejecutar(job)
+        job.refresh_from_db()
+
+        # Regla 5: el trabajo **falla**, no se entrega nada y la bitácora lleva el antes y el
+        # después (`sha256` y fecha) del original.
+        assert (resultado.estado, resultado.codigo_motivo) == (ERROR, "original-modificado")
+        assert job.status == ERROR and job.reason_code == "original-modificado"
+        assert not (tmp_path / "salida.tif").exists()
+        assert not ruta_parcial(tmp_path / "salida.tif").exists()
+        assert job.verified_at is None and job.output_size_bytes == 0
+        errores = [e.message for e in _eventos(job, level=JobEvent.ERROR)]
+        assert len(errores) == 1
+        assert sha_antes in errores[0] and str(mtime_antes) in errores[0]
+        assert "La salida no se entrega." in errores[0]
 
 
 class TestElLanzamiento:
@@ -1161,6 +1170,20 @@ class TestGrupoDeProcesos:
         assert resultado.stdout.strip() == "hola"
         assert resultado.stderr.strip() == "mal"
 
+    def test_correr_en_grupo_decodifica_utf8_aunque_la_pagina_de_codigos_sea_otra(self):
+        """En Windows `text=True` sin `encoding` decodifica con cp1252 y «á» sale «Ã¡»."""
+        codigo = (
+            "import sys\n"
+            "sys.stdout.buffer.write('pirámides'.encode('utf-8'))\n"
+            "sys.stderr.buffer.write(b'ca\\xffo \\xc3\\xb1')\n"  # un byte inválido no tumba
+        )
+        resultado = runner._correr_en_grupo(
+            list(_py(codigo)), cwd=None, entorno=os.environ.copy(), timeout_s=30
+        )
+        assert resultado.stdout == "pirámides"
+        assert resultado.stderr.endswith("o ñ")
+        assert "�" in resultado.stderr
+
 
 # =============================================================================
 # Reclamo y entregables ajenos
@@ -1287,16 +1310,6 @@ class TestDocumentoCaminoFeliz:
         assert _huella(doc.origen) == antes
 
     @pytest.mark.django_db(transaction=True)
-    @pytest.mark.xfail(
-        strict=True,
-        reason=(
-            "Defecto hallado al caracterizar (F11.8): sin filas de entrada, el corredor arma una "
-            "`EntradaDeTrabajo` sin guardar y, como su `pk` (UUID) ya existe, `if entrada.pk:` "
-            "intenta `save(update_fields=...)` sobre una fila inexistente y acaba en "
-            "IntegrityError (`job_id` nulo). El comentario dice «sin fila que guardar»; hay que "
-            "preguntar por `entrada._state.adding`, no por `pk`. No se arregla en el refactor."
-        ),
-    )
     def test_sin_entradas_la_unica_es_source_path(self, doc):
         doc.job.entradas.all().delete()
         resultado = _correr_doc(doc.job)
@@ -1535,12 +1548,16 @@ class TestComprobarOriginales:
             os.utime(doc.origen, ns=(1_000_000_000_000_000_000, 1_000_000_000_000_000_000))
 
         doc.tras_lanzar = tocar
+        mtime_antes = doc.origen.stat().st_mtime_ns
         resultado = _correr_doc(doc.job)
-        assert resultado.estado == HECHO, resultado.mensaje
+        # Regla 5: el trabajo falla, no se entrega nada y la bitácora cuenta el antes y el después.
+        assert (resultado.estado, resultado.codigo_motivo) == (ERROR, "original-modificado")
+        assert doc.job.output_path == "" or not Path(doc.job.output_path).exists()
+        assert not list(doc.origen.parent.glob("*.parcial*"))
         errores = [e.message for e in _eventos(doc.job, level=JobEvent.ERROR)]
-        assert errores == [
-            "El archivo de origen entrada.pdf cambió durante el trabajo. Revisa la herramienta."
-        ]
+        assert len(errores) == 1
+        assert errores[0].startswith("El archivo de origen entrada.pdf cambió durante el trabajo")
+        assert str(mtime_antes) in errores[0] and doc.job.source_sha256 in errores[0]
 
     def test_tambien_se_denuncia_en_un_hecho_sin_archivo(self, doc):
         doc.hijo = "pass"
@@ -1549,7 +1566,9 @@ class TestComprobarOriginales:
         doc.tras_lanzar = lambda: os.utime(
             doc.origen, ns=(1_000_000_000_000_000_000, 1_000_000_000_000_000_000)
         )
-        _correr_doc(doc.job)
+        resultado = _correr_doc(doc.job)
+        assert (resultado.estado, resultado.codigo_motivo) == (ERROR, "original-modificado")
+        assert doc.job.desenlace == "" and doc.job.verified_at is None
         assert len(_eventos(doc.job, level=JobEvent.ERROR)) == 1
 
     def test_una_entrada_que_desaparece_no_se_denuncia(self, doc):

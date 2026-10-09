@@ -118,9 +118,25 @@ class TestContenido:
         assert "no hay entrega que acompañe" in texto
         assert "comprobó al terminar" not in texto
 
+    def test_un_original_modificado_se_cuenta_tal_cual_y_no_promete_nada(self, usuario, tmp_path):
+        job = _trabajo(
+            usuario,
+            tmp_path,
+            status="error",
+            reason_code="original-modificado",
+            reason_detail="El archivo de origen a.tif cambió durante el trabajo.",
+            output_path="",
+            output_sha256="",
+        )
+        texto = _texto_pypdf(informe.construir(job))
+        assert "original-modificado" in texto
+        assert "El original cambió mientras se trabajaba" in texto
+        assert "la salida no se entregó" in texto
+        assert "comprobó al terminar" not in texto
+
     def test_los_avisos_del_trabajo_salen(self, usuario, tmp_path):
         job = _trabajo(usuario, tmp_path)
-        JobEvent.objects.create(job=job, sequence=1, level="warning", message="Sin banda alfa")
+        JobEvent.objects.create(job=job, sequence=1, level=JobEvent.AVISO, message="Sin banda alfa")
         JobEvent.objects.create(job=job, sequence=2, level="info", message="Todo bien aquí")
         texto = _texto_pypdf(informe.construir(job))
         assert "Sin banda alfa" in texto and "Todo bien aquí" not in texto

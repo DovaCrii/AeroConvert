@@ -95,6 +95,11 @@ MOTIVOS: dict[str, Motivo] = dict(
         # --- Entrada y salida ----------------------------------------------
         _m("origen-no-legible", "No se pudo leer el archivo de origen."),
         _m("origen-bloqueado", "El archivo de origen esta abierto en otro programa."),
+        _m(
+            "original-modificado",
+            "El archivo de origen cambió mientras se convertía; la salida no se entrega.",
+            "Vuelva a lanzar el trabajo cuando nada esté escribiendo en el original.",
+        ),
         _m("salida-bloqueada", "El archivo de destino esta abierto en otro programa."),
         _m(
             "solo-marcador-en-la-nube",

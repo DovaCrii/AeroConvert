@@ -89,6 +89,26 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
   `'warning'` y el nivel real es `'warn'`); y los bloques de código de «Markdown a PDF» pierden sus
   saltos de línea.
 
+### Corregido — los defectos que dejó el refactor del corredor (F11.8) y la regla 5 del original
+
+- **Un trabajo de documentos sin filas de entrada** usa `source_path` en vez de caer en
+  `IntegrityError`: la entrada sintética no se guarda (`_state.adding`, no `pk`, que es un UUID).
+- **El informe de verificación imprime los avisos de la bitácora**: filtraba `'warning'` y el nivel real
+  es `JobEvent.AVISO` (`'warn'`). La prueba que pasaba creaba el evento con el nivel inventado; ahora usa
+  la constante.
+- **«Markdown a PDF» conserva las líneas de los bloques de código** (`Preformatted`), con `<` y `&` como
+  texto; comprobado con PDFium además de pypdf. Su parcial pasa a `ruta_parcial` (`doc.parcial.pdf`).
+- **Las pruebas del corredor miraban un parcial que no existe** (`salida.tif.parcial`; el real es
+  `salida.parcial.tif`): ahora usan `ruta_parcial`.
+- **Los pasos posteriores de un trabajo decodifican la salida del hijo como UTF-8** (en Windows salía
+  «pirÃ¡mides»).
+- **Un original que cambia durante el trabajo ya no termina en «hecho».** El corredor compara fecha y
+  tamaño **antes de renombrar**; si difieren, el trabajo termina en error con el motivo
+  **`original-modificado`** (nuevo en el catálogo), el parcial se borra, no se entrega salida y la
+  bitácora lleva el `sha256`, la fecha y el tamaño de antes y de después. Vale para el geoespacial y para
+  documentos (en cada entrada, y también en un «hecho» sin archivo). El informe lo cuenta así, y la frase
+  «si hubiera cambiado, el trabajo habría fallado» pasa a ser cierta.
+
 ### Añadido — «Ver en el mapa» con terreno: sombreado, cota y perfil (F19.4)
 
 - **Un DEM se ve como terreno.** Un GeoTIFF de una banda entera o flotante abre en «Ver en el mapa» con
