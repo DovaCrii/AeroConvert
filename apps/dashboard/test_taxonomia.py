@@ -250,3 +250,10 @@ class TestLosModulos:
                     assert MOTIVOS[m.motivo].mensaje in cuerpo, (url, m.id)
                     assert "Alternativa:" in cuerpo
         assert cuerpo.index('id="modulo-mapa"') < cuerpo.index('id="modulo-documentos"')
+
+    def test_el_lateral_enlaza_el_visor_una_sola_vez(self, sesion):
+        """«Ver» es un módulo y no se repite como enlace principal (el duplicado que quedó en F21.1)."""
+        cuerpo = sesion.get(reverse("dashboard:que_puedo_hacer")).content.decode()
+        aside = cuerpo.split('id="modulo-ver"', 1)[1]
+        assert cuerpo.count(f'href="{reverse("visor:inicio")}"') == 1
+        assert "Ver en el mapa" in aside.split("lateral-rotulo", 1)[0]
