@@ -9,7 +9,7 @@ vivía en dos grupos distintos según la pantalla; los catálogos de Plant 3D es
 y GNSS era un grupo de una sola herramienta con casi su mismo nombre. Con las más de 60 herramientas
 que traen las fases 14 y 15, cada una habría reinventado el menú.
 
-Aquí vive **el único árbol**: nueve grupos, cada uno con un **identificador estable**, y la
+Aquí vive **el único árbol**: ocho grupos, cada uno con un **identificador estable**, y la
 asignación de cada herramienta a uno. La portada, el lateral y los índices de `/documentos/` lo
 leen de aquí, y `test_taxonomia.py` impide que una herramienta nueva quede sin grupo.
 
@@ -40,8 +40,8 @@ class Grupo:
     icono: str = "icon-todas"
 
 
-#: Los nueve grupos, **en el orden en que se piensan**: primero lo que se entrega a otro programa,
-#: luego los datos de campo (GNSS y vuelos de dron), luego el trabajo sobre documentos y, al
+#: Los ocho grupos, **en el orden en que se piensan**: primero lo que se entrega a otro programa,
+#: luego la topografía (datos GNSS y vuelos de dron, F20.1), luego el trabajo sobre documentos y, al
 #: final, lo que sale del archivo.
 GRUPOS: tuple[Grupo, ...] = (
     Grupo(
@@ -53,18 +53,10 @@ GRUPOS: tuple[Grupo, ...] = (
     ),
     Grupo(
         "gnss",
-        "Coordenadas y datos GNSS",
-        "Lo que graba el receptor en campo, para posprocesarlo.",
-        "dashboard:convertir",
-        admite_uno=True,
-        icono="icon-destino-satelite",
-    ),
-    Grupo(
-        "vuelos",
-        "Vuelos de dron",
-        "Lo que graba un vuelo: la traza, las fotos y su posición corregida.",
+        "Topografía",
+        "Lo que se mide en campo y se posprocesa: receptor, trayectoria y fotos de un vuelo.",
         "documents:vuelos",
-        icono="icon-dron",
+        icono="icon-vuelo",
     ),
     Grupo(
         "organizar",
@@ -149,10 +141,10 @@ DE_DOCUMENTOS: dict[str, str] = {
     "md_html": "texto",
     "md_a_pdf": "texto",
     "a_epub": "texto",
-    "telemetria": "vuelos",
-    "fotos_dron": "vuelos",
-    "vuelo_dron": "vuelos",
-    "video": "vuelos",
+    "telemetria": "gnss",
+    "fotos_dron": "gnss",
+    "vuelo_dron": "gnss",
+    "video": "gnss",
     "portada": "texto",
     "catalogo_excel": "planta",
     "excel_catalogo": "planta",
@@ -162,7 +154,7 @@ DE_DOCUMENTOS: dict[str, str] = {
 INDICES: dict[str, tuple[str, ...]] = {
     "documentos": ("organizar", "convertir", "optimizar", "revisar"),
     "texto": ("texto", "planta"),
-    "vuelos": ("vuelos",),
+    "vuelos": ("gnss",),
 }
 
 

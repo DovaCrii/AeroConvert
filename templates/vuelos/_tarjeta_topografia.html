@@ -1,0 +1,26 @@
+{% load static %}
+{% comment %}
+  Una tarjeta de la portada de Topografía. Las apagadas **se ven**, con su motivo y su alternativa
+  (regla 4 de `AGENTS.md`): ocultarlas haría parecer que nunca existieron.
+{% endcomment %}
+{% if herramienta.disponible %}
+  <a class="herramienta" href="{% url herramienta.url %}">
+{% else %}
+  <div class="herramienta herramienta-apagada" aria-disabled="true">
+{% endif %}
+    <span class="herramienta-marca fam-{{ herramienta.familia }}" aria-hidden="true">
+      <svg class="herramienta-icono"><use href="{% static 'img/icons.svg' %}#{{ herramienta.icono }}"></use></svg>
+    </span>
+    <span class="herramienta-texto">
+      <strong>{{ herramienta.nombre }}</strong>
+      <span class="herramienta-que">{{ herramienta.que_hace }}</span>
+      <span class="herramienta-sale">Sale: <strong>{{ herramienta.sale }}</strong></span>
+      {% if not herramienta.disponible %}
+        <span class="herramienta-que"><strong>No disponible en esta máquina.</strong> {{ herramienta.motivo }} {{ herramienta.sugerencia }}</span>
+      {% endif %}
+    </span>
+{% if herramienta.disponible %}
+  </a>
+{% else %}
+  </div>
+{% endif %}

@@ -11,7 +11,7 @@ allowed-tools: Bash(uv run python scripts/claude/*), Bash(python scripts/claude/
    - `pruebas apps/<área>`: solo pytest sobre esa ruta, sin cobertura. Úsalo tras tocar un área.
    - `todo`: los mismos pasos que el CI. Antes de cerrar, de abrir un PR o de tocar `pyproject.toml`.
 2. Ejecuta `uv run python scripts/claude/verificar.py <alcance>`. **No** ejecutes `pytest --cov`
-   completo a pelo: la suite es larga (más de 2.200 pruebas) y vuelca miles de líneas.
+   completo a pelo: la suite es larga (más de 5.000 pruebas y unos 15 a 25 minutos) y vuelca miles de líneas.
 3. Verde: informa en una línea (pasos y cifras de pruebas que imprime).
 4. Si falla: lee solo «Lo que falló» y «Final de la salida»; abre el log
    (`.claude/tmp/verificar/<paso>.log`) por rangos si hace falta. Arregla la causa, no el síntoma, y
@@ -24,4 +24,5 @@ Notas:
 - Esto resume la puerta de calidad; no la reemplaza. Los tres gates (`verify.ps1`, `verificar.sh`,
   `ci.yml`) deben decir lo mismo; si notas una diferencia, anótala.
 - Pasar la suite no cumple el oráculo externo de `AGENTS.md`: si tocaste un motor, `/oraculo`.
+- **Lo que pasa en Windows tiene que pasar en Linux**: el CI corre en Linux sin GDAL, PDAL, Access ni Office; un verde local no lo garantiza (rutas con `\` y `/`, archivos de prueba con `newline="\n"`).
 - `fail_under = 83` no se baja nunca para que pase una corrida roja.

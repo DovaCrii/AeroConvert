@@ -4120,7 +4120,7 @@ code {
   r: 5;
 }
 
-/* --- Corregir un vuelo de dron: los pasos y el visor (F18.4) --------------------------------
+/* --- Procesamiento de trayectoria: los pasos y el visor (F18.4) --------------------------------
  * La disposición de Emlid Studio, que es la que ya conoce quien procesa vuelos: a la izquierda los
  * pasos en orden, a la derecha qué va a pasar; y, al terminar, el mapa con el recorrido y la foto
  * elegida. Su profundidad y la línea de ruta entre pasos están en la sección «Plan de vuelo» del
@@ -4205,7 +4205,7 @@ code {
 
 /* Los números de los pasos los cuenta el CSS: los pasos de una entrada o de la otra se ocultan
  * (F18.7) y un número escrito a mano dejaría huecos (1, 2, 6, 7…). Un paso oculto no cuenta. */
-.vuelo-pasos {
+.vuelo-layout {
   counter-reset: vuelo-paso;
 }
 
@@ -4239,6 +4239,191 @@ code {
   padding-left: 1.2rem;
   display: grid;
   gap: var(--av-s-2);
+  font-size: var(--av-fs-sm);
+}
+
+/* --- El esquema del flujo y los tres paneles de «Procesamiento de trayectoria» (F20.2) -----------
+ * Arriba, las tres rutas posibles con sus etapas; la elegida en el paso 1 lleva **tres** señales
+ * (borde grueso, la insignia «Ruta elegida» y `aria-current`), no solo el color. Debajo, la pantalla
+ * en tres paneles con su rótulo: Entradas, Parámetros del procesamiento y Resultado. Sin sombras ni
+ * movimiento: solo bordes y los tokens de siempre. */
+.vuelo-esquema {
+  grid-column: 1 / -1;
+  padding: var(--av-s-4);
+  border: 1px solid var(--av-border);
+  border-radius: var(--av-radius);
+  background: var(--av-surface);
+}
+
+.vuelo-esquema-titulo {
+  margin: 0 0 var(--av-s-1);
+  font-size: var(--av-fs-md);
+}
+
+.vuelo-esquema-nota {
+  margin: 0 0 var(--av-s-3);
+  font-size: var(--av-fs-sm);
+}
+
+.vuelo-rutas {
+  display: grid;
+  gap: var(--av-s-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.vuelo-ruta {
+  display: grid;
+  gap: var(--av-s-2);
+  padding: var(--av-s-3);
+  border: 1px solid var(--av-border);
+  border-left: 4px solid var(--av-border-control);
+  border-radius: var(--av-radius);
+  background: var(--av-surface-alt);
+}
+
+.vuelo-ruta-cabeza {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--av-s-2);
+}
+
+.vuelo-ruta-clave {
+  display: grid;
+  place-items: center;
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 50%;
+  background: var(--av-surface);
+  box-shadow: 0 0 0 2px var(--av-border-control);
+  color: var(--av-text);
+  font-family: var(--av-fuente-cifras);
+  font-weight: 700;
+  font-size: var(--av-fs-sm);
+}
+
+.vuelo-ruta-nombre {
+  font-size: var(--av-fs-md);
+}
+
+/* La insignia solo se ve en la ruta elegida: con una marca ✓ delante, que es forma y no color. */
+.vuelo-ruta-marca {
+  display: none;
+  padding: 0 var(--av-s-2);
+  border: 1px solid var(--av-primary);
+  border-radius: var(--av-radius);
+  color: var(--av-primary);
+  font-size: var(--av-fs-xs);
+  font-weight: 700;
+}
+
+.vuelo-ruta-marca::before {
+  content: "\2713\00a0";
+}
+
+.vuelo-ruta-pasos {
+  display: grid;
+  gap: var(--av-s-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--av-fs-sm);
+}
+
+.vuelo-ruta-pasos > li {
+  position: relative;
+  padding: var(--av-s-1) var(--av-s-2);
+  border: 1px solid var(--av-border);
+  border-radius: var(--av-radius);
+  background: var(--av-surface);
+}
+
+/* La flecha entre etapas es decoración: el orden ya lo dice la lista numerada. */
+.vuelo-ruta-pasos > li + li::before {
+  content: "\2193";
+  position: absolute;
+  top: calc(-1 * var(--av-s-3));
+  left: var(--av-s-3);
+  color: var(--av-text-muted);
+  font-size: var(--av-fs-sm);
+  line-height: var(--av-s-3);
+}
+
+@media (min-width: 992px) {
+  .vuelo-ruta-pasos {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--av-s-4);
+  }
+
+  .vuelo-ruta-pasos > li + li::before {
+    content: "\2192";
+    top: 50%;
+    left: calc(-1 * var(--av-s-4));
+    width: var(--av-s-4);
+    text-align: center;
+    transform: translateY(-50%);
+  }
+}
+
+.vuelo-ruta[aria-current="true"],
+.vuelo-layout:has(#id_origen_trimble:checked) .vuelo-ruta[data-ruta="trimble"],
+.vuelo-layout:has(#id_origen_rinex:checked) .vuelo-ruta[data-ruta="rinex"],
+.vuelo-layout:has(#id_origen_fotos:checked) .vuelo-ruta[data-ruta="fotos"] {
+  border-color: var(--av-primary);
+  border-left-width: 6px;
+  background: var(--av-primary-soft);
+}
+
+.vuelo-ruta[aria-current="true"] .vuelo-ruta-marca,
+.vuelo-layout:has(#id_origen_trimble:checked) .vuelo-ruta[data-ruta="trimble"] .vuelo-ruta-marca,
+.vuelo-layout:has(#id_origen_rinex:checked) .vuelo-ruta[data-ruta="rinex"] .vuelo-ruta-marca,
+.vuelo-layout:has(#id_origen_fotos:checked) .vuelo-ruta[data-ruta="fotos"] .vuelo-ruta-marca {
+  display: inline-block;
+}
+
+/* Con `:has()` manda lo que está marcado ahora: la ruta que el servidor marcó al abrir deja de
+ * parecerlo si se cambia de entrada, aunque `esquema.js` no haya corrido. */
+.vuelo-layout:not(:has(#id_origen_trimble:checked)) .vuelo-ruta[data-ruta="trimble"][aria-current="true"],
+.vuelo-layout:not(:has(#id_origen_rinex:checked)) .vuelo-ruta[data-ruta="rinex"][aria-current="true"],
+.vuelo-layout:not(:has(#id_origen_fotos:checked)) .vuelo-ruta[data-ruta="fotos"][aria-current="true"] {
+  border-color: var(--av-border);
+  border-left-width: 4px;
+  border-left-color: var(--av-border-control);
+  background: var(--av-surface-alt);
+}
+
+.vuelo-layout:not(:has(#id_origen_trimble:checked)) .vuelo-ruta[data-ruta="trimble"][aria-current="true"] .vuelo-ruta-marca,
+.vuelo-layout:not(:has(#id_origen_rinex:checked)) .vuelo-ruta[data-ruta="rinex"][aria-current="true"] .vuelo-ruta-marca,
+.vuelo-layout:not(:has(#id_origen_fotos:checked)) .vuelo-ruta[data-ruta="fotos"][aria-current="true"] .vuelo-ruta-marca {
+  display: none;
+}
+
+.vuelo-columna {
+  display: grid;
+  gap: var(--av-s-4);
+  min-width: 0;
+}
+
+.vuelo-panel {
+  display: grid;
+  gap: var(--av-s-3);
+  padding: var(--av-s-4);
+  border: 1px solid var(--av-border);
+  border-top: 3px solid var(--av-ruta);
+  border-radius: var(--av-radius);
+  background: var(--av-surface-alt);
+}
+
+.vuelo-panel-rotulo {
+  margin: 0;
+  font-size: var(--av-fs-lg);
+}
+
+.vuelo-panel-nota {
+  margin: calc(-1 * var(--av-s-2)) 0 0;
   font-size: var(--av-fs-sm);
 }
 

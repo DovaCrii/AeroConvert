@@ -138,8 +138,8 @@ def _contexto_inicial() -> dict:
     estado = vuelo_ppk.sondar()
     return {
         "seccion": "pdf",
-        "etiqueta_seccion": "Vuelos de dron",
-        "titulo_pagina": "Corregir un vuelo de dron",
+        "etiqueta_seccion": "Topografía",
+        "titulo_pagina": "Procesamiento de trayectoria",
         "proposito": "La posición corregida de cada foto, contrastada con la de referencia.",
         "escalas": ESCALAS,
         "sistemas": _sistemas_para_declarar(),
@@ -441,7 +441,7 @@ def vuelo_ver(request, pk):
         "vuelos/vuelo_visor.html",
         {
             "seccion": "pdf",
-            "etiqueta_seccion": "Vuelos de dron",
+            "etiqueta_seccion": "Topografía",
             "titulo_pagina": "El vuelo en el mapa",
             # Un vuelo con RTK no tiene recorrido: no se promete.
             "proposito": (

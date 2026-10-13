@@ -18,6 +18,7 @@ nada. Esta skill corre las que sí.
 3. **Anota.** En `docs/PRUEBAS_CON_ORACULO.md`, una sección nueva con la **fecha**, la herramienta y
    su versión, el archivo de prueba y **cifras** (no «pasó»): bandas, estadísticas, puntos, sha256.
 4. **El original quedó intacto:** confirma `sha256` y `mtime` antes y después, también tras un fallo.
-5. **Si no hay oráculo posible** (ECW exige clave OEM), documenta el procedimiento manual con cifras
+5. **Otros oráculos ya usados:** PROJ (cs2cs, projinfo) para alturas con geoide y datums (AEROCONVERT_PROJ_GRILLAS), y el navegador del panel para Cesium (consola sin errores de CSP y todas las peticiones al propio servidor).
+6. **Si no hay oráculo posible** (ECW exige clave OEM), documenta el procedimiento manual con cifras
    fechadas. No lo inventes.
-6. Informa: qué se corrió, versión del oráculo, cifras y qué no se pudo correr aquí.
+7. Informa: qué se corrió, versión del oráculo, cifras y qué no se pudo correr aquí.

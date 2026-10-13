@@ -190,7 +190,7 @@
                   {% for v in vuelos_propios %}<option value="{{ v.pk }}">{{ v.nombre }} · {{ v.fecha|date:"d/m/Y H:i" }}</option>{% endfor %}
                 </select>
                 {% if not vuelos_propios %}
-                  <p class="tenue av-fs-xs av-mt-1 av-mb-0">Todavía no hay un vuelo terminado de «Corregir un vuelo de dron» que no esté ya en el mapa.</p>
+                  <p class="tenue av-fs-xs av-mt-1 av-mb-0">Todavía no hay un vuelo terminado de «Procesamiento de trayectoria» que no esté ya en el mapa.</p>
                 {% endif %}
               </div>
 
@@ -472,7 +472,7 @@
               {% endfor %}
             </ul>
           {% else %}
-            <p class="tenue av-m-0">Todavía no hay un vuelo terminado de «Corregir un vuelo de dron».</p>
+            <p class="tenue av-m-0">Todavía no hay un vuelo terminado de «Procesamiento de trayectoria».</p>
           {% endif %}
         </div>
       </div>

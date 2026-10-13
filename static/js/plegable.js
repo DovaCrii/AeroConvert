@@ -54,7 +54,7 @@
   }
 
   // El grupo del lateral que contiene la pantalla donde se está se abre siempre, y el enlace se
-  // trae a la vista: llegar a «Corregir un vuelo» con su grupo cerrado no dice dónde se está.
+  // trae a la vista: llegar a «Procesamiento de trayectoria» con su grupo cerrado no dice dónde se está.
   // **No se guarda**: es una apertura de paso, no una preferencia de la persona.
   function abrirElDeLaPagina() {
     var actual = document.querySelector(".lateral details [aria-current='page']");

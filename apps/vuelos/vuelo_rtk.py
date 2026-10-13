@@ -3,8 +3,8 @@
 Cuando el dron voló con RTK, no hay PPK que hacer: la posición precisa **ya está en cada foto**, en
 el XMP de DJI (`drone-dji:GpsLatitude`, `GpsLongitude`, `AbsoluteAltitude`), con su calidad
 (`RtkFlag`) y sus desviaciones (`RtkStdLat`, `RtkStdLon`, `RtkStdHgt`). Aquí se **lee** esa
-posición, se dice qué tan buena es y se entrega con los mismos archivos que «Corregir un vuelo»:
-CSV, GeoJSON, KML, `calidad.md` y los datos del visor.
+posición, se dice qué tan buena es y se entrega con los mismos archivos que
+«Procesamiento de trayectoria»: CSV, GeoJSON, KML, `calidad.md` y los datos del visor.
 
 ## Lo que se comprueba antes de entregar
 

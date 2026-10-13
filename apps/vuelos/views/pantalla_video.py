@@ -46,7 +46,7 @@ def video_vista(request):
     ffmpeg = video_mod.sondar()
     contexto = {
         "seccion": "pdf",
-        "etiqueta_seccion": "Vuelos de dron",
+        "etiqueta_seccion": "Topografía",
         "titulo_pagina": "Trabajar un video de dron",
         "proposito": "Fotogramas para fotogrametría, o el video más liviano, recortado o mudo.",
         "ffmpeg": ffmpeg,

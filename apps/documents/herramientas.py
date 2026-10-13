@@ -187,10 +187,12 @@ HERRAMIENTAS = (
         "sale": "un zip con la posición de cada foto",
         "familia": "transformar",
         "url": "documents:vuelo_dron",
-        "nombre": "Corregir un vuelo de dron",
+        "nombre": "Procesamiento de trayectoria",
         "que_hace": (
-            "Le pone a cada foto del vuelo su posición corregida, con la trayectoria que sacó "
-            "Trimble, y la deja a la vista en un mapa: el recorrido, los puntos y las fotos."
+            "Pone en cada foto del vuelo su posición corregida: interpola la trayectoria en el "
+            "instante de cada disparo (eventos de cámara, .MRK) y aplica el desfase antena-cámara. "
+            "La trayectoria viene de Trimble Business Center, de un PPK con RTKLIB o de la "
+            "posición RTK de las fotos. Queda a la vista en un mapa."
         ),
     },
     {

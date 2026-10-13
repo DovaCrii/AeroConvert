@@ -9,10 +9,13 @@
 - **Verificar:** `/verificar` o `uv run python scripts/claude/verificar.py [rapido|pruebas RUTA|todo]`.
   No pegues salidas largas de pytest en la conversación: el resumen y el log en
   `.claude/tmp/verificar/` bastan. La suite completa tarda; para iterar usa `rapido` o `pruebas RUTA`.
-- **Skills del proyecto:** `/verificar`, `/cerrar-fase F9.4`, `/abrir-pr`, `/oraculo`,
-  `/refactor-seguro <archivo>`, **`/nueva-herramienta <id>`** (las catorce piezas de una herramienta
-  de documentos) y **`/avanzar [bloque o fila]`**, que recorre el plan F13 a F16 por bloques
-  (tablero en `docs/planes/SEGUIMIENTO.md`).
+- **Skills del proyecto:** `/avanzar [bloque o fila]` (el bucle del plan: elige filas, las encarga a los
+  agentes y las publica; tablero en `docs/planes/SEGUIMIENTO.md`), **`/publicar <rama>`** (de una rama
+  terminada a `main`: trae `main`, marca la fila, suite, PR y fusión; sustituye a `abrir-pr` y
+  `cerrar-fase`), `/verificar`, `/oraculo`, `/refactor-seguro <archivo>`, **`/nuevo-motor <familia/formato>`**
+  (las piezas de un motor geoespacial), **`/nueva-herramienta <id>`** (las catorce piezas de una herramienta
+  de documentos) y **`/mirar-pantalla <nombre=/ruta/>`** (ver una pantalla sin crear cuentas). La plantilla de
+  encargo a un agente está en `.claude/agents/ENCARGO.md`.
 - **Agentes del proyecto** (`.claude/agents/`; reparto en `/avanzar`): Opus coordina con esfuerzo
   medio; `explorador` (Haiku, solo lectura: dónde vive algo y qué pruebas lo fijan), `investigador`
   (Sonnet, web con fuentes), `implementador` (Sonnet, una fila en su worktree, sin push),

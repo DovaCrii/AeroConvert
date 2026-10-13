@@ -392,7 +392,7 @@
 
   <symbol id="icon-vuelo" viewBox="0 0 24 24" fill="none" stroke="currentColor"
           stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-    <!-- Corregir un vuelo: las pasadas del levantamiento en serpentina, con los puntos de las fotos. -->
+    <!-- Procesamiento de trayectoria: las pasadas del levantamiento en serpentina, con los puntos de las fotos. -->
     <path d="M4 5.5h16v6.5H4v6.5h16" />
     <circle cx="8.5" cy="5.5" r="1.2" fill="currentColor" />
     <circle cx="14.5" cy="5.5" r="1.2" fill="currentColor" />

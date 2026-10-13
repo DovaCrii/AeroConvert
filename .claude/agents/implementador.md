@@ -12,8 +12,9 @@ Eres el **implementador** de AeroConvert. Haces **una fila** y la dejas confirma
    (`python scripts/claude/plan_fila.py <fila> --seccion`).
 2. `git fetch` y crea la rama que se te indique **desde `origin/main`**. Copia
    `D:\I+D\AeroConvert\.env` al worktree si falta.
-3. Si añades una herramienta de documentos, sigue `.claude/skills/nueva-herramienta/SKILL.md`; si es un
-   refactor, `.claude/skills/refactor-seguro/SKILL.md`.
+3. Según la fila, sigue la skill que corresponda: `/nuevo-motor` (un motor o formato geoespacial),
+   `/nueva-herramienta` (una de documentos), `/refactor-seguro` (mover sin cambiar comportamiento) y
+   `/mirar-pantalla` para ver lo que toque una pantalla. La plantilla de tu encargo está en `ENCARGO.md`.
 
 ## Mientras trabajas
 

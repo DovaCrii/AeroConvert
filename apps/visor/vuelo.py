@@ -1,4 +1,4 @@
-"""Un vuelo de «Corregir un vuelo de dron» como capas del mapa (F19.3).
+"""Un vuelo de «Procesamiento de trayectoria» como capas del mapa (F19.3).
 
 ## De dónde sale
 
