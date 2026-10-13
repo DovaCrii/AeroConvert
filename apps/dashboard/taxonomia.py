@@ -104,6 +104,91 @@ GRUPOS: tuple[Grupo, ...] = (
 
 POR_ID: dict[str, Grupo] = {g.id: g for g in GRUPOS}
 
+
+@dataclass(frozen=True)
+class Modulo:
+    """Un módulo de producto (F21.1, D11): la forma de navegar lo geoespacial.
+
+    Los **grupos conservan sus `id`** (hay pruebas y enlaces guardados que dependen de ellos); el
+    módulo es una capa encima: agrupa grupos y, cuando aún no hay con qué llenarlo, se muestra
+    **apagado con motivo y alternativa** (regla 4), nunca oculto.
+    """
+
+    id: str
+    titulo: str
+    cuando: str
+    icono: str
+    #: Los `id` de grupo que viven dentro.
+    grupos: tuple[str, ...] = ()
+    #: Si no lleva grupos, a dónde va (nombre de URL). Vacío si no tiene pantalla propia.
+    enlace: str = ""
+    #: Código estable de `apps/jobs/motivos.py` si el módulo aún no existe. Vacío si existe.
+    motivo: str = ""
+    #: ``True`` para la sección aparte de documentos (etapa 1 de la separación, F21.11).
+    aparte: bool = False
+
+
+#: Los módulos **en el orden del flujo**: archivo bruto → transformar → procesar → ver → mapa →
+#: lámina → automatizar. «Topografía» (F20.1) vive dentro de Procesar (posproceso GNSS y vuelos) y
+#: «Documentos» es una sección aparte al final, hasta que viva en su propio repositorio.
+MODULOS: tuple[Modulo, ...] = (
+    Modulo(
+        "transformar",
+        "Transformar",
+        "Cambiar el formato o el sistema de referencia de ráster, nubes y vectores.",
+        "icon-convertir",
+        grupos=("entregar",),
+    ),
+    Modulo(
+        "procesar",
+        "Procesar",
+        "Trabajar los datos medidos: topografía, receptor y fotos de un vuelo.",
+        "icon-vuelo",
+        grupos=("gnss",),
+    ),
+    Modulo(
+        "ver",
+        "Ver",
+        "Mirar un archivo sobre el mapa antes de entregarlo.",
+        "icon-mapa",
+        enlace="visor:inicio",
+    ),
+    Modulo(
+        "mapa",
+        "Mapa",
+        "Armar un mapa con capas y simbología.",
+        "icon-mapa",
+        motivo="modulo-mapa-pendiente",
+    ),
+    Modulo(
+        "lamina",
+        "Lámina",
+        "Componer una lámina técnica lista para imprimir.",
+        "icon-pdf-organizar",
+        motivo="modulo-lamina-pendiente",
+    ),
+    Modulo(
+        "automatizar",
+        "Automatizar",
+        "Repetir un flujo completo sobre muchos archivos.",
+        "icon-historial",
+        motivo="modulo-automatizar-pendiente",
+    ),
+    Modulo(
+        "documentos",
+        "Documentos",
+        "PDF, Office, texto y tablas: herramientas aparte de lo geoespacial.",
+        "icon-pdf-office",
+        grupos=("organizar", "convertir", "optimizar", "revisar", "texto", "planta"),
+        aparte=True,
+    ),
+)
+
+MODULO_POR_ID: dict[str, Modulo] = {m.id: m for m in MODULOS}
+
+#: El módulo de cada grupo (cada grupo, en exactamente uno).
+MODULO_DE_GRUPO: dict[str, str] = {g: m.id for m in MODULOS for g in m.grupos}
+
 #: A qué grupo pertenece cada herramienta de documentos, por su `id` en `herramientas.py`.
 DE_DOCUMENTOS: dict[str, str] = {
     "unir": "organizar",
