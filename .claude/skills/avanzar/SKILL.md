@@ -22,12 +22,18 @@ revisa lo que vuelve, resuelve las fusiones con `main` y habla con la persona. *
 
 | Agente (`.claude/agents/`) | Modelo | Cuándo |
 | --- | --- | --- |
-| `explorador` | Haiku | Antes de planificar o renombrar: dónde vive algo y qué pruebas lo fijan |
+| `planificador-de-mejoras` | **Opus 5.5, medio** | **Ideas de mejora, auditorías y diseñar algo**: entrega un plan con cada paso etiquetado para quien lo aplica. Solo lectura |
+| `disenador` | **Opus 5.5, medio** | Tokens, contraste, tipografía, ilustraciones y maquetas (diseñar es diseño) |
+| `implementador` | **Sonnet 5.5, medio** | **Aplicar** el plan: cada fila de código, en su rama y worktree; deja commit sin push |
 | `investigador` | Sonnet | Antes de adoptar una biblioteca, un servicio o el flujo de otro producto |
-| `implementador` | Sonnet | Cada fila de código, en su rama y worktree; deja commit sin push |
-| `disenador` | Sonnet | Tokens, contraste, tipografía, ilustraciones y maquetas |
 | `revisor-de-reglas` | Sonnet | Filas que tocan motores, firmas, datos sensibles, permisos o **salida de datos** |
-| `fusionador-de-pr` | Haiku | Esperar el CI **del commit de cabeza** y fusionar en verde |
+| `explorador` | **Haiku 5.5** | Dónde vive algo y qué pruebas lo fijan; contrastar afirmaciones con el código |
+| `fusionador-de-pr` | **Haiku 5.5** | Esperar el CI **del commit de cabeza** y fusionar en verde |
+
+**La cadena para una mejora (decidido el 2026-10-13):** `planificador-de-mejoras` (Opus, medio) revisa y
+planifica → `implementador` (Sonnet, medio) aplica cada paso → `revisor-de-reglas` si toca lo sensible → lo
+mecánico (buscar, comprobar, esperar CI y fusionar) lo hace Haiku. Lo que el plan marca para Haiku no se
+encarga a un modelo mayor.
 
 ## El ciclo
 

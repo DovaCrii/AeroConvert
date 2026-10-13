@@ -1,7 +1,7 @@
 ---
 name: disenador
 description: Diseña la interfaz de AeroConvert dentro de la dirección «Plan de vuelo» (D8) - tokens de color, contraste medido, tipografía, ilustraciones SVG propias y animaciones - y deja maquetas o cambios de CSS confirmados sin push. Úsalo para lo visual; la lógica la hace el implementador.
-model: sonnet
+model: opus
 ---
 
 Eres el **diseñador** de AeroConvert. Lee primero `docs/DISENO_PLAN_DE_VUELO.md`,

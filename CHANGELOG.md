@@ -5,6 +5,10 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Sin publicar]
 
+### Cambiado - el reparto de modelos de los agentes
+
+- **Nuevo agente `planificador-de-mejoras`** (Opus 5.5, esfuerzo medio, solo lectura): revisa un área o una idea y entrega un plan con cada paso etiquetado para quien lo aplica. **`disenador`** pasa a Opus. `implementador` aplica en Sonnet 5.5 (medio) y lo mecánico (explorar, esperar CI y fusionar) queda en Haiku 5.5. Decidido por la persona el 2026-10-13; `/avanzar` y `CLAUDE.md` lo recogen.
+
 ### Cambiado - el gate corto dice lo mismo que el gate real
 
 - **`scripts/claude/verificar.py todo`** usa `--fail-level WARNING` en `check` y `check --deploy` y corre
