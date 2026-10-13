@@ -7,7 +7,7 @@ de la máquina, y la aplicación está publicada en internet abierto. Así que e
 enciende solo, no se enciende por omisión y no se enciende porque haya una biblioteca
 instalada**: hace falta que alguien ponga una clave a mano, a sabiendas.
 
-Sin `AEROCONVERT_TINO_CLAVE` esto está apagado, `sondar()` lo dice con su motivo, y
+Sin `AEROCONVERT_TINO_API_KEY` esto está apagado, `sondar()` lo dice con su motivo, y
 **ninguna línea de código de aquí llega a ejecutarse**. Lo que Tino contesta mientras tanto
 sale de `saber.py`, de esta máquina, y es la mayor parte de lo que se le pregunta.
 
@@ -36,12 +36,14 @@ from __future__ import annotations
 import json
 import logging
 import re
+import time
 import urllib.error
 import urllib.request
 from dataclasses import dataclass
 from urllib.parse import urlparse
 
 from django.conf import settings
+from django.core.cache import cache
 
 log = logging.getLogger(__name__)
 
@@ -73,24 +75,43 @@ ENCARGO = (
 #: No es censura de lo que alguien quiera preguntar: es que una pregunta escrita a las
 #: prisas trae pegada la ruta del archivo —«no puedo convertir D:\obras\minera\vuelo.tif»— y
 #: esa ruta dice el cliente, la obra y el nombre del proyecto. Se quita y se avisa.
+#:
+#: Una ruta con espacios (`D:\obras\Minera Escondida\vuelo.tif`) se quita entera hasta su
+#: extensión, o hasta la última carpeta si no la trae. **Un nombre escrito sin extensión no se
+#: puede detectar** («el vuelo de Minera Escondida»): la pantalla lo dice.
+_EXT = (
+    "tif|tiff|las|laz|e57|dwg|dgn|dxf|shp|gpkg|kml|kmz|geojson|ifc|rvt|csv|zip|jpg|jpeg|png|"
+    "gdb|txt|pdf|doc|docx|xls|xlsx|mdb|accdb|e00|ecw|jp2|sid|rar|7z"
+)
+_SEG = r"""[^\\/\n"'<>|?*]"""  # un carácter de nombre de carpeta, espacios incluidos
 RUTAS = re.compile(
-    r"""(?xi)
-    (?: [a-z]:[\\/][^\s"']*        # D:\obras\...
-      | \\\\[^\s"']+               # \\servidor\carpeta
-      | /(?:home|mnt|srv|var)/[^\s"']*
-      | \b[\w.\-]+\.(?:tif|tiff|las|laz|dwg|dgn|dxf|shp|pdf|xlsx|docx|mdb|e00|ecw|jp2)\b
-    )
+    rf"""(?xi)
+      (?: [a-z]:[\\/] | \\\\[^\\/\s]+[\\/] | ~/ | (?<![\w.:/<)\]]) / )   # D:\  \\srv\  ~/  /
+      (?: {_SEG}+? [\\/] )*? {_SEG}*? \.(?:{_EXT})\b                     # ...hasta la extensión
+    | (?: [a-z]:[\\/] | \\\\[^\\/\s]+[\\/] | ~/ )
+      (?: {_SEG}+ [\\/] )* [^\s"'\\/]*                                    # sin extensión
+    | (?<![\w.:/<)\]]) / (?: [\w.\-~@%+=,$]+ / )* [\w.\-~@%+=,$]+         # /opt/x  /tmp/y
+    | (?<![\w.:/\\<]) [\w.\-]+ / [\w.\-]+ / [\w.\-/]+                     # a/b/c relativa
+    | \b[\w.\-]+\.(?:{_EXT})\b                                            # vuelo_norte.las
     """
 )
 
 #: **Coordenadas**: ubican la obra tanto como una ruta la nombra. Pares decimales
 #: (`-33.4567, -70.6483`), un decimal suelto con cuatro o más cifras (≈ 11 m, que ya sitúa un
 #: punto) y Este/Norte UTM de 6 o 7 cifras (`345678.12`, `6301234`).
+#: También grados-minutos-segundos (`33°27'24"S`), decimales con coma (`-33,456789;
+#: -70,648312`), miles con punto (`345.678,12`, `6.301.234`) y un valor de tres decimales
+#: con hemisferio (`33,457 S`).
 COORDENADAS = re.compile(
     r"""(?x)
-    (?<![\w.])-?\d{1,3}\.\d{3,}\s*[,;/]?\s*-?\d{1,3}\.\d{3,}(?![\w.])
-    | (?<![\w.])-?\d{1,3}\.\d{4,}(?![\w.])
-    | (?<![\w.,])\d{6,7}(?:[.,]\d+)?(?!\w)
+      \d{1,3}\s*[°º]\s*\d{1,2}(?:[.,]\d+)?\s*['′’]                     # 33°27'
+        (?:\s*\d{1,2}(?:[.,]\d+)?\s*(?:["″”]|''|′′))?\s*[NSEOW]?        #   24"S
+    | (?<![\w.,])\d{3}\.\d{3}(?:,\d+)?(?![\w.])                         # 345.678,12
+    | (?<![\w.,])\d\.\d{3}\.\d{3}(?:,\d+)?(?![\w.])                     # 6.301.234
+    | (?<![\w.,])-?\d{1,3}[.,]\d{3,}\s*[;,/]?\s*-?\d{1,3}[.,]\d{3,}(?!\w)
+    | (?<![\w.,])-?\d{1,3}[.,]\d{4,}(?!\w)
+    | (?<![\w.,])-?\d{1,3}[.,]\d{3}\s*[°º]?\s*[NSEOW](?![\w])           # 33,457 S
+    | (?<![\w.,])\d{6,7}(?:[.,]\d+)?(?!\w)                              # 345678.12
     """
 )
 
@@ -125,7 +146,7 @@ class Limpia:
 
 
 def _clave() -> str:
-    return (getattr(settings, "TINO_CLAVE", "") or "").strip()
+    return (getattr(settings, "TINO_API_KEY", "") or "").strip()
 
 
 def _base() -> str:
@@ -150,19 +171,19 @@ def sondar() -> Disponible:
             motivo="Preguntar fuera está apagado en este equipo, que es como viene de fábrica.",
             sugerencia=(
                 "Tino contesta igual lo que esta máquina sabe, que es la mayor parte. Para "
-                "lo demás, quien administra el equipo pone AEROCONVERT_TINO_CLAVE en el .env "
+                "lo demás, quien administra el equipo pone AEROCONVERT_TINO_API_KEY en el .env "
                 "del servidor: la clave nunca va en el repositorio ni en un chat."
             ),
         )
     if not getattr(settings, "TINO_VISIBLE", False):
         return Disponible(
-            codigo="sin-clave-ia",
+            codigo="ia-apagada",
             motivo="Tino está apagado en este equipo.",
             sugerencia="Se enciende con AEROCONVERT_TINO_VISIBLE=true.",
         )
     if proveedor not in PROVEEDORES:
         return Disponible(
-            codigo="sin-clave-ia",
+            codigo="ia-apagada",
             motivo="Hay clave pero no está dicho a quién se le pregunta.",
             sugerencia=f"AEROCONVERT_TINO_PROVEEDOR debe ser uno de: {', '.join(PROVEEDORES)}.",
         )
@@ -192,19 +213,97 @@ class _Rechazo(Exception):
         self.estado = estado
 
 
-def _abrir(peticion: urllib.request.Request) -> bytes:
-    """Una sola llamada. Solo http/https: la URL la pone quien administra, y `file:` no."""
-    if urlparse(peticion.full_url).scheme not in ("http", "https"):
+_LOOPBACK = frozenset({"127.0.0.1", "::1", "localhost"})
+TOPE_RESPUESTA_BYTES = 1_000_000
+#: Por persona: una ráfaga de clics no puede gastar la cuota de toda la oficina.
+LIMITE_POR_MINUTO = 6
+LIMITE_POR_DIA = 100
+
+
+def dentro_del_tope(usuario_id: int) -> bool:
+    """Cuenta una consulta de esta persona; `False` si ya pasó su tope por minuto o por día."""
+    for clave, tope, plazo_s in (
+        (f"tino:fuera:min:{usuario_id}", LIMITE_POR_MINUTO, 60),
+        (f"tino:fuera:dia:{usuario_id}", LIMITE_POR_DIA, 86400),
+    ):
+        cache.add(clave, 0, plazo_s)
+        try:
+            cuenta = cache.incr(clave)
+        except ValueError:  # caducó entre el add y el incr
+            cache.set(clave, 1, plazo_s)
+            cuenta = 1
+        if cuenta > tope:
+            return False
+    return True
+
+
+class _SinRedireccion(urllib.request.HTTPRedirectHandler):
+    """**Una redirección no se sigue**: `urllib` copia `Authorization` al host del `Location`,
+    y eso entregaría la clave a quien la respuesta nombrara. Cualquier 3xx es un rechazo."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
+
+_ABRIDOR = urllib.request.build_opener(_SinRedireccion)
+
+
+class _Rechazo(Exception):
+    """Un intento que no sirvió. Lleva solo el código HTTP, **nunca** la clave ni el cuerpo."""
+
+    def __init__(self, estado: int | None):
+        super().__init__(f"HTTP {estado}" if estado else "sin respuesta")
+        self.estado = estado
+
+
+def _abrir(ruta: str, datos: bytes | None = None) -> bytes:
+    """Una sola llamada a `{base}{ruta}`: POST si lleva cuerpo, GET si no.
+
+    - **`https`, salvo `localhost`** (la clave no viaja en claro por una red).
+    - Sin redirecciones, plazo **total** con `time.monotonic()` y lectura en trozos con tope.
+    - La petición con su cabecera `Authorization` no queda como variable local en el camino
+      de error: la página de depuración de Django enseña las locales de cada marco.
+    """
+    url = f"{_base()}{ruta}"
+    partes = urlparse(url)
+    if not (partes.scheme == "https" or (partes.scheme == "http" and partes.hostname in _LOOPBACK)):
         raise _Rechazo(None)
+    limite = time.monotonic() + PLAZO_S
+    peticion = None
     try:
         # La dirección sale de AEROCONVERT_TINO_URL: la pone quien administra el equipo, no
-        # quien pregunta, y el esquema se comprobó arriba.
-        with urllib.request.urlopen(peticion, timeout=PLAZO_S) as r:  # nosec B310
-            return r.read(1_000_000)
+        # quien pregunta; el esquema se comprobó arriba y las redirecciones no se siguen.
+        peticion = urllib.request.Request(  # noqa: S310
+            url,
+            data=datos,
+            headers={
+                "Authorization": f"Bearer {_clave()}",
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+            },
+            method="GET" if datos is None else "POST",
+        )
+        with _ABRIDOR.open(peticion, timeout=PLAZO_S) as respuesta:  # nosec B310
+            trozos: list[bytes] = []
+            total = 0
+            while True:
+                if time.monotonic() > limite:
+                    raise TimeoutError
+                trozo = respuesta.read1(16_384)  # read() esperaría a llenar el trozo
+                if not trozo:
+                    return b"".join(trozos)
+                total += len(trozo)
+                if total > TOPE_RESPUESTA_BYTES:
+                    raise _Rechazo(None)
+                trozos.append(trozo)
     except urllib.error.HTTPError as error:
-        raise _Rechazo(error.code) from None
+        estado = error.code
+        error.close()
+        raise _Rechazo(estado) from None
     except OSError:  # URLError, plazo vencido y conexión rechazada son todos OSError
         raise _Rechazo(None) from None
+    finally:
+        peticion = None  # noqa: F841
 
 
 def _preguntar_a(modelo: str, texto: str) -> str:
@@ -217,36 +316,32 @@ def _preguntar_a(modelo: str, texto: str) -> str:
         "temperature": 0.2,
         "max_tokens": 400,
     }
-    peticion = urllib.request.Request(  # noqa: S310
-        f"{_base()}/chat/completions",
-        data=json.dumps(cuerpo).encode("utf-8"),
-        headers={
-            "Authorization": f"Bearer {_clave()}",
-            "Content-Type": "application/json",
-            "Accept": "application/json",
-        },
-        method="POST",
-    )
     try:
-        datos = json.loads(_abrir(peticion))
+        datos = json.loads(_abrir("/chat/completions", json.dumps(cuerpo).encode("utf-8")))
         contenido = datos["choices"][0]["message"]["content"]
     except (ValueError, KeyError, IndexError, TypeError):
         raise _Rechazo(None) from None
     return str(contenido or "").strip()
 
 
+def _queda_algo(texto: str) -> bool:
+    """¿Queda una pregunta tras quitar lo quitado? Solo "«el archivo»" no es una pregunta."""
+    return any(c.isalpha() for c in re.sub(r"«[^»]*»", "", texto))
+
+
 def consultar(pregunta: str) -> Consulta:
     """Pregunta fuera **solo** lo que `limpiar()` deja, o dice por qué no pudo.
 
-    Un 404 prueba el modelo de respaldo; un 401, un 429, un 5xx o un plazo vencido paran
-    aquí: reintentar con otro modelo no arregla una clave mala ni una cuota agotada. En
-    ningún caso se registra la clave ni el cuerpo, solo el código de estado.
+    Un 404 prueba el modelo de respaldo; un 401, un 429, un 5xx, una redirección o un plazo
+    vencido paran aquí: reintentar con otro modelo no arregla una clave mala ni una cuota
+    agotada. En ningún caso se registra la clave ni el cuerpo, solo el código de estado.
     """
-    if not sondar():
-        return Consulta(codigo="sin-clave-ia")
+    estado = sondar()
+    if not estado:
+        return Consulta(codigo=estado.codigo)
     limpia = limpiar(pregunta)
-    if not limpia.texto:
-        return Consulta(codigo="ia-no-disponible")
+    if not _queda_algo(limpia.texto):
+        return Consulta(codigo="ia-sin-pregunta")
     for modelo in modelos():
         try:
             texto = _preguntar_a(modelo, limpia.texto)
@@ -262,12 +357,8 @@ def consultar(pregunta: str) -> Consulta:
 
 def listar_modelos() -> list[str]:
     """`GET {base}/models` con la clave: para elegir el modelo en p340 (`tino_probar`)."""
-    peticion = urllib.request.Request(  # noqa: S310
-        f"{_base()}/models",
-        headers={"Authorization": f"Bearer {_clave()}", "Accept": "application/json"},
-    )
     try:
-        datos = json.loads(_abrir(peticion))
+        datos = json.loads(_abrir("/models"))
         return sorted(str(m["id"]) for m in datos["data"])
     except (ValueError, KeyError, TypeError):
         raise _Rechazo(None) from None
@@ -286,7 +377,7 @@ def limpiar(pregunta: str) -> Limpia:
         retirado.append(encontrado.group(0))
         return "«el archivo»"
 
-    texto = RUTAS.sub(apartar, pregunta or "")
+    texto = RUTAS.sub(apartar, (pregunta or "")[:2000])
 
     def apartar_coordenada(encontrado: re.Match) -> str:
         retirado.append(encontrado.group(0))

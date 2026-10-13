@@ -322,9 +322,25 @@ MOTIVOS: dict[str, Motivo] = dict(
         ),
         _m(
             "sin-clave-ia",
-            "Preguntar fuera está apagado: falta la clave, o Tino no está encendido.",
+            "Preguntar fuera está apagado: falta la clave de la API.",
             "Tino contesta lo que esta máquina sabe. Quien administra el equipo pone "
-            "AEROCONVERT_TINO_CLAVE en el .env del servidor.",
+            "AEROCONVERT_TINO_API_KEY en el .env del servidor.",
+        ),
+        _m(
+            "ia-apagada",
+            "Preguntar fuera está apagado: Tino no está encendido o no se dijo a quién preguntar.",
+            "Tino contesta lo que esta máquina sabe. Se enciende con AEROCONVERT_TINO_VISIBLE.",
+        ),
+        _m(
+            "ia-sin-pregunta",
+            "No queda nada que preguntar: lo que usted escribió eran rutas, nombres o "
+            "coordenadas, y eso no sale de este equipo.",
+            "Escriba la pregunta sin ellos, por ejemplo «¿qué sistema de referencia usa Chile?».",
+        ),
+        _m(
+            "ia-limite",
+            "Ya hizo las consultas que se permiten por minuto o por día.",
+            "Espere un minuto. Mientras tanto Tino sigue contestando lo que esta máquina sabe.",
         ),
         _m(
             "ia-no-disponible",

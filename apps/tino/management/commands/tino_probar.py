@@ -4,6 +4,8 @@ Sirve para elegir `AEROCONVERT_TINO_MODELO` en p340. Sin clave dice que falta y 
 nadie. **Nunca imprime la clave**; la pregunta de prueba es fija y no lleva datos de nadie.
 """
 
+from urllib.parse import urlparse
+
 from django.core.management.base import BaseCommand
 
 from apps.tino import fuera
@@ -14,9 +16,10 @@ class Command(BaseCommand):
 
     def handle(self, *args, **opciones):
         if not fuera._clave():
-            self.stdout.write("Falta AEROCONVERT_TINO_CLAVE en el .env: no se llama a nadie.")
+            self.stdout.write("Falta AEROCONVERT_TINO_API_KEY en el .env: no se llama a nadie.")
             return
-        self.stdout.write(f"Base: {fuera._base()}")
+        destino = urlparse(fuera._base())  # solo esquema y servidor: la ruta puede llevar datos
+        self.stdout.write(f"Base: {destino.scheme}://{destino.hostname}")
         try:
             nombres = fuera.listar_modelos()
         except fuera._Rechazo as rechazo:

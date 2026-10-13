@@ -34,7 +34,7 @@ Lo que Claude necesita para avanzar y no tiene. **Sin él, la fila espera (⏸) 
 | P19 | **Un archivo DC** (calibración local de Trimble) de un proyecto real | F18.11 (coordenadas locales, como UAS Sync 4.1) | Archivo en OneDrive | F18.12 ⏸ |
 | P20 | **Un vuelo RTK real**: las fotos de un vuelo con RTK en el aire (bandera 34 o 50) y su exportación de UAS Sync o de TBC, fuera del repositorio | F18.8 (vuelos RTK) | Carpeta en OneDrive | F18.8 queda ⚠: la bandera 16 se vio en un vuelo PPK; 50 y 34 son las que publica DJI, sin contrastar |
 | P21 | **Permiso para bajar la grilla EGM2008** (`us_nga_egm08_25.tif`, de PROJ-data) y dejarla en `AEROCONVERT_PROJ_GRILLAS` | F15.2 (EGM2008) | Un sí | F15.2 queda ⚠: solo EGM96 medido |
-| P22 | **La clave de la API de NVIDIA** (`nvapi-…`) en el `.env` de p340 como `AEROCONVERT_TINO_CLAVE` (la pone usted; no se pega en el chat ni entra al repositorio) | F20.11 | Una línea en el `.env` | Tino sigue apagado con motivo; todo lo demás funciona |
+| P22 | **La clave de la API de NVIDIA** (`nvapi-…`) en el `.env` de p340 como `AEROCONVERT_TINO_API_KEY` (la pone usted; no se pega en el chat ni entra al repositorio) | F20.11 | Una línea en el `.env` | Tino sigue apagado con motivo; todo lo demás funciona |
 
 ## Bloques
 

@@ -72,10 +72,15 @@
           </p>
         {% endif %}
         {% if de_fuera and not hubo_consulta %}
-          <p class="sin-hueco">
-            <a class="boton" href="?p={{ p|urlencode }}&amp;fuera=1"
-               hx-get="{% url 'tino:preguntar' %}?p={{ p|urlencode }}&amp;fuera=1"
-               hx-target="#respuesta" hx-swap="innerHTML">Preguntar fuera</a>
+          <form method="post" action="{% url 'tino:preguntar' %}"
+                hx-post="{% url 'tino:preguntar' %}" hx-target="#respuesta" hx-swap="innerHTML">
+            {% csrf_token %}
+            <input type="hidden" name="p" value="{{ p }}">
+            <button type="submit" class="boton">Preguntar fuera</button>
+          </form>
+          <p class="tenue sin-hueco">
+            Un nombre escrito sin extensión (por ejemplo «Minera Escondida») <strong>no se puede
+            detectar</strong> y saldría tal cual: no lo escriba.
           </p>
         {% endif %}
       </div>

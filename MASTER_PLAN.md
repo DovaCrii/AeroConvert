@@ -220,7 +220,7 @@ De la lista de iLovePDF, ordenadas por lo que se pide de verdad en una oficina d
 > de lo mismo que decide la conversión—, **no sale del equipo**, y funciona sin configurar
 > nada ni pagar nada.
 >
-> La puerta hacia fuera existe, está escrita, y **nace cerrada**: sin `AEROCONVERT_TINO_CLAVE`
+> La puerta hacia fuera existe, está escrita, y **nace cerrada**: sin `AEROCONVERT_TINO_API_KEY`
 > no se ejecuta una sola línea de ella. **El proveedor se deja sin decidir a propósito**: a
 > quién se le manda la pregunta de alguien es una decisión sobre los datos de la oficina, y
 > esa no es de quien escribe el código. Hay una prueba que comprueba que sigue sin decidir.

@@ -172,7 +172,7 @@ WINEPREFIX = config("AEROCONVERT_WINEPREFIX", default="")
 # D9 (F20.11): la API publica de NVIDIA. Sin clave, o con Tino apagado, no sale nada. La clave
 # la pone la persona en el .env de p340: nunca en el repositorio ni en el chat.
 TINO_PROVEEDOR = config("AEROCONVERT_TINO_PROVEEDOR", default="nvidia")
-TINO_CLAVE = config("AEROCONVERT_TINO_CLAVE", default="")
+TINO_API_KEY = config("AEROCONVERT_TINO_API_KEY", default="")
 # Vacio: el modelo recomendado escrito en apps/tino/fuera.py (MODELO_RECOMENDADO).
 TINO_MODELO = config("AEROCONVERT_TINO_MODELO", default="")
 TINO_MODELOS_RESPALDO = config(
