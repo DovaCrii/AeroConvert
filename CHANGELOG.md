@@ -5,6 +5,11 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Sin publicar]
 
+### Añadido - frontera de documentos vigilada (F21.2)
+
+- **pps/core/test_frontera_documentos.py**: por análisis de `ast`, ninguna de las nueve apps geoespaciales importa `apps.documents` (salvo las cuatro entradas declaradas de vuelos), y las rutas `documents:` y plantillas `documents/` que cruzan quedan declaradas. Falla ante un intruso (módulo sintético en carpeta temporal) y cuando una excepción ya no hace falta.
+- **`docs/FRONTERA_DOCUMENTOS.md`**: inventario de lo que saldría a otro repositorio (apps, plantillas, estáticos, ajustes, dependencias, pruebas, las 42 herramientas) y de lo común que documentos usa. No se movió nada.
+
 ### Cambiado — «Procesamiento de trayectoria», con el flujo a la vista (F20.2)
 
 - **«Corregir un vuelo de dron» se llama «Procesamiento de trayectoria»** en la herramienta, la pantalla, los motivos, el visor y la entrada. **Los ids y la URL no cambian** (hay trabajos guardados). «corregir vuelo», «ppk dron», «uas sync» y «geoetiquetar fotos» siguen encontrándola en el buscador y en Tino.
