@@ -208,6 +208,36 @@
     **Buscando, todo abierto y sin recordar nada**: lo que se encontró no puede quedar
     escondido tras un grupo que alguien cerró ayer.
   {% endcomment %}
+  {# F21.1: el módulo al que pertenece el grupo; «Documentos» queda aparte, al final. #}
+  {% ifchanged grupo.modulo.id %}
+    {% if grupo.modulo.aparte and not q %}
+      {% comment %}
+        Los módulos que aún no existen, **apagados con motivo y alternativa** (regla 4): entre lo
+        geoespacial y la sección aparte de documentos, en el orden del flujo.
+      {% endcomment %}
+      <section class="modulos-pendientes" aria-label="Módulos aún no disponibles">
+        {% for modulo in menu_modulos %}{% if modulo.motivo %}
+          <div class="herramienta herramienta-apagada">
+            <span class="herramienta-marca" aria-hidden="true">
+              <svg class="herramienta-icono"><use href="{% static 'img/icons.svg' %}#{{ modulo.icono }}"></use></svg>
+            </span>
+            <span class="herramienta-texto">
+              <strong>{{ modulo.titulo }}</strong>
+              <span class="herramienta-que">{{ modulo.cuando }}</span>
+              <span class="motivo">
+                <span aria-hidden="true">⊘</span> Aún no disponible. {{ modulo.motivo.mensaje }}
+                <strong>Alternativa:</strong> {{ modulo.motivo.sugerencia }}
+              </span>
+            </span>
+          </div>
+        {% endif %}{% endfor %}
+      </section>
+    {% endif %}
+    <h2 class="modulo-titulo" id="portada-modulo-{{ grupo.modulo.id }}">
+      {{ grupo.modulo.titulo }}
+      <small class="modulo-nota">{{ grupo.modulo.cuando }}</small>
+    </h2>
+  {% endifchanged %}
   <details class="grupo-herramientas" id="grupo-{{ grupo.clave }}"
            {% if not q %}data-recuerda="grupo-{{ grupo.clave }}"{% endif %}
            {% if q or forloop.first %}open{% endif %}>
