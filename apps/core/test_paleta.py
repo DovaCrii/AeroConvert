@@ -148,9 +148,11 @@ NUEVAS = ("gnss", "planta", "imagen")
 
 
 class TestElColorDeAccion:
-    """El que se lee. La cabecera del CSS promete 7,2:1 en claro y 6,6:1 en oscuro (8,3 antes de F20.3, que subió las superficies).
+    """El que se lee. La cabecera del CSS promete 7,2:1 en claro y 6,6:1 en oscuro.
 
-    Prometía 8,9 en oscuro, y medía 8,30: la cifra se escribió una vez y nada la comprobaba.
+    (Eran 8,3 en oscuro antes de F20.3, que subió las superficies.)
+
+    Prometía 8,9 en oscuro y medía 8,3: la cifra se escribió una vez y nada la comprobaba.
     """
 
     def test_las_cifras_de_la_cabecera_son_las_que_miden(self, claro, oscuro):

@@ -335,8 +335,8 @@ def test_toda_animacion_infinita_tiene_su_corte_con_movimiento_reducido():
 
 
 def test_las_tipografias_estan_vendorizadas_y_no_se_descarga_nada_de_fuera():
-    """Inter, Space Grotesk y JetBrains Mono (OFL) viven en `static/vendor/fuentes/`, cada una con su
-    licencia al lado y su fila en el README. Ninguna URL del CSS sale del origen (D9, F20.3)."""
+    """Inter, Space Grotesk y JetBrains Mono (OFL) viven en `static/vendor/fuentes/`, cada una con
+    su licencia al lado y su fila en el README. Ninguna URL del CSS sale del origen."""
     carpeta = RAIZ / "static" / "vendor" / "fuentes"
     familias = {
         "Inter": "inter-latin-wght-normal.woff2",
