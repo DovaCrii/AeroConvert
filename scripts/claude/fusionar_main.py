@@ -22,8 +22,10 @@ El 2026-10-08 un separador vacío fundió dos
 `return {...}` en `return ({...},)`, y el `CHANGELOG.md` acabó entero dos veces: los tres archivos
 se leían bien y ninguno sumaba.
 
-Lo que no se sabe resolver **se deja con sus marcas y se dice**: las tablas de `MASTER_PLAN.md` y de
-`SEGUIMIENTO.md` llevan el estado de cada fila y ahí decide una persona (o el cierre de la fila).
+Las tablas de `MASTER_PLAN.md` y de `SEGUIMIENTO.md` llevan el estado de cada fila. Solo se
+resuelven dos choques, que son solo filas de tabla: **la misma fila editada en los dos lados**
+(se toma la de `main` y se le aplican las marcas `✅`/`⚠` de la rama) y **filas distintas en el
+mismo hueco** (se conservan las dos, en orden natural por código). Lo demás queda con sus marcas.
 Nunca se hace `push`, nunca `--force`.
 
 Uso::
@@ -64,7 +66,14 @@ HUECO = re.compile(r"<<<<<<< [^\n]*\n(.*?)=======\n(.*?)>>>>>>> [^\n]*\n", re.S)
 APILAR = {"CHANGELOG.md"}
 
 #: Donde decide una persona: el estado de cada fila no se «junta».
-NUNCA_AUTOMATICO = {"MASTER_PLAN.md", "docs/planes/SEGUIMIENTO.md", "HANDOFF.md"}
+NUNCA_AUTOMATICO = {"HANDOFF.md"}
+
+#: Las tablas de estado: solo se resuelven los choques que son **filas de tabla**.
+TABLAS = {"MASTER_PLAN.md", "docs/planes/SEGUIMIENTO.md"}
+
+#: La clave de una fila: `F20.11` en `| F20.11 |`, `B15` en `| **B15 · Topografía** |`.
+_CLAVE_FILA = re.compile(r"^\|\s*(?:\*\*)?([A-Z]+)(\d+)(?:\.(\d+))?(?!\d)")
+_MARCA = re.compile(r"(F\d+\.\d+)(?!\d)\s*(✅|⚠)")
 
 
 def _claves_repetidas(arbol: ast.AST) -> bool:
@@ -158,6 +167,70 @@ def _suma(nombre: str, resultado: str, mio: str, suyo: str, comun: str) -> bool:
     return all(n <= tope.get(f, n) for f, n in _argumentos_por_funcion(resultado).items())
 
 
+def _clave_fila(linea: str) -> tuple[str, int, int]:
+    """`(letra, n, m)` de una fila de tabla, para ordenarla natural (`F20.2` < `F20.11`)."""
+    m = _CLAVE_FILA.match(linea)
+    if not m:
+        raise ValueError(f"no es una fila de tabla con código: {linea.strip()[:60]!r}")
+    return m.group(1), int(m.group(2)), int(m.group(3) or 0)
+
+
+def _filas(bloque: str) -> dict[tuple[str, int, int], str]:
+    filas: dict[tuple[str, int, int], str] = {}
+    for linea in bloque.splitlines(keepends=True):
+        if not linea.startswith("|"):
+            raise ValueError("el choque no es solo de filas de tabla")
+        clave = _clave_fila(linea)
+        if clave in filas:
+            raise ValueError(f"código repetido dentro de un lado: {linea.strip()[:60]!r}")
+        filas[clave] = linea if linea.endswith("\n") else linea + "\n"
+    return filas
+
+
+def _ultima_celda(fila: str) -> tuple[str, str]:
+    cuerpo = fila.rstrip().removesuffix("|").rstrip()
+    cabeza, _, celda = cuerpo.rpartition("|")
+    return cabeza + "|", celda.strip()
+
+
+def _con_marcas_de_la_rama(suya: str, mia: str, *, texto_de_cierre: bool) -> str:
+    """La fila de `main` con las marcas `✅`/`⚠` que la rama puso en sus códigos `F\\d+\\.\\d+`.
+
+    La marca de un código de la rama gana solo si `main` no marca ya ese código. Y, si se pide, el
+    texto de cierre de la última celda de la rama gana cuando `main` la dejó en `⬜`.
+    """
+    resultado = suya
+    for codigo, marca in _MARCA.findall(mia):
+        if re.search(rf"{re.escape(codigo)}(?!\d)\s*(✅|⚠)", resultado):
+            continue
+        resultado = re.sub(rf"{re.escape(codigo)}(?!\d)", f"{codigo} {marca}", resultado, count=1)
+    if texto_de_cierre:
+        cabeza, celda_main = _ultima_celda(resultado)
+        _, celda_rama = _ultima_celda(mia)
+        if celda_main == "⬜" and celda_rama and celda_rama != "⬜":
+            fin = "\n" if resultado.endswith("\n") else ""
+            resultado = f"{cabeza} {celda_rama} |{fin}"
+    return resultado
+
+
+def _fusionar_tabla(mia: str, suya: str, *, texto_de_cierre: bool) -> str:
+    """Resuelve un hueco que es solo de filas de tabla, o `ValueError`.
+
+    La misma fila en los dos lados: la de `main` con las marcas de la rama. Filas distintas: las
+    dos, en orden natural por código.
+    """
+    de_rama, de_main = _filas(mia), _filas(suya)
+    junto = {}
+    for clave in sorted(de_rama.keys() | de_main.keys()):
+        if clave in de_rama and clave in de_main:
+            junto[clave] = _con_marcas_de_la_rama(
+                de_main[clave], de_rama[clave], texto_de_cierre=texto_de_cierre
+            )
+        else:
+            junto[clave] = de_rama.get(clave) or de_main[clave]
+    return "".join(junto.values())
+
+
 def _separador_del_contexto(antes: str, resto: str) -> str | None:
     """Si el hueco está **dentro** de algo que los dos comparten (`_m(` … `),`), el separador es
     cerrar eso y volver a abrirlo: la última línea de antes que abre y la primera de después que
@@ -185,6 +258,12 @@ def resolver_texto(nombre: str, texto: str, *, valida: Callable[[str, str], bool
         mia, suya = m.group(1), m.group(2)
         resto = HUECO.sub(lambda r: r.group(1), texto[m.end() :])  # lo que falta: solo «el nuestro»
         antes = "".join(partes)
+        if nombre.replace("\\", "/") in TABLAS:
+            junto = _fusionar_tabla(mia, suya, texto_de_cierre=nombre.endswith("MASTER_PLAN.md"))
+            if not _suma(nombre, antes + junto + resto, "", "", ""):
+                raise ValueError(f"{nombre}: el hueco {k + 1} deja la tabla inválida")
+            partes.append(junto)
+            continue
         candidatos = ("\n",) if Path(nombre).name in APILAR else SEPARADORES
         contexto = _separador_del_contexto(antes, resto)
         if contexto is not None and Path(nombre).name not in APILAR:
