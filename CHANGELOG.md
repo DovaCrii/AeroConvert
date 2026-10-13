@@ -5,6 +5,11 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Sin publicar]
 
+### Cambiado — grupo «Topografía» (F20.1)
+
+- **«Coordenadas y datos GNSS» y «Vuelos de dron» son un solo grupo, «Topografía»**. Conserva el `id` `gnss` (con él recuerda el navegador qué grupos quedaron abiertos), así que nadie pierde lo que dejó plegado. Las herramientas de vuelos pasan a él; los perfiles de posproceso siguen llegando por `grupo_de_perfil`.
+- **`/documentos/vuelos/` es la portada de Topografía**, con la misma ruta y el mismo nombre (`documents:vuelos`): *Procesamiento GNSS* (enlaza la conversión de crudos a RINEX de «Convertir»), *Procesamiento de trayectoria* y *Utilidades del dron* (traza, fotos y video: a la vista, plegadas). Lo apagado se ve con su motivo.
+
 ## [0.13.0] — 2026-10-09
 
 Mapa en `/mapa/` con ortofotos por teselas, terreno, varias capas y mapa base de la casa; vuelos de dron con RTK, ficha EXIF y trayectoria con RTKLIB, en su propia app; alturas elipsoidal y ortométrica con geoide declarado; escanear con el teléfono y libro EPUB; dirección visual «Plan de vuelo»; el corredor de trabajos partido sin cambiar comportamiento, y un original que cambia durante el trabajo lo deja en error. Los pasos del despliegue están en `HANDOFF.md`.

@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block titulo %}Topografía · AeroConvert{% endblock %}
+
+{% block contenido %}
+
+{% comment %}
+  **La portada de Topografía** (F20.1). Es el antiguo índice de «Vuelos de dron» (`documents:vuelos`,
+  misma ruta) y ahora reúne el grupo `gnss` de la taxonomía en tres secciones, en el orden en que se
+  trabaja un levantamiento: primero los datos del receptor, luego la trayectoria del vuelo y, al
+  final y en segundo plano, las utilidades del dron. Nada se oculta: lo apagado se ve con su motivo.
+{% endcomment %}
+
+<section class="bloque topografia-seccion" aria-labelledby="topo-gnss">
+  <h2 class="bloque-titulo" id="topo-gnss">Procesamiento GNSS</h2>
+  <p class="bloque-nota">
+    Los datos crudos del receptor de la base o del rover (Trimble, u-blox, Septentrio, NovAtel y
+    otros) a <strong>RINEX</strong>, para posprocesarlos. Esa conversión vive en «Convertir»:
+    suelte el archivo y se ofrece el destino que corresponde.
+  </p>
+  <div class="herramientas">
+    <a class="herramienta" href="{% url 'dashboard:convertir' %}">
+      <span class="herramienta-marca fam-gnss" aria-hidden="true">
+        <svg class="herramienta-icono"><use href="{% static 'img/icons.svg' %}#icon-destino-satelite"></use></svg>
+      </span>
+      <span class="herramienta-texto">
+        <strong>Datos de un receptor GNSS a RINEX</strong>
+        <span class="herramienta-que">
+          Observaciones y efemérides de la estación base o del rover, listas para el PPK.
+        </span>
+        <span class="herramienta-sale">Sale: <strong>un RINEX de observación y su navegación</strong></span>
+      </span>
+    </a>
+  </div>
+</section>
+
+<section class="bloque topografia-seccion" aria-labelledby="topo-trayectoria">
+  <h2 class="bloque-titulo" id="topo-trayectoria">Procesamiento de trayectoria</h2>
+  <p class="bloque-nota">
+    La posición precisa de cada foto del vuelo: se parte de la trayectoria que ya calculó Trimble
+    Business Center, de un PPK con RTKLIB o de la posición RTK que escribió el dron.
+  </p>
+  <div class="herramientas">
+    {% for herramienta in principales %}
+      {% include "vuelos/_tarjeta_topografia.html" %}
+    {% endfor %}
+  </div>
+</section>
+
+<section class="bloque topografia-seccion" aria-labelledby="topo-utilidades-titulo">
+  <details class="topografia-utilidades" data-recuerda="topografia-utilidades">
+    <summary class="buscador-resumen" id="topo-utilidades-titulo">
+      Utilidades del dron: sacar la traza, limpiar fotos, trabajar un video
+    </summary>
+    <p class="bloque-nota av-mt-2">
+      Tareas de apoyo, aparte del procesamiento: sirven antes o después de él.
+    </p>
+    <div class="herramientas">
+      {% for herramienta in utilidades %}
+        {% include "vuelos/_tarjeta_topografia.html" %}
+      {% endfor %}
+    </div>
+  </details>
+</section>
+
+{% endblock %}
