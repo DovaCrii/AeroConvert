@@ -10,7 +10,7 @@ se reescribió para las reglas nuevas en vez de borrarse. Las reglas nuevas sigu
 - sombras **solo** con los tokens `--av-elev-*` (o anillos sin difuminado);
 - al pasar el ratón, **como mucho** `translateY(-3px)`, y siempre con transición de 150 a 300 ms;
 - todo movimiento se apaga con `prefers-reduced-motion`;
-- ninguna tipografía se descarga: pilas del sistema.
+- las tipografías están vendorizadas (OFL, `static/vendor/fuentes/`): ninguna se pide a un CDN.
 
 Estas pruebas leen `static/css/app.css` tal cual: lo que el navegador va a recibir.
 """
@@ -334,10 +334,30 @@ def test_toda_animacion_infinita_tiene_su_corte_con_movimiento_reducido():
 # --- Tipografía y adornos: nada se descarga ----------------------------------------------------
 
 
-def test_no_se_descarga_ninguna_tipografia_ni_nada_de_fuera():
-    """Descargar exige el permiso de la persona. Las OFL (Space Grotesk, Inter, JetBrains Mono) se
-    vendorizarían con SRI cuando lo autorice: hasta entonces, pilas del sistema."""
-    assert "@font-face" not in SIN_COMENTARIOS
+def test_las_tipografias_estan_vendorizadas_y_no_se_descarga_nada_de_fuera():
+    """Inter, Space Grotesk y JetBrains Mono (OFL) viven en `static/vendor/fuentes/`, cada una con su
+    licencia al lado y su fila en el README. Ninguna URL del CSS sale del origen (D9, F20.3)."""
+    carpeta = RAIZ / "static" / "vendor" / "fuentes"
+    familias = {
+        "Inter": "inter-latin-wght-normal.woff2",
+        "Space Grotesk": "space-grotesk-latin-wght-normal.woff2",
+        "JetBrains Mono": "jetbrains-mono-latin-wght-normal.woff2",
+    }
+    leyenda = (carpeta / "README.md").read_text(encoding="utf-8")
+    for familia, archivo in familias.items():
+        ruta = carpeta / archivo
+        assert ruta.is_file(), f"falta {archivo}"
+        assert ruta.read_bytes()[:4] == b"wOF2", f"{archivo} no es un WOFF2"
+        licencia = carpeta / archivo.replace("-latin-wght-normal.woff2", "-OFL.txt")
+        assert "SIL Open Font License" in licencia.read_text(encoding="utf-8")
+        assert archivo in leyenda, f"{archivo} no está en el README de las fuentes"
+        bloque = re.search(
+            r"@font-face\s*\{[^{}]*font-family:\s*\"" + re.escape(familia) + r"\"[^{}]*\}",
+            SIN_COMENTARIOS,
+        )
+        assert bloque, f"falta el @font-face de {familia}"
+        assert "font-display: swap" in bloque.group(0)
+        assert f"../vendor/fuentes/{archivo}" in bloque.group(0)
     assert "@import" not in SIN_COMENTARIOS
     assert not re.search(r"url\(\s*[\"']?(https?:)?//", SIN_COMENTARIOS)
 

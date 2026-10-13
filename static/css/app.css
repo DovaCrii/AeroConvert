@@ -21,6 +21,35 @@
  * teclado ni para táctil.
  */
 
+/* --- Fuentes vendorizadas (F20.3) ------------------------------------------------------------
+ * Inter (texto), Space Grotesk (títulos) y JetBrains Mono (cifras): variables, WOFF2, subconjunto
+ * latino (cubre el español completo), con su licencia OFL al lado en `static/vendor/fuentes/`. Son
+ * del mismo origen que la página: la CSP `'self'` las permite y no se descarga nada de fuera. Con
+ * `font-display: swap` el texto se ve de inmediato con la pila del sistema y cambia al llegar. */
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("../vendor/fuentes/inter-latin-wght-normal.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Space Grotesk";
+  font-style: normal;
+  font-weight: 300 700;
+  font-display: swap;
+  src: url("../vendor/fuentes/space-grotesk-latin-wght-normal.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "JetBrains Mono";
+  font-style: normal;
+  font-weight: 100 800;
+  font-display: swap;
+  src: url("../vendor/fuentes/jetbrains-mono-latin-wght-normal.woff2") format("woff2");
+}
+
 :root {
   color-scheme: light;
 
@@ -208,10 +237,9 @@
    * magenta y el borde del buscador se miden también contra este extremo (`test_paleta.py`). */
   --av-barra-fin: oklch(0.3200 0.0750 272.00);
 
-  /* Tipografía. **Sin descargar nada:** pilas del sistema, con el nombre de la familia OFL por
-   * delante (Space Grotesk, Inter, JetBrains Mono) para que el día que la persona autorice
-   * vendorizarlas con SRI baste un `@font-face`. Mientras tanto cae a Bahnschrift, a Segoe UI
-   * Variable y a Cascadia Mono, que ya vienen con Windows. */
+  /* Tipografía. Las tres familias OFL están vendorizadas (los `@font-face` de arriba). Si el
+   * archivo no llega, la pila cae a Bahnschrift, a Segoe UI Variable y a Cascadia Mono, que ya
+   * vienen con Windows. */
   --av-fuente-texto: Inter, "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
   --av-fuente-titulos: "Space Grotesk", Bahnschrift, "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
   --av-fuente-cifras: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
