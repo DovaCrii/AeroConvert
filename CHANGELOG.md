@@ -5,6 +5,14 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Sin publicar]
 
+### Añadido — instantáneas con sesión sin cuentas reales
+
+- `scripts/claude/instantanea.py`: pinta pantallas con un usuario sintético (`force_login`, sin contraseña) sobre una base de pruebas y medios temporales; escribe `static/_vista_previa/<nombre>.html` con los estáticos relativos, sale con 1 si una respuesta no es 200 y `--limpiar` borra la carpeta. `/static/_vista_previa/` queda en `.gitignore`.
+
+### Cambiado — `fusionar_main.py` resuelve las filas de tabla repetidas
+
+- En `MASTER_PLAN.md` y `docs/planes/SEGUIMIENTO.md`: la misma fila editada en los dos lados toma la de `main` con las marcas ✅/⚠ de la rama (y el texto de cierre de la rama si `main` dejó ⬜); filas distintas en el mismo hueco se conservan en orden natural por código. Cualquier otro choque sigue pendiente.
+
 ### Añadido — piloto de globo 3D con CesiumJS, sin cambiar la CSP (F20.9)
 
 - **`/mapa/3d/`** (`visor:mapa-3d`, `apps/visor/`, con sesión; sin ella, 302): un globo de CesiumJS con
