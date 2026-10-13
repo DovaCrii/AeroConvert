@@ -1,4 +1,4 @@
-"""«Corregir un vuelo de dron», la segunda entrada: la trayectoria se calcula con RTKLIB (F18.7).
+"""«Procesamiento de trayectoria», la segunda entrada: la trayectoria se calcula con RTKLIB (F18.7).
 
 **No hay RTKLIB en el CI ni una corrida real** (la base de un vuelo real falta, pedido P18), así que
 aquí se prueba todo lo que rodea a la corrida, con un `rnx2rtkp` de mentira: un programa de verdad
@@ -235,8 +235,8 @@ class TestLaEleccionDeOrigen:
     def test_la_pregunta_y_sus_tres_respuestas_estan_a_la_vista(self, sesion, rtklib_falso):
         cuerpo = sesion.get(reverse("documents:vuelo_dron")).content.decode()
         assert "¿De dónde sale la posición precisa?" in cuerpo
-        assert "La exportó Trimble Business Center" in cuerpo
-        assert "Calcularla aquí con RTKLIB (PPK)" in cuerpo
+        assert "Trayectoria exportada de Trimble Business Center (TBC)" in cuerpo
+        assert "Calcular el PPK aquí con RTKLIB" in cuerpo
         assert "Las fotos ya traen la posición RTK" in cuerpo
         for valor in ("trimble", "rinex", "fotos"):
             assert f'value="{valor}"' in cuerpo
@@ -293,7 +293,7 @@ class TestSinRtklibLaOpcionSaleApagadaConSuMotivo:
     def test_la_opcion_esta_pero_apagada_y_dice_por_que_y_que_hacer(self, sesion):
         cuerpo = sesion.get(reverse("documents:vuelo_dron")).content.decode()
         # No se oculta (regla 4): sigue estando la opción, con su motivo estable y su sugerencia.
-        assert "Calcularla aquí con RTKLIB (PPK)" in cuerpo
+        assert "Calcular el PPK aquí con RTKLIB" in cuerpo
         assert "disabled" in _etiqueta(cuerpo, "id_origen_rinex")
         assert 'data-motivo="sin-rnx2rtkp"' in cuerpo and "No disponible en esta máquina" in cuerpo
         assert "sudo apt install rtklib" in cuerpo and "AEROCONVERT_RTKLIB_RNX2RTKP" in cuerpo

@@ -115,7 +115,7 @@ def test_la_altura_de_trimble_no_es_la_elipsoidal_del_mrk(vuelo):
 
 
 def test_el_proceso_entero_con_el_vuelo_real(vuelo):
-    """`procesar` de punta a punta: lo que hace la pantalla «Corregir un vuelo de dron».
+    """`procesar` de punta a punta: lo que hace la pantalla «Procesamiento de trayectoria».
 
     Medido el 2026-10-08: 2 505 fotos y 7 519 puntos en **un segundo**, con las posiciones a
     0,65 mm de las de Trimble como máximo.

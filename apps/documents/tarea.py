@@ -431,8 +431,9 @@ def _dxf_lamina(entradas: list[dict], opciones: dict, parcial: Path) -> dict:
 #: `rnx2rtkp`, sondeado por el padre (el hijo no tiene Django para sondear). Ver `motor.plan`.
 VARIABLE_RNX2RTKP = "AEROCONVERT_RNX2RTKP_HIJO"
 
-#: En «Corregir un vuelo de dron» con RTKLIB, esta parte de la barra es la de RTKLIB y el resto es
-#: lo que viene después (sincronizar, contrastar, escribir). RTKLIB es con mucho lo que más tarda.
+#: En «Procesamiento de trayectoria» con RTKLIB, esta parte de la barra es la de RTKLIB y el
+#: resto es lo que viene después (sincronizar, contrastar, escribir). RTKLIB es con mucho lo que
+#: más tarda.
 FRACCION_DE_RTKLIB = (0.02, 0.70)
 
 

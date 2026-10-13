@@ -135,7 +135,11 @@ class TestSeEncuentra:
 
         grupos = {g["clave"]: g for g in acciones.por_categoria()}
         assert "gnss" in grupos
-        assert [a.nombre for a in grupos["gnss"]["acciones"]] == ["T02, T04 y crudos a RINEX"]
+        # F20.1: «gnss» es ahora el grupo «Topografía» y comparte sitio con las herramientas de
+        # vuelos de dron; lo que se vigila sigue igual: el crudo de receptor va aquí y no en planos.
+        nombres = [a.nombre for a in grupos["gnss"]["acciones"]]
+        assert "T02, T04 y crudos a RINEX" in nombres
+        assert "Procesamiento de trayectoria" in nombres
         assert "GNSS" not in " ".join(a.nombre for a in grupos["entregar"]["acciones"])
 
     def test_la_tarjeta_lleva_la_eleccion_puesta(self):

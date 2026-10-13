@@ -5,6 +5,17 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Sin publicar]
 
+### Cambiado — «Procesamiento de trayectoria», con el flujo a la vista (F20.2)
+
+- **«Corregir un vuelo de dron» se llama «Procesamiento de trayectoria»** en la herramienta, la pantalla, los motivos, el visor y la entrada. **Los ids y la URL no cambian** (hay trabajos guardados). «corregir vuelo», «ppk dron», «uas sync» y «geoetiquetar fotos» siguen encontrándola en el buscador y en Tino.
+- **Un esquema del flujo arriba de la pantalla**, con las tres rutas: *A · Trimble Business Center* (el PPK ya lo calculó TBC: trayectoria exportada, eventos de cámara `.MRK`, interpolación y desfase antena-cámara, contraste con TBC, entregables), *B · PPK con RTKLIB* (RINEX del rover y de la base, coordenada de la base declarada, solución PPK, mismos pasos) y *C · RTK en las fotos* (posición del XMP contrastada con el `.MRK`). **La ruta elegida en el paso 1 queda marcada con borde grueso, la insignia «Ruta elegida» y `aria-current`**, no solo con color; sin JavaScript la marca el CSS (`:has()`).
+- **La pantalla en tres paneles con rótulo**: *Entradas*, *Parámetros del procesamiento* y *Resultado* (antes «Lo que sale»), con los términos de la profesión: estación base y rover, solución fija, flotante o autónoma, desfase antena-cámara, marco de referencia.
+
+### Cambiado — grupo «Topografía» (F20.1)
+
+- **«Coordenadas y datos GNSS» y «Vuelos de dron» son un solo grupo, «Topografía»**. Conserva el `id` `gnss` (con él recuerda el navegador qué grupos quedaron abiertos), así que nadie pierde lo que dejó plegado. Las herramientas de vuelos pasan a él; los perfiles de posproceso siguen llegando por `grupo_de_perfil`.
+- **`/documentos/vuelos/` es la portada de Topografía**, con la misma ruta y el mismo nombre (`documents:vuelos`): *Procesamiento GNSS* (enlaza la conversión de crudos a RINEX de «Convertir»), *Procesamiento de trayectoria* y *Utilidades del dron* (traza, fotos y video: a la vista, plegadas). Lo apagado se ve con su motivo.
+
 ### Añadido — piloto de globo 3D con CesiumJS, sin cambiar la CSP (F20.9)
 
 - **`/mapa/3d/`** (`visor:mapa-3d`, `apps/visor/`, con sesión; sin ella, 302): un globo de CesiumJS con

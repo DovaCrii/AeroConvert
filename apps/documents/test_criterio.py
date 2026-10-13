@@ -44,7 +44,7 @@ PANTALLAS = [p for carpeta in CARPETAS for p in sorted(carpeta.glob("*.html"))]
 #: `descargar` y `miniatura` no tienen pantalla.
 #: Las pantallas que **no reciben un archivo del usuario**: el índice, y la portada de la empresa,
 #: cuya única entrada es una plantilla del servidor.
-SIN_ARCHIVO = frozenset({"inicio.html", "portada.html", "vuelo_visor.html"})
+SIN_ARCHIVO = frozenset({"inicio.html", "portada.html", "vuelo_visor.html", "topografia.html"})
 
 CON_ARCHIVO = sorted(
     p.name for p in PANTALLAS if not p.name.startswith("_") and p.name not in SIN_ARCHIVO

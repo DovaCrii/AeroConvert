@@ -1,4 +1,4 @@
-"""«Corregir un vuelo de dron»: la pantalla, el trabajo y el visor, de punta a punta (F18.4).
+"""«Procesamiento de trayectoria»: la pantalla, el trabajo y el visor, de punta a punta (F18.4).
 
 Los archivos son los **sintéticos y de fórmula conocida** de `test_vuelo_proceso.py`. El recorrido
 completo es: llenar el formulario → encolar → el despachador corre la herramienta → el zip trae lo
@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import io
 import json
+import re
 import zipfile
 from pathlib import Path
 
@@ -25,6 +26,8 @@ from apps.vuelos.test_vuelo_proceso import (
     _mrk,
     _trayectoria,
 )
+
+RAIZ = Path(__file__).resolve().parents[2]
 
 pytestmark = pytest.mark.django_db
 
@@ -75,17 +78,82 @@ def _enviar(sesion, rutas, **extra):
     return sesion.post(reverse("documents:vuelo_dron"), datos)
 
 
+class TestElEsquemaYLosPaneles:
+    """F20.2: el esquema del flujo con sus tres rutas y la pantalla en tres paneles."""
+
+    def _cuerpo(self, sesion, **consulta) -> str:
+        return sesion.get(reverse("documents:vuelo_dron"), consulta).content.decode()
+
+    def test_el_esquema_trae_las_tres_rutas_con_sus_etapas(self, sesion):
+        cuerpo = self._cuerpo(sesion)
+        esquema = cuerpo[cuerpo.index("data-esquema") : cuerpo.index('class="vuelo-columna"')]
+        rutas = re.findall(r'class="vuelo-ruta" data-ruta="(\w+)"', esquema)
+        assert rutas == ["trimble", "rinex", "fotos"]
+        for texto in (
+            "Trimble Business Center",
+            "El PPK ya lo calculó TBC",
+            "eventos de cámara (.MRK)",
+            "Interpolación y desfase antena-cámara",
+            "Contraste contra las posiciones de TBC",
+            "PPK con RTKLIB",
+            "Coordenada de la base declarada",
+            "RTK en las fotos",
+            "Entregables",
+        ):
+            assert texto in esquema, texto
+
+    def test_los_tres_paneles_llevan_su_rotulo_en_orden(self, sesion):
+        cuerpo = self._cuerpo(sesion)
+        rotulos = re.findall(r'<h2 class="vuelo-panel-rotulo"[^>]*>([^<]+)</h2>', cuerpo)
+        assert rotulos == ["Entradas", "Parámetros del procesamiento", "Resultado"]
+
+    def test_el_nombre_de_la_pantalla_ya_no_es_el_viejo(self, sesion):
+        cuerpo = self._cuerpo(sesion)
+        assert "<title>Procesamiento de trayectoria" in cuerpo
+        assert "Lo que sale" not in cuerpo
+
+    def test_la_ruta_de_Trimble_queda_marcada_al_abrir(self, sesion):
+        cuerpo = self._cuerpo(sesion)
+        marcadas = re.findall(r'data-ruta="(\w+)"[^>]*aria-current="true"', cuerpo)
+        assert marcadas == ["trimble"]
+        assert "Ruta elegida" in cuerpo
+
+    @pytest.mark.parametrize("origen", ["trimble", "rinex", "fotos"])
+    def test_al_enviar_con_errores_la_ruta_elegida_sigue_marcada(self, sesion, origen):
+        respuesta = sesion.post(reverse("documents:vuelo_dron"), {"origen": origen})
+        cuerpo = respuesta.content.decode()
+        marcadas = re.findall(r'data-ruta="(\w+)"[^>]*aria-current="true"', cuerpo)
+        assert marcadas == [origen]
+
+    def test_la_marca_no_es_solo_color(self):
+        """La insignia lleva texto y una marca ✓; el borde se engrosa y hay `aria-current`."""
+        css = (RAIZ / "static/css/app.css").read_text(encoding="utf-8")
+        assert '.vuelo-ruta-marca::before {\n  content: "\\2713' in css
+        assert "border-left-width: 6px" in css
+        js = (RAIZ / "static/js/esquema.js").read_text(encoding="utf-8")
+        assert "aria-current" in js
+
+
 class TestLaPantalla:
     def test_sin_sesion_redirige(self, client):
         assert client.get(reverse("documents:vuelo_dron")).status_code == 302
 
     def test_se_abre_y_dice_lo_que_hace_cada_paso(self, sesion):
         cuerpo = sesion.get(reverse("documents:vuelo_dron")).content.decode()
-        assert "Corregir un vuelo de dron" in cuerpo
+        assert "Procesamiento de trayectoria" in cuerpo
         for paso in ("La trayectoria", "Los disparos de la cámara", "Las posiciones de Trimble"):
             assert paso in cuerpo
         assert "La carpeta de fotos" in cuerpo and "Medirlo con las posiciones de Trimble" in cuerpo
         assert "data-avance-subida" in cuerpo and "hace falta" in cuerpo
+
+    def test_el_nombre_viejo_ya_no_se_ve_y_las_busquedas_viejas_la_encuentran(self, sesion):
+        from apps.dashboard import acciones as acciones_mod
+
+        cuerpo = sesion.get(reverse("documents:vuelo_dron")).content.decode()
+        assert "Corregir un vuelo" not in cuerpo
+        for busqueda in ("corregir vuelo", "ppk dron", "uas sync", "geoetiquetar fotos"):
+            ids = [a.id for a in acciones_mod.buscar(busqueda)]
+            assert "pdf-vuelo_dron" in ids, busqueda
 
     def test_las_dos_vias_de_cada_paso_y_ninguna_pide_teclear_una_ruta(self, sesion):
         cuerpo = sesion.get(reverse("documents:vuelo_dron")).content.decode()
