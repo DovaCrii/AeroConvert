@@ -1,0 +1,13 @@
+{% load static %}{% comment %}
+  La franja del globo (F20.3): curvas de nivel que se desplazan y un globo con retícula que gira,
+  con su órbita y un punto marcado. **Solo adorno**: `aria-hidden`, sin texto; el movimiento se
+  apaga con `prefers-reduced-motion`. Se usa en «Ver en el mapa» cuando todavía no hay capa.
+{% endcomment %}{% static 'img/curvas-animadas.svg' as curvas %}
+<div class="il-banner il-banner-globo" aria-hidden="true">
+  <svg class="il-fondo" viewBox="0 0 960 200" preserveAspectRatio="xMidYMid slice" focusable="false">
+    <use class="il-curvas" href="{{ curvas }}#curvas-nivel"/>
+  </svg>
+  <svg class="il-escena" viewBox="-130 -130 260 260" preserveAspectRatio="xMidYMid meet" focusable="false">
+    {% include "ilustraciones/_globo.html" %}
+  </svg>
+</div>

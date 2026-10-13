@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-130 -130 260 260">
+  <!-- Globo con reticula: esfera, paralelos, un meridiano que la escena repite y hace girar, anillo
+       graduado con su mira, un punto marcado y una orbita. Ilustracion propia, sin cartografia real.
+       Solo geometria: el color y el movimiento los pone app.css sobre cada use. El origen es el
+       centro del globo. -->
+  <defs>
+    <circle id="globo-esfera" r="80"/>
+    <g id="globo-paralelos" fill="none">
+    <ellipse cx="0" cy="-62.4" rx="40" ry="8"/>
+    <ellipse cx="0" cy="-36" rx="69.3" ry="13.9"/>
+    <ellipse cx="0" cy="0" rx="80" ry="16"/>
+    <ellipse cx="0" cy="36" rx="69.3" ry="13.9"/>
+    <ellipse cx="0" cy="62.4" rx="40" ry="8"/>
+    </g>
+    <ellipse id="globo-meridiano" rx="80" ry="80" fill="none"/>
+    <g id="globo-anillo" fill="none">
+      <circle r="100" stroke-dasharray="1 5"/>
+      <path d="M100 0L109 0M98.5 17.4L102.4 18.1M94 34.2L97.7 35.6M86.6 50L94.4 54.5M76.6 64.3L79.7 66.8M64.3 76.6L66.8 79.7M50 86.6L54.5 94.4M34.2 94L35.6 97.7M17.4 98.5L18.1 102.4M0 100L0 109M-17.4 98.5L-18.1 102.4M-34.2 94L-35.6 97.7M-50 86.6L-54.5 94.4M-64.3 76.6L-66.8 79.7M-76.6 64.3L-79.7 66.8M-86.6 50L-94.4 54.5M-94 34.2L-97.7 35.6M-98.5 17.4L-102.4 18.1M-100 0L-109 0M-98.5 -17.4L-102.4 -18.1M-94 -34.2L-97.7 -35.6M-86.6 -50L-94.4 -54.5M-76.6 -64.3L-79.7 -66.8M-64.3 -76.6L-66.8 -79.7M-50 -86.6L-54.5 -94.4M-34.2 -94L-35.6 -97.7M-17.4 -98.5L-18.1 -102.4M-0 -100L-0 -109M17.4 -98.5L18.1 -102.4M34.2 -94L35.6 -97.7M50 -86.6L54.5 -94.4M64.3 -76.6L66.8 -79.7M76.6 -64.3L79.7 -66.8M86.6 -50L94.4 -54.5M94 -34.2L97.7 -35.6M98.5 -17.4L102.4 -18.1" stroke-linecap="round"/>
+    </g>
+    <path id="globo-mira" fill="none" stroke-linecap="round" d="M-16 0H-5M5 0H16M0 -16V-5M0 5V16"/>
+    <circle id="globo-pulso" r="9" fill="none"/>
+    <ellipse id="globo-orbita" rx="126" ry="34" fill="none"/>
+    <circle id="globo-satelite" r="5"/>
+  </defs>
+</svg>

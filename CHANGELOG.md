@@ -5,6 +5,20 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Sin publicar]
 
+### Cambiado — oscuro más claro, fuentes vendorizadas e ilustraciones animadas (F20.3)
+
+- **El tema oscuro sube y se marca más**: fondo, superficies, bordes, anillo y texto secundario,
+  más claros (separador superficie/fondo 1,21 a 1,29; borde decorativo 1,45 a 2,0; texto atenuado
+  6,5 a 7,9:1). Medido en claro, oscuro y oscuro del sistema (`test_paleta.py`); la página `500.html`
+  sigue los mismos colores.
+- **Inter, Space Grotesk y JetBrains Mono vendorizadas** (OFL 1.1, WOFF2 variable, subconjunto latino)
+  en `static/vendor/fuentes/`, con su licencia, versión y `sha256`; `@font-face` con `font-display: swap`.
+  Nada se pide a un CDN.
+- **Cuatro ilustraciones SVG propias y animadas** (dron, curvas de nivel, ruta de vuelo, globo) en
+  `static/img/`, invocadas con `<use>` y coloreadas con los tokens. Están en el índice de vuelos, la
+  cabecera de la trayectoria, la entrada y «Ver en el mapa» sin capa. Con movimiento reducido se
+  quedan quietas y completas.
+
 ### Añadido — Tino pregunta a la API pública de NVIDIA (F20.11)
 
 - **Cliente de modelo con `urllib`** (sin dependencias nuevas): `POST {base}/chat/completions` con

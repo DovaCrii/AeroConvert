@@ -1,0 +1,22 @@
+{% load static %}{% comment %}
+  El globo con retícula de las ilustraciones (F20.3), centrado en el origen y de 260 x 260
+  unidades. Dibujo en `static/img/globo.svg`; el color y el giro, en `app.css` (clases `il-*`). Los
+  seis meridianos son el mismo dibujo con su `scaleX` desfasado: así parece que la esfera gira.
+{% endcomment %}{% static 'img/globo.svg' as globo %}
+<g class="il-globo">
+  <use class="il-orbita" href="{{ globo }}#globo-orbita" transform="rotate(-22)"/>
+  <use class="il-globo-esfera" href="{{ globo }}#globo-esfera"/>
+  <use class="il-globo-linea" href="{{ globo }}#globo-paralelos"/>
+  <use class="il-meridiano il-meridiano-1" href="{{ globo }}#globo-meridiano"/>
+  <use class="il-meridiano il-meridiano-2" href="{{ globo }}#globo-meridiano"/>
+  <use class="il-meridiano il-meridiano-3" href="{{ globo }}#globo-meridiano"/>
+  <use class="il-meridiano il-meridiano-4" href="{{ globo }}#globo-meridiano"/>
+  <use class="il-meridiano il-meridiano-5" href="{{ globo }}#globo-meridiano"/>
+  <use class="il-meridiano il-meridiano-6" href="{{ globo }}#globo-meridiano"/>
+  <use class="il-anillo" href="{{ globo }}#globo-anillo"/>
+  <g transform="translate(26 -18)">
+    <use class="il-pulso" href="{{ globo }}#globo-pulso"/>
+    <use class="il-mira" href="{{ globo }}#globo-mira"/>
+  </g>
+  <g transform="rotate(-22)"><use class="il-satelite" href="{{ globo }}#globo-satelite"/></g>
+</g>

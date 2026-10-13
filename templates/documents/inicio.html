@@ -17,6 +17,7 @@
   Y las que hoy no se pueden usar **siguen saliendo** —ocultarlas haría parecer que nunca
   existieron— pero abajo y con el motivo escrito una sola vez. Ver el docstring de `inicio`.
 {% endcomment %}
+{% if portada == "vuelos" %}{% include "ilustraciones/_banner_ruta.html" %}{% endif %}
 {% for grupo in grupos %}
   <section class="bloque">
     {% comment %}
