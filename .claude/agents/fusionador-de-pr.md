@@ -17,8 +17,12 @@ El número de un PR (`<n>`). Si no viene, di que falta y para.
 
 1. `gh pr view <n> --json state,mergeable,mergeStateStatus,headRefName`. Si ya está `MERGED`, dilo y
    termina. Si es `CONFLICTING`, **no esperes**: dilo (la rama necesita `fusionar_main.py`) y termina.
-2. `gh pr checks <n> --watch`. Si responde «no checks reported», espera 30 s y repite (el CI tarda en
-   registrarse); hasta tres veces.
+2. **El CI que cuenta es el del commit de cabeza actual** (`gh pr view <n> --json headRefOid`): si
+   quien te llama subió un commit nuevo, un verde del anterior no vale. `gh pr checks <n> --watch`;
+   si responde «no checks reported», espera 30 s y repite (el CI tarda en registrarse), hasta tres
+   veces, y si sigue sin aparecer sigue el run de esa cabeza con `gh run list --branch <rama>` y
+   `gh run watch <id>`. Justo antes de fusionar, vuelve a comprobar que la cabeza es la misma y que
+   `mergeable` es `MERGEABLE`.
 3. **Si el CI está en verde**: `gh pr merge <n> --merge`. Si GitHub responde 500 o «Something went
    wrong», espera 60 s y repite, hasta cuatro veces: fue una avería suya y se arregla sola. Confirma
    con `gh pr view <n> --json state` que quedó `MERGED`.
