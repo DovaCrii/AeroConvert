@@ -55,8 +55,9 @@ class TestLaPortada:
         titulos = re.findall(r'<h2 class="bloque-titulo"[^>]*>([^<]+)</h2>', cuerpo)
         assert titulos == ["Procesamiento GNSS", "Procesamiento de trayectoria"]
         assert "Utilidades del dron" in cuerpo
-        assert cuerpo.index("Procesamiento GNSS") < cuerpo.index("Procesamiento de trayectoria")
-        assert cuerpo.index("Procesamiento de trayectoria") < cuerpo.index("Utilidades del dron")
+        anclas = [cuerpo.index(f'id="{a}"') for a in ("topo-gnss", "topo-trayectoria")]
+        assert anclas == sorted(anclas)
+        assert anclas[-1] < cuerpo.index("Utilidades del dron: ")
 
     def test_enlaza_la_conversion_de_crudos_y_la_trayectoria(self, sesion):
         cuerpo = sesion.get(reverse("documents:vuelos")).content.decode()

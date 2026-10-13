@@ -1,4 +1,4 @@
-/* Muestra qué se eligió en cada paso de «Corregir un vuelo de dron».
+/* Muestra qué se eligió en cada paso de «Procesamiento de trayectoria».
  *
  * El campo de la carpeta compartida es oculto, y el explorador solo le escribe la ruta: sin esto
  * quien eligió no ve nada y no sabe si lo hizo bien. Tampoco se ve el nombre de un archivo subido

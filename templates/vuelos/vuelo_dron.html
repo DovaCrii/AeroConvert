@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block titulo %}Corregir un vuelo de dron · AeroConvert{% endblock %}
+{% block titulo %}Procesamiento de trayectoria · AeroConvert{% endblock %}
 
 {% block contenido %}
 
@@ -23,6 +23,73 @@
       class="vuelo-layout">
   {% csrf_token %}
 
+  {% comment %}
+    **El esquema del flujo** (F20.2): las tres rutas posibles, una por entrada, con sus etapas. La
+    que se elige en el paso 1 queda **marcada** con tres señales a la vez, no solo el color: borde
+    grueso, la insignia «Ruta elegida» y `aria-current` (la pone el servidor al pintar y la
+    mantiene `esquema.js` al cambiar, sin recargar). Sin JavaScript, el CSS (`:has()`) marca igual.
+    Las etapas comunes (interpolación, contraste y entregables) se repiten en cada ruta a propósito:
+    así cada ruta se lee de izquierda a derecha sin tener que buscar dónde se junta con las demás.
+  {% endcomment %}
+  <section class="vuelo-esquema" aria-labelledby="esquema-titulo" data-esquema>
+    <h2 class="vuelo-esquema-titulo" id="esquema-titulo">Flujo del procesamiento</h2>
+    <p class="tenue vuelo-esquema-nota">
+      Hay tres rutas según dónde se calculó la posición precisa del dron. Elija una en el paso 1 y
+      el esquema la marca.
+    </p>
+    <ol class="vuelo-rutas">
+      <li class="vuelo-ruta" data-ruta="trimble"{% if origen != "rinex" and origen != "fotos" %} aria-current="true"{% endif %}>
+        <div class="vuelo-ruta-cabeza">
+          <span class="vuelo-ruta-clave" aria-hidden="true">A</span>
+          <strong class="vuelo-ruta-nombre">Trimble Business Center</strong>
+          <span class="vuelo-ruta-marca">Ruta elegida</span>
+        </div>
+        <ol class="vuelo-ruta-pasos">
+          <li>El PPK ya lo calculó TBC</li>
+          <li>Trayectoria exportada</li>
+          <li>+ eventos de cámara (.MRK)</li>
+          <li>Interpolación y desfase antena-cámara</li>
+          <li>Contraste contra las posiciones de TBC</li>
+          <li>Entregables</li>
+        </ol>
+      </li>
+      <li class="vuelo-ruta" data-ruta="rinex"{% if origen == "rinex" %} aria-current="true"{% endif %}>
+        <div class="vuelo-ruta-cabeza">
+          <span class="vuelo-ruta-clave" aria-hidden="true">B</span>
+          <strong class="vuelo-ruta-nombre">PPK con RTKLIB</strong>
+          <span class="vuelo-ruta-marca">Ruta elegida</span>
+        </div>
+        <ol class="vuelo-ruta-pasos">
+          <li>RINEX del rover y de la base</li>
+          <li>Coordenada de la base declarada</li>
+          <li>Solución PPK</li>
+          <li>+ eventos de cámara (.MRK)</li>
+          <li>Interpolación y desfase antena-cámara</li>
+          <li>Contraste contra las posiciones de referencia</li>
+          <li>Entregables</li>
+        </ol>
+      </li>
+      <li class="vuelo-ruta" data-ruta="fotos"{% if origen == "fotos" %} aria-current="true"{% endif %}>
+        <div class="vuelo-ruta-cabeza">
+          <span class="vuelo-ruta-clave" aria-hidden="true">C</span>
+          <strong class="vuelo-ruta-nombre">RTK en las fotos</strong>
+          <span class="vuelo-ruta-marca">Ruta elegida</span>
+        </div>
+        <ol class="vuelo-ruta-pasos">
+          <li>Posición RTK escrita por el dron en el XMP de cada foto</li>
+          <li>Contraste con el .MRK</li>
+          <li>Entregables</li>
+        </ol>
+      </li>
+    </ol>
+  </section>
+
+  <div class="vuelo-columna">
+  <section class="vuelo-panel" aria-labelledby="panel-entradas">
+    <h2 class="vuelo-panel-rotulo" id="panel-entradas">Entradas</h2>
+    <p class="tenue vuelo-panel-nota">
+      La ruta, los archivos del vuelo y, con PPK, la coordenada de la estación base.
+    </p>
   <div class="vuelo-pasos">
     <section class="vuelo-paso" aria-labelledby="paso-origen">
       <header class="vuelo-paso-cabeza">
@@ -37,9 +104,9 @@
           <input type="radio" name="origen" value="trimble" id="id_origen_trimble"
                  {% if origen != "rinex" %}checked{% endif %}>
           <span>
-            <strong>La exportó Trimble Business Center</strong>
+            <strong>A · Trayectoria exportada de Trimble Business Center (TBC)</strong>
             <span class="tenue">
-              Usted ya hizo el PPK en Trimble y tiene el CSV con el recorrido del dron.
+              El PPK ya lo calculó TBC: aquí se parte del CSV con la trayectoria del dron, se sincroniza con los eventos de cámara (.MRK) y se contrasta con las posiciones de TBC.
             </span>
           </span>
         </label>
@@ -49,15 +116,15 @@
                  {% if origen == "rinex" %}checked{% endif %}
                  {% if not ppk_disponible %}disabled aria-describedby="motivo-rtklib"{% endif %}>
           <span>
-            <strong>Calcularla aquí con RTKLIB (PPK)</strong>
+            <strong>B · Calcular el PPK aquí con RTKLIB</strong>
             <span class="tenue">
-              A partir de los RINEX del dron y de la base, y de la coordenada conocida de la base.
-              Puede tardar varios minutos.
+              A partir de los RINEX del rover (el dron) y de la estación base, y de la coordenada
+              conocida de la base. La solución puede ser fija, flotante o autónoma. Puede tardar varios minutos.
             </span>
             {% if not ppk_disponible %}
               <span class="tenue" id="motivo-rtklib" data-motivo="{{ ppk_codigo }}">
                 <strong>No disponible en esta máquina.</strong> {{ ppk_motivo }} {{ ppk_sugerencia }}
-                Mientras tanto sirve la primera opción.
+                Mientras tanto sirve la ruta A.
               </span>
             {% endif %}
           </span>
@@ -67,7 +134,7 @@
           <input type="radio" name="origen" value="fotos" id="id_origen_fotos"
                  {% if origen == "fotos" %}checked{% endif %}>
           <span>
-            <strong>Las fotos ya traen la posición RTK</strong>
+            <strong>C · Las fotos ya traen la posición RTK</strong>
             <span class="tenue">
               El dron voló con RTK: la posición precisa está escrita en cada foto. No hay nada que
               calcular; se lee y se entrega. Hace falta la carpeta de fotos y el .MRK de la tarjeta.
@@ -185,6 +252,15 @@
 
     {% include "documents/_paso_vuelo.html" with numero="" titulo="La carpeta de fotos" ayuda="La carpeta con los JPG del vuelo. Sirve para ver cada foto en el mapa y su ficha, para leer la orientación de la cámara y, si no hay posiciones de Trimble, para ponerles nombre." ayuda_fotos="La carpeta con los JPG del vuelo, tal como salieron del dron: de ellas se lee la posición, su calidad RTK y la orientación de la cámara. Solo se leen, no se tocan." hace_falta_con_fotos=True campo="carpeta_de_fotos" subida="" acepta="" ext=".jpg,.jpeg" texto=carpeta_texto obligatorio=False carpeta=True %}
 
+  </div>
+  </section>
+
+  <section class="vuelo-panel" aria-labelledby="panel-parametros">
+    <h2 class="vuelo-panel-rotulo" id="panel-parametros">Parámetros del procesamiento</h2>
+    <p class="tenue vuelo-panel-nota">
+      Marco de referencia, escala de tiempo y desfase antena-cámara: lo que cambia la posición que se entrega.
+    </p>
+  <div class="vuelo-pasos">
     <section class="vuelo-paso" aria-labelledby="paso-ajustes">
       <header class="vuelo-paso-cabeza">
         <span class="vuelo-paso-numero" aria-hidden="true"></span>
@@ -261,6 +337,8 @@
         </p>
       </div>
     </section>
+  </div>
+  </section>
 
     <div class="vuelo-accion">
       <div class="av-mb-3" data-avance-subida hidden></div>
@@ -271,14 +349,17 @@
     </div>
   </div>
 
-  <aside class="vuelo-guia" aria-label="Qué va a pasar">
+  <aside class="vuelo-guia" aria-label="Resultado del procesamiento">
+    <section class="vuelo-panel vuelo-panel-resultado" aria-labelledby="panel-resultado">
+    <h2 class="vuelo-panel-rotulo" id="panel-resultado">Resultado</h2>
+    <p class="tenue vuelo-panel-nota">Las etapas que se corren y los archivos que se entregan.</p>
     <div class="tarjeta">
-      <div class="eyebrow">Qué va a pasar</div>
+      <div class="eyebrow">Etapas</div>
       <ol class="vuelo-etapas">
-        <li class="vuelo-solo-rinex"><strong>Calcula</strong> la trayectoria con RTKLIB, los RINEX y la coordenada de la base. Es lo que más tarda.</li>
-        <li class="vuelo-con-trayectoria"><strong>Lee</strong> la trayectoria y los disparos de la cámara.</li>
-        <li class="vuelo-con-trayectoria"><strong>Mide el sistema</strong> de coordenadas contra la latitud y longitud de Trimble.</li>
-        <li class="vuelo-con-trayectoria"><strong>Sincroniza</strong>: la posición de cada foto, interpolada en la trayectoria.</li>
+        <li class="vuelo-solo-rinex"><strong>Calcula</strong> la solución PPK con RTKLIB, a partir de los RINEX del rover y de la base y de la coordenada de la base. Es lo que más tarda.</li>
+        <li class="vuelo-con-trayectoria"><strong>Lee</strong> la trayectoria y los eventos de cámara (.MRK).</li>
+        <li class="vuelo-con-trayectoria"><strong>Mide el marco de referencia</strong> de Este y Norte contra la latitud y longitud de Trimble.</li>
+        <li class="vuelo-con-trayectoria"><strong>Interpola</strong> la trayectoria en el instante de cada foto y aplica el desfase antena-cámara.</li>
         <li class="vuelo-con-trayectoria"><strong>Contrasta</strong> con las posiciones que calculó Trimble, foto por foto.</li>
         <li class="vuelo-solo-fotos"><strong>Lee</strong> la posición, la calidad RTK y la orientación de cada foto, de su cabecera.</li>
         <li class="vuelo-solo-fotos"><strong>Contrasta</strong> con el .MRK que las fotos son de ese vuelo y de qué altura se trata.</li>
@@ -287,7 +368,7 @@
     </div>
 
     <div class="tarjeta">
-      <div class="eyebrow">Lo que sale</div>
+      <div class="eyebrow">Entregables</div>
       <ul class="vuelo-sale">
         <li><strong>fotos.csv</strong> para Pix4D, Metashape o QGIS.</li>
         <li><strong>fotos.geojson</strong> y <strong>fotos.kml</strong> para verlas en un mapa.</li>
@@ -309,6 +390,7 @@
         informada». La altura se llama elipsoidal solo si coincide con la del .MRK.
       </p>
     </div>
+    </section>
   </aside>
 </form>
 
@@ -316,4 +398,5 @@
 
 {% block scripts %}
 <script src="{% static 'js/elegido.js' %}"></script>
+<script src="{% static 'js/esquema.js' %}"></script>
 {% endblock %}

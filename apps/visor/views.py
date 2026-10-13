@@ -434,7 +434,7 @@ def vuelo(request, pk):
 
     Del trabajo **de quien pregunta**, terminado: lo demás es 404 con el mismo mensaje (no confirma
     que un identificador ajeno exista). La miniatura y la ficha de cada foto las sirven las vistas
-    de «Corregir un vuelo de dron», con sus comprobaciones.
+    de «Procesamiento de trayectoria», con sus comprobaciones.
     """
     try:
         job = vuelo_mod.propio(request.user, pk)

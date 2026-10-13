@@ -432,7 +432,8 @@ def datos_de_vuelo_sintetico(
 
 
 def crear_vuelo_sintetico(usuario, carpeta: Path, *, carpeta_de_fotos: Path | None = None, **datos):
-    """Un trabajo «Corregir un vuelo de dron» **terminado**, de `usuario`, con su zip en `carpeta`.
+    """Un trabajo «Procesamiento de trayectoria» **terminado**,
+    de `usuario`, con su zip en `carpeta`.
 
     No corre la herramienta: escribe el zip que ella escribiría (el `vuelo.json` y un CSV mínimo) y
     deja la fila en la base. Los datos son los de `datos_de_vuelo_sintetico`.

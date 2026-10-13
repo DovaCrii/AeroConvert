@@ -26,6 +26,11 @@ from apps.dashboard import taxonomia
 LIMITE = 28
 INFINITIVO = re.compile(r"^\w+(ar|er|ir)\b", re.IGNORECASE)
 
+#: Nombres de proceso que se pidieron con sustantivo, que es como se llaman en la profesión
+#: (F20.2: «Procesamiento de trayectoria», como el procesamiento de DJI Terra o Emlid Studio).
+#: Cada excepción se declara aquí, con su motivo, y la regla no se abre para las demás.
+SUSTANTIVOS_DECLARADOS = {"pdf-vuelo_dron": "nombre del proceso en topografía, pedido en F20.2"}
+
 
 def _documentos():
     return [a for a in acciones_mod.todas() if a.id.startswith("pdf-")]
@@ -45,7 +50,9 @@ class TestLaConvencion:
     @pytest.mark.parametrize("accion", _documentos(), ids=lambda a: a.id)
     def test_cada_herramienta_es_una_conversion_o_empieza_por_un_verbo(self, accion):
         es_conversion = " a " in accion.nombre
-        assert es_conversion or INFINITIVO.match(accion.nombre), (
+        assert (
+            es_conversion or INFINITIVO.match(accion.nombre) or accion.id in SUSTANTIVOS_DECLARADOS
+        ), (
             f"«{accion.nombre}»: una conversión es «Origen a destino» y una operación empieza "
             "por un verbo en infinitivo"
         )

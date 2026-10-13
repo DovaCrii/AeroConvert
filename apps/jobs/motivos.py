@@ -284,8 +284,8 @@ MOTIVOS: dict[str, Motivo] = dict(
             "vuelo-sin-crs",
             "Este vuelo no declara el sistema de coordenadas de sus puntos, así que no se dibuja "
             "sobre el mapa: ubicarlo con uno supuesto sería inventar dónde voló.",
-            "Vuelva a correr «Corregir un vuelo de dron» declarando el sistema, o midiéndolo con "
-            "las posiciones de Trimble.",
+            "Vuelva a correr «Procesamiento de trayectoria» declarando el sistema, o "
+            "midiéndolo con las posiciones de Trimble.",
         ),
         _m(
             "vuelo-sin-trayectoria",
@@ -311,7 +311,7 @@ MOTIVOS: dict[str, Motivo] = dict(
         _m(
             "vuelo-ilegible",
             "El resultado de este vuelo no trae datos para el mapa.",
-            "Vuelva a correr «Corregir un vuelo de dron».",
+            "Vuelva a correr «Procesamiento de trayectoria».",
         ),
         _m(
             "mapa-base-no-valido",
