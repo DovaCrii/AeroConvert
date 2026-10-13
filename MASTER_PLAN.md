@@ -622,6 +622,30 @@ Referencias: DJI Terra, Emlid Studio y Cesium; investigación con fuentes en
 | F20.11 | **Tino con la API de NVIDIA** (formato OpenAI, `urllib`, modelo configurable): solo la pregunta escrita ya limpia, nunca un archivo; sin clave, apagado con motivo | Servidor HTTP falso: sale solo el texto limpio; prueba real con la clave la hace la persona | Claude · **la persona pone la clave** | ⚠ 2026-10-13 hecho: cliente con `urllib`, modelo `nvidia/nemotron-3.5-lightning-30b-a3b` y respaldos, botón «Preguntar fuera», `limpiar()` también quita coordenadas, `tino_probar`; falta la prueba con la clave real en p340 (P22) |
 | F20.12 | **Medir y, solo si hace falta, acelerar** (D10): perfilar con archivos reales en p340 los pasos propios que recorren millones de registros y, si alguno es el cuello de botella, probar primero NumPy o Polars y solo después Rust (PyO3 + maturin) para **esa función**. Candidatos de hoy: lectura de RINEX grandes y del `.pos` para la evaluación previa y el informe de calidad (F20.4, F20.7); sincronía de miles de fotos con la trayectoria (`apps/vuelos/vuelo_sync.py`); recorridos de nubes LAS fuera de PDAL; generación masiva de teselas del visor (`apps/visor/teselas.py`, hoy un `gdalwarp` por tesela); `limpiar()` de Tino y la detección de formato (`apps/formats/deteccion.py`) no lo necesitan. | Tiempo y memoria antes y después con el mismo archivo; la misma salida byte a byte o contra el mismo oráculo; las mismas pruebas en verde | Claude · **la persona aporta un archivo grande real** | ⬜ |
 
+
+## Fase 21 — AeroConvert como motor geoespacial: Transformar, Procesar, Ver, Mapa, Lámina (decisión D11, 2026-10-13)
+
+Guía de la persona: `AeroConvert_Product_Architecture.md` (Descargas). Lo aplicado, lo ajustado y la matriz
+real están en `docs/ARQUITECTURA_PRODUCTO.md`. **Mapas y láminas con un generador propio (GDAL +
+reportlab)**; QGIS sin pantalla solo si hace falta; RustGIS se vigila (dos días de vida, sin CLI para Linux,
+`.rgislayout` no existe). Sin React, TypeScript ni FastAPI: se conserva Django + htmx + JS propio.
+
+| # | Entrega | Oráculo | La cierra | Estado |
+| --- | --- | --- | --- | --- |
+| F21.0 | **Documento de arquitectura** adaptado, con la matriz real Implemented / Partial / Planned / Ausente | — | Claude | ✅ 2026-10-13 |
+| F21.1 | **Navegación por módulos** en lo geo (Transformar · Procesar · Ver · Mapa · Lámina · Automatizar) con «Topografía» dentro y **«Documentos»** como sección aparte (etapa 1 de la separación) | `test_taxonomia.py`; los `id` de grupo no cambian | Claude | ⬜ |
+| F21.2 | **Frontera de documentos**: prueba que vigila que lo geo no importe `apps.documents` salvo la cola y la entrada, como `apps/vuelos/test_independencia.py`; inventario de lo que se movería a otro repositorio | La prueba falla ante un intruso | Claude | ⬜ |
+| F21.3 | **Process que falta**: recorte por polígono (`gdalwarp -cutline`, PDAL `filters.crop`), mosaico (`gdalbuildvrt` + COG), y DEM, sombreado y curvas como herramientas | `gdalinfo` y `pdal info` sobre salidas sintéticas | Claude | ⬜ |
+| F21.4 | **Formatos**: GeoParquet y FlatGeobuf (OGR) y PMTiles (GDAL ≥ 3.8), sondeados y apagados con motivo si el GDAL no los trae | `ogrinfo` | Claude | ⬜ |
+| F21.5 | **Mapa automático MVP**: plano ortofoto, plano de puntos de control y plano de ubicación, A4 a A0, con marco, grilla en el CRS, norte, escala gráfica, leyenda, CRS escrito y cajetín; plantillas JSON | PDFium lee los textos; la grilla contra `gdaltransform`; la escala contra la geometría; un PDF real revisado por la persona en p340 | Claude · **la persona revisa** | ⬜ |
+| F21.6 | **Proyecto/obra**: modelo mínimo que agrupa fuentes, salidas, mapas y entregables; `project.json` | Pruebas del modelo; el original no cambia | Claude | ⬜ |
+| F21.7 | **Visual estilo AeroAcademy con el magenta**: portada de módulos y esquemas animados del flujo Transformar → … → Exportar, con imágenes ricas | `test_paleta.py`, `test_plano.py` | Claude | ⬜ |
+| F21.8 | **Prompt → mapa** con Tino: el texto elige plantilla y parámetros (solo la pregunta sale); Ollama local documentado como proveedor para privacidad | Servidor falso: solo sale el texto limpio | Claude | ⬜ |
+| F21.9 | **Editor de láminas** con Konva vendorizada; el PDF lo compone el servidor desde un JSON de lámina | La lámina del editor y el PDF coinciden en posiciones | Claude | ⬜ |
+| F21.10 | *Condicional:* QGIS sin pantalla (`qgis_process`) para atlas o series si F21.5 no alcanza | Sonda en p340 | Claude | ⏸ solo si hace falta |
+| F21.11 | *Etapa 2 de la separación:* los documentos a su propio repositorio y aplicación | Suite de cada lado en verde | Claude · **la persona decide nombre y despliegue** | ⏸ |
+| F21.12 | **Convertir «de X a Y»**: selector **De → A** arriba de la pantalla de convertir (De: lo detectado del archivo; A: «Un programa» o «Un formato»; elegir un formato muestra qué programas lo abren), cada tarjeta del menú con el formato que entrega (`_salidas_de`), y las entradas «Entregar a un programa» y «De formato a formato». Sin motor ni formato nuevo: se apoya en `apps/targets/perfiles.py`, el buscador por par y la matriz | Prueba de vista del selector; el veredicto al revés contra la matriz; las búsquedas viejas siguen | Claude | ⬜ |
+
 ---
 
 ## Deuda conocida
@@ -682,6 +706,7 @@ quedan aquí anotadas con su fecha: una decisión sin registro se vuelve a discu
 | **D8 · Dirección visual** | La persona vio tres direcciones sobre la misma pantalla («A · Plan de vuelo», «B · Mesa de luz», «C · Instrumento») | **«A · Plan de vuelo» para toda la app**, con dos préstamos: de «C», las esquinas de encuadre y las cifras en monoespaciada en Compatibilidad y en las lecturas; de «B», las curvas de nivel solo como textura de la zona de soltar. **Sustituye a «plano con color» de F13.7.** Sin descargar tipografías hasta que la persona lo autorice · 2026-10-09 |
 | **D9 · Topografía, mapa 3D, IA y tema** | Cómo hacer más potente lo geoespacial sin romper «nada sale del equipo» | **Grupo «Topografía»** y «Procesamiento de trayectoria»; **piloto de CesiumJS** vendorizado sin ion ni internet (MapLibre si la CSP no lo admite); **Tino con la API pública de NVIDIA**, solo la pregunta escrita y limpia, clave en el `.env` puesta por la persona; **fuentes vendorizadas** (OFL); **oscuro más claro y con más contraste** · 2026-10-13 |
 | **D10 · ¿Pasar a Rust?** | Muchas aplicaciones se están pasando a Rust | **No reescribir.** El trabajo pesado ya lo hacen GDAL, PDAL y RTKLIB en C/C++, y Python solo orquesta y verifica. Rust solo para **un paso propio medido como lento** con un archivo real, después de probar NumPy o Polars, y como módulo de extensión (PyO3 + maturin) con las mismas pruebas; el resto sigue en Python (F20.12) · 2026-10-13 |
+| **D11 · La guía de arquitectura** | Cómo crecer hacia Transformar, Procesar, Ver, Mapa y Lámina sin sobredimensionar | **Se adopta la guía como dirección**, con ajustes: **no** React, TypeScript ni FastAPI (se conserva Django + htmx); mapas y láminas con un **generador propio** (GDAL + reportlab) y QGIS sin pantalla solo si hace falta, **RustGIS se vigila** (dos días de vida); **documentos fuera de AeroConvert por etapas** (primero una frontera vigilada, después otro repositorio); **identidad magenta** con estructura más moderna al estilo AeroAcademy · 2026-10-13 |
 
 > **Corrección del 2026-09-21.** Este documento y `SERVIDOR.md` decían «hoy no hay ningún
 > respaldo» — y el repositorio trae `aeroconvert-respaldo.service` y `.timer` (03:15,
