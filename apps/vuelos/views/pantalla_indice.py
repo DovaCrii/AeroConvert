@@ -17,6 +17,7 @@ def vuelos(request):
     return _indice(
         request,
         categoria="vuelos",
+        portada="vuelos",
         etiqueta="Vuelos de dron",
         titulo="Lo que graba un vuelo",
         proposito=(

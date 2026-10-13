@@ -148,14 +148,14 @@ NUEVAS = ("gnss", "planta", "imagen")
 
 
 class TestElColorDeAccion:
-    """El que se lee. La cabecera del CSS promete 7,2:1 en claro y 7,5:1 en oscuro (8,3 antes de F20.3, que subió las superficies).
+    """El que se lee. La cabecera del CSS promete 7,2:1 en claro y 6,6:1 en oscuro (8,3 antes de F20.3, que subió las superficies).
 
     Prometía 8,9 en oscuro, y medía 8,30: la cifra se escribió una vez y nada la comprobaba.
     """
 
     def test_las_cifras_de_la_cabecera_son_las_que_miden(self, claro, oscuro):
         assert round(contraste(claro["--av-primary"], claro["--av-surface"]), 1) == 7.2
-        assert round(contraste(oscuro["--av-primary"], oscuro["--av-surface"]), 1) == 7.5
+        assert round(contraste(oscuro["--av-primary"], oscuro["--av-surface"]), 1) == 6.6
 
     def test_en_claro(self, claro):
         assert contraste(claro["--av-primary"], claro["--av-surface"]) >= TEXTO
@@ -516,6 +516,10 @@ PARES = [
         for fondo in ("--av-surface", "--av-bg")
     ],
     ("filete de la barra (cielo) sobre el navy", ("--av-ruta-barra", NAVY), GRAFICO),
+    # F20.3: las curvas de nivel de las ilustraciones son adorno, pero se ven sobre la tarjeta.
+    ("curvas de nivel de las ilustraciones sobre la tarjeta", ("--av-curvas", "--av-surface"), 2.0),
+    # F20.3: el borde marcado de las tarjetas del oscuro (el anillo, translúcido sobre el fondo).
+    ("borde decorativo contra la superficie", ("--av-border", "--av-surface"), 1.25),
     # La marca ✓ del paso hecho: la insignia lleva `--av-surface` sobre `--av-ok`.
     ("marca de paso hecho", ("--av-surface", "--av-ok"), TEXTO),
     # El número del paso, con su anillo contra la tarjeta.

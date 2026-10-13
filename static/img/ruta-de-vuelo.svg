@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 200">
+  <!-- Ruta de vuelo de un levantamiento: pasadas paralelas con sus giros, los puntos de ruta en cada
+       giro y un disparo de camara cada tanto. Ilustracion propia. Solo geometria: color y trazo los
+       pone app.css sobre el use. La ruta lleva pathLength=1, asi el trazo que se dibuja se anima de 1
+       a 0 sin importar su largo. El mismo recorrido esta en app.css como offset-path del dron:
+       una prueba comprueba que son iguales. -->
+  <defs>
+    <path id="ruta-trazo" pathLength="1" fill="none" d="M90 40H870C915 40 915 100 870 100H90C45 100 45 160 90 160H870"/>
+    <path id="ruta-disparos" pathLength="1" fill="none" d="M143 36h14v8h-14zM243 36h14v8h-14zM343 36h14v8h-14zM443 36h14v8h-14zM543 36h14v8h-14zM643 36h14v8h-14zM743 36h14v8h-14zM843 36h14v8h-14zM743 96h14v8h-14zM643 96h14v8h-14zM543 96h14v8h-14zM443 96h14v8h-14zM343 96h14v8h-14zM243 96h14v8h-14zM143 96h14v8h-14zM143 156h14v8h-14zM243 156h14v8h-14zM343 156h14v8h-14zM443 156h14v8h-14zM543 156h14v8h-14zM643 156h14v8h-14zM743 156h14v8h-14zM843 156h14v8h-14z"/>
+    <g id="ruta-puntos">
+    <circle cx="90" cy="40" r="6"/>
+    <circle cx="870" cy="40" r="6"/>
+    <circle cx="870" cy="100" r="6"/>
+    <circle cx="90" cy="100" r="6"/>
+    <circle cx="90" cy="160" r="6"/>
+    <circle cx="870" cy="160" r="6"/>
+    </g>
+  </defs>
+</svg>

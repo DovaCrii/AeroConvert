@@ -1,0 +1,21 @@
+{% load static %}{% comment %}
+  La franja con la ruta de vuelo (F20.3): curvas de nivel que se desplazan, la ruta que se dibuja
+  con sus puntos de ruta y sus disparos de cámara, y el dron que la sigue. **Solo adorno**:
+  `aria-hidden`, sin texto, y todo el movimiento se apaga con `prefers-reduced-motion`.
+
+  `variante` es opcional: `compacta` hace la franja más baja (la cabecera de una pantalla de
+  trabajo); sin ella es la portada de un índice. Los dibujos están en `static/img/` y los colores
+  y el movimiento en `app.css` (clases `il-*`).
+{% endcomment %}{% static 'img/ruta-de-vuelo.svg' as ruta %}{% static 'img/curvas-animadas.svg' as curvas %}
+<div class="il-banner il-banner-ruta{% if variante == 'compacta' %} il-banner-compacta{% endif %}" aria-hidden="true">
+  <svg class="il-fondo" viewBox="0 0 960 200" preserveAspectRatio="xMidYMid slice" focusable="false">
+    <use class="il-curvas" href="{{ curvas }}#curvas-nivel"/>
+  </svg>
+  <svg class="il-escena" viewBox="0 0 960 200" preserveAspectRatio="xMidYMid meet" focusable="false">
+    <use class="il-ruta-guia" href="{{ ruta }}#ruta-trazo"/>
+    <use class="il-ruta-trazo" href="{{ ruta }}#ruta-trazo"/>
+    <use class="il-disparos" href="{{ ruta }}#ruta-disparos"/>
+    <use class="il-puntos" href="{{ ruta }}#ruta-puntos"/>
+    <g class="il-dron-ruta"><g transform="scale(.55)">{% include "ilustraciones/_dron.html" %}</g></g>
+  </svg>
+</div>
