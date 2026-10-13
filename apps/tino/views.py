@@ -19,6 +19,8 @@ from django.contrib.auth.decorators import login_required
 from django.http import Http404
 from django.shortcuts import render
 
+from apps.jobs import motivos
+
 from . import fuera as fuera_mod
 from . import saber as saber_mod
 
@@ -59,6 +61,12 @@ def preguntar(request):
     # siempre convertiría el aviso en decorado que nadie lee.
     if pregunta and respuesta is None:
         contexto["saldria"] = fuera_mod.limpiar(pregunta)
+        # **Solo cuando la persona pulsa «Preguntar fuera»** (`fuera=1`), nunca con cada tecla:
+        # la pantalla enseña antes lo que saldría y la llamada es una decisión de cada vez.
+        if request.GET.get("fuera") == "1":
+            contexto["hubo_consulta"] = True
+            contexto["consulta"] = fuera_mod.consultar(pregunta)
+            contexto["motivo_ia"] = motivos.MOTIVOS.get(contexto["consulta"].codigo)
 
     if request.headers.get("HX-Request"):
         return render(request, "tino/_respuesta.html", contexto)

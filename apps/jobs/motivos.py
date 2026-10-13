@@ -320,6 +320,18 @@ MOTIVOS: dict[str, Motivo] = dict(
             "Quien administra el equipo lo corrige en AEROCONVERT_VISOR_MAPA_BASE. Mientras tanto "
             "el fondo es la retícula de coordenadas.",
         ),
+        _m(
+            "sin-clave-ia",
+            "Preguntar fuera está apagado: falta la clave, o Tino no está encendido.",
+            "Tino contesta lo que esta máquina sabe. Quien administra el equipo pone "
+            "AEROCONVERT_TINO_CLAVE en el .env del servidor.",
+        ),
+        _m(
+            "ia-no-disponible",
+            "El servicio de fuera no contestó (clave rechazada, límite de uso, caída o plazo).",
+            "Tino contesta con lo que esta máquina sabe. Pruebe más tarde, o que quien "
+            "administra corra «manage.py tino_probar».",
+        ),
     ]
 )
 

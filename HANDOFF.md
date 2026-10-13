@@ -24,6 +24,10 @@ verde** (el agente `fusionador-de-pr` espera el CI). **Usted despliega en p340.*
 - También en esta tanda: alturas con geoide declarado (F15.2), escanear con el teléfono (F14.12), libro
   EPUB (F14.22), vuelos RTK y ficha EXIF (F18.8 a F18.10), PPK desde RINEX (F18.7), `runner.py` partido
   (F11.8) y `original-modificado` (regla 5). 42 herramientas de documentos; más de 4.400 pruebas.
+- **Tino con la API de NVIDIA (F20.11, rama `codex/f20-11-tino-nvidia`, sin fusionar):** apagado salvo
+  `AEROCONVERT_TINO_VISIBLE=true` y clave. **La clave la pone usted en el `.env` de p340**
+  (`AEROCONVERT_TINO_CLAVE`; nunca en el repo ni en el chat); también `_MODELO`, `_MODELOS_RESPALDO`,
+  `_URL`. Pendiente ⚠: `manage.py tino_probar` con la clave real.
 
 ## Desplegar en p340 (lo hace usted)
 

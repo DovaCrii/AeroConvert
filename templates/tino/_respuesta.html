@@ -71,7 +71,33 @@
             cliente, la obra y el nombre del proyecto, y no hace falta para contestar.
           </p>
         {% endif %}
+        {% if de_fuera and not hubo_consulta %}
+          <p class="sin-hueco">
+            <a class="boton" href="?p={{ p|urlencode }}&amp;fuera=1"
+               hx-get="{% url 'tino:preguntar' %}?p={{ p|urlencode }}&amp;fuera=1"
+               hx-target="#respuesta" hx-swap="innerHTML">Preguntar fuera</a>
+          </p>
+        {% endif %}
       </div>
+      {% if hubo_consulta %}
+        {% if consulta.texto %}
+          <div class="eyebrow">Respuesta de fuera</div>
+          <h2 class="respuesta-titulo" data-anunciar>Esto lo contestó {{ consulta.modelo }}.</h2>
+          <p>{{ consulta.texto }}</p>
+          <p class="tenue sin-hueco">
+            Salió esto y solo esto: <span class="mono">{{ consulta.enviado }}</span>. Puede
+            equivocarse: compruébelo antes de entregar nada.
+          </p>
+        {% else %}
+          {# Regla 4: apagado con motivo y alternativa, y lo que se sabe sigue en pie. #}
+          <p class="aviso" role="status">
+            <strong>No se pudo preguntar fuera</strong> ({{ motivo_ia.codigo }}).
+            {{ motivo_ia.mensaje }} {{ motivo_ia.sugerencia }}
+            {% if consulta.enviado %}Salió esto y solo esto:
+              <span class="mono">{{ consulta.enviado }}</span>{% else %}No salió nada.{% endif %}
+          </p>
+        {% endif %}
+      {% endif %}
     {% endif %}
   </div>
 {% endif %}
