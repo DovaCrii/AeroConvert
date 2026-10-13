@@ -5,7 +5,7 @@
 > Quién hace qué: **Claude** hace ramas, PR, revisión y fusiones; **la persona solo despliega en la
 > VM, al final de todo**.
 
-**Actualizado:** 2026-10-09 · **`main` en:** versión `0.13.0` · **PR sin desplegar:** #99 a #113 (desplegado hasta el #98, `4321107`)
+**Actualizado:** 2026-10-13 · **`main` en:** versión `0.13.0` · **PR sin desplegar:** #99 a #113 (desplegado hasta el #98, `4321107`)
 
 ## Pedidos a la persona
 
@@ -34,6 +34,7 @@ Lo que Claude necesita para avanzar y no tiene. **Sin él, la fila espera (⏸) 
 | P19 | **Un archivo DC** (calibración local de Trimble) de un proyecto real | F18.11 (coordenadas locales, como UAS Sync 4.1) | Archivo en OneDrive | F18.12 ⏸ |
 | P20 | **Un vuelo RTK real**: las fotos de un vuelo con RTK en el aire (bandera 34 o 50) y su exportación de UAS Sync o de TBC, fuera del repositorio | F18.8 (vuelos RTK) | Carpeta en OneDrive | F18.8 queda ⚠: la bandera 16 se vio en un vuelo PPK; 50 y 34 son las que publica DJI, sin contrastar |
 | P21 | **Permiso para bajar la grilla EGM2008** (`us_nga_egm08_25.tif`, de PROJ-data) y dejarla en `AEROCONVERT_PROJ_GRILLAS` | F15.2 (EGM2008) | Un sí | F15.2 queda ⚠: solo EGM96 medido |
+| P22 | **La clave de la API de NVIDIA** (`nvapi-…`) en el `.env` de p340 como `AEROCONVERT_TINO_API_KEY` (la pone usted; no se pega en el chat ni entra al repositorio) | F20.11 | Una línea en el `.env` | Tino sigue apagado con motivo; todo lo demás funciona |
 
 ## Bloques
 
@@ -55,6 +56,7 @@ Estados: ✅ hecho · 🟨 en curso · ⬜ por hacer · ⏸ espera un pedido · 
 | **B12 · Vuelos de dron: PPK y sincronía** | F18.1 ✅ · F18.2 ✅ · F18.3 ⚠ · F18.4 ✅ · F18.5 ✅ · F18.6 ✅ · F18.7 ⚠ (`docs/VUELOS_DE_DRON_Y_PPK.md`) | 🟨 | #81 a #85, #104 | P15 y P16 para la corrida real |
 | **B13 · Pedidos tras el despliegue (2026-10-09)** | Aceptación desde la interfaz ✅ #99 · Lateral que cuenta lo que enseña, chapa y Compatibilidad ✅ #100 · PDF restringido y «ver en grande» ✅ #101 · F14.22 EPUB ⚠ #102 (P17) · D8 «Plan de vuelo» (F13.14) ✅ #103 · F18.7 PPK desde RINEX en pantalla ⚠ #104 (P18) · F18.13 los vuelos en `apps/vuelos/` ✅ #105 · F18.8 vuelos RTK ⚠ #109 (P20) · F18.9 ficha EXIF por foto ✅ #109 · F18.10 orientación de cámara en el CSV ✅ #109 · F18.11 coordenadas locales con DC ⏸ (P19) · F18.12 aspecto propio de la sección de drones ⬜ · F18.14 puntos de control en `vuelo.json` ⬜ | 🟨 | #99 a #105, #109 | P17 · P18 · P19 · P20 |
 | **B14 · Visor geoespacial (D7)** | F19.1 ✅ · F19.2 ✅ (2026-10-09, `/mapa/`, `apps/visor/`) · F19.3 ✅ (2026-10-09, varias capas, vuelos propios y su orden; ⚠ puntos de control sin fuente hasta F18.14) · F19.4 ✅ (2026-10-09, terreno: sombreado, cota y perfil) · F19.5 ✅ (2026-10-09, mapa base propio de la casa, nunca teselas de internet) · F19.6 contrato con AeroBim. Ortofotos, imágenes, mapas base propios y terreno aquí; el 2D de planos sigue en AeroBim | 🟨 | #106 (F19.1, F19.2), #110 (F19.4), #112 (F19.3, F19.5) | F19.6 necesita a AeroBim · medir una ortofoto real de varios GB en `p340` |
+| **B15 · Topografía (D9)** | F20.0 ✅ (2026-10-13, agentes y reparto) · F20.1 grupo «Topografía» · F20.2 «Procesamiento de trayectoria» · F20.3 ✅ visual (más claro, fuentes, ilustraciones) · F20.4 evaluación previa del RINEX · F20.5 estático de la base · F20.6 filtro combinado y antena · F20.7 informe de calidad · F20.8 Stop & Go ⏸ · F20.9 ✅ piloto Cesium (CSP sin cambios) · F20.10 mapa 3D · F20.11 ⚠ Tino con NVIDIA (falta la clave real, P22) · F20.12 medir y, solo si hace falta, acelerar (D10, Rust solo para un paso medido) | 🟨 | — | P22 para F20.11 |
 | **B10 · Cierre y despliegue** | Versión `0.12.0` ✅ (2026-10-08, #97) · versión `0.13.0` ✅ (2026-10-09, cierra B13 y B14 hasta el #113), `HANDOFF.md` con los pasos de la VM ✅ | ✅ 2026-10-09 · **falta desplegar (la persona)** | #97, el del cierre `0.13.0` | — |
 
 **Orden de trabajo:** B1 → B2 → B3 → B4 → B5 (esto cierra F13 y la versión `0.11.0`); B6 con

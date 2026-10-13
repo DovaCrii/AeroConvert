@@ -205,14 +205,14 @@ def _vuelos_pedidos(request) -> list:
     return trabajos
 
 
-def _preparar_principal(request, contexto: dict, texto: str):
+def _preparar_principal(request, contexto: dict, texto: str, plantilla: str = "visor/inicio.html"):
     """La imagen principal: su ficha y su estado. `None` si se dibuja o hay algo que decir en el
     mapa; una respuesta ya renderizada si no se puede ni abrir (los estados 2 de la plantilla)."""
     try:
         origen = _resolver(texto, request.user)
     except modo_mod.RutaNoPermitida as fallo:
         contexto.update(error=str(fallo), codigo_error=fallo.codigo, propios=[])
-        return render(request, "visor/inicio.html", contexto, status=403)
+        return render(request, plantilla, contexto, status=403)
 
     try:
         if not _es_imagen(origen.ruta):
@@ -228,7 +228,7 @@ def _preparar_principal(request, contexto: dict, texto: str):
             codigo_error=fallo.codigo,
             propios=_resultados_propios(request.user),
         )
-        return render(request, "visor/inicio.html", contexto, status=422)
+        return render(request, plantilla, contexto, status=422)
     except OSError as fallo:
         _anotar_fallo_de_disco(fallo)
         contexto.update(
@@ -236,7 +236,7 @@ def _preparar_principal(request, contexto: dict, texto: str):
             codigo_error=CODIGO_DE_DISCO,
             propios=_resultados_propios(request.user),
         )
-        return render(request, "visor/inicio.html", contexto, status=500)
+        return render(request, plantilla, contexto, status=500)
 
     contexto["capa"] = capa
     contexto["nombre_origen"] = origen.nombre
@@ -417,6 +417,52 @@ def inicio(request):
         v for v in _vuelos_para_elegir(request.user) if str(v["pk"]) not in usados
     ]
     return render(request, "visor/inicio.html", contexto)
+
+
+@login_required
+@require_GET
+def mapa_3d(request):
+    """Piloto de globo 3D (F20.9): la misma imagen que el mapa plano, sobre un globo de CesiumJS.
+
+    Cesium se sirve **entero de `static/vendor/cesium/`**, bajo la CSP de siempre (`'self'`, sin
+    `'unsafe-eval'` ni `'unsafe-inline'` en `script-src`; medido, ver
+    `docs/INVESTIGACION_TOPOGRAFIA.md`) y sin Ion: el globo es una retícula lisa y la imagen entra
+    por las **mismas teselas** de `visor:tesela`, elegida igual que en el mapa plano (`?ruta=`). Sin
+    imagen elegida se dibuja solo el globo, y debajo se elige una. GDAL solo hace falta para la
+    imagen: sin él el globo se ve igual y la elección dice por qué está apagada."""
+    contexto = _contexto_base()
+    contexto.update(
+        titulo_pagina="Ver una ortofoto en el globo 3D",
+        proposito=(
+            "Piloto de un globo 3D: la misma imagen del mapa plano, sin mapa de fondo de internet. "
+            "Se corta del propio archivo: nada sale del equipo."
+        ),
+    )
+    disponibilidad = motor.disponibilidad()
+    contexto["gdal"] = disponibilidad
+    texto = (request.GET.get("ruta") or "").strip()
+    contexto["ruta_texto"] = texto
+    contexto["propios"] = _resultados_propios(request.user) if disponibilidad.disponible else []
+
+    if texto and disponibilidad.disponible:
+        error = _preparar_principal(request, contexto, texto, "visor/mapa_3d.html")
+        if error is not None:
+            return error
+        ficha = contexto["capa"]
+        if ficha.dibujable:
+            lons = [e["lon"] for e in contexto["esquinas"]]
+            lats = [e["lat"] for e in contexto["esquinas"]]
+            contexto["capa_3d"] = {
+                "teselas": reverse("visor:tesela", args=[0, 0, 0]),
+                "token": contexto["token"],
+                "oeste": min(lons),
+                "sur": min(lats),
+                "este": max(lons),
+                "norte": max(lats),
+                "zoom_maximo": ficha.zoom_maximo + NIVELES_DE_SOBRE_ACERCAMIENTO,
+            }
+    contexto["capa_3d_json"] = json.dumps(contexto.get("capa_3d") or {}, ensure_ascii=False)
+    return render(request, "visor/mapa_3d.html", contexto)
 
 
 def _vuelos_para_elegir(usuario) -> list[dict]:

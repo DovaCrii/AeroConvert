@@ -16,6 +16,63 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 - **«Coordenadas y datos GNSS» y «Vuelos de dron» son un solo grupo, «Topografía»**. Conserva el `id` `gnss` (con él recuerda el navegador qué grupos quedaron abiertos), así que nadie pierde lo que dejó plegado. Las herramientas de vuelos pasan a él; los perfiles de posproceso siguen llegando por `grupo_de_perfil`.
 - **`/documentos/vuelos/` es la portada de Topografía**, con la misma ruta y el mismo nombre (`documents:vuelos`): *Procesamiento GNSS* (enlaza la conversión de crudos a RINEX de «Convertir»), *Procesamiento de trayectoria* y *Utilidades del dron* (traza, fotos y video: a la vista, plegadas). Lo apagado se ve con su motivo.
 
+### Añadido — piloto de globo 3D con CesiumJS, sin cambiar la CSP (F20.9)
+
+- **`/mapa/3d/`** (`visor:mapa-3d`, `apps/visor/`, con sesión; sin ella, 302): un globo de CesiumJS con
+  la misma imagen y las mismas teselas del mapa plano (`visor:tesela`, `{z}/{x}/{y}.png?ruta=`),
+  elegida igual que en `/mapa/`. Sin imagen se ve solo el globo (retícula sobre fondo liso) y debajo se
+  elige una; sin GDAL el globo se ve igual y la elección dice por qué está apagada. Sin Ion
+  (`Ion.defaultAccessToken = ""`), sin terreno del mundo, sin mapa de fondo de Cesium, sin buscador ni
+  selector de capas. JavaScript propio: `static/js/visor3d.js`.
+- **CesiumJS vendorizado** en `static/vendor/cesium/` (Apache-2.0, `@cesium/engine` 26.4.0 **sin
+  widgets**: el paquete `cesium` trae Knockout y su `eval`). `@cesium/engine` no trae un build para el
+  navegador, así que `Cesium.js` (3,84 MB, IIFE) se construye con esbuild a partir de
+  `entrada.js`/`construir.cjs` (documentado en su `README.md`, con sha256 y SRI; `meshoptimizer` se
+  sustituye por un vacío porque compila WebAssembly al cargar). Solo lo que se sirve: 8,5 MB en 102
+  archivos, sin el mapa de fondo `NaturalEarthII` ni las fuentes.
+- **La CSP no cambia**: medido en el navegador del panel con la política real (`script-src 'self'`, sin
+  `'unsafe-eval'`, sin `'wasm-unsafe-eval'`, sin `worker-src`), consola sin errores, y las 65 peticiones
+  de la página (37 teselas y 3 workers, entre ellas) van **todas al propio servidor**.
+  `apps/visor/test_3d.py` la vigila (igual a `CSP`), comprueba el SRI de la plantilla contra el
+  archivo, el sha256 del README, que ni el HTML ni `visor3d.js` nombren una dirección externa o a Ion,
+  y la prueba de 302, de 403 y de GDAL apagado.
+- **Pendiente**: la fase 20 y `docs/INVESTIGACION_TOPOGRAFIA.md` no están en esta rama; la fila F20.9 de
+  `MASTER_PLAN.md` y la sección 4 del documento llevan este resultado cuando entren. Sin medir: una
+  ortofoto real (las teselas del piloto eran sintéticas) y un navegador con GPU de verdad.
+
+### Cambiado — oscuro más claro, fuentes vendorizadas e ilustraciones animadas (F20.3)
+
+- **El tema oscuro sube y se marca más**: fondo, superficies, bordes, anillo y texto secundario,
+  más claros (separador superficie/fondo 1,21 a 1,29; borde decorativo 1,45 a 2,0; texto atenuado
+  6,5 a 7,9:1). Medido en claro, oscuro y oscuro del sistema (`test_paleta.py`); la página `500.html`
+  sigue los mismos colores.
+- **Inter, Space Grotesk y JetBrains Mono vendorizadas** (OFL 1.1, WOFF2 variable, subconjunto latino)
+  en `static/vendor/fuentes/`, con su licencia, versión y `sha256`; `@font-face` con `font-display: swap`.
+  Nada se pide a un CDN.
+- **Cuatro ilustraciones SVG propias y animadas** (dron, curvas de nivel, ruta de vuelo, globo) en
+  `static/img/`, invocadas con `<use>` y coloreadas con los tokens. Están en el índice de vuelos, la
+  cabecera de la trayectoria, la entrada y «Ver en el mapa» sin capa. Con movimiento reducido se
+  quedan quietas y completas.
+
+### Añadido — Tino pregunta a la API pública de NVIDIA (F20.11)
+
+- **Cliente de modelo con `urllib`** (sin dependencias nuevas): `POST {base}/chat/completions` con
+  `Authorization: Bearer`, modelo `AEROCONVERT_TINO_MODELO` (vacío: `nvidia/nemotron-3.5-lightning-30b-a3b`)
+  y respaldos `AEROCONVERT_TINO_MODELOS_RESPALDO` si un modelo responde 404. Base configurable con
+  `AEROCONVERT_TINO_URL` (para un NIM autoalojado).
+- **Solo sale la pregunta escrita, limpia**: `limpiar()` quita además coordenadas (pares decimales,
+  Este/Norte UTM). Solo se llama con `TINO_VISIBLE`, clave y cuando la persona pulsa «Preguntar fuera»
+  (nunca con cada tecla); la pantalla enseña lo que salió.
+- **Apagado con motivo** (`sin-clave-ia`, `ia-no-disponible`) ante falta de clave, 401, 429, 5xx o
+  plazo: Tino sigue con lo que sabe sin salir del equipo. La clave no se registra ni se muestra.
+- **Endurecido tras la revisión:** sin redirecciones (la clave no sigue un `Location`), `https` salvo
+  loopback, plazo total y lectura con tope; «Preguntar fuera» es un POST con CSRF y con tope por persona
+  (`ia-limite`); `limpiar()` quita además grados-minutos-segundos, decimales con coma, miles con punto,
+  rutas con espacios, Unix y relativas y más extensiones (un nombre sin extensión no se puede detectar y
+  la pantalla lo dice); el ajuste se llama `TINO_API_KEY` (`AEROCONVERT_TINO_API_KEY`) para que Django lo
+  oculte; motivos `ia-apagada` e `ia-sin-pregunta`; las pruebas bloquean toda red que no sea el servidor falso.
+- `manage.py tino_probar`: lista los modelos de `GET {base}/models` y hace una pregunta de prueba.
+
 ## [0.13.0] — 2026-10-09
 
 Mapa en `/mapa/` con ortofotos por teselas, terreno, varias capas y mapa base de la casa; vuelos de dron con RTK, ficha EXIF y trayectoria con RTKLIB, en su propia app; alturas elipsoidal y ortométrica con geoide declarado; escanear con el teléfono y libro EPUB; dirección visual «Plan de vuelo»; el corredor de trabajos partido sin cambiar comportamiento, y un original que cambia durante el trabajo lo deja en error. Los pasos del despliegue están en `HANDOFF.md`.

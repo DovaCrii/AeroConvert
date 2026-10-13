@@ -10,7 +10,7 @@ se reescribió para las reglas nuevas en vez de borrarse. Las reglas nuevas sigu
 - sombras **solo** con los tokens `--av-elev-*` (o anillos sin difuminado);
 - al pasar el ratón, **como mucho** `translateY(-3px)`, y siempre con transición de 150 a 300 ms;
 - todo movimiento se apaga con `prefers-reduced-motion`;
-- ninguna tipografía se descarga: pilas del sistema.
+- las tipografías están vendorizadas (OFL, `static/vendor/fuentes/`): ninguna se pide a un CDN.
 
 Estas pruebas leen `static/css/app.css` tal cual: lo que el navegador va a recibir.
 """
@@ -334,10 +334,30 @@ def test_toda_animacion_infinita_tiene_su_corte_con_movimiento_reducido():
 # --- Tipografía y adornos: nada se descarga ----------------------------------------------------
 
 
-def test_no_se_descarga_ninguna_tipografia_ni_nada_de_fuera():
-    """Descargar exige el permiso de la persona. Las OFL (Space Grotesk, Inter, JetBrains Mono) se
-    vendorizarían con SRI cuando lo autorice: hasta entonces, pilas del sistema."""
-    assert "@font-face" not in SIN_COMENTARIOS
+def test_las_tipografias_estan_vendorizadas_y_no_se_descarga_nada_de_fuera():
+    """Inter, Space Grotesk y JetBrains Mono (OFL) viven en `static/vendor/fuentes/`, cada una con
+    su licencia al lado y su fila en el README. Ninguna URL del CSS sale del origen."""
+    carpeta = RAIZ / "static" / "vendor" / "fuentes"
+    familias = {
+        "Inter": "inter-latin-wght-normal.woff2",
+        "Space Grotesk": "space-grotesk-latin-wght-normal.woff2",
+        "JetBrains Mono": "jetbrains-mono-latin-wght-normal.woff2",
+    }
+    leyenda = (carpeta / "README.md").read_text(encoding="utf-8")
+    for familia, archivo in familias.items():
+        ruta = carpeta / archivo
+        assert ruta.is_file(), f"falta {archivo}"
+        assert ruta.read_bytes()[:4] == b"wOF2", f"{archivo} no es un WOFF2"
+        licencia = carpeta / archivo.replace("-latin-wght-normal.woff2", "-OFL.txt")
+        assert "SIL Open Font License" in licencia.read_text(encoding="utf-8")
+        assert archivo in leyenda, f"{archivo} no está en el README de las fuentes"
+        bloque = re.search(
+            r"@font-face\s*\{[^{}]*font-family:\s*\"" + re.escape(familia) + r"\"[^{}]*\}",
+            SIN_COMENTARIOS,
+        )
+        assert bloque, f"falta el @font-face de {familia}"
+        assert "font-display: swap" in bloque.group(0)
+        assert f"../vendor/fuentes/{archivo}" in bloque.group(0)
     assert "@import" not in SIN_COMENTARIOS
     assert not re.search(r"url\(\s*[\"']?(https?:)?//", SIN_COMENTARIOS)
 
@@ -379,6 +399,87 @@ def test_la_escena_de_la_entrada_es_propia_y_no_se_anuncia():
     assert "style=" not in escena
     reglas = [c for h, c in _reglas() if ".escena" in h and "fill:" in c]
     assert reglas and all("#" not in c for c in reglas), "colores escritos a mano en la escena"
+
+
+# --- Las ilustraciones animadas (F20.3, D9) ----------------------------------------------------
+
+DIBUJOS = ("dron", "curvas-animadas", "ruta-de-vuelo", "globo")
+
+
+def _ruta_del_recorrido(texto: str) -> str:
+    return re.search(r'id="ruta-trazo"[^>]*\sd="([^"]+)"', texto).group(1)
+
+
+def test_los_dibujos_son_svg_validos_propios_y_sin_color_escrito_a_mano():
+    """Solo geometría: el color y el movimiento son de `app.css`, así que siguen al tema. Sin
+    estilos, sin colores, sin `<image>` ni URL de fuera (nada de logos ni marcas de terceros)."""
+    for nombre in DIBUJOS:
+        texto = (RAIZ / "static" / "img" / f"{nombre}.svg").read_text(encoding="utf-8")
+        raiz = ET.fromstring(texto)
+        assert raiz.tag.endswith("svg"), nombre
+        sin_comentarios = re.sub(r"<!--.*?-->", "", texto, flags=re.DOTALL)
+        assert "style=" not in sin_comentarios and "<style" not in sin_comentarios, nombre
+        assert "<image" not in sin_comentarios and "<script" not in sin_comentarios, nombre
+        assert not re.search(r"#[0-9a-fA-F]{3,6}\b|rgb\(|hsl\(", sin_comentarios), nombre
+        assert "http" not in sin_comentarios.replace("http://www.w3.org/2000/svg", ""), nombre
+        assert re.findall(r'\bid="([a-z-]+)"', sin_comentarios), f"{nombre} no define nada"
+
+
+def test_cada_dibujo_que_usan_las_plantillas_existe_en_su_archivo():
+    definidos: set[str] = set()
+    for nombre in DIBUJOS:
+        texto = (RAIZ / "static" / "img" / f"{nombre}.svg").read_text(encoding="utf-8")
+        definidos |= set(re.findall(r'\bid="([a-z-]+)"', texto))
+    usados: set[str] = set()
+    for ruta in [*sorted((RAIZ / "templates" / "ilustraciones").glob("*.html"))]:
+        usados |= set(re.findall(r"\}\}#([a-z-]+)", ruta.read_text(encoding="utf-8")))
+    assert usados and usados <= definidos, usados - definidos
+
+
+def test_las_plantillas_de_ilustracion_solo_invocan_dibujos_y_se_ocultan_a_lectores():
+    carpeta = RAIZ / "templates" / "ilustraciones"
+    plantillas = sorted(carpeta.glob("_banner_*.html"))
+    assert len(plantillas) == 2
+    for ruta in plantillas:
+        texto = ruta.read_text(encoding="utf-8")
+        assert 'aria-hidden="true"' in texto.split("il-banner", 1)[1][:120], ruta.name
+        assert "style=" not in texto and "<text" not in texto, ruta.name
+    for ruta in sorted(carpeta.glob("*.html")):
+        texto = re.sub(
+            r"\{% comment %\}.*?\{% endcomment %\}",
+            "",
+            ruta.read_text(encoding="utf-8"),
+            flags=re.DOTALL,
+        )
+        assert not re.search(r"<(path|circle|rect|line|ellipse|polygon)\b", texto), ruta.name
+        assert 'href="http' not in texto, ruta.name
+
+
+def test_el_recorrido_del_dron_en_el_css_es_el_del_dibujo_de_la_ruta():
+    ruta = _ruta_del_recorrido(
+        (RAIZ / "static" / "img" / "ruta-de-vuelo.svg").read_text(encoding="utf-8")
+    )
+    css = re.search(r"\.il-dron-ruta\s*\{[^}]*offset-path:\s*path\(\"([^\"]+)\"\)", SIN_COMENTARIOS)
+    assert css and css.group(1) == ruta
+
+
+def test_el_recorrido_del_dron_de_la_entrada_es_el_de_su_ruta():
+    plantilla = (RAIZ / "templates" / "core" / "entrar.html").read_text(encoding="utf-8")
+    ruta = re.search(r'class="escena-ruta" d="([^"]+)"', plantilla).group(1)
+    css = re.search(
+        r"\.escena-dron-ruta\s*\{[^}]*offset-path:\s*path\(\"([^\"]+)\"\)", SIN_COMENTARIOS
+    )
+    assert css and css.group(1) == ruta
+
+
+def test_con_movimiento_reducido_las_ilustraciones_se_quedan_en_su_estado_completo():
+    ultimo = SIN_COMENTARIOS[SIN_COMENTARIOS.rindex("@media (prefers-reduced-motion: reduce)") :]
+    assert '[class*="il-"]' in ultimo and ".escena-dron-ruta" in ultimo
+    assert re.search(r"animation:\s*none\s*!important", ultimo)
+    # Y sin animar, lo que se ve es completo: la ruta no queda con su trazo escondido.
+    for selector in (".il-ruta-trazo", ".il-disparos"):
+        cuerpo = next(c for h, c in _reglas() if selector in _selectores(h))
+        assert "stroke-dashoffset: 0" in cuerpo, selector
 
 
 def test_los_adornos_de_la_zona_de_soltar_no_se_anuncian():

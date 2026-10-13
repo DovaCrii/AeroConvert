@@ -130,13 +130,9 @@
       <circle class="escena-hito" cx="120" cy="82" r="5"/>
       <circle class="escena-hito" cx="300" cy="90" r="5"/>
       <circle class="escena-hito" cx="470" cy="50" r="5"/>
-      <g transform="translate(300 66) scale(1.6)">
-        <g class="escena-dron">
-          <path d="M-16 0 H16 M-16 0 V-6 M16 0 V-6 M-20 -6 H-12 M12 -6 H20"/>
-          <rect x="-7" y="-3" width="14" height="8" rx="3"/>
-          <circle cx="0" cy="9" r="2"/>
-        </g>
-      </g>
+      {# F20.3: el globo con retícula arriba a la izquierda, y el dron (con las hélices girando) que recorre la ruta. #}
+      <g transform="translate(52 52) scale(.34)">{% include "ilustraciones/_globo.html" %}</g>
+      <g class="escena-dron-ruta"><g transform="scale(.36)">{% include "ilustraciones/_dron.html" %}</g></g>
     </svg>
   </div>
 </div>

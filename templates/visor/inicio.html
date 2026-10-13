@@ -391,6 +391,8 @@
   </div>
 
 {% else %}
+  {# F20.3: sin capa elegida, la franja del globo. Solo adorno. #}
+  {% include "ilustraciones/_banner_globo.html" %}
   <form id="forma-mapa" method="get" action="{% url 'visor:inicio' %}">
     <input type="hidden" name="ruta" value="">
 

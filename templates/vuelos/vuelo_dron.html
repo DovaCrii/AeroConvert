@@ -19,6 +19,8 @@
   `.vuelo-solo-fotos` y `.vuelo-con-trayectoria`, la que se oculta con las fotos RTK; con `:has()` en
   `app.css`). Los números de los pasos los pone el CSS, así que no se cuentan a mano.
 {% endcomment %}
+{# F20.3: solo la franja de arriba; los pasos de abajo no cambian. #}
+{% include "ilustraciones/_banner_ruta.html" with variante="compacta" %}
 <form method="post" id="forma-documento" enctype="multipart/form-data" autocomplete="off"
       class="vuelo-layout">
   {% csrf_token %}

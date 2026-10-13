@@ -6,6 +6,8 @@ app_name = "visor"
 
 urlpatterns = [
     path("", views.inicio, name="inicio"),
+    # Piloto de globo 3D con CesiumJS vendorizado (F20.9).
+    path("3d/", views.mapa_3d, name="mapa-3d"),
     path("capa/", views.capa, name="capa"),
     path("punto/", views.punto, name="punto"),
     path("perfil/", views.perfil, name="perfil"),

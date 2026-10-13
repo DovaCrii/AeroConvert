@@ -320,6 +320,34 @@ MOTIVOS: dict[str, Motivo] = dict(
             "Quien administra el equipo lo corrige en AEROCONVERT_VISOR_MAPA_BASE. Mientras tanto "
             "el fondo es la retícula de coordenadas.",
         ),
+        _m(
+            "sin-clave-ia",
+            "Preguntar fuera está apagado: falta la clave de la API.",
+            "Tino contesta lo que esta máquina sabe. Quien administra el equipo pone "
+            "AEROCONVERT_TINO_API_KEY en el .env del servidor.",
+        ),
+        _m(
+            "ia-apagada",
+            "Preguntar fuera está apagado: Tino no está encendido o no se dijo a quién preguntar.",
+            "Tino contesta lo que esta máquina sabe. Se enciende con AEROCONVERT_TINO_VISIBLE.",
+        ),
+        _m(
+            "ia-sin-pregunta",
+            "No queda nada que preguntar: lo que usted escribió eran rutas, nombres o "
+            "coordenadas, y eso no sale de este equipo.",
+            "Escriba la pregunta sin ellos, por ejemplo «¿qué sistema de referencia usa Chile?».",
+        ),
+        _m(
+            "ia-limite",
+            "Ya hizo las consultas que se permiten por minuto o por día.",
+            "Espere un minuto. Mientras tanto Tino sigue contestando lo que esta máquina sabe.",
+        ),
+        _m(
+            "ia-no-disponible",
+            "El servicio de fuera no contestó (clave rechazada, límite de uso, caída o plazo).",
+            "Tino contesta con lo que esta máquina sabe. Pruebe más tarde, o que quien "
+            "administra corra «manage.py tino_probar».",
+        ),
     ]
 )
 

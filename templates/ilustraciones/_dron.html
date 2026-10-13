@@ -1,0 +1,19 @@
+{% load static %}{% comment %}
+  El dron de las ilustraciones (F20.3), centrado en el origen y de 200 x 100 unidades. Se incluye
+  dentro de un `<svg aria-hidden="true">` y quien lo usa lo coloca y lo escala con un `<g>` aparte.
+  Solo hay `<use>` del dibujo de `static/img/dron.svg`: los colores y el giro de las hélices son
+  de `app.css` (clases `il-*`). Las dos hélices de atrás van antes del cuerpo y las dos de delante,
+  después; cada una se aplana (`scale(1 .3)`) porque se ve en tres cuartos.
+{% endcomment %}{% static 'img/dron.svg' as dron %}
+<g class="il-dron-flota">
+  <use class="il-dron-sombra" href="{{ dron }}#dron-sombra"/>
+  <g class="il-dron">
+    <g transform="translate(-60 -24) scale(1 .3)"><use class="il-disco" href="{{ dron }}#dron-disco"/><use class="il-helice il-helice-a" href="{{ dron }}#dron-helice"/></g>
+    <g transform="translate(60 -24) scale(1 .3)"><use class="il-disco" href="{{ dron }}#dron-disco"/><use class="il-helice il-helice-b" href="{{ dron }}#dron-helice"/></g>
+    <use class="il-dron-cuerpo" href="{{ dron }}#dron-cuerpo"/>
+    <use class="il-dron-acento" href="{{ dron }}#dron-acento"/>
+    <use class="il-dron-lente" href="{{ dron }}#dron-lente"/>
+    <g transform="translate(-72 22) scale(1.15 .34)"><use class="il-disco" href="{{ dron }}#dron-disco"/><use class="il-helice il-helice-c" href="{{ dron }}#dron-helice"/></g>
+    <g transform="translate(72 22) scale(1.15 .34)"><use class="il-disco" href="{{ dron }}#dron-disco"/><use class="il-helice il-helice-d" href="{{ dron }}#dron-helice"/></g>
+  </g>
+</g>

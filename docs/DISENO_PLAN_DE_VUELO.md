@@ -73,8 +73,10 @@ difuminado (`0 0 0 2px …`, el halo, el filo del campo) sí se pueden escribir.
 
 ## La tipografía
 
-**No se ha descargado nada** (descargar exige el permiso de la persona). Las pilas son del sistema,
-con el nombre de la familia libre por delante:
+**Vendorizadas desde F20.3** (D9; la persona autorizó la descarga el 2026-10-13): tres WOFF2
+variables de subconjunto latino en `static/vendor/fuentes/`, cada una con su licencia OFL al lado y
+su origen, versión y `sha256` en el `README.md` de esa carpeta. Los `@font-face` están al principio de
+`app.css`, con `font-display: swap`. Si el archivo no llega, la pila cae a la del sistema:
 
 | Uso | Pila |
 | --- | --- |
@@ -82,10 +84,49 @@ con el nombre de la familia libre por delante:
 | Titulares | `Space Grotesk`, `Bahnschrift`, `Segoe UI Variable Display`, `Segoe UI`, `system-ui`… |
 | Cifras | `JetBrains Mono`, `ui-monospace`, `Cascadia Mono`, `Consolas`, `monospace` |
 
-**Space Grotesk, Inter y JetBrains Mono son OFL 1.1.** Cuando la persona lo autorice se
-vendorizarían en WOFF2 (una variable por familia, unos 140 KB en total) en `static/vendor/` con SRI,
-y bastaría un `@font-face`: las pilas ya los nombran primero. Hasta entonces `test_plano.py` falla
-si aparece un `@font-face`, un `@import` o una dirección de fuera en la hoja.
+**Space Grotesk, Inter y JetBrains Mono son OFL 1.1** (unos 110 KB en total). `test_plano.py`
+exige que los tres archivos estén, que sean WOFF2, que cada uno tenga su licencia y su fila en el
+README, y que ningún `@import` ni dirección de fuera aparezca en la hoja.
+
+## Las ilustraciones animadas (F20.3)
+
+La persona pidió más imágenes y movimiento al estilo de los drones y de un globo de cartografía.
+Cuatro dibujos propios (sin logos ni marcas de nadie) en `static/img/`: `dron.svg` (multirrotor en
+tres cuartos, con hélices que giran), `curvas-animadas.svg` (tres cerros que se desplazan),
+`ruta-de-vuelo.svg` (pasadas, puntos de ruta y disparos de cámara) y `globo.svg` (esfera, paralelos,
+meridianos que giran, anillo graduado, mira y satélite en órbita).
+
+- **Solo geometría en el archivo; color y movimiento en `app.css`.** Las plantillas
+  (`templates/ilustraciones/`) los invocan con `<use>`, y las propiedades heredadas (`fill`, `stroke`,
+  `stroke-dasharray`) cruzan el `<use>`: por eso siguen al tema por los tokens `--av-*`. Una imagen
+  `<img>` no lo haría.
+- **Dónde:** franja de la ruta en el índice de vuelos y como cabecera de la pantalla de trayectoria
+  (`variante="compacta"`); franja del globo en «Ver en el mapa» sin capa; la escena de la entrada con
+  el globo y el dron recorriendo su ruta.
+- **Movimiento:** el trazo se dibuja con `stroke-dashoffset` (`pathLength="1"`), el dron lo sigue con
+  `offset-path` en el mismo reloj; el recorrido está escrito en el CSS y en el dibujo, y una prueba
+  comprueba que coinciden. Todo `il-*` es adorno (`aria-hidden`).
+- **Movimiento reducido:** el último bloque `prefers-reduced-motion` pone `animation: none` a toda
+  `il-*`; el estado sin animar es el completo (ruta dibujada, dron en la ruta, hélices quietas).
+
+## El oscuro, más claro (F20.3)
+
+La persona vio la interfaz «muy oscura y con poco contraste». Las superficies del oscuro suben y los
+bordes se marcan (las dos copias del bloque, la de `data-theme="dark"` y la del sistema):
+
+| Token | Antes | Ahora |
+| --- | --- | --- |
+| `--av-bg` | `#0e141d` | `#1c2431` |
+| `--av-surface` | `#1c2634` | `#2b3748` |
+| `--av-surface-alt` | `#24303f` | `#384658` |
+| `--av-border` | `#334054` | `#55647c` |
+| `--av-border-control` | 3,9:1 sobre la superficie | 4,8:1 sobre la superficie |
+| texto secundario / atenuado | 8,9 y 6,5:1 | 9,5 y 7,9:1 sobre la superficie |
+
+El texto principal baja de 13,5 a 11,4:1 sobre la superficie (sigue muy por encima del 4,5:1). El
+separador superficie/fondo pasa de 1,21 a 1,29 y el borde decorativo contra la superficie, de 1,45 a
+2,0. `test_paleta.py` mide todo en claro, oscuro y oscuro del sistema; se añadieron las curvas de nivel
+(2:1) y el borde decorativo (1,25:1).
 
 Las **cifras en monoespaciada** son las de las lecturas: la cifra de cada tira de Compatibilidad,
 las versiones de los motores, las fichas, los recibos, el avance de una subida, el número de cada
