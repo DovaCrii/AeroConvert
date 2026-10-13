@@ -15,6 +15,25 @@ archivo es el tablero. `HANDOFF.md` solo lo apunta.
 fusiones con el CI verde. **La persona solo despliega en la VM `p340`, y lo hace al final de todo**
 (o cuando ella lo diga). Esta skill **nunca** despliega ni toca el servidor.
 
+## Reparto de modelos (decidido el 2026-10-09 y el 2026-10-13)
+
+**Coordina Opus con esfuerzo medio**: elige la fila, escribe el encargo, revisa lo que vuelve, resuelve
+las fusiones con `main` y habla con la persona. **No implementa filas grandes él mismo.** Cada agente
+se lanza con `effort: "medium"` y, si escribe código, con `isolation: "worktree"`.
+
+| Agente (`.claude/agents/`) | Modelo | Cuándo |
+| --- | --- | --- |
+| `explorador` | Haiku | Antes de planificar o renombrar: dónde vive algo y qué pruebas lo fijan |
+| `investigador` | Sonnet | Antes de adoptar una biblioteca, un servicio o el flujo de otro producto |
+| `implementador` | Sonnet | Cada fila de código, en su rama y worktree; deja commit sin push |
+| `disenador` | Sonnet | Tokens, contraste, tipografía, ilustraciones y maquetas |
+| `revisor-de-reglas` | Sonnet | Filas que tocan motores, firmas, datos sensibles o permisos |
+| `fusionador-de-pr` | Haiku | Esperar el CI **del commit de cabeza** y fusionar en verde |
+
+Varias filas independientes van **en paralelo**, cada una en su worktree. Antes de subir cada una:
+`scripts/claude/fusionar_main.py` dentro de su worktree, la suite y el push; los PR se fusionan de uno
+en uno y el siguiente vuelve a traer `main`.
+
 ## El ciclo
 
 1. **Ponerse al día.** Leer `HANDOFF.md` y `docs/planes/SEGUIMIENTO.md`; `git checkout main && git
@@ -116,6 +135,12 @@ usado), y **entregarle a la persona la lista para desplegar**. Ella la ejecuta; 
   de uno en uno, no en paralelo.
 - `ruff` y `bandit` miran cosas distintas: `try/except/pass` (B110) y `xml.sax.saxutils` (B406) los
   caza solo `bandit`.
+- **Lo que pasa en Windows tiene que pasar en Linux** (CI y p340): tres PR quedaron en rojo el
+  2026-10-09 por una ruta de Windows que `os.path.basename` no parte en Linux y por archivos de prueba
+  escritos con CRLF. Archivos de prueba con `newline="\n"`; rutas partidas por `\` y `/`.
+- `[IO.File]::ReadAllText("ruta/relativa")` resuelve desde el directorio del **proceso**, no desde
+  `Push-Location`: en un worktree, rutas absolutas.
+- El puerto 8765 a veces lo ocupa otro proyecto (AeroAcademy): para mirar pantallas, otro puerto.
 - `.claude/rules/` ya recoge las reglas de interfaz, de motores y de plan; léalas antes de tocar
   una pantalla o un motor.
 
