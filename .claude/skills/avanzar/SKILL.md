@@ -1,25 +1,24 @@
 ---
 name: avanzar
-description: Avanza el plan F13 a F16 de AeroConvert por bloques - elige la siguiente fila sin bloqueo, la hace con su oráculo, corre la suite completa, abre el PR, espera el CI, fusiona y deja el seguimiento al día. Lo que necesita de la persona lo anota y sigue con lo que sí puede. Despliegue solo al final.
+description: Avanza el plan de AeroConvert por bloques - elige filas sin bloqueo, las encarga en paralelo a los agentes según el modelo que toque, revisa lo que vuelve y lo publica con /publicar. Lo que necesita de la persona lo anota y sigue con lo que sí puede. Despliegue solo al final.
 disable-model-invocation: true
-argument-hint: "[bloque o fila, p. ej. B1, F13.10; vacío = lo siguiente sin bloqueo]"
+argument-hint: "[bloque o fila, p. ej. B16, F21.5; vacío = lo siguiente sin bloqueo]"
 ---
 
-# Avanzar el plan por bloques
+# Avanzar el plan
 
-El plan está en `docs/planes/PLAN_2026-10-07.md` y sus filas en `MASTER_PLAN.md` (F13 a F16). **El
-estado por bloques y lo que se le pide a la persona viven en `docs/planes/SEGUIMIENTO.md`**: ese
-archivo es el tablero. `HANDOFF.md` solo lo apunta.
+El plan está en `MASTER_PLAN.md` (por filas: `python scripts/claude/plan_fila.py F21.5 --seccion` y
+`--abiertas`) y **el estado por bloques y lo que se le pide a la persona viven en
+`docs/planes/SEGUIMIENTO.md`**. `HANDOFF.md` solo lo apunta.
 
-**Quién hace qué (decidido el 2026-10-07):** Claude hace ramas, commits, push, PR, revisión y
-fusiones con el CI verde. **La persona solo despliega en la VM `p340`, y lo hace al final de todo**
-(o cuando ella lo diga). Esta skill **nunca** despliega ni toca el servidor.
+**Quién hace qué:** Claude hace ramas, commits, push, PR, revisión y fusiones con el CI verde. **La persona
+solo despliega en `p340`**, al final o cuando lo diga. Esta skill **nunca** despliega ni toca el servidor.
 
-## Reparto de modelos (decidido el 2026-10-09 y el 2026-10-13)
+## Reparto de modelos
 
-**Coordina Opus con esfuerzo medio**: elige la fila, escribe el encargo, revisa lo que vuelve, resuelve
-las fusiones con `main` y habla con la persona. **No implementa filas grandes él mismo.** Cada agente
-se lanza con `effort: "medium"` y, si escribe código, con `isolation: "worktree"`.
+**Coordina Opus con esfuerzo medio** (o el modelo que la persona fije): elige la fila, escribe el encargo,
+revisa lo que vuelve, resuelve las fusiones con `main` y habla con la persona. **No implementa filas grandes
+él mismo.** Cada agente se lanza con `effort: "medium"` y, si escribe código, con `isolation: "worktree"`.
 
 | Agente (`.claude/agents/`) | Modelo | Cuándo |
 | --- | --- | --- |
@@ -27,125 +26,59 @@ se lanza con `effort: "medium"` y, si escribe código, con `isolation: "worktree
 | `investigador` | Sonnet | Antes de adoptar una biblioteca, un servicio o el flujo de otro producto |
 | `implementador` | Sonnet | Cada fila de código, en su rama y worktree; deja commit sin push |
 | `disenador` | Sonnet | Tokens, contraste, tipografía, ilustraciones y maquetas |
-| `revisor-de-reglas` | Sonnet | Filas que tocan motores, firmas, datos sensibles o permisos |
+| `revisor-de-reglas` | Sonnet | Filas que tocan motores, firmas, datos sensibles, permisos o **salida de datos** |
 | `fusionador-de-pr` | Haiku | Esperar el CI **del commit de cabeza** y fusionar en verde |
-
-Varias filas independientes van **en paralelo**, cada una en su worktree. Antes de subir cada una:
-`scripts/claude/fusionar_main.py` dentro de su worktree, la suite y el push; los PR se fusionan de uno
-en uno y el siguiente vuelve a traer `main`.
 
 ## El ciclo
 
-1. **Ponerse al día.** Leer `HANDOFF.md` y `docs/planes/SEGUIMIENTO.md`; `git checkout main && git
-   pull`; `gh pr list` (no dejar un PR propio abierto sin motivo). Si el árbol tiene cambios que no
-   son suyos, **parar y preguntar**.
-2. **Elegir.** Con argumento: ese bloque o esa fila. Sin argumento: el primer bloque no terminado
-   cuya siguiente fila **no esté bloqueada** por una decisión o un dato de la persona. Detalle de una
-   fila: `python scripts/claude/plan_fila.py F13.10 --seccion`.
-3. **Rama** `codex/<fila-o-bloque>` contra `main`, **nunca apilada**. Una fila por PR; filas
-   mellizas del mismo bloque pueden ir juntas si el plan lo dice.
-4. **Hacer la fila con su oráculo.** El oráculo es **otro lector** distinto del que escribió la salida
-   (reglas 1 y 2 de `AGENTS.md`). Si no se puede correr aquí, la fila se marca ⚠ con el motivo y el
-   procedimiento manual; no se sustituye por una prueba que se da la razón a sí misma. Cada fila deja
-   **una prueba que impide volver atrás**.
-5. **Si toca una pantalla:** verla en el navegador en claro y oscuro, a 1440 y a 375 px, sin
-   desborde horizontal (`scrollWidth == innerWidth`). Servidor con `DB_PATH` y
-   `AEROCONVERT_RAICES_PERMITIDAS` apuntando a la carpeta temporal de la sesión.
-6. **Antes de subir: la puerta rápida y la suite completa.**
-   - `uv run python scripts/claude/verificar.py rapido` (check, migraciones, ruff, formato y
-     **bandit**: el CI lo cazó dos veces después de un `push` que lo habría visto en segundos). Un
-     hook (`antes_de_push.py`) la corre sola ante cada `git push` y lo bloquea si falla.
-   - La suite entera, no solo lo tocado (`$env:AEROCONVERT_GDAL_BIN=""; $env:AEROCONVERT_PDAL_BIN="";
-     uv run pytest -q --no-cov`), **en segundo plano**, esperando el aviso de que terminó. **Nada de
-     `sleep` largos.** Añadir una herramienta ya dejó un PR en rojo porque un sinónimo le quitó la
-     pregunta a otra y Tino dejó de contestar: por eso la suite entera. Para añadir una herramienta,
-     `/nueva-herramienta` trae la lista de piezas.
-   - **No cambies de rama ni hagas `git stash` mientras corre**: invalida la corrida.
-   - Si la fila toca un motor, una firma, datos sensibles o permisos, pásele el diff al agente
-     `revisor-de-reglas` antes de subir.
-7. **Documentar al cerrar la fila:** fila ✅ con fecha en `MASTER_PLAN.md`, entrada en
-   `CHANGELOG.md`, la fila del bloque en `SEGUIMIENTO.md`, y `HANDOFF.md` solo si cambia algo que
-   deba saber quien retome (≤100 líneas).
-8. **PR, revisión y fusión:** seguir `/abrir-pr`. El cuerpo va en un archivo (`--body-file`). Esperar
-   con `gh pr checks <n> --watch` (o delegarlo en el agente `fusionador-de-pr` y seguir con la fila
-   siguiente); fusionar con `gh pr merge <n> --merge` **solo con el CI verde**. **Con la rama
-   hermana abierta** (dos PR que añaden herramientas), antes de subir:
-   `uv run python scripts/claude/fusionar_main.py`: fusiona `main`, resuelve sola «los dos
-   añadieron» **validando** el resultado y deja con sus marcas `MASTER_PLAN.md`, `SEGUIMIENTO.md` y
-   `HANDOFF.md`, donde decide una persona. Después ruff y la suite, como siempre.
-   Si falla, leer `gh run view <id> --log-failed`, arreglar y volver a subir; si es la
-   infraestructura de GitHub (`not acquired by Runner`), `gh run rerun`. **Nunca** `push --force`,
-   nunca fusionar en rojo, nunca bajar `fail_under`.
-9. **Seguir, sin parar a consultar** (la persona lo pidió el 2026-10-07: «sin consultar, cuando
-   termines un bloque, hasta finalizar todo»). Al cerrar una fila o un bloque **no se detiene ni se
-   pregunta**: se vuelve al paso 1 con lo siguiente. El informe corto de abajo **se entrega una sola
-   vez, al terminar todo** (o cuando no quede ninguna fila sin bloqueo); entre bloques basta una
-   línea de estado. Lo que falte de la persona se anota como pedido y se sigue con otra fila.
+1. **Ponerse al día.** `HANDOFF.md`, `SEGUIMIENTO.md`, `git checkout main && git pull`, `gh pr list` y los
+   worktrees de `.claude/worktrees/` (ramas terminadas sin PR). Si el árbol tiene cambios que no son suyos,
+   **parar y preguntar**.
+2. **Elegir** las filas cuya siguiente tarea **no esté bloqueada** por un dato o una decisión de la persona.
+   Varias independientes van **en paralelo**; las que tocan los mismos archivos, una tras otra.
+3. **Encargar.** Un agente por fila, con la plantilla de `.claude/agents/ENCARGO.md` (rol, rama
+   `codex/<fila>` desde `origin/main`, la fila y su oráculo, qué devolver). Las piezas repetidas están en
+   skills: `/nuevo-motor`, `/nueva-herramienta`, `/refactor-seguro`, `/mirar-pantalla`.
+4. **Revisar lo que vuelve.** Lea el resumen **y** el diff; lo que los agentes dan por hecho se comprueba
+   (suite, pantallas, oráculo). Si toca motores, datos sensibles o salida a internet:
+   `revisor-de-reglas`, y lo que encuentre vuelve al mismo agente.
+5. **Publicar** con `/publicar <rama>`: trae `main`, marca la fila, suite completa, PR y `fusionador-de-pr`.
+6. **Seguir.** Al terminar un bloque, el informe corto: filas cerradas con su PR, **pedidos a la persona
+   arriba**, lo que no se pudo comprobar aquí (queda para `p340`), y los PR sin desplegar.
 
 ## Cuando hace falta algo de la persona
 
-**No se detiene el avance por eso.** Se hace esto, en este orden:
+**No se detiene el avance por eso.** Se anota en «Pedidos a la persona» de `SEGUIMIENTO.md` (qué, para qué
+fila, en qué forma y qué pasa si no llega), la fila queda ⏸ con su motivo, y se sigue con la siguiente que
+sí se puede. No se inventa el dato ni se elige por ella lo que es suyo. Lo que cambia lo que se hace después
+se consulta con `AskUserQuestion`.
 
-1. Escribir el pedido en la tabla «Pedidos a la persona» de `SEGUIMIENTO.md`: **qué** se necesita,
-   **para qué fila**, **en qué forma** (archivo, decisión, dato) y **qué pasa si no llega**.
-2. Marcar la fila ⏸ (espera) con el motivo; no inventar el dato ni elegir por ella lo que es suyo.
-3. **Continuar con la siguiente fila que sí se puede.** Si no queda ninguna, parar y entregar el
-   informe con los pedidos arriba del todo.
+## El final de todo
 
-Casos conocidos: aprobar la tabla de renombres (F13.2); aprobar el reparto con Stirling (F14.0);
-plantilla J.E.J. (F14.19); puntos de control (F15.1); archivos de Deswik/Vulcan/Surpac (F15.4);
-instalar ODA (F15.8); confirmar el cierre de las ramas de F11.6 (F13.12). **No se consulta durante el
-avance**: una decisión que solo es de la persona se anota como pedido y la fila queda en espera; si
-la decisión era razonable con la recomendación del plan, se aplica **la recomendación** y se deja
-escrito en el PR que fue por omisión y cómo deshacerla.
-
-## El informe al terminar un bloque (corto)
-
-- Filas cerradas, con PR y fecha.
-- **Pedidos a la persona**, arriba y con su fila.
-- Lo que no se pudo comprobar aquí (GDAL, Office, Tesseract, ODA, FFmpeg) y queda para `p340`.
-- Cuántos PR llevan sin desplegar y el comando de despliegue de `HANDOFF.md`.
-
-## El final de todo (bloque B10)
-
-Cuando el tablero esté completo: subir la versión (`0.11.0` al cerrar F13, `0.12.0` con las firmas),
-dejar `HANDOFF.md` con los pasos exactos de la VM (migraciones nuevas, variables de `.env`,
-programas externos por instalar: FFmpeg, Ghostscript, Inkscape, veraPDF, según lo que se haya
-usado), y **entregarle a la persona la lista para desplegar**. Ella la ejecuta; después se corre
-`resumen_de_uso` y se anotan las primeras cifras.
+Subir la versión, dejar `HANDOFF.md` con los pasos exactos de la VM (migraciones, variables del `.env`,
+programas por instalar) y **entregar la lista para desplegar**. Ella la ejecuta; después, `resumen_de_uso`.
 
 ## Trampas de esta máquina (ya costaron tiempo)
 
-- La herramienta de PowerShell bloquea por falso positivo comandos con ciertos textos (`/*`, `/T`,
-  rutas que parecen de sistema). Los textos largos se escriben **con `Write` a un archivo** y se
-  aplican con un script de Python o con `Edit`; no con `-replace` en una línea.
-- `R` es un alias de PowerShell (`Invoke-History`): no se nombra así una función.
-- Un arreglo con PowerShell sobre archivos de prueba dañó tres de ellos: **cambios en código y
-  pruebas, con `Edit`** o con un script que compruebe que cada reemplazo casa.
-- El CI no tiene GDAL ni PDAL y la estación sí: variables vacías al correr `pytest`. **Tampoco tiene
-  Access** (los catálogos salen apagados) ni Office ni Tesseract: una prueba que mira lo que se ve
-  en pantalla debe **forzar los dos casos** con `monkeypatch`, no suponer que el CI es como la
-  estación (ya costó un PR en rojo, F13.1).
-- Una plantilla servida por `runserver --noreload` no se recarga: reiniciar el servidor.
-- **GitHub a veces falla al fusionar** (`HTTP 500`, «Something went wrong»): es suyo y se arregla
-  solo; reintentar a los 60 s. `gh pr checks --watch` dice «no checks reported» si se llama antes de
-  que el CI se registre: esperar 30 s y repetir.
-- Un PR que **añade herramientas** choca con el siguiente en los mismos ocho archivos (registro,
-  taxonomía, sinónimos, cola, rutas, sprite, cifras): fusionar `main` con `fusionar_main.py` y subir
-  de uno en uno, no en paralelo.
-- `ruff` y `bandit` miran cosas distintas: `try/except/pass` (B110) y `xml.sax.saxutils` (B406) los
-  caza solo `bandit`.
-- **Lo que pasa en Windows tiene que pasar en Linux** (CI y p340): tres PR quedaron en rojo el
-  2026-10-09 por una ruta de Windows que `os.path.basename` no parte en Linux y por archivos de prueba
-  escritos con CRLF. Archivos de prueba con `newline="\n"`; rutas partidas por `\` y `/`.
+- PowerShell bloquea por falso positivo comandos con ciertos textos: los textos largos se escriben con
+  `Write` a un archivo y se aplican con un script de Python o con `Edit`, no con `-replace` en una línea.
+  **Cambios en código y pruebas con `Edit`** o un script que compruebe que cada reemplazo casa.
 - `[IO.File]::ReadAllText("ruta/relativa")` resuelve desde el directorio del **proceso**, no desde
-  `Push-Location`: en un worktree, rutas absolutas.
-- El puerto 8765 a veces lo ocupa otro proyecto (AeroAcademy): para mirar pantallas, otro puerto.
-- `.claude/rules/` ya recoge las reglas de interfaz, de motores y de plan; léalas antes de tocar
-  una pantalla o un motor.
+  `Push-Location`: en un worktree, rutas absolutas. `R` es un alias de PowerShell.
+- **Lo que pasa en Windows tiene que pasar en Linux** (CI y `p340`): tres PR quedaron en rojo por una ruta de
+  Windows que `os.path.basename` no parte y por archivos de prueba con CRLF. `newline="\n"`; rutas por `\` y `/`.
+- El CI no tiene GDAL, PDAL, Access, Office ni Tesseract: variables vacías al correr `pytest` y **los dos casos
+  forzados con `monkeypatch`** en toda prueba que mire lo que se ve en pantalla.
+- Un PR que **añade herramientas** o toca el plan choca con el siguiente: `fusionar_main.py` y subir **de uno
+  en uno**. GitHub a veces falla al fusionar (`HTTP 500`): reintentar a los 60 s; `gh pr checks --watch`
+  dice «no checks reported» antes de que el CI se registre: esperar 30 s.
+- El puerto 8765 a veces lo ocupa otro proyecto (AeroAcademy): `/mirar-pantalla` usa otro puerto.
+- `ruff` y `bandit` miran cosas distintas: `try/except/pass` (B110) y `xml.sax.saxutils` (B406) los caza
+  solo `bandit`. `.claude/rules/` recoge las reglas de interfaz, motores y plan: léalas antes de tocar una
+  pantalla o un motor.
 
 ## Lo que esta skill no hace
 
-No despliega, no toca `p340`, no cambia `AGENTS.md` salvo lo que la persona ya decidió (D1), no
-instala programas del sistema, no sube datos reales (ortofotos, nubes, claves) al repositorio y no
-decide por la persona lo que está en «Lo que solo podías decidir tú».
+No despliega, no toca `p340`, no cambia `AGENTS.md` salvo lo que la persona ya decidió, no instala programas
+del sistema, no sube datos reales ni claves al repositorio y no decide por la persona lo que está en «Lo que
+solo podías decidir tú».
