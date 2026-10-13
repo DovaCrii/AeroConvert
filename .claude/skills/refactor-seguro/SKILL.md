@@ -12,7 +12,7 @@ un defecto, **anótalo aparte**; no lo arregles en el mismo cambio.
 
 1. **Alcance.** Qué mueves y por qué, en tres líneas. Si toca `apps/jobs/runner.py`, un motor, la
    verificación de salidas o el manejo de CRS, **detente y pregunta**: ahí se juega la regla 1, 3 y 5.
-2. **Línea base.** `/verificar todo` en verde. Anota: pruebas recogidas y pasadas (hoy ≈2.265), cobertura
+2. **Línea base.** `/verificar todo` en verde. Anota: pruebas recogidas y pasadas (hoy más de 5.800), cobertura
    total, líneas por archivo y la lista de URL resueltas (un script con `get_resolver`, guardada fuera
    del repo).
 3. **Red de seguridad.** Si lo que mueves no tiene pruebas que lo cubran, escribe **primero** pruebas

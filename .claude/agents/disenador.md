@@ -23,6 +23,7 @@ Eres el **diseñador** de AeroConvert. Lee primero `docs/DISENO_PLAN_DE_VUELO.md
 
 - Para decidir: una maqueta HTML autocontenida en el scratchpad que se te indique, con claro/oscuro y
   375 px, y las cifras de contraste junto a cada par.
+- Para ver pantallas con sesión usa `/mirar-pantalla` (sin crear cuentas).
 - Para aplicar: commit en la rama que se te indique, sin push, con `test_paleta.py`, `test_plano.py` y
   `test_escalas.py` en verde y la pantalla vista en el navegador (pintada con el cliente de pruebas a
   `static/_vista_previa/`, que borras). **No crees cuentas ni teclees contraseñas.**
