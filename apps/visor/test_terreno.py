@@ -218,6 +218,18 @@ class TestLaEscalaDelSombreado:
         )
         assert ficha.escala_sombreado == 111120.0
 
+    def test_en_grados_sin_unidad_vertical_se_suponen_metros_como_hace_gdal(self):
+        from pyproj import CRS
+
+        ficha = _ficha_de(
+            info_de_dem(
+                wkt=CRS.from_epsg(4326).to_wkt(),
+                geotransform=[-70.0, 0.0001, 0, -33.0, 0, -0.0001],
+                unidad=None,
+            )
+        )
+        assert ficha.escala_sombreado == 111120.0
+
 
 class TestLaRampa:
     def test_va_del_minimo_al_maximo_y_es_creciente(self):

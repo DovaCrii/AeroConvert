@@ -1071,3 +1071,72 @@ cd /opt/aeroconvert && sudo -u aeroconvert .venv/bin/python -m pytest -q -m orac
 La prueba pide el PDF con reconocimiento sobre esa misma hoja y **PDFium** (otro lector) busca
 «CONTROL» y «7391» en la capa de texto que escribió Tesseract. Anotar aquí la fecha, la versión de
 Tesseract y el idioma usado.
+
+
+## Corrida del 2026-10-13 — Procesar: recorte, mosaico y sombreado contra GDAL y PDAL (F21.3)
+
+GDAL 3.12.4 y PDAL 2.10.0 (QGIS 4.0.2). `uv run pytest -m oraculo apps/raster/test_procesar.py
+apps/pointcloud/test_recorte.py`: **21 pruebas contra GDAL y 8 contra PDAL, todas en verde**. Todos los
+datos son **sintéticos y de resultado conocido**; el oráculo es `gdalinfo -json -stats` y
+`pdal info --summary` (otro programa que el que procesó), y las cifras de comparación salen de una
+fórmula del propio test, no de la salida.
+
+### 1. Recorte de ráster
+
+Un GeoTIFF Float32 de 100 × 100 píxeles de 1 m en EPSG:32719, donde el píxel de la fila `r` (0 = norte) y la
+columna `c` vale `1000·r + c`:
+
+- **Rectángulo** (495020…495060 este, 7318030…7318070 norte): salida de **40 × 40**, esquina superior
+  izquierda (495020, 7318070), mínimo **30020**, máximo **69059** y media **49539,5**, que son la fórmula
+  (filas 30…69, columnas 20…59). Una sola banda: el original declara «sin dato».
+- **Triángulo corrido un cuarto de píxel** (la hipotenusa en `x + y = 100,25`): entra el píxel si su
+  centro cae dentro, es decir `c ≤ r`: **5050** de 10 000. Con «sin dato» declarado, `STATISTICS_VALID_PERCENT`
+  = 50,5 y la media de los válidos coincide con la calculada; sin «sin dato», sale una **banda alfa** cuya media
+  es 255 × 0,505.
+- **El mismo rectángulo dado en grados** (EPSG:4326, vértices llevados con `pyproj`): 40 × 40 y la misma media.
+- **Un Shapefile con su `.prj`** recorta igual; **sin `.prj`**, el trabajo se detiene con `crs-ausente`. (Un
+  GeoJSON no sirve para esta prueba: GDAL lo lee como EPSG:4326 por la norma aunque diga `"crs": null`.)
+- **Hallazgo:** `gdalwarp -crop_to_cutline` con el polígono corrido un cuarto de píxel dejó **100 × 99** (perdió
+  el último renglón, que sí estaba dentro). Por eso el motor calcula `-te` y `-tr` sobre la retícula del original.
+- **COG:** `LAYOUT=COG` en `gdalinfo`; sin `.parcial`, sin `.aux.xml`, sin `.vrt` al lado.
+
+### 2. Mosaico
+
+Dos mitades de 50 × 100 (valor 1000 y valor 2000): el COG mide **100 × 100**, con la esquina en (495000,
+7318100) y (495100, 7318000), mínimo 1000, máximo 2000, media **1500**, EPSG:32719. Donde se solapan gana la
+última entrada (media 1500 con una base de 1000 y una mitad de 2000 encima). Con un hueco de 20 px entre las dos,
+`VALID_PERCENT` = **80** y el mínimo sigue en 1000 (un cero del hueco lo habría bajado). Con una mitad en
+EPSG:32718, el trabajo se detiene con `crs-distintos`.
+
+### 3. Sombreado
+
+Un plano `z = pendiente·este` (pendiente constante, aspecto 270°): la iluminación es una sola constante,
+`255·(cos Z·cos S + sen Z·sen S·cos(Az − A))` con `Z = 90° − altura`. El interior (2 px adentro de cada borde,
+porque `-compute_edges` extrapola) da exactamente la fórmula, **±1 nivel**, en cuatro casos: (45°, 315°, ×1),
+(30°, 270°, ×1), (30°, 270°, ×2) y (60°, 90°, ×1). El tamaño y la georreferencia de la salida son los del modelo,
+de 8 bits. Una imagen de tres bandas no se sombrea (`error-del-motor`) y un modelo sin CRS se detiene
+(`crs-ausente`).
+
+### 4. Recorte de nube
+
+Rejilla de 20 × 20 puntos enteros (`x = 495000 + i`, `y = 7318000 + j`, `z = i + j`), hecha con
+`pdal translate` desde un texto: `pdal info --summary` ve 400 puntos. Un rectángulo de bordes en medios enteros
+deja **24** (6 × 4), con límites x 495005…495010, y 7318003…7318006, z 8…16 y el SRS 32719; un triángulo, los
+**55** que da `i + j ≤ 9`; el mismo polígono en grados, 24; COPC, 24. Un polígono en (0, 0) deja el trabajo en
+error con `recorte-vacio` y sin salida; una nube sin SRS, `crs-ausente`.
+
+### 5. El original quedó intacto
+
+En cada camino de fallo (CRS ausente, CRS inválido, polígono sin área, polígono fuera de la imagen, modelo sin
+CRS, mosaico de CRS distintos, imagen en lugar de modelo) `sha256` y `mtime` del original son los de antes y no
+queda un `.parcial`. En el mosaico, además, cada entrada guarda su huella antes de procesar y `verificar` la
+compara (`original-modificado`).
+
+### Lo que no se pudo correr
+
+- La **pantalla** de Procesar y su vista en claro y oscuro: no se hizo (la navegación por módulos es F21.1).
+- El **MDE desde una nube** (`writers.gdal`), el **color por cota** como herramienta y los **perfiles de
+  programa** para estas salidas: sin hacer.
+- **Linux (p340):** las pruebas del plan y de las paradas no dependen de la plataforma; las de oráculo se
+  corrieron solo en Windows con QGIS 4.0.2.
+

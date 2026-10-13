@@ -185,31 +185,14 @@ def fuente_de_sombra(ruta: Path, capa: Capa, clave: str, modo: Modo) -> Path:
         try:
             motor.correr(
                 "gdaldem",
-                [
-                    "hillshade",
-                    str(ruta),
-                    str(parcial),
-                    "-q",
-                    "-of",
-                    "GTiff",
-                    "-b",
-                    "1",
-                    "-compute_edges",
-                    "-z",
-                    repr(modo.exageracion_z),
-                    "-s",
-                    repr(capa.escala_sombreado),
-                    "-az",
-                    str(modo.azimut_deg),
-                    "-alt",
-                    str(modo.altura_deg),
-                    # **Solo DEFLATE, sin `TILED=YES`**: el oráculo lo vio (GDAL 3.12.4,
-                    # 2026-10-09): con las dos opciones juntas `gdaldem hillshade` dejaba 24
-                    # celdas distintas junto a un hueco de «sin dato» (media 185,831 contra
-                    # 185,919 sin ellas). Por franjas y comprimido da lo mismo que sin opciones.
-                    "-co",
-                    "COMPRESS=DEFLATE",
-                ],
+                dem.argumentos_de_sombreado(
+                    ruta,
+                    parcial,
+                    azimut_deg=modo.azimut_deg,
+                    altura_deg=modo.altura_deg,
+                    exageracion_z=modo.exageracion_z,
+                    escala=capa.escala_sombreado,
+                ),
                 plazo_s=motor.PLAZO_SOMBREADO_S,
             )
             _verificar_sombreado(parcial, capa)

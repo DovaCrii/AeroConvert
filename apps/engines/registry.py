@@ -29,19 +29,19 @@ def todos() -> tuple[Motor, ...]:
     return tuple(sorted(_MOTORES.values(), key=lambda m: (m.prioridad, m.id)))
 
 
-def motores_para(par: ParDeFormatos) -> tuple[Motor, ...]:
+def motores_para(par: ParDeFormatos, operacion: str = "") -> tuple[Motor, ...]:
     """Todos los que dicen saber ese par, **esten disponibles o no**.
 
     Que devuelva tambien los no disponibles es el punto: sin ellos la matriz no podria
     pintar una celda apagada con su motivo, y una capacidad ausente se veria igual que una
     inexistente.
     """
-    return tuple(m for m in todos() if par in m.pares())
+    return tuple(m for m in todos() if m.operacion == operacion and par in m.pares())
 
 
-def motor_para(par: ParDeFormatos) -> Motor | None:
-    """El disponible de menor prioridad, o `None`."""
-    for motor in motores_para(par):
+def motor_para(par: ParDeFormatos, operacion: str = "") -> Motor | None:
+    """El disponible de menor prioridad, o `None`. `operacion` pide un proceso (F21.3)."""
+    for motor in motores_para(par, operacion):
         if motor.disponibilidad().disponible:
             return motor
     return None
@@ -64,8 +64,8 @@ class CeldaDeCapacidad:
         return self.estado == DISPONIBLE
 
 
-def celda(par: ParDeFormatos) -> CeldaDeCapacidad:
-    candidatos = motores_para(par)
+def celda(par: ParDeFormatos, operacion: str = "") -> CeldaDeCapacidad:
+    candidatos = motores_para(par, operacion)
     if not candidatos:
         return CeldaDeCapacidad(
             origen=par.origen,
@@ -114,5 +114,6 @@ def matriz_de_capacidades() -> dict[tuple[str, str], CeldaDeCapacidad]:
     discrepar."""
     pares: set[ParDeFormatos] = set()
     for motor in todos():
-        pares |= motor.pares()
+        if not motor.operacion:  # los procesos no son celdas de la matriz de conversion
+            pares |= motor.pares()
     return {(p.origen, p.destino): celda(p) for p in sorted(pares, key=str)}

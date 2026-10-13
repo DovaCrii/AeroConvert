@@ -342,3 +342,6 @@ def registrar_todos() -> None:
     registry.registrar(MotorPdalNubes())
     registry.registrar(MotorPdalE57())
     registry.registrar(MotorReCap())
+    from .recorte import registrar as registrar_recorte
+
+    registrar_recorte()
