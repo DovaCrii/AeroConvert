@@ -10,7 +10,8 @@
  *    sirve `visor:tesela` (`{z}/{x}/{y}.png?ruta=<ficha>`), con la sesión de quien mira.
  *
  * Todo lo que necesita viaja en `data-*` de la plantilla (la CSP no admite scripts en la página) y
- * no nombra ninguna dirección absoluta: `apps/visor/test_sin_salida.py` lo comprueba.
+ * no nombra ninguna dirección absoluta: `apps/visor/test_3d.py` lo comprueba (el hermano de
+ * `test_sin_salida.py`, que hace lo mismo con el mapa plano).
  */
 (function () {
   "use strict";
@@ -43,6 +44,7 @@
   try {
     globo = new C.CesiumWidget(contenedor, {
       baseLayer: false,
+      // `skyBox: false` quita también el Sol y la Luna: no se piden `Assets/Textures/*`.
       skyBox: false,
       skyAtmosphere: false,
       orderIndependentTranslucency: false,

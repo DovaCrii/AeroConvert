@@ -24,7 +24,7 @@ un archivo corrompido o alterado en el disco del servidor, que es un caso que ex
 | `bootstrap.min.css` | 5.3.3 | MIT | `sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH` |
 | `bootstrap.bundle.min.js` | 5.3.3 | MIT | `sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz` |
 | `htmx.min.js` | 2.0.10 | BSD-2 | `sha384-H5SrcfygHmAuTDZphMHqBJLc3FhssKjG7w/CeCpFReSfwBWDTKpkzPP8c+cLsK+V` |
-| `cesium/Cesium.js` | `@cesium/engine` 26.4.0 (build propio, ver `cesium/README.md`) | Apache-2.0 | `sha384-3JgbFR6ihjyi/2Q4pP5kWCPq9ImxpfG/OsWneoJ5/R2uFhyxR9Z42FQjsqeKAZsv` |
+| `cesium/Cesium.js` | `@cesium/engine` 26.4.0 (build propio, ver `cesium/README.md`) | Apache-2.0 | `sha384-1xRKomp12eDsdVMqCHjuWgwKFLZ7NZYICtXzlTU1CHma+dL/dtIQ36FFlhX4x8Wu` |
 | `cesium/Widgets/CesiumWidget/CesiumWidget.css` | `@cesium/engine` 26.4.0 | Apache-2.0 | `sha384-8Ks1t6G4x11950+T9lShhZ+d7qPxFg7sKXBwCy2LkRyHdWx4yD09qB3IiwGexpvZ` |
 
 ## Cómo se actualiza

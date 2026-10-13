@@ -15,9 +15,11 @@ import re
 from pathlib import Path
 
 import pytest
+from django.contrib.auth import get_user_model
 from django.urls import reverse
+from django.utils import timezone
 
-from apps.core.middleware import CSP
+from apps.jobs.models import HECHO, ConversionJob
 
 pytestmark = pytest.mark.django_db
 
@@ -82,6 +84,27 @@ class TestLaPantalla:
         assert respuesta.status_code == 403
         assert "No se pudo abrir" in respuesta.content.decode()
 
+    def test_el_resultado_de_otra_persona_es_403_y_no_confirma_que_exista(
+        self, con_sesion, gdal_de_mentira, raiz_de_obra
+    ):
+        ajena = get_user_model().objects.create_user("beto")
+        salida = raiz_de_obra / "salida.tif"
+        salida.write_bytes(b"II*\x00" + b"x" * 50)
+        trabajo = ConversionJob.objects.create(
+            owner=ajena,
+            source_name="x.tif",
+            target_format_code="cog",
+            status=HECHO,
+            output_path=str(salida),
+            finished_at=timezone.now(),
+        )
+        respuesta = con_sesion.get(reverse("visor:mapa-3d"), {"ruta": f"resultado:{trabajo.pk}"})
+        cuerpo = respuesta.content.decode()
+        assert respuesta.status_code == 403
+        assert "No se pudo abrir" in cuerpo
+        assert 'id="globo-3d"' not in cuerpo and "vendor/cesium/Cesium.js" not in cuerpo
+        assert "salida.tif" not in cuerpo
+
     def test_sin_gdal_el_globo_se_ve_y_la_eleccion_dice_por_que_esta_apagada(
         self, con_sesion, monkeypatch
     ):
@@ -101,9 +124,17 @@ class TestLaPantalla:
 
 
 class TestLaCspNoSeEnsancha:
+    #: La política de `apps/core/middleware.py`, escrita aquí a mano: si alguien ensancha la
+    #: constante «para que funcione», esta prueba no lo sigue y falla.
+    ESPERADA = (
+        "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; "
+        "img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; "
+        "base-uri 'self'; form-action 'self'"
+    )
+
     def test_es_la_de_siempre_al_pie_de_la_letra(self, con_sesion, gdal_de_mentira):
         respuesta = con_sesion.get(reverse("visor:mapa-3d"))
-        assert respuesta["Content-Security-Policy"] == CSP
+        assert respuesta["Content-Security-Policy"] == self.ESPERADA
 
     def test_ni_eval_ni_inline_ni_workers_aparte(self, con_sesion, gdal_de_mentira):
         csp = con_sesion.get(reverse("visor:mapa-3d"))["Content-Security-Policy"]
@@ -139,6 +170,38 @@ class TestElSri:
 
     def test_viene_con_su_licencia(self):
         assert "Apache License" in (VENDOR / "LICENSE.md").read_text(encoding="utf-8")
+        # Y los avisos de lo que el bundle trae de terceros.
+        assert "Bundled license information" in (VENDOR / "Cesium.js.LEGAL.txt").read_text(
+            encoding="utf-8"
+        )
+        assert (VENDOR / "ThirdParty.json").stat().st_size > 0
+
+    def test_no_se_sirve_lo_que_no_se_usa(self):
+        for sobra in (
+            "Widgets/CesiumWidget/lighter.css",
+            "Assets/Images/bing_maps_credit.png",
+            "Assets/Images/google_earth_credit.png",
+            "Assets/Images/cesium_credit.png",
+        ):
+            assert not (VENDOR / sobra).exists(), sobra
+        assert not (VENDOR / "Assets" / "Textures").exists()
+        # El logotipo que el widget pide en cada carga (`CreditDisplay`): sin él, un 404.
+        assert (VENDOR / "Assets" / "Images" / "ion-credit.png").exists()
+
+    #: Lo que el bundle puede contener de código dinámico o WebAssembly: **nada**. Si una versión
+    #: nueva de Cesium trae algo, el nombre del módulo y la razón se anotan aquí y en el README.
+    PERMITIDOS_EN_EL_BUNDLE: dict[str, int] = {}
+
+    def test_el_bundle_no_trae_codigo_dinamico_ni_webassembly(self):
+        texto = (VENDOR / "Cesium.js").read_text(encoding="utf-8")
+        cuentas = {
+            "new Function": texto.count("new Function"),
+            "eval(": len(re.findall(r"(?<![\w.])eval\(", texto)),
+            "WebAssembly.": texto.count("WebAssembly."),
+            "\\0asm": texto.count("\\0asm"),
+        }
+        encontrados = {k: v for k, v in cuentas.items() if v}
+        assert encontrados == self.PERMITIDOS_EN_EL_BUNDLE, encontrados
 
     def test_el_build_no_trae_el_worker_que_llama_a_new_function(self):
         assert not (VENDOR / "Workers" / "transcodeKTX2.js").exists()
