@@ -13,9 +13,12 @@
   `/refactor-seguro <archivo>`, **`/nueva-herramienta <id>`** (las catorce piezas de una herramienta
   de documentos) y **`/avanzar [bloque o fila]`**, que recorre el plan F13 a F16 por bloques
   (tablero en `docs/planes/SEGUIMIENTO.md`).
-- **Agentes del proyecto** (`.claude/agents/`): `revisor-de-reglas` (solo lectura: revisa un diff
-  contra las cinco reglas de `AGENTS.md`; para filas que tocan motores, firmas o datos sensibles) y
-  `fusionador-de-pr` (solo `gh`: espera el CI de un PR y lo fusiona en verde).
+- **Agentes del proyecto** (`.claude/agents/`; reparto en `/avanzar`): Opus coordina con esfuerzo
+  medio; `explorador` (Haiku, solo lectura: dónde vive algo y qué pruebas lo fijan), `investigador`
+  (Sonnet, web con fuentes), `implementador` (Sonnet, una fila en su worktree, sin push),
+  `disenador` (Sonnet, tokens, contraste e ilustraciones), `revisor-de-reglas` (Sonnet, solo lectura:
+  revisa un diff contra las cinco reglas de `AGENTS.md`) y `fusionador-de-pr` (Haiku, solo `gh`:
+  espera el CI del commit de cabeza y fusiona en verde).
 - **Antes de un `git push`** corre solo la puerta rápida (`scripts/claude/antes_de_push.py`, hook en
   `.claude/settings.json`) y lo bloquea si falla. **Dos PR que añaden herramientas chocan siempre en
   los mismos archivos:** `scripts/claude/fusionar_main.py` resuelve «los dos añadieron» validando.
