@@ -237,6 +237,19 @@ class Verificacion:
     detalles: dict = field(default_factory=dict)
 
 
+class PlanNoValido(ValueError):
+    """El motor **no debe lanzar** lo pedido, y dice por que con un codigo estable.
+
+    El corredor la traduce a un trabajo fallido con ese `codigo` (de `apps/jobs/motivos.py`). Es
+    como `plan()` se detiene por un CRS ausente sin que el mensaje acabe como un
+    `ValueError: ...` generico (regla 3).
+    """
+
+    def __init__(self, mensaje: str, codigo: str = "error-del-motor") -> None:
+        super().__init__(mensaje)
+        self.codigo = codigo
+
+
 class Motor(abc.ABC):
     #: Identificador estable. Se guarda en el trabajo y aparece en la matriz.
     id: str = ""
@@ -244,6 +257,11 @@ class Motor(abc.ABC):
     familia: str = ""
     #: Cuando dos motores disponibles saben el mismo par, gana el numero menor.
     prioridad: int = 100
+    #: `""` para una conversion de formato; `"recorte"`, `"mosaico"` o `"sombreado"` para un
+    #: **proceso** (F21.3). Un proceso sabe pares que ya conoce el motor de conversion (un GeoTIFF
+    #: a un GeoTIFF), y sin esto lo taparia o seria tapado: la matriz y el selector de destino solo
+    #: ven los de conversion, y el trabajo pide el suyo con `options["operacion"]`.
+    operacion: str = ""
 
     @abc.abstractmethod
     def pares(self) -> frozenset[ParDeFormatos]:

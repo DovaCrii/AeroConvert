@@ -48,7 +48,7 @@ from django.db.models import F
 from django.utils import timezone
 
 from apps.engines import registry
-from apps.engines.base import ParDeFormatos, ruta_parcial
+from apps.engines.base import ParDeFormatos, PlanNoValido, ruta_parcial
 from apps.formats import deteccion
 
 from . import motivos as motivos_mod
@@ -250,9 +250,10 @@ def _ejecutar(job: ConversionJob) -> Resultado:
 
     # --- 3. Conversion ---------------------------------------------------
     par = ParDeFormatos(job.source_format_code, job.target_format_code)
-    motor = registry.motor_para(par)
+    operacion = str((job.options or {}).get("operacion") or "")
+    motor = registry.motor_para(par, operacion)
     if motor is None:
-        celda = registry.celda(par)
+        celda = registry.celda(par, operacion)
         raise TrabajoFallido(celda.codigo_motivo or "sin-motor", celda.mensaje)
 
     disponible = motor.disponibilidad()
@@ -265,7 +266,10 @@ def _ejecutar(job: ConversionJob) -> Resultado:
     job.output_path = str(_destino_libre(job, Path(job.output_path)))
     job.save(update_fields=["output_path", "updated_at"])
 
-    plan = motor.plan(job)
+    try:
+        plan = motor.plan(job)
+    except PlanNoValido as fallo:
+        raise TrabajoFallido(fallo.codigo, str(fallo)) from fallo
     destino = Path(plan.ruta_de_salida)
     # Y el parcial sale del destino, asi que un destino unico da un parcial unico sin tocar
     # `ruta_parcial()`, que se llama desde catorce sitios y cuyo propio docstring avisa de
