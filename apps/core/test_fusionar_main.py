@@ -192,9 +192,75 @@ class TestValidar:
         assert fusionar.valido("a.md", "cualquier texto")
 
 
-def test_las_tablas_de_estado_nunca_se_juntan_solas():
-    assert {
-        "MASTER_PLAN.md",
-        "docs/planes/SEGUIMIENTO.md",
-        "HANDOFF.md",
-    } <= fusionar.NUNCA_AUTOMATICO
+def test_el_handoff_nunca_se_junta_solo():
+    assert "HANDOFF.md" in fusionar.NUNCA_AUTOMATICO
+
+
+def _hueco(rama: str, main: str) -> str:
+    return (
+        f"| F1.0 | x | y |\n<<<<<<< HEAD\n{rama}=======\n{main}>>>>>>> origin/main\n| F9.9 | z |\n"
+    )
+
+
+class TestTablasDeEstado:
+    def test_la_misma_fila_toma_la_de_main_con_las_marcas_de_la_rama(self):
+        rama = "| **B15 · Topografía** | F20.1 · F20.3 ✅ visual · F20.11 ✅ tino |\n"
+        main = "| **B15 · Topografía** | F20.1 · F20.3 ✅ visual · F20.9 ✅ piloto · F20.11 |\n"
+        fila = fusionar.resolver_texto("MASTER_PLAN.md", _hueco(rama, main)).splitlines()[1]
+        assert fila == (
+            "| **B15 · Topografía** | F20.1 · F20.3 ✅ visual · F20.9 ✅ piloto · F20.11 ✅ |"
+        )
+
+    def test_la_marca_de_main_gana_y_f20_1_no_se_confunde_con_f20_10(self):
+        rama = "| **B15 ** | F20.1 ⚠ · F20.10 ✅ |\n"
+        main = "| **B15 ** | F20.1 ✅ · F20.10 |\n"
+        fila = fusionar.resolver_texto("docs/planes/SEGUIMIENTO.md", _hueco(rama, main))
+        assert "| **B15 ** | F20.1 ✅ · F20.10 ✅ |" in fila
+        assert "⚠" not in fila
+
+    def test_el_texto_de_cierre_de_la_rama_gana_a_un_pendiente_de_main(self):
+        rama = "| F20.11 | Tino | prueba | Claude | ✅ 2026-10-13 · hecho |\n"
+        main = "| F20.11 | Tino con otra frase | prueba | Claude | ⬜ |\n"
+        fila = fusionar.resolver_texto("MASTER_PLAN.md", _hueco(rama, main)).splitlines()[1]
+        assert fila == "| F20.11 | Tino con otra frase | prueba | Claude | ✅ 2026-10-13 · hecho |"
+
+    def test_el_texto_de_main_no_se_pisa(self):
+        rama = "| F20.11 | Tino | p | Claude | ✅ de la rama |\n"
+        main = "| F20.11 | Tino | p | Claude | ✅ 2026-10-12 · de main |\n"
+        fila = fusionar.resolver_texto("MASTER_PLAN.md", _hueco(rama, main)).splitlines()[1]
+        assert fila.endswith("✅ 2026-10-12 · de main |")
+
+    def test_filas_distintas_se_conservan_en_orden_natural(self):
+        rama = "| F20.11 | a |\n"
+        main = "| F20.2 | b |\n| F20.12 | c |\n"
+        texto = fusionar.resolver_texto("MASTER_PLAN.md", _hueco(rama, main))
+        assert [f.split("|")[1].strip() for f in texto.splitlines()] == [
+            "F1.0",
+            "F20.2",
+            "F20.11",
+            "F20.12",
+            "F9.9",
+        ]
+
+    def test_b15_y_b16_se_conservan_las_dos(self):
+        texto = fusionar.resolver_texto(
+            "MASTER_PLAN.md", _hueco("| **B15 · A** | x |\n", "| **B16 · B** | y |\n")
+        )
+        assert "| **B15 · A** | x |\n| **B16 · B** | y |\n" in texto
+
+    @pytest.mark.parametrize(
+        ("rama", "main"),
+        [
+            ("texto suelto\n", "| F20.1 | a |\n"),  # no es solo de filas
+            ("| sin código | a |\n", "| F20.1 | a |\n"),  # fila sin código
+            ("| F20.1 | a |\n| F20.1 | b |\n", "| F20.2 | a |\n"),  # código repetido
+        ],
+    )
+    def test_cualquier_otro_choque_se_niega(self, rama, main):
+        with pytest.raises(ValueError):
+            fusionar.resolver_texto("MASTER_PLAN.md", _hueco(rama, main))
+
+    def test_los_demas_md_siguen_sin_resolverse_como_tabla(self):
+        # En otro archivo, las filas no se tratan como tabla de estado.
+        texto = "<<<<<<< HEAD\n| F1.1 | a |\n=======\n| F1.1 | b |\n>>>>>>> origin/main\n"
+        assert "| F1.1 | b |" in fusionar.resolver_texto("CHANGELOG.md", texto)

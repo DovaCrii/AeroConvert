@@ -11,6 +11,19 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 - **Mapa, Lámina y Automatizar aún no existen y salen apagados, con motivo y alternativa**, en el lateral y en la portada, nunca ocultos (regla 4). Códigos nuevos: `modulo-mapa-pendiente`, `modulo-lamina-pendiente`, `modulo-automatizar-pendiente`.
 - Pruebas en `test_taxonomia.py`: los ids anteriores siguen, cada grupo y cada herramienta viven en exactamente un módulo, el orden es el del flujo y los módulos apagados enseñan su motivo. Pantalla medida en claro y oscuro, a 1440 y 375 px, sin desborde ni ids repetidos.
 
+### Añadido - frontera de documentos vigilada (F21.2)
+
+- **pps/core/test_frontera_documentos.py**: por análisis de `ast`, ninguna de las nueve apps geoespaciales importa `apps.documents` (salvo las cuatro entradas declaradas de vuelos), y las rutas `documents:` y plantillas `documents/` que cruzan quedan declaradas. Falla ante un intruso (módulo sintético en carpeta temporal) y cuando una excepción ya no hace falta.
+- **`docs/FRONTERA_DOCUMENTOS.md`**: inventario de lo que saldría a otro repositorio (apps, plantillas, estáticos, ajustes, dependencias, pruebas, las 42 herramientas) y de lo común que documentos usa. No se movió nada.
+
+### Añadido — instantáneas con sesión sin cuentas reales
+
+- `scripts/claude/instantanea.py`: pinta pantallas con un usuario sintético (`force_login`, sin contraseña) sobre una base de pruebas y medios temporales; escribe `static/_vista_previa/<nombre>.html` con los estáticos relativos, sale con 1 si una respuesta no es 200 y `--limpiar` borra la carpeta. `/static/_vista_previa/` queda en `.gitignore`.
+
+### Cambiado — `fusionar_main.py` resuelve las filas de tabla repetidas
+
+- En `MASTER_PLAN.md` y `docs/planes/SEGUIMIENTO.md`: la misma fila editada en los dos lados toma la de `main` con las marcas ✅/⚠ de la rama (y el texto de cierre de la rama si `main` dejó ⬜); filas distintas en el mismo hueco se conservan en orden natural por código. Cualquier otro choque sigue pendiente.
+
 ### Cambiado — «Procesamiento de trayectoria», con el flujo a la vista (F20.2)
 
 - **«Corregir un vuelo de dron» se llama «Procesamiento de trayectoria»** en la herramienta, la pantalla, los motivos, el visor y la entrada. **Los ids y la URL no cambian** (hay trabajos guardados). «corregir vuelo», «ppk dron», «uas sync» y «geoetiquetar fotos» siguen encontrándola en el buscador y en Tino.
