@@ -633,7 +633,7 @@ reportlab)**; QGIS sin pantalla solo si hace falta; RustGIS se vigila (dos días
 | # | Entrega | Oráculo | La cierra | Estado |
 | --- | --- | --- | --- | --- |
 | F21.0 | **Documento de arquitectura** adaptado, con la matriz real Implemented / Partial / Planned / Ausente | — | Claude | ✅ 2026-10-13 |
-| F21.1 | **Navegación por módulos** en lo geo (Transformar · Procesar · Ver · Mapa · Lámina · Automatizar) con «Topografía» dentro y **«Documentos»** como sección aparte (etapa 1 de la separación) | `test_taxonomia.py`; los `id` de grupo no cambian | Claude | ⬜ |
+| F21.1 | **Navegación por módulos** en lo geo (Transformar · Procesar · Ver · Mapa · Lámina · Automatizar) con «Topografía» dentro y **«Documentos»** como sección aparte (etapa 1 de la separación) | `test_taxonomia.py`; los `id` de grupo no cambian | Claude | ✅ 2026-10-13 |
 | F21.2 | **Frontera de documentos**: prueba que vigila que lo geo no importe `apps.documents` salvo la cola y la entrada, como `apps/vuelos/test_independencia.py`; inventario de lo que se movería a otro repositorio | La prueba falla ante un intruso | Claude | ⬜ |
 | F21.3 | **Process que falta**: recorte por polígono (`gdalwarp -cutline`, PDAL `filters.crop`), mosaico (`gdalbuildvrt` + COG), y DEM, sombreado y curvas como herramientas | `gdalinfo` y `pdal info` sobre salidas sintéticas | Claude | ⬜ |
 | F21.4 | **Formatos**: GeoParquet y FlatGeobuf (OGR) y PMTiles (GDAL ≥ 3.8), sondeados y apagados con motivo si el GDAL no los trae | `ogrinfo` | Claude | ⬜ |

@@ -190,3 +190,63 @@ class TestRecordarQueGruposSeAbrieron:
 
         assert "(renombrado)" in despues
         assert set(re.findall(r'data-recuerda="(lateral-[^"]+)"', despues)) == claves_antes
+
+
+IDS_ANTERIORES = (
+    "entregar",
+    "gnss",
+    "organizar",
+    "convertir",
+    "optimizar",
+    "revisar",
+    "texto",
+    "planta",
+)
+
+
+class TestLosModulos:
+    """F21.1: la navegación por módulos es una capa sobre los grupos, que no cambian de `id`."""
+
+    def test_todo_id_de_grupo_anterior_sigue_existiendo(self):
+        assert set(IDS_ANTERIORES) <= set(taxonomia.POR_ID)
+
+    def test_cada_grupo_vive_en_exactamente_un_modulo(self):
+        vistos = [g for m in taxonomia.MODULOS for g in m.grupos]
+        assert sorted(vistos) == sorted(taxonomia.POR_ID), "uno sin módulo o repetido"
+
+    def test_cada_herramienta_aparece_en_exactamente_un_modulo(self):
+        for accion in acciones_mod.todas():
+            modulos = [m.id for m in taxonomia.MODULOS if accion.categoria in m.grupos]
+            assert len(modulos) == 1, (accion.id, modulos)
+
+    def test_el_orden_es_el_del_flujo_y_documentos_va_aparte_al_final(self):
+        ids = [m.id for m in taxonomia.MODULOS]
+        assert ids[:6] == ["transformar", "procesar", "ver", "mapa", "lamina", "automatizar"]
+        assert ids[-1] == "documentos" and taxonomia.MODULOS[-1].aparte
+        assert not any(m.aparte for m in taxonomia.MODULOS[:-1])
+
+    def test_topografia_vive_dentro_de_un_modulo_geoespacial(self):
+        modulo = taxonomia.MODULO_POR_ID[taxonomia.MODULO_DE_GRUPO["gnss"]]
+        assert not modulo.aparte
+        assert taxonomia.POR_ID["gnss"].titulo == "Topografía"
+
+    def test_un_modulo_sin_grupos_tiene_pantalla_o_motivo_y_nunca_los_dos(self):
+        from apps.jobs.motivos import MOTIVOS
+
+        for m in taxonomia.MODULOS:
+            if not m.grupos:
+                assert bool(m.enlace) != bool(m.motivo), m.id
+            if m.motivo:
+                assert MOTIVOS[m.motivo].sugerencia.strip(), f"{m.id}: sin alternativa"
+
+    def test_el_lateral_y_la_portada_ensenan_los_modulos_apagados_con_motivo(self, sesion):
+        from apps.jobs.motivos import MOTIVOS
+
+        for url in ("dashboard:que_puedo_hacer",):
+            cuerpo = sesion.get(reverse(url)).content.decode()
+            for m in taxonomia.MODULOS:
+                assert f'id="modulo-{m.id}"' in cuerpo, (url, m.id)
+                if m.motivo:
+                    assert MOTIVOS[m.motivo].mensaje in cuerpo, (url, m.id)
+                    assert "Alternativa:" in cuerpo
+        assert cuerpo.index('id="modulo-mapa"') < cuerpo.index('id="modulo-documentos"')

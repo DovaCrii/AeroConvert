@@ -188,8 +188,30 @@
           {% endfor %}
         </ul>
 
-        <p class="lateral-rotulo">Herramientas</p>
-        {% for grupo in menu_grupos %}
+        {% comment %}
+          **Por módulos (F21.1).** Cada módulo es un rótulo; dentro van sus grupos, que conservan su
+          `id` (`data-recuerda` no cambia). Los módulos que aún no existen salen **apagados, con su
+          motivo y su alternativa**, nunca ocultos. «Documentos» va aparte, al final.
+        {% endcomment %}
+        {% for modulo in menu_modulos %}
+        <p class="lateral-rotulo" id="modulo-{{ modulo.id }}">{{ modulo.titulo }}</p>
+        {% if modulo.motivo %}
+          <div class="lateral-modulo-apagado" role="note" aria-labelledby="modulo-{{ modulo.id }}">
+            <span class="lateral-modulo-estado"><span aria-hidden="true">⊘</span> Aún no disponible.</span>
+            <span>{{ modulo.motivo.mensaje }}</span>
+            <span><strong>Alternativa:</strong> {{ modulo.motivo.sugerencia }}</span>
+          </div>
+        {% elif modulo.enlace %}
+          <ul class="lateral-pie">
+            <li>
+              <a class="lateral-enlace-principal" href="{{ modulo.enlace }}" title="{{ modulo.cuando }}">
+                <svg class="nav-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#{{ modulo.icono }}"></use></svg>
+                <span>{{ modulo.cuando }}</span>
+              </a>
+            </li>
+          </ul>
+        {% endif %}
+        {% for grupo in modulo.grupos %}
           <details class="lateral-grupo" data-recuerda="lateral-{{ grupo.clave }}">
             <summary class="lateral-grupo-titulo">
               <svg class="nav-icono lateral-grupo-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#{{ grupo.icono }}"></use></svg>
@@ -216,6 +238,7 @@
               {% endfor %}
             </ul>
           </details>
+        {% endfor %}
         {% endfor %}
 
         <p class="lateral-rotulo">Más</p>

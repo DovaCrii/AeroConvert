@@ -952,6 +952,23 @@ a:hover {
   text-transform: uppercase;
 }
 
+/* Un módulo que aún no existe (F21.1): apagado, con su motivo y su alternativa a la vista. */
+.lateral-modulo-apagado {
+  display: grid;
+  gap: var(--av-s-1);
+  margin: 0 var(--av-s-2) var(--av-s-2);
+  padding: var(--av-s-2) var(--av-s-3);
+  border: 1px dashed var(--av-border);
+  border-radius: var(--av-radius-sm, 6px);
+  color: var(--av-text-muted);
+  font-size: var(--av-fs-sm);
+  line-height: var(--av-alto-normal);
+}
+
+.lateral-modulo-estado {
+  font-weight: 700;
+}
+
 /* Los grupos son `details`: el título es el botón, el chevron gira y cambia de forma. */
 .lateral-grupo-titulo {
   justify-content: space-between;
@@ -1115,6 +1132,7 @@ a:hover {
 
   /* Los grupos no caben en una columna de iconos: en su lugar, un enlace al catálogo. */
   .lateral-compacto .lateral-rotulo,
+  .lateral-compacto .lateral-modulo-apagado,
   .lateral-compacto .lateral-grupo {
     display: none;
   }
@@ -3434,6 +3452,33 @@ code {
 }
 
 /* --- La portada: los grupos de herramientas, plegables y compactos -------- */
+
+/* F21.1: el módulo es el encabezado de nivel superior; los grupos van debajo. */
+.modulo-titulo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--av-s-1) var(--av-s-3);
+  margin: var(--av-s-6) 0 var(--av-s-3);
+  padding-bottom: var(--av-s-2);
+  border-bottom: 1px solid var(--av-border);
+  font-size: var(--av-fs-lg, 1.25rem);
+  font-weight: 700;
+}
+
+.modulo-nota {
+  color: var(--av-text-muted);
+  font-size: var(--av-fs-sm);
+  font-weight: 400;
+}
+
+.modulos-pendientes {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(19.5rem, 1fr));
+  align-items: start;
+  gap: 14px;
+  margin-top: var(--av-s-4);
+}
 
 .grupo-herramientas {
   margin-bottom: var(--av-s-4);

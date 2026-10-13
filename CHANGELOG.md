@@ -5,6 +5,12 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Sin publicar]
 
+### Añadido — navegación por módulos (F21.1)
+
+- **El lateral y la portada se organizan por módulos**: Transformar · Procesar (con «Topografía» dentro) · Ver · Mapa · Lámina · Automatizar, y **«Documentos» como sección aparte, al final** (etapa 1 de la separación, D11). Los `id` de los ocho grupos no cambian (con ellos recuerda el navegador qué quedó abierto): el módulo es una capa nueva en `apps/dashboard/taxonomia.py` (`MODULOS`, `MODULO_DE_GRUPO`).
+- **Mapa, Lámina y Automatizar aún no existen y salen apagados, con motivo y alternativa**, en el lateral y en la portada, nunca ocultos (regla 4). Códigos nuevos: `modulo-mapa-pendiente`, `modulo-lamina-pendiente`, `modulo-automatizar-pendiente`.
+- Pruebas en `test_taxonomia.py`: los ids anteriores siguen, cada grupo y cada herramienta viven en exactamente un módulo, el orden es el del flujo y los módulos apagados enseñan su motivo. Pantalla medida en claro y oscuro, a 1440 y 375 px, sin desborde ni ids repetidos.
+
 ### Cambiado — «Procesamiento de trayectoria», con el flujo a la vista (F20.2)
 
 - **«Corregir un vuelo de dron» se llama «Procesamiento de trayectoria»** en la herramienta, la pantalla, los motivos, el visor y la entrada. **Los ids y la URL no cambian** (hay trabajos guardados). «corregir vuelo», «ppk dron», «uas sync» y «geoetiquetar fotos» siguen encontrándola en el buscador y en Tino.
