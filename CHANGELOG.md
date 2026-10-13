@@ -5,6 +5,13 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Sin publicar]
 
+### Cambiado - el gate corto dice lo mismo que el gate real
+
+- **`scripts/claude/verificar.py todo`** usa `--fail-level WARNING` en `check` y `check --deploy` y corre
+  `shellcheck` si está instalado (si no, lo dice), como `verify.ps1`. **`/publicar`** corre ese gate y aclara
+  que no sustituye al CI; **`HANDOFF.md`** se actualiza al cerrar una fase, igual que en `AGENTS.md`;
+  `CLAUDE.md` dice que el hook de push es una ayuda y no una garantía. Auditoría externa, 2026-10-13.
+
 ### Añadido - frontera de documentos vigilada (F21.2)
 
 - **pps/core/test_frontera_documentos.py**: por análisis de `ast`, ninguna de las nueve apps geoespaciales importa `apps.documents` (salvo las cuatro entradas declaradas de vuelos), y las rutas `documents:` y plantillas `documents/` que cruzan quedan declaradas. Falla ante un intruso (módulo sintético en carpeta temporal) y cuando una excepción ya no hace falta.
