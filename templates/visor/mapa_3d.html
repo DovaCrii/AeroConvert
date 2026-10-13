@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block titulo %}Ver en el globo 3D · AeroConvert{% endblock %}
+
+{% block contenido %}
+
+{% comment %}
+  **Piloto de globo 3D (F20.9).** CesiumJS (`@cesium/engine`, sin widgets) servido de
+  `static/vendor/cesium/`, sin Ion, sin terreno del mundo y sin mapa de fondo de internet: el globo
+  es una retícula lisa y la imagen elegida entra por las mismas teselas del mapa plano
+  (`visor:tesela`). Todo lo que el JavaScript necesita viaja en `data-*` (la CSP no admite scripts
+  en la página). Sin imagen elegida se ve solo el globo y debajo se elige una; sin GDAL el globo se ve
+  igual y la elección dice por qué está apagada (regla 4).
+{% endcomment %}
+
+<link rel="stylesheet" href="{% static 'vendor/cesium/Widgets/CesiumWidget/CesiumWidget.css' %}"
+      integrity="sha384-8Ks1t6G4x11950+T9lShhZ+d7qPxFg7sKXBwCy2LkRyHdWx4yD09qB3IiwGexpvZ"
+      crossorigin="anonymous">
+
+{% if error %}
+  <div class="tarjeta" role="alert">
+    <div class="eyebrow">No se pudo abrir</div>
+    <h2 class="av-fs-md">{{ error }}</h2>
+    <p class="tenue av-mt-2 av-mb-3">Elija otro archivo de la carpeta compartida o de un trabajo suyo.</p>
+    <a class="boton visor-enlace" href="{% url 'visor:mapa-3d' %}">Elegir otro archivo</a>
+  </div>
+{% elif capa and not capa.dibujable %}
+  <div class="tarjeta" role="alert">
+    <div class="eyebrow">Este archivo no se dibuja en el globo</div>
+    <h2 class="av-fs-md">{{ nombre_origen }}</h2>
+    <p class="av-mt-2">{% if motivo %}{{ motivo.mensaje }}{% else %}{{ capa.detalle }}{% endif %}</p>
+    {% if motivo.sugerencia %}<p class="tenue av-mb-3">{{ motivo.sugerencia }}</p>{% endif %}
+    <a class="boton visor-enlace" href="{% url 'visor:mapa-3d' %}">Elegir otro archivo</a>
+  </div>
+{% else %}
+  <div class="visor" id="globo-visor"
+       data-capa3d="{{ capa_3d_json }}"
+       data-base-cesium="{% static 'vendor/cesium/' %}">
+    <header class="visor-barra">
+      <div class="visor-datos">
+        <span class="visor-chip">
+          <span class="visor-chip-rotulo">Globo 3D</span>
+          <span class="visor-chip-texto">{% if capa %}{{ nombre_origen }}{% else %}Sin imagen elegida{% endif %}</span>
+        </span>
+        {% if capa %}
+        <span class="visor-chip visor-chip-sistema">
+          <span class="visor-chip-rotulo">Sistema</span>
+          <strong>{{ capa.sistema }}</strong>
+          {% if capa.epsg %}<span class="cifra tenue">EPSG:{{ capa.epsg }}</span>{% endif %}
+        </span>
+        {% endif %}
+      </div>
+      <div class="visor-acciones">
+        {% if capa %}
+          <a class="boton boton-suave visor-enlace" href="{% url 'visor:inicio' %}?ruta={{ token|urlencode }}">Ver en el mapa plano</a>
+        {% endif %}
+      </div>
+    </header>
+
+    <div class="visor-mapa visor3d-globo" id="globo-3d"
+         role="img"
+         aria-label="Globo 3D con una retícula de meridianos y paralelos{% if capa %} y la imagen {{ nombre_origen }}{% endif %}">
+    </div>
+    <p class="tenue av-fs-sm" id="globo-estado" role="status" aria-live="polite">Preparando el globo…</p>
+    <noscript><p class="tenue">El globo 3D necesita JavaScript.</p></noscript>
+  </div>
+
+  {% if not capa %}
+    {% if not gdal.disponible %}
+      <div class="tarjeta av-mt-3">
+        <div class="eyebrow">Poner una imagen sobre el globo: ahora mismo no se puede</div>
+        <h2 class="av-fs-md">{{ gdal.mensaje }}</h2>
+        <p class="tenue av-mt-2 av-mb-0">{{ gdal.sugerencia }}</p>
+      </div>
+    {% else %}
+      <form id="forma-mapa" method="get" action="{% url 'visor:mapa-3d' %}">
+        <input type="hidden" name="ruta" value="">
+        <div class="tarjeta tarjeta-acento av-mt-3">
+          <div class="eyebrow">La imagen</div>
+          <h2 class="origen-titulo av-mt-1 av-mb-3">¿Qué ortofoto o imagen georreferenciada?</h2>
+          <p class="tenue av-fs-sm av-mb-3">
+            GeoTIFF o COG con su sistema de referencia. Se lee en solo lectura: el original no se toca.
+          </p>
+          <div class="origenes origenes-pdf">
+            <div class="origen">
+              <div class="origen-cabeza">
+                <span class="origen-marca fam-proteger" aria-hidden="true">
+                  <svg class="origen-icono"><use href="{% static 'img/icons.svg' %}#icon-carpeta"></use></svg>
+                </span>
+                <div>
+                  <h3 class="origen-titulo">De la carpeta compartida</h3>
+                  <p class="origen-nota">Lo que ve todo el equipo. Pinche para entrar y elegir.</p>
+                </div>
+              </div>
+              <div class="explorador" data-destino="[name='ruta']" data-enviar="#forma-mapa"
+                   hx-get="{% url 'dashboard:explorar' %}?ext=.tif,.tiff"
+                   hx-trigger="load"
+                   hx-swap="innerHTML">
+                <p class="tenue av-m-0">Abriendo la carpeta…</p>
+              </div>
+            </div>
+            <div class="origen">
+              <div class="origen-cabeza">
+                <span class="origen-marca fam-transformar" aria-hidden="true">
+                  <svg class="origen-icono"><use href="{% static 'img/icons.svg' %}#icon-historial"></use></svg>
+                </span>
+                <div>
+                  <h3 class="origen-titulo">De un trabajo suyo</h3>
+                  <p class="origen-nota">La salida de una conversión que ya terminó.</p>
+                </div>
+              </div>
+              {% if propios %}
+                <ul class="listado">
+                  {% for p in propios %}
+                    <li>
+                      <a class="linea linea-archivo" href="{% url 'visor:mapa-3d' %}?ruta={{ p.token|urlencode }}">
+                        <svg class="linea-icono" aria-hidden="true"><use href="{% static 'img/icons.svg' %}#icon-archivo"></use></svg>
+                        <span class="linea-nombre">{{ p.nombre }}</span>
+                        <span class="linea-peso cifra">{{ p.fecha|date:"d/m/Y H:i" }}</span>
+                      </a>
+                    </li>
+                  {% endfor %}
+                </ul>
+              {% else %}
+                <p class="tenue av-m-0">Todavía no hay ninguna salida GeoTIFF o COG de un trabajo suyo.</p>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </form>
+    {% endif %}
+  {% endif %}
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+{% if not error and not capa or capa.dibujable %}
+<script src="{% static 'vendor/cesium/Cesium.js' %}"
+        integrity="sha384-3JgbFR6ihjyi/2Q4pP5kWCPq9ImxpfG/OsWneoJ5/R2uFhyxR9Z42FQjsqeKAZsv"
+        crossorigin="anonymous"></script>
+<script src="{% static 'js/visor3d.js' %}"></script>
+{% endif %}
+{% endblock %}

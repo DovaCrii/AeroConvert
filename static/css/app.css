@@ -5949,3 +5949,15 @@ td.cifra,
   cursor: not-allowed;
   color: var(--av-text-secondary);
 }
+
+/* Piloto de globo 3D (F20.9): el lienzo de CesiumJS llena su contenedor. */
+.visor3d-globo {
+  height: 32rem;
+  max-height: 70vh;
+}
+
+.visor3d-globo .cesium-widget,
+.visor3d-globo .cesium-widget canvas {
+  width: 100%;
+  height: 100%;
+}
