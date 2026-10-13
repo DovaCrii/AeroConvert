@@ -5,6 +5,30 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Sin publicar]
 
+### Añadido — piloto de globo 3D con CesiumJS, sin cambiar la CSP (F20.9)
+
+- **`/mapa/3d/`** (`visor:mapa-3d`, `apps/visor/`, con sesión; sin ella, 302): un globo de CesiumJS con
+  la misma imagen y las mismas teselas del mapa plano (`visor:tesela`, `{z}/{x}/{y}.png?ruta=`),
+  elegida igual que en `/mapa/`. Sin imagen se ve solo el globo (retícula sobre fondo liso) y debajo se
+  elige una; sin GDAL el globo se ve igual y la elección dice por qué está apagada. Sin Ion
+  (`Ion.defaultAccessToken = ""`), sin terreno del mundo, sin mapa de fondo de Cesium, sin buscador ni
+  selector de capas. JavaScript propio: `static/js/visor3d.js`.
+- **CesiumJS vendorizado** en `static/vendor/cesium/` (Apache-2.0, `@cesium/engine` 26.4.0 **sin
+  widgets**: el paquete `cesium` trae Knockout y su `eval`). `@cesium/engine` no trae un build para el
+  navegador, así que `Cesium.js` (3,84 MB, IIFE) se construye con esbuild a partir de
+  `entrada.js`/`construir.cjs` (documentado en su `README.md`, con sha256 y SRI; `meshoptimizer` se
+  sustituye por un vacío porque compila WebAssembly al cargar). Solo lo que se sirve: 8,5 MB en 102
+  archivos, sin el mapa de fondo `NaturalEarthII` ni las fuentes.
+- **La CSP no cambia**: medido en el navegador del panel con la política real (`script-src 'self'`, sin
+  `'unsafe-eval'`, sin `'wasm-unsafe-eval'`, sin `worker-src`), consola sin errores, y las 65 peticiones
+  de la página (37 teselas y 3 workers, entre ellas) van **todas al propio servidor**.
+  `apps/visor/test_3d.py` la vigila (igual a `CSP`), comprueba el SRI de la plantilla contra el
+  archivo, el sha256 del README, que ni el HTML ni `visor3d.js` nombren una dirección externa o a Ion,
+  y la prueba de 302, de 403 y de GDAL apagado.
+- **Pendiente**: la fase 20 y `docs/INVESTIGACION_TOPOGRAFIA.md` no están en esta rama; la fila F20.9 de
+  `MASTER_PLAN.md` y la sección 4 del documento llevan este resultado cuando entren. Sin medir: una
+  ortofoto real (las teselas del piloto eran sintéticas) y un navegador con GPU de verdad.
+
 ### Cambiado — oscuro más claro, fuentes vendorizadas e ilustraciones animadas (F20.3)
 
 - **El tema oscuro sube y se marca más**: fondo, superficies, bordes, anillo y texto secundario,

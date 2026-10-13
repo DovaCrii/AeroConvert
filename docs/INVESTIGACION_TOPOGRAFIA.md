@@ -67,6 +67,19 @@ antena-cámara; geoetiquetado; punto de control (GCP); estación de referencia d
   MapLibre GL JS (BSD-3) con su worker del mismo origen.
 - **Nubes en 3D Tiles**: py3dtiles (Apache-2.0) convierte LAS/LAZ a `tileset.json` + `.pnts`.
 
+**Resultado del piloto (F20.9, 2026-10-13): funciona con la CSP sin tocarla.**
+- `@cesium/engine` 26.4.0 no trae build para el navegador: se construyó con esbuild 0.28.2 solo con
+  lo que usa el globo (`static/vendor/cesium/entrada.js` y `construir.cjs` quedan para repetirlo).
+  `Cesium.js` sirve **3,66 MiB**; la carpeta entera, unos 8,5 MB en 102 archivos.
+- `meshoptimizer` compilaba WebAssembly al cargar y daba 5 errores bajo `script-src 'self'`; con
+  `'wasm-unsafe-eval'` desaparecían, pero el globo dibujaba igual sin él, así que **se quitó del
+  build en vez de ensanchar la CSP**. Tampoco se vendorizaron las texturas Natural Earth ni
+  `transcodeKTX2.js` (usa `new Function`).
+- La CSP quedó igual: `script-src 'self'`, sin `wasm-unsafe-eval`, sin `worker-src` ni `blob:`.
+  Consola vacía. **65 peticiones, todas al propio servidor** (37 teselas) y 3 workers del mismo
+  origen.
+- Falta medir con una ortofoto real y un navegador con GPU de verdad (las teselas eran sintéticas).
+
 ## 5. API de NVIDIA (para Tino)
 
 - `POST https://integrate.api.nvidia.com/v1/chat/completions`, **formato OpenAI**; clave `nvapi-…`
