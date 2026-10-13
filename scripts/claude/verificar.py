@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import os
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -81,12 +82,12 @@ def pasos(modo: str, rutas: list[str], sin_red: bool) -> list[dict]:
     check = {
         "id": "check",
         "nombre": "manage.py check",
-        "cmd": [*uv, "python", "manage.py", "check"],
+        "cmd": [*uv, "python", "manage.py", "check", "--fail-level", "WARNING"],
     }
     deploy = {
         "id": "deploy",
         "nombre": "check --deploy (producción)",
-        "cmd": [*uv, "python", "manage.py", "check", "--deploy"],
+        "cmd": [*uv, "python", "manage.py", "check", "--deploy", "--fail-level", "WARNING"],
         "env": entorno_prod(entregas),
     }
     estaticos = {
@@ -113,6 +114,15 @@ def pasos(modo: str, rutas: list[str], sin_red: bool) -> list[dict]:
         "cmd": [*uv, "bandit", "-q", "-c", "pyproject.toml", "-r", "apps", "config"],
     }
     audit = {"id": "audit", "nombre": "pip-audit", "cmd": [*uv, "pip-audit"]}
+    # Como en `verify.ps1` y `verificar.sh`: si está instalado se corre; si no, se dice y se salta.
+    scripts_sh = sorted(
+        str(p) for carpeta in ("scripts", "despliegue") for p in Path(carpeta).glob("*.sh")
+    )
+    shell = {
+        "id": "shellcheck",
+        "nombre": "shellcheck",
+        "cmd": ["shellcheck", *scripts_sh],
+    }
 
     if modo == "rapido":
         # bandit entra: el CI lo cazó dos veces tras un push que lo habría visto en segundos.
@@ -131,6 +141,10 @@ def pasos(modo: str, rutas: list[str], sin_red: bool) -> list[dict]:
         "cmd": [*uv, "pytest", "--cov=apps", "--cov-report=term-missing"],
     }
     lista = [check, deploy, estaticos, migr, pytest, ruff, fmt, bandit]
+    if shutil.which("shellcheck") and scripts_sh:
+        lista.append(shell)
+    else:
+        print("==> shellcheck (no está instalado, se salta; el CI siempre lo corre)")
     if not sin_red:
         lista.append(audit)
     return lista

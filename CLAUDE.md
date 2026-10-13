@@ -23,7 +23,8 @@
   revisa un diff contra las cinco reglas de `AGENTS.md`) y `fusionador-de-pr` (Haiku, solo `gh`:
   espera el CI del commit de cabeza y fusiona en verde).
 - **Antes de un `git push`** corre solo la puerta rápida (`scripts/claude/antes_de_push.py`, hook en
-  `.claude/settings.json`) y lo bloquea si falla. **Dos PR que añaden herramientas chocan siempre en
+  `.claude/settings.json`) y lo bloquea si falla; **es una ayuda, no una garantía** (solo mira ciertas
+  formas de `git push` desde Bash o PowerShell): la protección de rama y el CI son los que mandan. **Dos PR que añaden herramientas chocan siempre en
   los mismos archivos:** `scripts/claude/fusionar_main.py` resuelve «los dos añadieron» validando.
 - Responde en español, de usted y sin voseo. Commits en español, imperativo y con ámbito
   (`feat(raster): …`).
