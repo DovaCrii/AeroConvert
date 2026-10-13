@@ -19,6 +19,8 @@ from django.contrib.auth.decorators import login_required
 from django.http import Http404
 from django.shortcuts import render
 
+from apps.jobs import motivos
+
 from . import fuera as fuera_mod
 from . import saber as saber_mod
 
@@ -40,7 +42,12 @@ def preguntar(request):
     if not settings.TINO_VISIBLE:
         raise Http404("No existe.")
 
-    pregunta = (request.GET.get("p") or "").strip()
+    # **«Preguntar fuera» es un POST con CSRF**: llama a un servicio de pago con la clave de la
+    # oficina, y un GET (un enlace, una imagen, un prefetch) no puede tener ese efecto. El
+    # `fuera=1` de un GET se ignora. El texto vuelve a pasar por `limpiar()` en `consultar()`.
+    pidio_fuera = request.method == "POST"
+    origen = request.POST if pidio_fuera else request.GET
+    pregunta = (origen.get("p") or "").strip()
     respuesta = saber_mod.contestar(pregunta) if pregunta else None
 
     contexto = {
@@ -59,6 +66,16 @@ def preguntar(request):
     # siempre convertiría el aviso en decorado que nadie lee.
     if pregunta and respuesta is None:
         contexto["saldria"] = fuera_mod.limpiar(pregunta)
+        # **Solo cuando la persona pulsa «Preguntar fuera»**, nunca con cada tecla: la pantalla
+        # enseña antes lo que saldría y la llamada es una decisión de cada vez.
+        if pidio_fuera:
+            contexto["hubo_consulta"] = True
+            if fuera_mod.sondar() and not fuera_mod.dentro_del_tope(request.user.pk):
+                consulta = fuera_mod.Consulta(codigo="ia-limite")
+            else:
+                consulta = fuera_mod.consultar(pregunta)
+            contexto["consulta"] = consulta
+            contexto["motivo_ia"] = motivos.MOTIVOS.get(consulta.codigo)
 
     if request.headers.get("HX-Request"):
         return render(request, "tino/_respuesta.html", contexto)

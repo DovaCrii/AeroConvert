@@ -169,8 +169,18 @@ WINEPREFIX = config("AEROCONVERT_WINEPREFIX", default="")
 #
 # Esa decision no es tecnica: es sobre los datos de la oficina, y la aplicacion esta
 # publicada en internet abierto. Ver `apps/tino/fuera.py`.
-TINO_PROVEEDOR = config("AEROCONVERT_TINO_PROVEEDOR", default="")
-TINO_CLAVE = config("AEROCONVERT_TINO_CLAVE", default="")
+# D9 (F20.11): la API publica de NVIDIA. Sin clave, o con Tino apagado, no sale nada. La clave
+# la pone la persona en el .env de p340: nunca en el repositorio ni en el chat.
+TINO_PROVEEDOR = config("AEROCONVERT_TINO_PROVEEDOR", default="nvidia")
+TINO_API_KEY = config("AEROCONVERT_TINO_API_KEY", default="")
+# Vacio: el modelo recomendado escrito en apps/tino/fuera.py (MODELO_RECOMENDADO).
+TINO_MODELO = config("AEROCONVERT_TINO_MODELO", default="")
+TINO_MODELOS_RESPALDO = config(
+    "AEROCONVERT_TINO_MODELOS_RESPALDO",
+    default="nvidia/llama-3.1-nemotron-70b-instruct,nvidia/llama-3.1-nemotron-51b-instruct",
+)
+# Base de la API (se le anade /chat/completions). Cambiar solo para un NIM autoalojado.
+TINO_URL = config("AEROCONVERT_TINO_URL", default="https://integrate.api.nvidia.com/v1")
 # **Tino esta apagado y sin rastro**: ni su pantalla (da 404), ni los enlaces que llevaban a
 # ella. No se ha borrado nada -- el codigo sigue en `apps/tino/` -- para poder encenderlo si
 # vuelve a hacer falta. Decision del 2026-10-05: de momento el equipo no lo necesita.

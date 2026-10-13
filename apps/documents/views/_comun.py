@@ -260,8 +260,13 @@ def estado_de_herramientas() -> list[dict]:
     return estado
 
 
-def _indice(request, *, categoria: str, etiqueta: str, titulo: str, proposito: str):
-    """El índice de una categoría. Lo comparten las dos pantallas.
+def _indice(
+    request, *, categoria: str, etiqueta: str, titulo: str, proposito: str, portada: str = ""
+):
+    """El índice de una categoría. Lo comparten las pantallas de índice.
+
+    `portada` elige la franja ilustrada de arriba (`"vuelos"`: la ruta de vuelo, F20.3); vacía, no
+    lleva.
 
     Las apagadas se cuentan **dentro de su categoría**: decirle a quien mira las de texto que
     hay dos apagadas de Office sería contarle un problema que no es el suyo.
@@ -281,6 +286,7 @@ def _indice(request, *, categoria: str, etiqueta: str, titulo: str, proposito: s
             "etiqueta_seccion": etiqueta,
             "titulo_pagina": titulo,
             "proposito": proposito,
+            "portada": portada,
             "grupos": _agrupar(disponibles, grupos),
             "disponibles": disponibles,
             # Solo para contarlas y enlazar a `/motores/`, que es donde se explican.
