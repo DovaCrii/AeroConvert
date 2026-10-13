@@ -136,8 +136,54 @@ def escala_de_sombreado(crs, unidad_vertical_m: float | None) -> float:
         horizontal_m = METROS_POR_GRADO_DE_GDALDEM
     else:
         horizontal_m = (crs.axis_info[0].unit_conversion_factor if crs.axis_info else 1.0) or 1.0
-    vertical_m = unidad_vertical_m or horizontal_m
+    # Con grados y sin unidad vertical declarada se suponen metros (lo que supone GDAL y lo común
+    # en un modelo geográfico): suponer «grados» daba escala 1 y un relieve ~111 mil veces mayor.
+    vertical_m = unidad_vertical_m or (1.0 if crs.is_geographic else horizontal_m)
     return horizontal_m / vertical_m
+
+
+def argumentos_de_sombreado(
+    origen: object,
+    destino: object,
+    *,
+    azimut_deg: float,
+    altura_deg: float,
+    exageracion_z: float,
+    escala: float,
+    silencioso: bool = True,
+) -> list[str]:
+    """Los argumentos de `gdaldem hillshade` de **todo el modelo**, a un GeoTIFF de 8 bits.
+
+    Los comparten el visor (que corta teselas del resultado) y la herramienta «Sombreado» de
+    Procesar (F21.3, que lo entrega): un solo sitio donde se decide la forma de llamar a `gdaldem`.
+    `silencioso=False` deja el avance que GDAL imprime, que el corredor usa para su barra.
+    """
+    argv = ["hillshade", str(origen), str(destino)]
+    if silencioso:
+        argv.append("-q")
+    argv += [
+        "-of",
+        "GTiff",
+        "-b",
+        "1",
+        "-compute_edges",
+        "-z",
+        repr(exageracion_z),
+        "-s",
+        repr(escala),
+        "-az",
+        str(azimut_deg),
+        "-alt",
+        str(altura_deg),
+        # **Solo DEFLATE, sin `TILED=YES`**: el oráculo lo vio (GDAL 3.12.4, 2026-10-09):
+        # con las dos
+        # opciones juntas `gdaldem hillshade` dejaba 24 celdas distintas junto a un hueco de «sin
+        # dato» (media 185,831 contra 185,919 sin ellas). Por franjas y comprimido da lo mismo que
+        # sin opciones.
+        "-co",
+        "COMPRESS=DEFLATE",
+    ]
+    return argv
 
 
 def rampa(minimo: float, maximo: float) -> list[list]:

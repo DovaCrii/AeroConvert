@@ -92,6 +92,18 @@ MOTIVOS: dict[str, Motivo] = dict(
             "crs-en-grados",
             "El destino necesita metros y el origen está en grados. Hay que reproyectar.",
         ),
+        _m(
+            "crs-distintos",
+            "Las imágenes del mosaico no están todas en el mismo sistema de referencia.",
+            "Reproyecte cada una al mismo sistema antes de unirlas: unir sin hacerlo las deja "
+            "fuera de lugar.",
+        ),
+        _m(
+            "recorte-vacio",
+            "El polígono de recorte no toca el archivo: saldría una salida sin datos.",
+            "Compruebe que el polígono y el archivo estén en el mismo lugar y que el sistema de "
+            "referencia declarado del polígono sea el que es.",
+        ),
         # --- Entrada y salida ----------------------------------------------
         _m("origen-no-legible", "No se pudo leer el archivo de origen."),
         _m("origen-bloqueado", "El archivo de origen esta abierto en otro programa."),

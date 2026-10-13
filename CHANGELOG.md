@@ -5,6 +5,22 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Sin publicar]
 
+### Añadido - Procesar: recorte por polígono, mosaico y sombreado (F21.3)
+
+- **`apps/raster/procesar.py`**: tres procesos ráster que se piden con `options["operacion"]` (`recorte`, `mosaico`, `sombreado`), sin pisar la conversión: un GeoTIFF a un GeoTIFF sigue siendo de `gdal-raster` y la matriz de conversión no los ve (`Motor.operacion`, `registry.motor_para(par, operacion)`).
+  - **Recorte por polígono** (`gdalwarp -cutline`): vértices con su CRS (`recorte_vertices` + `recorte_crs`) o un archivo (GeoJSON, GeoPackage, Shapefile o KML) cuyo CRS lo dice `ogrinfo`. La ventana se calcula sobre la retícula del original (`-te`/`-tr`, sin remuestrear): con `-crop_to_cutline` el oráculo vio 99 filas de 100 y se descartó. Fuera del polígono el píxel no tiene dato (el declarado o una banda alfa): cero no es «sin dato».
+  - **Mosaico** (`gdalbuildvrt` + `gdal_translate` a COG o GeoTIFF) sobre las entradas del trabajo: se detiene con `crs-distintos` si no comparten sistema y huella cada original antes y después.
+  - **Sombreado** (`gdaldem hillshade`): la misma llamada y la misma escala que el visor (`dem.argumentos_de_sombreado`, `dem.escala_de_sombreado`); un modelo sin CRS no se sombrea.
+- **`apps/pointcloud/recorte.py`**: recorte de una nube LAS/LAZ/COPC por un polígono con PDAL `filters.crop`; el polígono se lleva al sistema de la nube con `pyproj` antes de lanzar nada. Apagado con `sin-driver-pdal` si ese PDAL no trae el filtro.
+- **`apps/formats/poligono.py`**: el polígono de recorte con CRS pegado (`PuntoConCrs`); sin CRS declarado y válido el trabajo se detiene con `crs-ausente`, sin valor por omisión.
+- **`PlanNoValido`** (`apps/engines/base.py`): un motor se detiene en `plan()` con un código estable, y el corredor lo entrega tal cual (antes todo `ValueError` salía como `error-del-motor`).
+- Motivos nuevos `crs-distintos` y `recorte-vacio`; sin `gdaldem` el sombreado sale apagado con `sin-gdaldem` y su paso de instalación de siempre.
+- Pruebas: 21 con oráculo contra GDAL 3.12.4 y 8 contra PDAL 2.10.0 sobre datos sintéticos de resultado conocido, más el plan, las paradas por CRS y el original intacto en cada camino de fallo, que corren sin GDAL ni PDAL.
+
+### Corregido - sombreado de un modelo en grados sin unidad vertical
+
+- `dem.escala_de_sombreado` suponía «grados» como unidad vertical cuando el archivo no declaraba ninguna y daba escala 1: el relieve salía unas 111 mil veces más pendiente. Ahora supone metros, como GDAL (escala 111120).
+
 ### Cambiado - el gate corto dice lo mismo que el gate real
 
 - **`scripts/claude/verificar.py todo`** usa `--fail-level WARNING` en `check` y `check --deploy` y corre

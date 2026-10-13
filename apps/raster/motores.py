@@ -899,6 +899,9 @@ def _numero_finito(valor, que: str) -> float:
 def registrar_todos() -> None:
     registry.registrar(MotorGdalRaster())
     registry.registrar(MotorCurvasDeNivel())
+    from .procesar import registrar as registrar_procesos
+
+    registrar_procesos()
     registry.registrar(MotorEcw())
     for formato, (controlador, de_donde) in ORIGENES_PROPIETARIOS.items():
         registry.registrar(MotorLecturaPropietaria(formato, controlador, de_donde))
