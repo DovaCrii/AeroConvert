@@ -1,0 +1,14 @@
+{
+  "allow_paths": ["static/vendor/*"],
+  "allow_rules": {
+    "apps/core/forms.py": ["email"],
+    "apps/core/test_correo.py": ["email"],
+    "apps/core/test_cuentas.py": ["email"],
+    "apps/core/test_cuerpo_anonimo.py": ["email"],
+    "apps/documents/test_redactar.py": ["rut"],
+    "apps/presets/test_paquetes.py": ["rut"],
+    "apps/tino/tests.py": ["nvapi"],
+    "templates/documents/redactar.html": ["rut"],
+    "despliegue/README.md": ["email"]
+  }
+}

@@ -22,11 +22,15 @@ absolutas en los scripts de una sola vez: `[IO.File]` resuelve desde el director
    `MASTER_PLAN.md`: ✅ si el oráculo se cumplió, ⚠ con el motivo y quién lo cierra si no. Una fila ✅ sin
    oráculo no vale (regla 2). La misma marca va en su bloque de `docs/planes/SEGUIMIENTO.md`.
 3. **Documentos.** `CHANGELOG.md` bajo `## [Sin publicar]` (Keep a Changelog 1.1.0 es-ES);
-   `HANDOFF.md` solo si cambia algo que deba saber quien retome (**≤ 100 líneas**; lo que se retira va a
+   `HANDOFF.md` **al cerrar una fase** (como pide `AGENTS.md`: fecha, último PR y punto de retome); en una fila
+   intermedia, solo si cambia el punto de retome (**≤ 100 líneas**; lo que se retira va a
    `docs/historial/`). Si hay pedidos nuevos a la persona, a `SEGUIMIENTO.md`.
-4. **La suite completa, en segundo plano**, sobre el commit final y sin cambiar de rama mientras corre:
-   `$env:AEROCONVERT_GDAL_BIN=""; $env:AEROCONVERT_PDAL_BIN=""; uv run pytest -q --no-cov -p no:cacheprovider`
-   más `uv run ruff format --check .` y `uv run ruff check .`. `/verificar rapido` mientras se itera. **Lo que
+4. **El gate completo, en segundo plano**, sobre el commit final y sin cambiar de rama mientras corre:
+   `$env:AEROCONVERT_GDAL_BIN=""; $env:AEROCONVERT_PDAL_BIN=""; uv run python scripts/claude/verificar.py todo`
+   (los mismos pasos que `verify.ps1` y el CI: `check` y `check --deploy` con `--fail-level WARNING`,
+   `makemigrations --check`, `pytest --cov`, `ruff check`, `ruff format --check`, `bandit`, `pip-audit` y
+   `shellcheck` si está). **No sustituye al CI**: el CI verde del commit de cabeza y la protección de rama
+   son lo que manda para fusionar. `/verificar rapido` mientras se itera. **Lo que
    pasa en Windows tiene que pasar en Linux** (el CI y p340): archivos de prueba con `newline="\n"` y rutas
    partidas por `\` y `/`. Si toca un motor, `/oraculo`; si toca una firma, datos sensibles o permisos, el
    diff pasa por `revisor-de-reglas` **antes**.

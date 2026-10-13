@@ -23,8 +23,17 @@
   revisa un diff contra las cinco reglas de `AGENTS.md`) y `fusionador-de-pr` (Haiku, solo `gh`:
   espera el CI del commit de cabeza y fusiona en verde).
 - **Antes de un `git push`** corre solo la puerta rápida (`scripts/claude/antes_de_push.py`, hook en
-  `.claude/settings.json`) y lo bloquea si falla. **Dos PR que añaden herramientas chocan siempre en
+  `.claude/settings.json`) y lo bloquea si falla; **es una ayuda, no una garantía** (solo mira ciertas
+  formas de `git push` desde Bash o PowerShell): la protección de rama y el CI son los que mandan. **Dos PR que añaden herramientas chocan siempre en
   los mismos archivos:** `scripts/claude/fusionar_main.py` resuelve «los dos añadieron» validando.
 - Responde en español, de usted y sin voseo. Commits en español, imperativo y con ámbito
   (`feat(raster): …`).
 - Lo que choque con `AGENTS.md` se resuelve a favor de `AGENTS.md`.
+
+## Cómo trabajamos (resumen del estándar; completo en `docs/ESTANDAR_TRABAJO.md` de AeroAcademy)
+
+- **Plan primero.** Antes de cambiar algo no trivial, proponga un plan corto (qué, en qué archivos, cómo se prueba).
+- **Bloques pequeños.** Una rama y un PR por cambio acotado (`codex/<área-o-fase>`). Nunca directo sobre `main`.
+- **Pruebas.** Antes de entregar: `uv run pytest` (o `scripts/claude/verificar.py`) y `uv run ruff check . && uv run ruff format --check .`.
+- **Privacidad (repositorio público).** Sin claves, `.env`, datos de clientes ni datos personales (usuarios, correos) en git, logs ni pruebas. Corra `python tools/kit/privacy_scan.py`.
+- **No tocar** `despliegue/`, `.env*` ni los flujos de despliegue sin que se pida explícitamente.

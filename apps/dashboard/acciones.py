@@ -871,6 +871,7 @@ def por_categoria(busqueda: str = "") -> list[dict]:
                     "titulo": titulo,
                     "cuando": cuando,
                     "icono": grupo.icono,
+                    "modulo": taxonomia.MODULO_POR_ID[taxonomia.MODULO_DE_GRUPO[clave]],
                     "seccion": reverse(seccion) if seccion else "",
                     "acciones": dentro,
                 }

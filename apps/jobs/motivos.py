@@ -354,6 +354,22 @@ MOTIVOS: dict[str, Motivo] = dict(
             "Ya hizo las consultas que se permiten por minuto o por día.",
             "Espere un minuto. Mientras tanto Tino sigue contestando lo que esta máquina sabe.",
         ),
+        # --- Módulos de producto que aún no existen (F21.1) -----------------
+        _m(
+            "modulo-mapa-pendiente",
+            "El módulo Mapa (capas y simbología) aún no está construido.",
+            "Mientras tanto, mire el archivo en Ver, o entregue la capa a QGIS desde Transformar.",
+        ),
+        _m(
+            "modulo-lamina-pendiente",
+            "El módulo Lámina (láminas técnicas de mapa) aún no está construido.",
+            "Mientras tanto, exporte la capa y componga la lámina en QGIS.",
+        ),
+        _m(
+            "modulo-automatizar-pendiente",
+            "El módulo Automatizar (flujos repetidos sobre muchos archivos) aún no existe.",
+            "Mientras tanto, repita la conversión desde Transformar con un preajuste guardado.",
+        ),
         _m(
             "ia-no-disponible",
             "El servicio de fuera no contestó (clave rechazada, límite de uso, caída o plazo).",
