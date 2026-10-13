@@ -23,9 +23,8 @@ verde** (el agente `fusionador-de-pr` espera el CI). **Usted despliega en p340.*
   AeroBim) y los puntos de control, que «Corregir un vuelo» aún no escribe (F18.14).
 - También: geoide declarado (F15.2), escanear con el teléfono (F14.12), EPUB (F14.22), vuelos RTK/PPK y
   EXIF (F18.7 a F18.10), `runner.py` partido (F11.8), `original-modificado`. 42 herramientas; 4.400+ pruebas.
-- **Tino con NVIDIA (F20.11, `codex/f20-11-tino-nvidia`):** apagado salvo `AEROCONVERT_TINO_VISIBLE`
-  y **clave que usted pone en el `.env` de p340** (`_TINO_CLAVE`, `_MODELO`, `_MODELOS_RESPALDO`, `_URL`).
-  ⚠ Falta `manage.py tino_probar` con la clave real.
+- **Tino con NVIDIA (F20.11):** necesita `AEROCONVERT_TINO_VISIBLE` y **la clave que usted pone en el `.env`
+  de p340** (`_TINO_CLAVE`); luego `manage.py tino_probar` para elegir el modelo.
 
 ## Desplegar en p340 (lo hace usted)
 
@@ -98,5 +97,4 @@ fuera de la máquina** y **¿el repositorio sigue público?** (este archivo dice
 uv run python scripts/claude/verificar.py rapido
 python scripts/claude/plan_fila.py --abiertas
 ```
-
 Historial: [`docs/historial/HANDOFF-hasta-2026-10-09.md`](docs/historial/HANDOFF-hasta-2026-10-09.md)

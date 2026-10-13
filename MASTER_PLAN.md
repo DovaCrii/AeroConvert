@@ -619,7 +619,7 @@ Referencias: DJI Terra, Emlid Studio y Cesium; investigación con fuentes en
 | F20.8 | **Stop & Go y promediado de puntos** | Un CSV real de ocupaciones | Claude | ⏸ espera un ejemplo real |
 | F20.9 | **Piloto CesiumJS** (`@cesium/engine` vendorizado, sin ion ni internet, teselas propias) bajo la CSP real; si exige aflojarla más allá de `worker-src blob:`/`wasm-unsafe-eval`, MapLibre GL JS | Consola sin errores de CSP; todas las peticiones al propio servidor | Claude | ⬜ |
 | F20.10 | **Mapa 3D**: ortofoto y DEM como terreno, trayectoria y fotos del vuelo, ficha de la capa (sistema, resolución, extensión) | Posiciones contra `gdaltransform`; cota contra `gdallocationinfo` | Claude | ⬜ |
-| F20.11 | **Tino con la API de NVIDIA** (formato OpenAI, `urllib`, modelo configurable): solo la pregunta escrita ya limpia, nunca un archivo; sin clave, apagado con motivo | Servidor HTTP falso: sale solo el texto limpio; prueba real con la clave la hace la persona | Claude · **la persona pone la clave** | ⬜ |
+| F20.11 | **Tino con la API de NVIDIA** (formato OpenAI, `urllib`, modelo configurable): solo la pregunta escrita ya limpia, nunca un archivo; sin clave, apagado con motivo | Servidor HTTP falso: sale solo el texto limpio; prueba real con la clave la hace la persona | Claude · **la persona pone la clave** | ⚠ 2026-10-13 hecho: cliente con `urllib`, modelo `nvidia/nemotron-3.5-lightning-30b-a3b` y respaldos, botón «Preguntar fuera», `limpiar()` también quita coordenadas, `tino_probar`; falta la prueba con la clave real en p340 (P22) |
 
 ---
 
