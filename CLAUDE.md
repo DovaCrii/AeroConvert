@@ -17,11 +17,12 @@
   de documentos) y **`/mirar-pantalla <nombre=/ruta/>`** (ver una pantalla sin crear cuentas). La plantilla de
   encargo a un agente está en `.claude/agents/ENCARGO.md`.
 - **Agentes del proyecto** (`.claude/agents/`; reparto en `/avanzar`): Opus coordina con esfuerzo
-  medio; `explorador` (Haiku, solo lectura: dónde vive algo y qué pruebas lo fijan), `investigador`
-  (Sonnet, web con fuentes), `implementador` (Sonnet, una fila en su worktree, sin push),
-  `disenador` (Sonnet, tokens, contraste e ilustraciones), `revisor-de-reglas` (Sonnet, solo lectura:
-  revisa un diff contra las cinco reglas de `AGENTS.md`) y `fusionador-de-pr` (Haiku, solo `gh`:
-  espera el CI del commit de cabeza y fusiona en verde).
+  medio. **Ideas de mejora y diseño → Opus 5.5 medio:** `planificador-de-mejoras` (solo lectura: revisa y
+  entrega un plan con cada paso etiquetado) y `disenador` (tokens, contraste e ilustraciones). **Aplicar →
+  Sonnet 5.5 medio:** `implementador` (una fila en su worktree, sin push), `investigador` (web con fuentes) y
+  `revisor-de-reglas` (solo lectura: revisa un diff contra las cinco reglas de `AGENTS.md`). **Lo mecánico →
+  Haiku 5.5:** `explorador` (dónde vive algo y qué pruebas lo fijan) y `fusionador-de-pr` (solo `gh`: espera
+  el CI del commit de cabeza y fusiona en verde).
 - **Antes de un `git push`** corre solo la puerta rápida (`scripts/claude/antes_de_push.py`, hook en
   `.claude/settings.json`) y lo bloquea si falla; **es una ayuda, no una garantía** (solo mira ciertas
   formas de `git push` desde Bash o PowerShell): la protección de rama y el CI son los que mandan. **Dos PR que añaden herramientas chocan siempre en
