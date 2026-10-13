@@ -36,6 +36,9 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      - name: Revision de privacidad
+        run: python tools/kit/privacy_scan.py
+
       - uses: astral-sh/setup-uv@v7
         with:
           python-version: "3.12"
