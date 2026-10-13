@@ -157,3 +157,72 @@ Referencias que conviene tener abiertas:
 | `AeroControl/scripts/verify.ps1` | el gate que aquí se copia |
 | `AeroBim/apps/web/scripts/a-copc.py` | el motor de la fase F2, ya medido |
 | `AeroControl/apps/geo/kml/parse.py` | parser KML endurecido para la fase F3 |
+
+---
+
+## Estándar de trabajo con Claude Code (secciones del kit)
+
+Secciones añadidas al adoptar el estándar de trabajo de la suite Aero (`docs/ESTANDAR_TRABAJO.md`
+de AeroAcademy). **Lo anterior de este archivo manda**; si algo de aquí lo contradice, gana lo anterior.
+
+### Qué es
+
+AeroConvert es un conversor de formatos geoespaciales y de documentos para entregables de topografía e
+ingeniería, de uso local o en una oficina pequeña (VM propia). No es un servicio público multiempresa ni
+sustituye a GDAL, PDAL u ODA: los orquesta y verifica su salida.
+
+### Stack
+
+- Python 3.12 con `uv`; Django 6.1 (monolito modular en `apps/`), Django REST Framework, `django-axes`, `whitenoise`.
+- SQLite (`DB_PATH`); front con Bootstrap y htmx vendorizados en `static/vendor/`.
+- Pruebas con `pytest` + `pytest-django` (`pytest.ini` deja fuera las marcadas `oraculo`); lint con `ruff`; `bandit` y `pip-audit` en el gate.
+- Despliegue: VM Linux con `gunicorn` + nginx y unidades systemd; el detalle está en `despliegue/`.
+
+### Comandos
+
+```bash
+uv sync --all-groups --locked
+uv run python manage.py runserver                  # desarrollo (SECRET_KEY por entorno o .env)
+uv run pytest                                      # pruebas (la suite completa tarda ~30 min)
+uv run ruff check . && uv run ruff format --check .
+pwsh scripts/verify.ps1                            # la puerta de calidad completa
+uv run python scripts/claude/verificar.py rapido   # puerta corta para iterar
+```
+
+### Seguridad, autenticación y datos personales
+
+- Hay **cuentas con usuario y contraseña** (autenticación de Django, sesión, CSRF, bloqueo por intentos con
+  `django-axes`). El alta y la gestión del equipo se hace por la administración de Django. Estas reglas
+  complementan «Permisos» de arriba: **prueba de 403 por vista nueva**, nunca `fields = "__all__"`.
+- **Nunca** escribir contraseñas, hashes, claves de sesión, `SECRET_KEY`, claves de SDK (ECW) ni `TINO_API_KEY`
+  en el código, en pruebas con valores reales, en logs ni en mensajes de error. Las pruebas usan cuentas y claves inventadas.
+- Los nombres de usuario, correos y la bitácora (actor de cada declaración de CRS) son **datos personales**: no se
+  vuelcan a logs, a fixtures versionados ni a servicios externos. No registrar el cuerpo de las peticiones de login.
+- Lo que sube la gente y lo que se produce son datos de cliente: no se versionan ni se envían a APIs externas.
+- Secretos y configuración solo por variables de entorno (`.env` local, ignorado por git); `.env.example` solo lleva valores de ejemplo.
+
+### Privacidad
+
+El repositorio es **público**. Sin secretos, datos de clientes ni datos personales en git, logs ni pruebas.
+Corra `python tools/kit/privacy_scan.py` antes de cada PR (también corre en el CI). Lo privado va en `private/` (ignorado por git).
+
+### Dependencias
+
+Ninguna nueva sin justificarla; revisar la licencia con la tabla de «Dependencias y licencias».
+
+### No tocar sin que se pida explícitamente
+
+`despliegue/` (unidades systemd, nginx, instaladores), `.env*` y el flujo de despliegue de `.github/workflows/`.
+
+### Definición de terminado
+
+- Criterios de aceptación cumplidos y cubiertos por pruebas.
+- `pwsh scripts/verify.ps1` en verde, también en el CI del PR.
+- Fila del plan, `CHANGELOG.md` y `HANDOFF.md` al día (ver «Al cerrar una fase»).
+- Revisión de privacidad en verde (`python tools/kit/privacy_scan.py`).
+
+### Nota sobre quién fusiona
+
+El kit del estándar propone que la persona fusione los PR. En AeroConvert **rige la decisión del 2026-10-05**
+(ver «Ramas»): el agente fusiona con el CI verde y la persona despliega. Pendiente de que la persona confirme si
+mantiene esa excepción o adopta la regla del kit.
