@@ -220,7 +220,7 @@ De la lista de iLovePDF, ordenadas por lo que se pide de verdad en una oficina d
 > de lo mismo que decide la conversión—, **no sale del equipo**, y funciona sin configurar
 > nada ni pagar nada.
 >
-> La puerta hacia fuera existe, está escrita, y **nace cerrada**: sin `AEROCONVERT_TINO_CLAVE`
+> La puerta hacia fuera existe, está escrita, y **nace cerrada**: sin `AEROCONVERT_TINO_API_KEY`
 > no se ejecuta una sola línea de ella. **El proveedor se deja sin decidir a propósito**: a
 > quién se le manda la pregunta de alguien es una decisión sobre los datos de la oficina, y
 > esa no es de quien escribe el código. Hay una prueba que comprueba que sigue sin decidir.
@@ -619,7 +619,7 @@ Referencias: DJI Terra, Emlid Studio y Cesium; investigación con fuentes en
 | F20.8 | **Stop & Go y promediado de puntos** | Un CSV real de ocupaciones | Claude | ⏸ espera un ejemplo real |
 | F20.9 | **Piloto CesiumJS** (`@cesium/engine` vendorizado, sin ion ni internet, teselas propias) bajo la CSP real; si exige aflojarla más allá de `worker-src blob:`/`wasm-unsafe-eval`, MapLibre GL JS | Consola sin errores de CSP; todas las peticiones al propio servidor | Claude | ⬜ |
 | F20.10 | **Mapa 3D**: ortofoto y DEM como terreno, trayectoria y fotos del vuelo, ficha de la capa (sistema, resolución, extensión) | Posiciones contra `gdaltransform`; cota contra `gdallocationinfo` | Claude | ⬜ |
-| F20.11 | **Tino con la API de NVIDIA** (formato OpenAI, `urllib`, modelo configurable): solo la pregunta escrita ya limpia, nunca un archivo; sin clave, apagado con motivo | Servidor HTTP falso: sale solo el texto limpio; prueba real con la clave la hace la persona | Claude · **la persona pone la clave** | ⬜ |
+| F20.11 | **Tino con la API de NVIDIA** (formato OpenAI, `urllib`, modelo configurable): solo la pregunta escrita ya limpia, nunca un archivo; sin clave, apagado con motivo | Servidor HTTP falso: sale solo el texto limpio; prueba real con la clave la hace la persona | Claude · **la persona pone la clave** | ⚠ 2026-10-13 hecho: cliente con `urllib`, modelo `nvidia/nemotron-3.5-lightning-30b-a3b` y respaldos, botón «Preguntar fuera», `limpiar()` también quita coordenadas, `tino_probar`; falta la prueba con la clave real en p340 (P22) |
 | F20.12 | **Medir y, solo si hace falta, acelerar** (D10): perfilar con archivos reales en p340 los pasos propios que recorren millones de registros y, si alguno es el cuello de botella, probar primero NumPy o Polars y solo después Rust (PyO3 + maturin) para **esa función**. Candidatos de hoy: lectura de RINEX grandes y del `.pos` para la evaluación previa y el informe de calidad (F20.4, F20.7); sincronía de miles de fotos con la trayectoria (`apps/vuelos/vuelo_sync.py`); recorridos de nubes LAS fuera de PDAL; generación masiva de teselas del visor (`apps/visor/teselas.py`, hoy un `gdalwarp` por tesela); `limpiar()` de Tino y la detección de formato (`apps/formats/deteccion.py`) no lo necesitan. | Tiempo y memoria antes y después con el mismo archivo; la misma salida byte a byte o contra el mismo oráculo; las mismas pruebas en verde | Claude · **la persona aporta un archivo grande real** | ⬜ |
 
 ---

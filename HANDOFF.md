@@ -21,9 +21,10 @@ verde** (el agente `fusionador-de-pr` espera el CI). **Usted despliega en p340.*
 - **«Ver en el mapa» (`/mapa/`, `apps/visor/`):** teselas, terreno, varias capas con orden y
   transparencia, vuelos propios y mapa base de la casa (F19.1 a F19.5). Abierto: F19.6 (contrato con
   AeroBim) y los puntos de control, que «Corregir un vuelo» aún no escribe (F18.14).
-- También en esta tanda: alturas con geoide declarado (F15.2), escanear con el teléfono (F14.12), libro
-  EPUB (F14.22), vuelos RTK y ficha EXIF (F18.8 a F18.10), PPK desde RINEX (F18.7), `runner.py` partido
-  (F11.8) y `original-modificado` (regla 5). 42 herramientas de documentos; más de 4.400 pruebas.
+- También: geoide declarado (F15.2), escanear con el teléfono (F14.12), EPUB (F14.22), vuelos RTK/PPK y
+  EXIF (F18.7 a F18.10), `runner.py` partido (F11.8), `original-modificado`. 42 herramientas; 4.400+ pruebas.
+- **Tino con NVIDIA (F20.11):** necesita `AEROCONVERT_TINO_VISIBLE` y **la clave que usted pone en el `.env`
+  de p340** (`_TINO_API_KEY`); luego `manage.py tino_probar` para elegir el modelo.
 
 ## Desplegar en p340 (lo hace usted)
 
@@ -96,5 +97,4 @@ fuera de la máquina** y **¿el repositorio sigue público?** (este archivo dice
 uv run python scripts/claude/verificar.py rapido
 python scripts/claude/plan_fila.py --abiertas
 ```
-
 Historial: [`docs/historial/HANDOFF-hasta-2026-10-09.md`](docs/historial/HANDOFF-hasta-2026-10-09.md)

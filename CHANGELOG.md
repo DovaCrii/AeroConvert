@@ -5,6 +5,25 @@ Sigue [Keep a Changelog 1.1.0](https://keepachangelog.com/es-ES/1.1.0/) y
 
 ## [Sin publicar]
 
+### Añadido — Tino pregunta a la API pública de NVIDIA (F20.11)
+
+- **Cliente de modelo con `urllib`** (sin dependencias nuevas): `POST {base}/chat/completions` con
+  `Authorization: Bearer`, modelo `AEROCONVERT_TINO_MODELO` (vacío: `nvidia/nemotron-3.5-lightning-30b-a3b`)
+  y respaldos `AEROCONVERT_TINO_MODELOS_RESPALDO` si un modelo responde 404. Base configurable con
+  `AEROCONVERT_TINO_URL` (para un NIM autoalojado).
+- **Solo sale la pregunta escrita, limpia**: `limpiar()` quita además coordenadas (pares decimales,
+  Este/Norte UTM). Solo se llama con `TINO_VISIBLE`, clave y cuando la persona pulsa «Preguntar fuera»
+  (nunca con cada tecla); la pantalla enseña lo que salió.
+- **Apagado con motivo** (`sin-clave-ia`, `ia-no-disponible`) ante falta de clave, 401, 429, 5xx o
+  plazo: Tino sigue con lo que sabe sin salir del equipo. La clave no se registra ni se muestra.
+- **Endurecido tras la revisión:** sin redirecciones (la clave no sigue un `Location`), `https` salvo
+  loopback, plazo total y lectura con tope; «Preguntar fuera» es un POST con CSRF y con tope por persona
+  (`ia-limite`); `limpiar()` quita además grados-minutos-segundos, decimales con coma, miles con punto,
+  rutas con espacios, Unix y relativas y más extensiones (un nombre sin extensión no se puede detectar y
+  la pantalla lo dice); el ajuste se llama `TINO_API_KEY` (`AEROCONVERT_TINO_API_KEY`) para que Django lo
+  oculte; motivos `ia-apagada` e `ia-sin-pregunta`; las pruebas bloquean toda red que no sea el servidor falso.
+- `manage.py tino_probar`: lista los modelos de `GET {base}/models` y hace una pregunta de prueba.
+
 ## [0.13.0] — 2026-10-09
 
 Mapa en `/mapa/` con ortofotos por teselas, terreno, varias capas y mapa base de la casa; vuelos de dron con RTK, ficha EXIF y trayectoria con RTKLIB, en su propia app; alturas elipsoidal y ortométrica con geoide declarado; escanear con el teléfono y libro EPUB; dirección visual «Plan de vuelo»; el corredor de trabajos partido sin cambiar comportamiento, y un original que cambia durante el trabajo lo deja en error. Los pasos del despliegue están en `HANDOFF.md`.

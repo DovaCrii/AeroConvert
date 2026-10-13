@@ -117,6 +117,15 @@ PASOS: dict[str, Paso] = {
         "Lo mismo: las grillas de PROJ en una carpeta y AEROCONVERT_PROJ_GRILLAS en el .env.",
         "Mientras tanto, exporte la altura elipsoidal desde el programa que la calculó.",
     ),
+    "sin-clave-ia": Paso(
+        PERSONA,
+        "Cree una clave en build.nvidia.com y póngala usted en el .env como "
+        "AEROCONVERT_TINO_API_KEY (nunca en el repositorio ni en un chat); con "
+        "AEROCONVERT_TINO_VISIBLE=true y reiniciando el servicio, manage.py tino_probar dice si "
+        "responde y qué modelos hay.",
+        "Lo mismo en el .env de la estación.",
+        "Mientras tanto, Tino contesta con lo que sabe sin salir del equipo.",
+    ),
     "sin-rtklib": Paso(
         GUION,
         f"{INSTALAR_FALTANTES} (instala rtklib; convbin y rnx2rtkp quedan en el PATH).",
