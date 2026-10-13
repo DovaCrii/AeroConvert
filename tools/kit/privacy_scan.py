@@ -37,6 +37,8 @@ DEFAULT_ALLOW_DOMAINS = {
     "noreply.github.com",
     "anthropic.com",
 }
+# TLD reservados (RFC 2606 / 6761): nunca son dominios reales.
+RESERVED_TLDS = (".example", ".invalid", ".test", ".localhost")
 MAX_BYTES = 2_000_000
 
 CONTENT_RULES = {
@@ -79,7 +81,7 @@ def check_text(path: str, text: str, allow_domains: set[str], skip_rules=()) -> 
         if "email" not in skip_rules:
             for m in EMAIL_RE.finditer(line):
                 domain = m.group(1).lower()
-                if domain not in allow_domains and not domain.endswith(".example"):
+                if domain not in allow_domains and not domain.endswith(RESERVED_TLDS):
                     found.append(f"email: {path}:{lineno} (dominio {domain})")
     return found
 
